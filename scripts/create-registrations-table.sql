@@ -31,3 +31,51 @@ CREATE POLICY "public_insert_registrations" ON registrations
 CREATE POLICY "public_select_registrations" ON registrations
   FOR SELECT
   USING (true);
+
+<Card className="mt-8 border-border">
+
+<CardHeader>
+<CardTitle>Individual Training Registrations</CardTitle>
+</CardHeader>
+
+<CardContent>
+
+<Table>
+
+<TableHeader>
+<TableRow>
+<TableHead>Name</TableHead>
+<TableHead>Email</TableHead>
+<TableHead>Phone</TableHead>
+<TableHead>Profession</TableHead>
+<TableHead>Program</TableHead>
+<TableHead>Schedule</TableHead>
+<TableHead>Date</TableHead>
+</TableRow>
+</TableHeader>
+
+<TableBody>
+
+{individualRegistrations.map((reg:any)=>(
+<TableRow key={reg.id}>
+
+<TableCell>{reg.full_name}</TableCell>
+<TableCell>{reg.email}</TableCell>
+<TableCell>{reg.phone}</TableCell>
+<TableCell>{reg.profession}</TableCell>
+<TableCell>{reg.training_program}</TableCell>
+<TableCell>{reg.schedule}</TableCell>
+<TableCell>
+{new Date(reg.created_at).toLocaleDateString()}
+</TableCell>
+
+</TableRow>
+))}
+
+</TableBody>
+
+</Table>
+
+</CardContent>
+
+</Card>

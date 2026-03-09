@@ -14,7 +14,7 @@ import { exportToCSV } from '@/lib/csv-export';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
-
+const [individualRegistrations, setIndividualRegistrations] = useState([])
 interface Registration {
   id: string;
   full_name: string;
@@ -31,17 +31,29 @@ interface Registration {
 export default function AdminDashboard() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [individualRegistrations, setIndividualRegistrations] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProgram, setFilterProgram] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
+
   useEffect(() => {
     // Try to fetch data - if user is not authenticated, they'll be redirected by middleware
     fetchRegistrations();
+    fetchIndividualRegistrations();
   }, [router]);
+  const fetchIndividualRegistrations = async () => {
 
+    const { data } = await supabase
+      .from('individual_registrations')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    setIndividualRegistrations(data || [])
+
+  }
   const fetchRegistrations = async () => {
     try {
       const { data, error } = await supabase
@@ -129,6 +141,19 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-primary">{filteredData.length}</div>
             </CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Individual Training</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+
+                <div className="text-3xl font-bold text-primary">
+                  {individualRegistrations.length}
+                </div>
+
+              </CardContent>
+            </Card>
           </Card>
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
