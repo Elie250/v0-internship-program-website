@@ -18,15 +18,6 @@ export async function submitRegistration(formData: {
   message: string;
 }) {
   try {
-    <Select value={ programType } onValueChange = { setProgramType } >
-      <SelectTrigger className="mt-1" >
-        <SelectValue />
-        </SelectTrigger>
-        < SelectContent >
-        <SelectItem value="student" > Student </SelectItem>
-          < SelectItem value = "individual" > Individual Training </SelectItem>
-            </SelectContent>
-            </Select>
     const { data, error } = await supabase
       .from('registrations')
       .insert([
