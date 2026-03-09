@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Electrical & Automation Internship Program - Energy and Logics Ltd',
+  description: 'Join our internship program in Electrical, Automation, Embedded Systems and IoT. Located in Nyamirambo, Kigali, Rwanda.',
   generator: 'v0.app',
   icons: {
     icon: [
