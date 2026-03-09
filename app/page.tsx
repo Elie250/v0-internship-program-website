@@ -82,7 +82,35 @@ export default function Home() {
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
+    try {
+      await submitRegistration(formData);
+
+      setIsSuccess(true);
+
+      setFormData({
+        fullName: '',
+        email: '',
+        phone: '',
+        school: '',
+        program: '',
+        level: '',
+        duration: '',
+        message: '',
+      });
+
+      setTimeout(() => setIsSuccess(false), 5000);
+
+    } catch (error) {
+      console.error(error);
+      alert("Registration failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   const handleIndividualSubmit = async (e: any) => {
 
     e.preventDefault()
