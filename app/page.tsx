@@ -405,7 +405,7 @@ export default function Home() {
             <CardContent className="pt-6">
               {isSuccess && (
                 <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-900 border border-green-200 flex gap-3">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold">Registration received!</p>
                     <p>We will contact you soon at the provided phone number.</p>
@@ -552,7 +552,7 @@ export default function Home() {
             <CardContent className="pt-6">
               {isSuccess && activeTab === 'individual' && (
                 <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-900 border border-green-200 flex gap-3">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold">Registration received!</p>
                     <p>We will contact you soon to discuss your training preferences.</p>
@@ -564,12 +564,22 @@ export default function Home() {
                 e.preventDefault();
                 setIsSubmitting(true);
                 try {
-                  const submissionData = {
+                  const individualFormDatata = {
                     ...individualFormData,
                     registrationType: 'Individual Training'
                   };
-                  await submitRegistration(submissionData);
+                  await submitIndividualRegistration({
+                    fullName: individualFormData.fullName,
+                    phone: individualFormData.phone,
+                    email: individualFormData.email,
+                    profession: individualFormData.profession,
+                    trainingProgram: individualFormData.trainingProgram,
+                    schedule: individualFormData.schedule,
+                    message: individualFormData.message,
+                  });
+
                   setIsSuccess(true);
+
                   setIndividualFormData({
                     fullName: '',
                     phone: '',
