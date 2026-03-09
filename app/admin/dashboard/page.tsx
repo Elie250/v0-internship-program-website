@@ -1,7 +1,5 @@
 // app/admin/dashboard/page.tsx
 'use client';
-
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -16,7 +14,7 @@ import { exportToCSV } from '@/lib/csv-export';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
-const [individualRegistrations, setIndividualRegistrations] = useState([])
+
 interface Registration {
   id: string;
   full_name: string;
@@ -29,10 +27,10 @@ interface Registration {
   message: string;
   created_at: string;
 }
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [individualRegistrations, setIndividualRegistrations] = useState([]);
   const [individualRegistrations, setIndividualRegistrations] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
