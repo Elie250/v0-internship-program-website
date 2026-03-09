@@ -1,5 +1,5 @@
+// app/admin/dashboard/page.tsx
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
@@ -27,21 +27,33 @@ interface Registration {
   message: string;
   created_at: string;
 }
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [individualRegistrations, setIndividualRegistrations] = useState([]);
+  const [individualRegistrations, setIndividualRegistrations] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProgram, setFilterProgram] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
 
+
   useEffect(() => {
     // Try to fetch data - if user is not authenticated, they'll be redirected by middleware
     fetchRegistrations();
+    fetchIndividualRegistrations();
   }, [router]);
+  const fetchIndividualRegistrations = async () => {
 
+    const { data } = await supabase
+      .from('individual_registrations')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    setIndividualRegistrations(data || [])
+
+  }
   const fetchRegistrations = async () => {
     try {
       const { data, error } = await supabase
@@ -129,6 +141,19 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-3xl font-bold text-primary">{filteredData.length}</div>
             </CardContent>
+            <Card>
+              <CardHeader>
+                <CardTitle>Individual Training</CardTitle>
+              </CardHeader>
+
+              <CardContent>
+
+                <div className="text-3xl font-bold text-primary">
+                  {individualRegistrations.length}
+                </div>
+
+              </CardContent>
+            </Card>
           </Card>
           <Card className="border-border bg-card">
             <CardHeader className="pb-3">
