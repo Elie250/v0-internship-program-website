@@ -17,7 +17,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 interface Registration {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   phone: string;
   school: string;
