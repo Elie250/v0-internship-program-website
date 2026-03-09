@@ -111,24 +111,6 @@ export default function Home() {
       setIsSubmitting(false);
     }
   };
-  const handleIndividualSubmit = async (e: any) => {
-
-    e.preventDefault()
-
-    try {
-
-      await submitIndividualRegistration(individualFormData)
-
-      alert("Registration submitted successfully!")
-
-    } catch (err) {
-
-      console.error(err)
-      alert("Something went wrong")
-
-    }
-
-  };
 
   return (
     <main className="min-h-screen bg-background text-foreground">
