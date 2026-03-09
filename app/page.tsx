@@ -112,13 +112,10 @@ export default function Home() {
   };
   const handleIndividualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setIsSubmitting(true);
 
     try {
-
-      const submissionData = {
-        registrationType: 'individual',
+      await submitIndividualRegistration({
         fullName: individualFormData.fullName,
         phone: individualFormData.phone,
         email: individualFormData.email,
@@ -126,9 +123,7 @@ export default function Home() {
         trainingProgram: individualFormData.trainingProgram,
         schedule: individualFormData.schedule,
         message: individualFormData.message,
-      };
-
-      await submitIndividualRegistration(submissionData);
+      });
 
       setIndividualFormData({
         fullName: '',
@@ -141,12 +136,14 @@ export default function Home() {
       });
 
       setIsSuccess(true);
+      setTimeout(() => setIsSuccess(false), 5000);
 
     } catch (error) {
       console.error(error);
+      alert("Application failed");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
   return (
     <main className="min-h-screen bg-background text-foreground">
