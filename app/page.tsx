@@ -101,7 +101,6 @@ export default function Home() {
         duration: '',
         message: '',
       });
-
       setTimeout(() => setIsSuccess(false), 5000);
 
     } catch (error) {
@@ -111,7 +110,44 @@ export default function Home() {
       setIsSubmitting(false);
     }
   };
+  const handleIndividualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
+    setIsSubmitting(true);
+
+    try {
+
+      const submissionData = {
+        registrationType: 'individual',
+        fullName: individualFormData.fullName,
+        phone: individualFormData.phone,
+        email: individualFormData.email,
+        profession: individualFormData.profession,
+        trainingProgram: individualFormData.trainingProgram,
+        schedule: individualFormData.schedule,
+        message: individualFormData.message,
+      };
+
+      await submitIndividualRegistration(submissionData);
+
+      setIndividualFormData({
+        fullName: '',
+        phone: '',
+        email: '',
+        profession: '',
+        trainingProgram: '',
+        schedule: '',
+        message: '',
+      });
+
+      setIsSuccess(true);
+
+    } catch (error) {
+      console.error(error);
+    }
+
+    setIsSubmitting(false);
+  };
   return (
     <main className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
