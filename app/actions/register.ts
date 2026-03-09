@@ -22,7 +22,7 @@ export async function submitRegistration(formData: {
       .from('registrations')
       .insert([
         {
-          full_name: formData.fullName,
+          name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
           school: formData.school,
