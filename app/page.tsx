@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Zap, Cpu, Wifi, Lightbulb, Code, AlertCircle } from 'lucide-react';
+import { submitIndividualRegistration } from "@/lib/submitIndividualRegistration"
 import { MessageCircle } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,28 +83,23 @@ export default function Home() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleIndividualSubmit = async (e: any) => {
+
+    e.preventDefault()
+
     try {
-      await submitRegistration(formData);
-      setIsSuccess(true);
-      setFormData({
-        fullName: '',
-        email: '',
-        phone: '',
-        school: '',
-        program: '',
-        level: '',
-        duration: '',
-        message: '',
-      });
-      setTimeout(() => setIsSuccess(false), 5000);
-    } catch (error) {
-      console.error('Error submitting registration:', error);
-    } finally {
-      setIsSubmitting(false);
+
+      await submitIndividualRegistration(individualFormData)
+
+      alert("Registration submitted successfully!")
+
+    } catch (err) {
+
+      console.error(err)
+      alert("Something went wrong")
+
     }
+
   };
 
   return (
