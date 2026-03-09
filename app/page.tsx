@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Zap, Cpu, Wifi, Lightbulb, Code, AlertCircle } from 'lucide-react';
+import { MessageCircle } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -128,16 +129,16 @@ export default function Home() {
       {/* Hero Section with Background Image */}
       <section className="relative min-h-screen w-full overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="/hero-electrical.jpg" 
-            alt="Industrial electrical panels" 
+          <Image
+            src="/hero-electrical.jpg"
+            alt="Industrial electrical panels"
             fill
             className="object-cover"
             priority
           />
           <div className="absolute inset-0 bg-primary/70 mix-blend-overlay"></div>
         </div>
-        
+
         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-4xl text-center">
             <h1 className="text-balance text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
@@ -157,7 +158,8 @@ export default function Home() {
                 </Button>
               </a>
               <a href="https://wa.me/250783986252" target="_blank" rel="noopener noreferrer" className="inline-block">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+                <Button size="lg" variant="outline" className="bg-[#25D366] text-white hover:bg-[#1ebe5d] flex items-center gap-2">
+                  <MessageCircle size={18} />
                   Chat on WhatsApp
                 </Button>
               </a>
@@ -173,7 +175,7 @@ export default function Home() {
           <p className="mt-4 text-center text-muted-foreground">
             Choose from our comprehensive programs designed for students pursuing technical education
           </p>
-          
+
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {PROGRAMS.map((program) => (
               <Card key={program.id} className="border-border bg-card hover:shadow-lg transition-shadow">
@@ -193,9 +195,9 @@ export default function Home() {
           <div className="mt-16 grid gap-8 sm:grid-cols-2">
             <div className="flex flex-col gap-4">
               <div className="relative h-48 w-full overflow-hidden rounded-lg">
-                <Image 
-                  src="/plc-automation.jpg" 
-                  alt="PLC Automation Systems" 
+                <Image
+                  src="/plc-automation.jpg"
+                  alt="PLC Automation Systems"
                   fill
                   className="object-cover"
                 />
@@ -205,9 +207,9 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-4">
               <div className="relative h-48 w-full overflow-hidden rounded-lg">
-                <Image 
-                  src="/embedded-systems.jpg" 
-                  alt="Embedded Systems & Arduino" 
+                <Image
+                  src="/embedded-systems.jpg"
+                  alt="Embedded Systems & Arduino"
                   fill
                   className="object-cover"
                 />
@@ -226,7 +228,7 @@ export default function Home() {
           <p className="mt-4 text-center text-muted-foreground max-w-3xl mx-auto">
             This program is for professionals such as technicians, engineers, graduates, or anyone interested in learning practical engineering skills at their own pace.
           </p>
-          
+
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             {INDIVIDUAL_TRAINING.map((training) => {
               const Icon = training.icon;
@@ -287,9 +289,9 @@ export default function Home() {
 
           {/* Training Image */}
           <div className="mt-12 relative h-80 w-full overflow-hidden rounded-lg">
-            <Image 
-              src="/student-training.jpg" 
-              alt="Student training in electrical laboratory" 
+            <Image
+              src="/student-training.jpg"
+              alt="Student training in electrical laboratory"
               fill
               className="object-cover"
             />
@@ -304,7 +306,7 @@ export default function Home() {
           <p className="mt-4 text-center text-muted-foreground">
             Flexible pricing for all internship levels with included benefits
           </p>
-          
+
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             {FEES.map((fee) => (
               <Card key={fee.level} className="border-2 border-accent bg-card text-center hover:shadow-lg transition-shadow">
@@ -657,7 +659,7 @@ export default function Home() {
           <p className="mt-4 text-center text-primary-foreground/80">
             Have questions? We're here to help you start your engineering journey
           </p>
-          
+
           <div className="mt-12 grid gap-8 sm:grid-cols-3">
             <div className="text-center">
               <Phone className="mx-auto h-10 w-10 text-accent" />
@@ -729,7 +731,7 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
             <p>&copy; 2024 Energy and Logics Ltd. All rights reserved. Engineering Sustainable Solutions.</p>
           </div>
