@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import DashboardTable from './table'
-
+import { acceptRegistration, declineRegistration } from './actions'
 export default async function Dashboard() {
 
   const { data } = await supabaseAdmin
