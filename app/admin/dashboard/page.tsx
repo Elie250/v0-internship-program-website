@@ -3,25 +3,31 @@ import DashboardTable from './table'
 import StatsCards from '@/components/dashboard/stats-cards'
 import AnalyticsSection from '@/components/dashboard/analytics-section'
 
-export const revalidate = 3600 // Revalidate every hour
+export const dynamic = 'force-dynamic' // Always fetch fresh data
 
 export default async function Dashboard() {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('registrations')
     .select('*')
     .order('created_at', { ascending: false })
 
+  if (error) {
+    console.error('Supabase error:', error)
+  }
+
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
-        <div className="text-center">
-          <p className="text-gray-600">Failed to load dashboard data</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="bg-white shadow-lg rounded-xl p-10 text-center">
+          <p className="text-gray-700 font-medium">
+            Failed to load dashboard data
+          </p>
         </div>
       </div>
     )
   }
 
-  // Calculate statistics
+  // Statistics
   const total = data.length
   const accepted = data.filter((d: any) => d.status === 'accepted').length
   const declined = data.filter((d: any) => d.status === 'declined').length
@@ -30,40 +36,64 @@ export default async function Dashboard() {
   const individuals = data.filter((d: any) => d.registration_type === 'Individual').length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-10">
+
+      <div className="max-w-7xl mx-auto space-y-10">
+
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Energy & Logics Admin Dashboard
+            <h1 className="text-4xl font-bold text-slate-900">
+              Energy & Logics Admin
             </h1>
-            <p className="text-gray-600">Manage applications and track registrations</p>
+            <p className="text-slate-600 mt-1">
+              Manage applications and track registrations
+            </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Last updated: {new Date().toLocaleString()}</p>
+
+          <div className="bg-white shadow-md rounded-lg px-4 py-2 text-sm text-slate-600">
+            Last updated: {new Date().toLocaleString()}
           </div>
+
         </div>
 
         {/* Stats Cards */}
-        <StatsCards
-          total={total}
-          accepted={accepted}
-          declined={declined}
-          pending={pending}
-          students={students}
-          individuals={individuals}
-        />
-
-        {/* Analytics Section */}
-        <AnalyticsSection registrations={data} />
-
-        {/* Table Section */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">All Applications</h2>
-          <DashboardTable registrations={data || []} />
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <StatsCards
+            total={total}
+            accepted={accepted}
+            declined={declined}
+            pending={pending}
+            students={students}
+            individuals={individuals}
+          />
         </div>
+
+        {/* Analytics */}
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <AnalyticsSection registrations={data} />
+        </div>
+
+        {/* Applications Table */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Applications
+            </h2>
+
+            <span className="text-sm text-slate-500">
+              {total} total registrations
+            </span>
+          </div>
+
+          <DashboardTable registrations={data} />
+
+        </div>
+
       </div>
+
     </div>
   )
 }
