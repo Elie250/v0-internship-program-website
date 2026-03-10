@@ -1,13 +1,11 @@
 import * as fs from 'fs'
 import * as path from 'path'
-
 interface CertificateData {
   fullName: string
   program: string
   completionDate: Date
   certificateId: string
 }
-
 export async function generateCertificate({
   fullName,
   program,
