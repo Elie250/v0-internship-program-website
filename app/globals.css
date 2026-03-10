@@ -73,7 +73,6 @@
 /* ======================================== */
 @layer base {
 
-  /* Body styling */
   body {
     font-family: 'Geist', 'Geist Fallback', sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -82,7 +81,6 @@
     color: var(--foreground);
   }
 
-  /* Anchor tags */
   a {
     color: var(--primary);
     text-decoration: none;
@@ -92,13 +90,11 @@
     text-decoration: underline;
   }
 
-  /* Buttons */
   button {
     border-radius: var(--radius);
     transition: background-color 0.3s, color 0.3s;
   }
 
-  /* Headings */
   h1,
   h2,
   h3,
