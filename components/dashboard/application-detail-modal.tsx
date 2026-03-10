@@ -19,7 +19,7 @@ export default function ApplicationDetailModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-start">
+        <div className="sticky top-0 bg-linear-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-start">
           <div>
             <h2 className="text-2xl font-bold">{application.full_name}</h2>
             <p className="text-blue-100 mt-1">{application.email}</p>
@@ -81,13 +81,12 @@ export default function ApplicationDetailModal({
                 <label className="block text-sm font-medium text-gray-600">Status</label>
                 <div className="mt-1">
                   <span
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      application.status === 'accepted'
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${application.status === 'accepted'
                         ? 'bg-green-100 text-green-700'
                         : application.status === 'declined'
                           ? 'bg-red-100 text-red-700'
                           : 'bg-yellow-100 text-yellow-700'
-                    }`}
+                      }`}
                   >
                     {(application.status || 'pending').charAt(0).toUpperCase() +
                       (application.status || 'pending').slice(1)}
@@ -168,11 +167,10 @@ export default function ApplicationDetailModal({
               <label className="block text-sm font-medium text-gray-600">Certificate Generated</label>
               <p className="text-gray-900 mt-1">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                    application.certificate_generated
+                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${application.certificate_generated
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-700'
-                  }`}
+                    }`}
                 >
                   {application.certificate_generated ? 'Yes' : 'No'}
                 </span>
