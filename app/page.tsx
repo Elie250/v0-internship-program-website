@@ -125,7 +125,7 @@ export default function Home() {
       <section className="relative min-h-screen w-full overflow-hidden pt-20">
         <div className="absolute inset-0 z-0">
           <Image src="/hero-electrical.jpg" alt="Industrial electrical panels" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/60 to-black/70"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70"></div>
         </div>
         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
           <div className="text-center max-w-4xl space-y-8">
@@ -159,7 +159,7 @@ export default function Home() {
       </section>
 
       {/* Programs */}
-      <section id="programs" className="px-4 py-20 bg-linear-to-b from-background to-muted/5">
+      <section id="programs" className="px-4 py-20 bg-gradient-to-b from-background to-muted/5">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Our Internship Programs</h2>
@@ -194,7 +194,7 @@ export default function Home() {
       </section>
 
       {/* Registration Form */}
-      <section id="registration-form" className="px-4 py-20 bg-linear-to-b from-muted/5 to-background">
+      <section id="registration-form" className="px-4 py-20 bg-gradient-to-b from-muted/5 to-background">
         <div className="mx-auto max-w-3xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Start Your Learning Journey</h2>
@@ -305,6 +305,78 @@ export default function Home() {
               </form>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="px-4 py-20 bg-muted/5">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-4xl font-bold text-center mb-12">Why Choose Energy & Logics?</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Hands-On Training</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Learn by doing with real equipment and industry-standard tools.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Expert Instructors</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Learn from industry professionals with years of experience.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Certification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Earn recognized certificates upon completion.</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Career Support</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Get guidance and networking opportunities with industry leaders.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact & Footer */}
+      <section className="bg-gradient-to-br from-primary to-primary/90 text-white px-4 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Get in Touch</h2>
+            <p className="text-lg text-white/90">Have questions? We're here to help you start your learning journey.</p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-8">
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-8 text-center hover:bg-white/15 transition-colors">
+              <Phone className="mx-auto h-10 w-10 mb-4" />
+              <h3 className="font-semibold mb-2">Phone</h3>
+              <a href="tel:+250783986252" className="text-white/80 hover:text-white transition-colors">+250 783 986 252</a>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-8 text-center hover:bg-white/15 transition-colors">
+              <Mail className="mx-auto h-10 w-10 mb-4" />
+              <h3 className="font-semibold mb-2">Email</h3>
+              <a href="mailto:energylogicsltd@gmail.com" className="text-white/80 hover:text-white transition-colors break-all">energylogicsltd@gmail.com</a>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-8 text-center hover:bg-white/15 transition-colors">
+              <MapPin className="mx-auto h-10 w-10 mb-4" />
+              <h3 className="font-semibold mb-2">Location</h3>
+              <p className="text-white/80">Nyamirambo, Kigali, Rwanda</p>
+            </div>
+          </div>
+          <div className="border-t border-white/20 mt-16 pt-8 text-center">
+            <p className="text-white/70 mb-4">&copy; 2024 Energy & Logics. All rights reserved.</p>
+            <p className="text-white/60 text-sm">Engineering Sustainable Solutions • Building Tomorrow's Innovators</p>
+          </div>
         </div>
       </section>
     </main>
