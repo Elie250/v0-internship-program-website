@@ -4,18 +4,24 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function acceptRegistration(id: string) {
 
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from('registrations')
     .update({ status: 'accepted' })
     .eq('id', id)
 
+  if (error) {
+    console.error(error)
+  }
 }
 
-export async function deleteRegistration(id: string) {
+export async function declineRegistration(id: string) {
 
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from('registrations')
-    .delete()
+    .update({ status: 'declined' })
     .eq('id', id)
 
+  if (error) {
+    console.error(error)
+  }
 }
