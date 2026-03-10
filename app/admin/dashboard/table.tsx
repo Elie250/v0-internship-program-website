@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { acceptRegistration, deleteRegistration } from './actions'
+import { acceptRegistration, declineRegistration } from './actions'
 
 export default function DashboardTable({ registrations }: any) {
 
@@ -26,14 +26,12 @@ export default function DashboardTable({ registrations }: any) {
 
         <thead className="bg-gray-100">
           <tr>
-
-            <th>Name</th>
+            <th className="p-2">Name</th>
             <th>Type</th>
             <th>School / Profession</th>
             <th>Program</th>
             <th>Status</th>
             <th>Actions</th>
-
           </tr>
         </thead>
 
@@ -43,17 +41,17 @@ export default function DashboardTable({ registrations }: any) {
 
             <tr key={r.id} className="border-t">
 
-              <td>{r.full_name}</td>
+              <td className="p-2">{r.full_name}</td>
 
-              <td>{r.registration_type}</td>
+              <td className="p-2">{r.registration_type}</td>
 
-              <td>{r.school || r.profession}</td>
+              <td className="p-2">{r.school || r.profession}</td>
 
-              <td>{r.program || r.training_program}</td>
+              <td className="p-2">{r.program || r.training_program}</td>
 
-              <td>{r.status}</td>
+              <td className="p-2">{r.status || 'pending'}</td>
 
-              <td className="flex gap-2">
+              <td className="p-2 flex gap-2">
 
                 <button
                   className="bg-green-600 text-white px-3 py-1 rounded"
@@ -64,9 +62,9 @@ export default function DashboardTable({ registrations }: any) {
 
                 <button
                   className="bg-red-600 text-white px-3 py-1 rounded"
-                  onClick={() => deleteRegistration(r.id)}
+                  onClick={() => declineRegistration(r.id)}
                 >
-                  Delete
+                  Decline
                 </button>
 
               </td>
