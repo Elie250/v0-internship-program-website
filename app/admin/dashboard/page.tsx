@@ -13,7 +13,7 @@ export default async function Dashboard() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-10">
         <div className="text-center">
           <p className="text-gray-600">Failed to load dashboard data</p>
         </div>
@@ -30,7 +30,7 @@ export default async function Dashboard() {
   const individuals = data.filter((d: any) => d.registration_type === 'Individual').length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-10">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-10">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
