@@ -1,46 +1,36 @@
-'use server';
+'use server'
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+export async function submitRegistration(data: any) {
 
-export async function submitRegistration(formData: {
-  fullName: string;
-  email: string;
-  phone: string;
-  school: string;
-  program: string;
-  level: string;
-  duration: string;
-  message: string;
-}) {
-  try {
-    const { data, error } = await supabase
-      .from('registrations')
-      .insert([
-        {
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          school: formData.school,
-          program: formData.program,
-          level: formData.level,
-          duration: formData.duration,
-          message: formData.message,
-        },
-      ])
-      .select();
+  const { error } = await supabase
+    .from('registrations')
+    .insert([
+      {
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        school: data.school || null,
+        program: data.program || data.trainingProgram || null,
+        level: data.level || null,
+        duration: data.duration || null,
+        profession: data.profession || null,
+        schedule: data.schedule || null,
+        message: data.message || null,
+        registration_type: data.registrationType || 'Student'
+      }
+    ])
 
-    if (error) {
-      throw error;
-    }
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('Registration error:', error);
-    throw error;
+  if (error) {
+    console.error(error)
+    throw new Error('Registration failed')
   }
+
+  return { success: true }
 }
