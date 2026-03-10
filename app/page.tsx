@@ -30,6 +30,7 @@ export default function Home() {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [formData, setFormData] = useState({
+    registrationType: 'Student', // Student or Individual
     fullName: '',
     email: '',
     phone: '',
@@ -38,8 +39,9 @@ export default function Home() {
     level: '',
     duration: '',
     profession: '',
+    trainingProgram: '',
+    schedule: '',
     message: '',
-    registrationType: 'Student', // default
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -51,10 +53,14 @@ export default function Home() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleRegistrationTypeChange = (type: 'Student' | 'Individual') => {
+    setFormData((prev) => ({ ...prev, registrationType: type }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.program && formData.registrationType === 'Student') {
+    if (formData.registrationType === 'Student' && (!formData.program || !formData.level)) {
       alert('Please select program and level');
       return;
     }
@@ -66,6 +72,7 @@ export default function Home() {
       setSuccessMessage('Registration received! We will contact you soon.');
 
       setFormData({
+        registrationType: 'Student',
         fullName: '',
         email: '',
         phone: '',
@@ -74,8 +81,9 @@ export default function Home() {
         level: '',
         duration: '',
         profession: '',
+        trainingProgram: '',
+        schedule: '',
         message: '',
-        registrationType: 'Student',
       });
 
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -100,7 +108,6 @@ export default function Home() {
               <div className="text-xs text-muted-foreground">Engineering Sustainable Solutions</div>
             </div>
           </div>
-
           <Link href="/admin/login">
             <Button variant="outline" size="sm">Admin</Button>
           </Link>
@@ -122,8 +129,7 @@ export default function Home() {
               Practical training in Electrical Systems, PLC Automation, Embedded Systems and IoT
             </p>
             <div className="mt-6 flex items-center justify-center gap-2 text-lg text-white">
-              <MapPin className="h-5 w-5" />
-              Nyamirambo, Kigali, Rwanda
+              <MapPin className="h-5 w-5" /> Nyamirambo, Kigali, Rwanda
             </div>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
               <a href="#registration-form">
@@ -174,6 +180,13 @@ export default function Home() {
               <CardTitle>Registration Form</CardTitle>
             </CardHeader>
             <CardContent>
+
+              {/* Registration Type Toggle */}
+              <div className="flex justify-center gap-4 mb-6">
+                <Button variant={formData.registrationType === 'Student' ? 'default' : 'outline'} onClick={() => handleRegistrationTypeChange('Student')}>Student</Button>
+                <Button variant={formData.registrationType === 'Individual' ? 'default' : 'outline'} onClick={() => handleRegistrationTypeChange('Individual')}>Individual</Button>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-5">
 
                 <div>
@@ -192,6 +205,7 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Student Fields */}
                 {formData.registrationType === 'Student' && (
                   <>
                     <div>
@@ -205,9 +219,7 @@ export default function Home() {
                         <Select value={formData.program} onValueChange={(v) => handleSelectChange('program', v)}>
                           <SelectTrigger><SelectValue placeholder="Select program" /></SelectTrigger>
                           <SelectContent>
-                            {PROGRAMS.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                            ))}
+                            {PROGRAMS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -232,11 +244,22 @@ export default function Home() {
                   </>
                 )}
 
+                {/* Individual Fields */}
                 {formData.registrationType === 'Individual' && (
-                  <div>
-                    <Label>Profession</Label>
-                    <Input name="profession" value={formData.profession} onChange={handleInputChange} required />
-                  </div>
+                  <>
+                    <div>
+                      <Label>Profession</Label>
+                      <Input name="profession" value={formData.profession} onChange={handleInputChange} required />
+                    </div>
+                    <div>
+                      <Label>Training Program</Label>
+                      <Input name="trainingProgram" value={formData.trainingProgram} onChange={handleInputChange} required />
+                    </div>
+                    <div>
+                      <Label>Schedule</Label>
+                      <Input name="schedule" value={formData.schedule} onChange={handleInputChange} required />
+                    </div>
+                  </>
                 )}
 
                 <div>
