@@ -73,15 +73,6 @@
 /* ======================================== */
 @layer base {
 
-  /* Apply default borders and outline */
-  *,
-  *::before,
-  *::after {
-    border: 1px solid var(--border);
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-  }
-
   /* Body styling */
   body {
     font-family: 'Geist', 'Geist Fallback', sans-serif;
