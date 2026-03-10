@@ -16,18 +16,15 @@ export async function submitRegistration(data: any) {
         full_name: data.fullName,
         email: data.email,
         phone: data.phone,
-
-        school: data.school || null,
-        program: data.program || data.trainingProgram || null,
-        level: data.level || null,
-        duration: data.duration || null,
-
-        profession: data.profession || null,
-        schedule: data.schedule || null,
-
-        message: data.message || null,
-
-        registration_type: data.registrationType || 'Student'
+        school: data.school,
+        program: data.program,
+        level: data.level,
+        duration: data.duration,
+        profession: data.profession,
+        training_program: data.trainingProgram,
+        schedule: data.schedule,
+        message: data.message,
+        registration_type: data.registrationType
       }
     ])
 
@@ -35,6 +32,4 @@ export async function submitRegistration(data: any) {
     console.error(error)
     throw new Error('Registration failed')
   }
-
-  return { success: true }
 }
