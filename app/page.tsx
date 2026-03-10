@@ -124,7 +124,7 @@ export default function Home() {
       <section className="relative min-h-screen w-full overflow-hidden pt-20">
         <div className="absolute inset-0 z-0">
           <Image src="/hero-electrical.jpg" alt="Industrial electrical panels" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-linear-to-b from-black/70 via-black/60 to-black/70"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70"></div>
         </div>
         <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
           <div className="text-center max-w-4xl space-y-8">
@@ -158,7 +158,7 @@ export default function Home() {
       </section>
 
       {/* Programs */}
-      <section id="programs" className="px-4 py-20 bg-linear-to-b from-background to-muted/5">
+      <section id="programs" className="px-4 py-20 bg-gradient-to-b from-background to-muted/5">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Our Internship Programs</h2>
