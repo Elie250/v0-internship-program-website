@@ -1,23 +1,23 @@
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export default async function Dashboard() {
 
-  const { data: students } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('registrations')
     .select('*')
-    .eq('registration_type', 'Student')
     .order('created_at', { ascending: false })
 
-  const { data: individuals } = await supabase
-    .from('registrations')
-    .select('*')
-    .eq('registration_type', 'Individual')
-    .order('created_at', { ascending: false })
+  if (error) {
+    console.error(error)
+  }
+
+  const students = data?.filter(
+    (item: any) => item.registration_type === 'Student'
+  )
+
+  const individuals = data?.filter(
+    (item: any) => item.registration_type === 'Individual'
+  )
 
   return (
 
@@ -27,17 +27,17 @@ export default async function Dashboard() {
         Energy & Logics Dashboard
       </h1>
 
-      {/* Students */}
+      {/* STUDENTS */}
 
-      <h2 className="text-2xl font-semibold mb-4">
+      <h2 className="text-xl font-semibold mb-4">
         Student Internship Applications
       </h2>
 
-      <table className="w-full border mb-12">
+      <table className="w-full border mb-10">
 
         <thead className="bg-gray-100">
           <tr>
-            <th>Name</th>
+            <th className="p-2">Name</th>
             <th>School</th>
             <th>Program</th>
             <th>Level</th>
@@ -50,7 +50,7 @@ export default async function Dashboard() {
           {students?.map((s: any) => (
             <tr key={s.id} className="border-t">
 
-              <td>{s.full_name}</td>
+              <td className="p-2">{s.full_name}</td>
               <td>{s.school}</td>
               <td>{s.program}</td>
               <td>{s.level}</td>
@@ -63,9 +63,9 @@ export default async function Dashboard() {
 
       </table>
 
-      {/* Individuals */}
+      {/* INDIVIDUAL */}
 
-      <h2 className="text-2xl font-semibold mb-4">
+      <h2 className="text-xl font-semibold mb-4">
         Individual Training Applications
       </h2>
 
@@ -73,7 +73,7 @@ export default async function Dashboard() {
 
         <thead className="bg-gray-100">
           <tr>
-            <th>Name</th>
+            <th className="p-2">Name</th>
             <th>Profession</th>
             <th>Training</th>
             <th>Schedule</th>
@@ -86,7 +86,7 @@ export default async function Dashboard() {
           {individuals?.map((i: any) => (
             <tr key={i.id} className="border-t">
 
-              <td>{i.full_name}</td>
+              <td className="p-2">{i.full_name}</td>
               <td>{i.profession}</td>
               <td>{i.training_program}</td>
               <td>{i.schedule}</td>
