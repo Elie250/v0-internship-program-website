@@ -1,24 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { acceptRegistration, declineRegistration } from './actions'
+import { acceptApplication, declineApplication } from './actions'
 import { CheckCircle, XCircle, Clock, Download, FileText } from 'lucide-react'
 import { downloadExcel, downloadStatisticsSheet } from '@/lib/excel-export'
 import { downloadPDFReport } from '@/lib/pdf-export'
 
-export default function DashboardTable({ registrations }: any) {
+interface Registration {
+  id: string
+  full_name: string
+  email: string
+  registration_type: string
+  program: string
+  registration_status: string
+  created_at: string
+}
+
+interface DashboardTableProps {
+  registrations: Registration[]
+}
+
+export default function DashboardTable({ registrations }: DashboardTableProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<string>('date')
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
-  let filtered = registrations.filter((r: any) => {
-    const name = r.full_name || r.name || ''
-    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+  // Filter registrations
+  let filtered = registrations.filter((r) => {
+    const name = r.full_name || ''
+    const matchesSearch =
+      name.toLowerCase().includes(search.toLowerCase()) ||
       (r.email || '').toLowerCase().includes(search.toLowerCase())
-    const status = r.registration_status || r.status || 'Pending'
-    const matchesStatus = statusFilter === 'all' || status.toLowerCase() === statusFilter.toLowerCase()
+
+    const status = r.registration_status || 'Pending'
+    const matchesStatus =
+      statusFilter === 'all' || status.toLowerCase() === statusFilter.toLowerCase()
+
     const matchesType = typeFilter === 'all' || r.registration_type === typeFilter
 
     return matchesSearch && matchesStatus && matchesType
@@ -26,54 +45,58 @@ export default function DashboardTable({ registrations }: any) {
 
   // Sort
   if (sortBy === 'date') {
-    filtered.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    filtered.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
   } else if (sortBy === 'name') {
-    filtered.sort((a: any, b: any) => {
-      const nameA = (a.full_name || a.name || '').toLowerCase()
-      const nameB = (b.full_name || b.name || '').toLowerCase()
-      return nameA.localeCompare(nameB)
-    })
+    filtered.sort((a, b) => (a.full_name || '').toLowerCase().localeCompare((b.full_name || '').toLowerCase()))
   } else if (sortBy === 'program') {
-    filtered.sort((a: any, b: any) =>
-      (a.program || a.training_program || '').localeCompare(b.program || b.training_program || '')
+    filtered.sort((a, b) =>
+      (a.program || '').localeCompare(b.program || '')
     )
   }
 
   const handleAccept = async (id: string) => {
     setLoadingId(id)
-    await acceptRegistration(id)
+    await acceptApplication(id)
     setLoadingId(null)
   }
 
   const handleDecline = async (id: string) => {
     setLoadingId(id)
-    await declineRegistration(id)
+    await declineApplication(id)
     setLoadingId(null)
   }
 
   const getStatusBadge = (status: string | null) => {
-    const s = status || 'pending'
+    const s = (status || 'pending').toLowerCase()
     if (s === 'accepted') {
-      return <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-        <CheckCircle className="w-4 h-4" />
-        Accepted
-      </span>
+      return (
+        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+          <CheckCircle className="w-4 h-4" />
+          Accepted
+        </span>
+      )
     }
     if (s === 'declined') {
-      return <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-        <XCircle className="w-4 h-4" />
-        Declined
-      </span>
+      return (
+        <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
+          <XCircle className="w-4 h-4" />
+          Declined
+        </span>
+      )
     }
-    return <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
-      <Clock className="w-4 h-4" />
-      Pending
-    </span>
+    return (
+      <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
+        <Clock className="w-4 h-4" />
+        Pending
+      </span>
+    )
   }
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
+      {/* Filters & Export Buttons */}
       <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -183,15 +206,15 @@ export default function DashboardTable({ registrations }: any) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r: any) => {
-                  const name = r.full_name || r.name || 'N/A'
-                  const status = r.registration_status || r.status || 'Pending'
+                filtered.map((r) => {
+                  const name = r.full_name || 'N/A'
+                  const status = r.registration_status || 'Pending'
                   return (
                     <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{name}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{r.program || r.training_program || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{r.program || '-'}</td>
                       <td className="px-6 py-4 text-sm">{getStatusBadge(status)}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {new Date(r.created_at).toLocaleDateString()}
@@ -222,7 +245,6 @@ export default function DashboardTable({ registrations }: any) {
           </table>
         </div>
 
-        {/* Pagination info */}
         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
           Showing {filtered.length} of {registrations.length} applications
         </div>
