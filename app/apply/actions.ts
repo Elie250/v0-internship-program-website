@@ -1,6 +1,9 @@
+// app/student/portal/actions.ts
+'use server'
+
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-export const submitApplication = async (formData: any) => {
+export async function submitApplication(formData: any) {
   try {
     const { data, error } = await supabaseAdmin
       .from('applications')
