@@ -22,7 +22,8 @@ export async function acceptRegistration(id: string) {
     const { error: updateError } = await supabaseAdmin
       .from('registrations')
       .update({
-        status: 'accepted',
+        registration_status: 'Accepted',
+        status: 'accepted', // Keep for backward compatibility
         certificate_generated: true,
       })
       .eq('id', id)
@@ -35,7 +36,7 @@ export async function acceptRegistration(id: string) {
     // Send acceptance email
     const emailResult = await sendApplicationEmail({
       to: registration.email,
-      full_name: registration.full_name,
+      full_name: registration.full_name || registration.name || 'Student',
       program: registration.program || registration.training_program || 'Energy & Logics Program',
       status: 'accepted',
     })
@@ -69,7 +70,10 @@ export async function declineRegistration(id: string) {
     // Update status to declined
     const { error: updateError } = await supabaseAdmin
       .from('registrations')
-      .update({ status: 'declined' })
+      .update({ 
+        registration_status: 'Declined',
+        status: 'declined' // Keep for backward compatibility
+      })
       .eq('id', id)
 
     if (updateError) {
@@ -80,7 +84,7 @@ export async function declineRegistration(id: string) {
     // Send decline email
     const emailResult = await sendApplicationEmail({
       to: registration.email,
-      full_name: registration.full_name,
+      full_name: registration.full_name || registration.name || 'Student',
       program: registration.program || registration.training_program || 'Energy & Logics Program',
       status: 'declined',
     })
