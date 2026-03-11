@@ -40,9 +40,15 @@ export default function StudentPortalPage() {
       {/* Top Bar with Login */}
       <header className="border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end">
+
           <Link href="/student/login">
             <Button className="text-white bg-blue-600 hover:bg-blue-700">
               Login
+            </Button>
+          </Link>
+          <Link href="/student/signup">
+            <Button className="text-white bg-blue-600 hover:bg-blue-700">
+              Sign Up
             </Button>
           </Link>
         </div>
@@ -94,7 +100,7 @@ export default function StudentPortalPage() {
                   <div className="px-6 pb-6">
                     <Link href="/student/login">
                       <Button size="sm" className="w-full bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2">
-                        Login to Apply <ArrowRight className="w-4 h-4" />
+                        More Information <ArrowRight className="w-4 h-4" />
                       </Button>
                     </Link>
                   </div>
