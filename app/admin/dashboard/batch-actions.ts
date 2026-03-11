@@ -13,25 +13,25 @@ interface BatchDeclineParams {
   sendEmail?: boolean
 }
 
-export async function batchAcceptRegistrations({
+export async function batchAcceptApplications({
   ids,
   sendEmail = true,
 }: BatchAcceptParams) {
   try {
-    // Get all registrations
-    const { data: registrations, error: fetchError } = await supabaseAdmin
-      .from('registrations')
+    // Get all applications
+    const { data: applications, error: fetchError } = await supabaseAdmin
+      .from('applications')
       .select('*')
       .in('id', ids)
 
-    if (fetchError || !registrations) {
-      console.error('[v0] Failed to fetch registrations:', fetchError)
-      return { success: false, error: 'Failed to fetch registrations', processed: 0 }
+    if (fetchError || !applications) {
+      console.error('[Admin] Failed to fetch applications:', fetchError)
+      return { success: false, error: 'Failed to fetch applications', processed: 0 }
     }
 
     // Update all to accepted
     const { error: updateError } = await supabaseAdmin
-      .from('registrations')
+      .from('applications')
       .update({
         status: 'accepted',
         certificate_generated: true,
@@ -39,7 +39,7 @@ export async function batchAcceptRegistrations({
       .in('id', ids)
 
     if (updateError) {
-      console.error('[v0] Failed to update registrations:', updateError)
+      console.error('[Admin] Failed to update applications:', updateError)
       return { success: false, error: 'Failed to update status', processed: 0 }
     }
 
@@ -48,60 +48,56 @@ export async function batchAcceptRegistrations({
 
     // Send emails if requested
     if (sendEmail) {
-      for (const registration of registrations) {
+      for (const application of applications) {
         const result = await sendApplicationEmail({
-          to: registration.email,
-          full_name: registration.full_name,
-          program:
-            registration.program || registration.training_program || 'Energy & Logics Program',
+          to: application.email,
+          full_name: application.full_name || 'Student',
+          program: application.program || 'Energy & Logics Program',
           status: 'accepted',
         })
 
-        if (result.success) {
-          emailsSent++
-        } else {
-          emailsFailed++
-        }
+        if (result.success) emailsSent++
+        else emailsFailed++
       }
     }
 
     return {
       success: true,
-      processed: registrations.length,
+      processed: applications.length,
       emailsSent,
       emailsFailed,
-      message: `Accepted ${registrations.length} applications${sendEmail ? `, ${emailsSent} emails sent` : ''}`,
+      message: `Accepted ${applications.length} applications${sendEmail ? `, ${emailsSent} emails sent` : ''}`,
     }
   } catch (error) {
-    console.error('[v0] Batch accept error:', error)
+    console.error('[Admin] Batch accept error:', error)
     return { success: false, error: 'An error occurred', processed: 0 }
   }
 }
 
-export async function batchDeclineRegistrations({
+export async function batchDeclineApplications({
   ids,
   sendEmail = true,
 }: BatchDeclineParams) {
   try {
-    // Get all registrations
-    const { data: registrations, error: fetchError } = await supabaseAdmin
-      .from('registrations')
+    // Get all applications
+    const { data: applications, error: fetchError } = await supabaseAdmin
+      .from('applications')
       .select('*')
       .in('id', ids)
 
-    if (fetchError || !registrations) {
-      console.error('[v0] Failed to fetch registrations:', fetchError)
-      return { success: false, error: 'Failed to fetch registrations', processed: 0 }
+    if (fetchError || !applications) {
+      console.error('[Admin] Failed to fetch applications:', fetchError)
+      return { success: false, error: 'Failed to fetch applications', processed: 0 }
     }
 
     // Update all to declined
     const { error: updateError } = await supabaseAdmin
-      .from('registrations')
+      .from('applications')
       .update({ status: 'declined' })
       .in('id', ids)
 
     if (updateError) {
-      console.error('[v0] Failed to update registrations:', updateError)
+      console.error('[Admin] Failed to update applications:', updateError)
       return { success: false, error: 'Failed to update status', processed: 0 }
     }
 
@@ -110,48 +106,44 @@ export async function batchDeclineRegistrations({
 
     // Send emails if requested
     if (sendEmail) {
-      for (const registration of registrations) {
+      for (const application of applications) {
         const result = await sendApplicationEmail({
-          to: registration.email,
-          full_name: registration.full_name,
-          program:
-            registration.program || registration.training_program || 'Energy & Logics Program',
+          to: application.email,
+          full_name: application.full_name || 'Student',
+          program: application.program || 'Energy & Logics Program',
           status: 'declined',
         })
 
-        if (result.success) {
-          emailsSent++
-        } else {
-          emailsFailed++
-        }
+        if (result.success) emailsSent++
+        else emailsFailed++
       }
     }
 
     return {
       success: true,
-      processed: registrations.length,
+      processed: applications.length,
       emailsSent,
       emailsFailed,
-      message: `Declined ${registrations.length} applications${sendEmail ? `, ${emailsSent} emails sent` : ''}`,
+      message: `Declined ${applications.length} applications${sendEmail ? `, ${emailsSent} emails sent` : ''}`,
     }
   } catch (error) {
-    console.error('[v0] Batch decline error:', error)
+    console.error('[Admin] Batch decline error:', error)
     return { success: false, error: 'An error occurred', processed: 0 }
   }
 }
 
-export async function deleteRegistrations(ids: string[]) {
+export async function deleteApplications(ids: string[]) {
   try {
-    const { error } = await supabaseAdmin.from('registrations').delete().in('id', ids)
+    const { error } = await supabaseAdmin.from('applications').delete().in('id', ids)
 
     if (error) {
-      console.error('[v0] Failed to delete registrations:', error)
+      console.error('[Admin] Failed to delete applications:', error)
       return { success: false, error: 'Failed to delete' }
     }
 
     return { success: true, message: `Deleted ${ids.length} applications` }
   } catch (error) {
-    console.error('[v0] Delete error:', error)
+    console.error('[Admin] Delete error:', error)
     return { success: false, error: 'An error occurred' }
   }
 }
