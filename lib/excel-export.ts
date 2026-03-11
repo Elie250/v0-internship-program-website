@@ -1,50 +1,44 @@
-export const downloadExcel = ({ registrations }: any) => {
+// lib/excel-export.ts
+export function downloadExcel({ registrations }: { registrations: any[] }) {
+  if (!registrations || registrations.length === 0) return
 
+  // Define the headers you want in the Excel/CSV
   const headers = [
-    "Full Name",
-    "Email",
-    "Phone",
-    "Program",
-    "Duration",
-    "Current Level",
-    "School",
-    "Field of Study",
-    "Province",
-    "District",
-    "Date of Birth",
-    "Motivation",
-    "Status",
-    "Date Applied"
+    'Full Name',
+    'Email',
+    'Type',
+    'Program',
+    'Duration',
+    'Status',
+    'Application Date',
   ]
 
-  const rows = registrations.map((r: any) => [
+  // Map registrations to rows
+  const rows = registrations.map((r) => [
     r.full_name || '',
     r.email || '',
-    r.phone || '',
+    r.registration_type || '',
     r.program || '',
     r.duration || '',
-    r.current_level || '',
-    r.school || '',
-    r.field_of_study || '',
-    r.province || '',
-    r.district || '',
-    r.date_of_birth || '',
-    r.motivation || '',
-    r.status || 'pending',
-    new Date(r.created_at).toLocaleDateString()
+    r.registration_status || '',
+    r.created_at ? new Date(r.created_at).toLocaleString() : '',
   ])
 
+  // Convert to CSV string
   const csvContent =
     [headers, ...rows]
-      .map(e => e.map(v => `"${v}"`).join(","))
-      .join("\n")
+      .map((e: (string | number | boolean | null)[]) =>
+        e.map((v) => `"${v ?? ''}"`).join(',')
+      )
+      .join('\n')
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-
-  const link = document.createElement("a")
-  link.href = URL.createObjectURL(blob)
-
-  link.download = `energy-logics-applications-${new Date().toISOString().slice(0, 10)}.csv`
-
+  // Create a Blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', 'applications.csv')
+  document.body.appendChild(link)
   link.click()
+  document.body.removeChild(link)
 }
