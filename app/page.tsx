@@ -44,14 +44,12 @@ export default function Home() {
 
       {/* NAVBAR */}
 
-      <nav className="sticky top-0 z-50 bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
+      <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-              EL
-            </div>
+            <Image src="/logo.png" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
             <div>
-              <p className="font-bold text-primary">Energy & Logics</p>
+              <p className="font-bold text-primary text-lg">Energy & Logics</p>
               <p className="text-xs text-muted-foreground">Engineering Academy</p>
             </div>
           </div>
@@ -229,9 +227,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8">
             <div className="flex items-center gap-3 mb-6 md:mb-0">
-              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center text-secondary font-bold">
-                EL
-              </div>
+              <Image src="/logo.png" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
               <div>
                 <p className="font-bold">Energy & Logics</p>
                 <p className="text-xs text-secondary-foreground/70">Engineering Academy</p>
