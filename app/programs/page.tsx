@@ -25,6 +25,23 @@ const PROGRAMS_DETAILED = [
     image: '/programs/electrical.jpg'
   },
   {
+    id: 'ETE',
+    title: 'Electronics',
+    icon: Waves,
+    duration: '3-5 months',
+    level: 'Beginner to Intermediate',
+    description: 'Comprehensive training in electronic circuit design, signal processing, and telecommunications.',
+    modules: [
+      'Circuit Theory',
+      'Electronic Components',
+      'Signal Processing',
+      'Telecommunications',
+      'RF Design Basics'
+    ],
+    skills: ['Circuit Design', 'Testing & Measurement', 'Documentation', 'Innovation'],
+    image: '/programs/electronics.jpg'
+  },
+  {
     id: 'CSA',
     title: 'Embedded Systems',
     icon: Cpu,
@@ -39,7 +56,7 @@ const PROGRAMS_DETAILED = [
       'Real-time Systems'
     ],
     skills: ['Programming', 'System Design', 'Debugging', 'Prototyping'],
-    image: '/programs/embedded.jpg'
+    image: '/images/embedded-systems.jpg' // moved to images folder
   },
   {
     id: 'NIT',
@@ -57,29 +74,13 @@ const PROGRAMS_DETAILED = [
     ],
     skills: ['Networking', 'IoT Development', 'Cloud Services', 'Data Integration'],
     image: '/programs/iot.jpg'
-  },
-  {
-    id: 'ETE',
-    title: 'Electronics',
-    icon: Waves,
-    duration: '3-5 months',
-    level: 'Beginner to Intermediate',
-    description: 'Comprehensive training in electronic circuit design, signal processing, and telecommunications.',
-    modules: [
-      'Circuit Theory',
-      'Electronic Components',
-      'Signal Processing',
-      'Telecommunications',
-      'RF Design Basics'
-    ],
-    skills: ['Circuit Design', 'Testing & Measurement', 'Documentation', 'Innovation'],
-    image: '/programs/electronics.jpg'
   }
 ]
 
 export default function ProgramsPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
+
       {/* Header */}
       <div className="bg-primary text-primary-foreground py-12 px-4">
         <div className="max-w-6xl mx-auto">
@@ -103,6 +104,7 @@ export default function ProgramsPage() {
               const Icon = program.icon
               return (
                 <Card key={program.id} className="overflow-hidden hover:shadow-lg transition-shadow border-border hover:border-primary/50">
+                  <img src={program.image} alt={program.title} className="w-full h-48 object-cover" />
                   <CardHeader className="pb-4">
                     <div className="flex items-start justify-between mb-4">
                       <div className="p-3 rounded-lg bg-primary/10">
@@ -115,9 +117,7 @@ export default function ProgramsPage() {
                   </CardHeader>
 
                   <CardContent className="space-y-6">
-                    <p className="text-foreground">
-                      {program.description}
-                    </p>
+                    <p className="text-foreground">{program.description}</p>
 
                     <div>
                       <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">

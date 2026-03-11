@@ -13,25 +13,29 @@ const PROGRAMS = [
     id: 'ELT',
     label: 'Electrical Technology',
     icon: Zap,
-    description: 'Domestic electricity, industrial installation, PLC automation and motor control.'
+    description: 'Domestic electricity, industrial installation, PLC automation and motor control.',
+    image: '/programs/electrical.jpg'
   },
   {
     id: 'CSA',
     label: 'Embedded Systems',
     icon: Cpu,
-    description: 'Microcontrollers, embedded programming, and hardware-software integration.'
+    description: 'Microcontrollers, embedded programming, and hardware-software integration.',
+    image: '/images/embedded-systems.jpg'
   },
   {
     id: 'NIT',
     label: 'IoT & Networking',
     icon: Wifi,
-    description: 'IoT connectivity, network infrastructure, and communication systems.'
+    description: 'IoT connectivity, network infrastructure, and communication systems.',
+    image: '/programs/iot.jpg'
   },
   {
     id: 'ETE',
     label: 'Electronics',
     icon: Waves,
-    description: 'Electronic circuits, sensors, and telecommunications.'
+    description: 'Electronic circuits, sensors, and telecommunications.',
+    image: '/programs/electronics.jpg'
   }
 ]
 
@@ -39,15 +43,13 @@ export default function Home() {
   const [isHeroReady] = useState(true)
 
   return (
-
     <main className="min-h-screen bg-background text-foreground">
 
       {/* NAVBAR */}
-
       <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
+            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
             <div>
               <p className="font-bold text-primary text-lg">Energy & Logics</p>
               <p className="text-xs text-muted-foreground">Engineering Academy</p>
@@ -55,7 +57,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-
             <Link href="/portal">
               <Button>Student Portal</Button>
             </Link>
@@ -73,22 +74,14 @@ export default function Home() {
       </nav>
 
       {/* HERO */}
-
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10"></div>
+        <Image src="/images/hero-baner.jpg" alt="Hero Banner" fill className="object-cover -z-10" />
+        <div className="absolute inset-0 bg-black/30 -z-0"></div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
-          <div className="mb-6 inline-block">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 border border-accent/40">
-              <span className="w-2 h-2 bg-accent rounded-full"></span>
-              <span className="text-sm font-medium text-accent">Welcome to Engineering Excellence</span>
-            </div>
-          </div>
-
           <h1 className="text-6xl font-bold mb-6 text-foreground leading-tight text-balance">
             Build Your Future in Engineering
           </h1>
-
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
             Master electrical systems, embedded technology, IoT solutions, and electronics through hands-on internship programs designed by industry experts.
           </p>
@@ -99,7 +92,6 @@ export default function Home() {
                 Start Your Application <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-
             <a href="https://wa.me/250783986252" target="_blank">
               <Button variant="outline" className="px-8 py-6 text-lg border-primary text-primary hover:bg-primary/10">
                 <MessageCircle className="mr-2 w-5 h-5" /> WhatsApp Us
@@ -109,15 +101,11 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* PROGRAMS */}
-
+      {/* PROGRAMS GRID */}
       <section className="py-20 px-4 bg-card">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">
-              Engineering Programs
-            </h2>
+            <h2 className="text-4xl font-bold mb-4">Engineering Programs</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Choose from our specialized internship tracks designed to develop practical skills in modern engineering disciplines.
             </p>
@@ -128,6 +116,7 @@ export default function Home() {
               const IconComponent = program.icon
               return (
                 <Card key={program.id} className="overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all duration-300 group">
+                  <Image src={program.image} alt={program.label} width={400} height={200} className="object-cover w-full h-48" />
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition">
@@ -137,9 +126,7 @@ export default function Home() {
                     <CardTitle className="text-lg">{program.label}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {program.description}
-                    </p>
+                    <p className="text-sm text-muted-foreground">{program.description}</p>
                   </CardContent>
                   <div className="px-6 pb-6">
                     <Link href={`/programs/${program.id}`}>
@@ -155,9 +142,7 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* CTA SECTION */}
-
+      {/* CTA Section */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -166,7 +151,7 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-lg text-muted-foreground">
-                Our comprehensive internship programs are designed to equip you with practical skills and industry experience. Join hundreds of graduates who have successfully launched their engineering careers.
+                Our internship programs are designed to equip you with practical skills and industry experience. Join hundreds of graduates who have successfully launched their engineering careers.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/apply" className="flex-1">
@@ -185,69 +170,50 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* CONTACT */}
-
+      {/* Contact Section */}
       <section className="bg-primary text-primary-foreground py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Get in Touch</h2>
-            <p className="text-lg text-primary-foreground/90">
-              Have questions? Our team is ready to help you start your engineering journey.
-            </p>
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
+              <Phone className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Phone</h3>
+            <p className="text-primary-foreground/90">+250 783 986 252</p>
           </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-                <Phone className="w-8 h-8" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Phone</h3>
-              <p className="text-primary-foreground/90">+250 783 986 252</p>
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
+              <Mail className="w-8 h-8" />
             </div>
-
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-                <Mail className="w-8 h-8" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Email</h3>
-              <p className="text-primary-foreground/90">energylogicsltd@gmail.com</p>
+            <h3 className="font-semibold text-lg mb-2">Email</h3>
+            <p className="text-primary-foreground/90">energylogicsltd@gmail.com</p>
+          </div>
+          <div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
+              <MapPin className="w-8 h-8" />
             </div>
-
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-                <MapPin className="w-8 h-8" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Location</h3>
-              <p className="text-primary-foreground/90">Nyamirambo, Kigali, Rwanda</p>
-            </div>
+            <h3 className="font-semibold text-lg mb-2">Location</h3>
+            <p className="text-primary-foreground/90">Nyamirambo, Kigali, Rwanda</p>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-
+      {/* Footer */}
       <footer className="bg-secondary text-secondary-foreground border-t border-border py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-            <div className="flex items-center gap-3 mb-6 md:mb-0">
-              <Image src="/logo.png" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
-              <div>
-                <p className="font-bold">Energy & Logics</p>
-                <p className="text-xs text-secondary-foreground/70">Engineering Academy</p>
-              </div>
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8">
+          <div className="flex items-center gap-3 mb-6 md:mb-0">
+            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
+            <div>
+              <p className="font-bold">Energy & Logics</p>
+              <p className="text-xs text-secondary-foreground/70">Engineering Academy</p>
             </div>
-            <p className="text-sm text-secondary-foreground/70">
-              © 2025 Energy & Logics. All rights reserved.
-            </p>
           </div>
-          <div className="border-t border-secondary-foreground/20 pt-4 text-center text-sm text-secondary-foreground/70">
-            <p>Engineering Sustainable Solutions</p>
-          </div>
+          <p className="text-sm text-secondary-foreground/70">© 2025 Energy & Logics. All rights reserved.</p>
+        </div>
+        <div className="border-t border-secondary-foreground/20 pt-4 text-center text-sm text-secondary-foreground/70">
+          Engineering Sustainable Solutions
         </div>
       </footer>
 
     </main>
-
   )
 }
