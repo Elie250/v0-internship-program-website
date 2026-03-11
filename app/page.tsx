@@ -14,16 +14,16 @@ const PROGRAMS = [
     label: 'Electrical Technology',
     icon: Zap,
     description: 'Domestic electricity, industrial installation, PLC automation, and motor control.',
-    image: '/images/hero-electrical.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    image: '/images/program-elt.jpg',
+    price: '30,000 Rwf / 1 month'
   },
   {
     id: 'CSA',
     label: 'Embedded Systems',
     icon: Cpu,
     description: 'Microcontrollers, embedded programming, and hardware-software integration.',
-    image: '/images/embedded-systems.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    image: '/images/program-csa.jpg',
+    price: '30,000 Rwf / 1 month'
   },
   {
     id: 'NIT',
@@ -31,7 +31,7 @@ const PROGRAMS = [
     icon: Wifi,
     description: 'IoT connectivity, network infrastructure, and communication systems.',
     image: '/images/program-nit.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    price: '20,000 Rwf / 2 weeks'
   },
   {
     id: 'ETE',
@@ -39,7 +39,7 @@ const PROGRAMS = [
     icon: Waves,
     description: 'Electronic circuits, sensors, and telecommunications.',
     image: '/images/program-ete.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    price: 'Depends on package'
   }
 ];
 
@@ -53,7 +53,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
           <div className="flex items-center gap-3">
-            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
+            <Image src="/logo.png" alt="Energy & Logics" width={48} height={48} className="w-12 h-12" />
             <div>
               <p className="font-bold text-primary text-lg">Energy & Logics</p>
               <p className="text-xs text-muted-foreground">Engineering Academy</p>
@@ -61,44 +61,39 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/portal">
-              <Button>Student Portal</Button>
-            </Link>
-            <Link href="/programs">
-              <Button variant="ghost">Programs</Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="ghost">Contact</Button>
-            </Link>
-            <Link href="/admin/login">
-              <Button variant="outline">Admin</Button>
-            </Link>
+            <Link href="/portal"><Button>Student Portal</Button></Link>
+            <Link href="/programs"><Button variant="ghost">Programs</Button></Link>
+            <Link href="/contact"><Button variant="ghost">Contact</Button></Link>
+            <Link href="/admin/login"><Button variant="outline">Admin</Button></Link>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <Image src="/images/hero-electrical.jpg" alt="Hero Banner" fill className="object-cover -z-10" />
-        <div className="absolute inset-0 bg-black/30 -z-0"></div>
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
-          <h1 className="text-6xl font-bold mb-6 text-foreground leading-tight text-balance">
+      {/* HERO SECTION */}
+      <section className="relative w-full h-[85vh] md:h-[90vh]">
+        <Image
+          src="/hero-electrical.jpg"
+          alt="Hero Banner"
+          fill
+          className="object-cover brightness-75"
+          priority
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-white drop-shadow-lg mb-6">
             Build Your Future in Engineering
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
-            Master electrical systems, embedded technology, IoT solutions, and electronics through hands-on internship programs designed by industry experts.
+          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-3xl drop-shadow-md">
+            Hands-on internship programs in Electrical Systems, Embedded Technology, IoT & Networking, and Electronics, guided by industry experts.
           </p>
-
-          <div className="flex justify-center gap-4 flex-wrap">
+          <div className="flex flex-wrap gap-4 justify-center">
             <Link href="/apply">
-              <Button className="px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
-                Start Your Application <ArrowRight className="ml-2 w-5 h-5" />
+              <Button className="bg-primary px-8 py-4 text-lg font-semibold shadow-lg hover:bg-primary/90 flex items-center gap-2">
+                Apply Now <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <a href="https://wa.me/250783986252" target="_blank">
-              <Button variant="outline" className="px-8 py-6 text-lg border-primary text-primary hover:bg-primary/10">
-                <MessageCircle className="mr-2 w-5 h-5" /> WhatsApp Us
+              <Button variant="outline" className="px-8 py-4 text-lg border-primary text-primary hover:bg-primary/10 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5" /> WhatsApp Us
               </Button>
             </a>
           </div>
@@ -109,33 +104,40 @@ export default function Home() {
       <section className="py-20 px-4 bg-card">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Engineering Programs</h2>
+            <h2 className="text-4xl font-bold mb-4">Our Internship Programs</h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose from our specialized internship tracks designed to develop practical skills in modern engineering disciplines.
+              Specialized internship tracks designed to develop practical skills in modern engineering disciplines.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {PROGRAMS.map((program) => {
               const IconComponent = program.icon;
               return (
-                <Card key={program.id} className="overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all duration-300 group">
-                  <Image src={program.image} alt={program.label} width={400} height={200} className="object-cover w-full h-48" />
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition">
+                <Card key={program.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={program.image}
+                      alt={program.label}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardHeader className="pb-3 pt-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition">
                         <IconComponent className="w-6 h-6 text-primary" />
                       </div>
+                      <CardTitle className="text-lg">{program.label}</CardTitle>
                     </div>
-                    <CardTitle className="text-lg">{program.label}</CardTitle>
+                    <p className="text-xl font-bold text-primary">{program.price}</p>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">{program.description}</p>
-                    <p className="mt-2 text-sm font-semibold text-primary">{program.pricing}</p>
                   </CardContent>
                   <div className="px-6 pb-6">
                     <Link href={`/programs/${program.id}`}>
-                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 group-hover:bg-primary/10">
+                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10">
                         Learn More <ArrowRight className="ml-2 w-4 h-4" />
                       </Button>
                     </Link>
@@ -147,7 +149,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA SECTION */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -156,16 +158,16 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-lg text-muted-foreground">
-                Our internship programs are designed to equip you with practical skills and industry experience. Join hundreds of graduates who have successfully launched their engineering careers.
+                Join our comprehensive internship programs to gain real-world experience and practical skills guided by industry experts.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/apply" className="flex-1">
-                  <Button className="w-full px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Button className="w-full px-8 py-4 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
                     Apply Now <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
                 <a href="https://wa.me/250783986252" target="_blank" className="flex-1">
-                  <Button variant="outline" className="w-full px-8 py-6 text-lg border-primary text-primary hover:bg-primary/10">
+                  <Button variant="outline" className="w-full px-8 py-4 text-lg border-primary text-primary hover:bg-primary/10">
                     <MessageCircle className="mr-2 w-5 h-5" /> Get More Info
                   </Button>
                 </a>
@@ -175,7 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* CONTACT SECTION */}
       <section className="bg-primary text-primary-foreground py-20 px-4">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
           <div>
@@ -202,11 +204,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <footer className="bg-secondary text-secondary-foreground border-t border-border py-8 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8">
           <div className="flex items-center gap-3 mb-6 md:mb-0">
-            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
+            <Image src="/logo.png" alt="Energy & Logics" width={48} height={48} className="w-12 h-12" />
             <div>
               <p className="font-bold">Energy & Logics</p>
               <p className="text-xs text-secondary-foreground/70">Engineering Academy</p>
