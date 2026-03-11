@@ -1,224 +1,303 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, ArrowRight } from 'lucide-react';
+import Link from 'next/link'
+import Image from 'next/image'
+import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, ArrowRight } from 'lucide-react'
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const PROGRAMS = [
   {
     id: 'ELT',
     label: 'Electrical Technology',
     icon: Zap,
-    description: 'Domestic electricity, industrial installation, PLC automation, and motor control.',
-    image: '/images/hero-electrical.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    description: 'Domestic electricity, industrial installation, PLC automation and motor control.',
+    image: '/images/program-elt.jpg'
   },
   {
     id: 'CSA',
     label: 'Embedded Systems',
     icon: Cpu,
     description: 'Microcontrollers, embedded programming, and hardware-software integration.',
-    image: '/images/embedded-systems.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    image: '/images/program-csa.jpg'
   },
   {
     id: 'NIT',
     label: 'IoT & Networking',
     icon: Wifi,
     description: 'IoT connectivity, network infrastructure, and communication systems.',
-    image: '/images/program-nit.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    image: '/images/program-nit.jpg'
   },
   {
     id: 'ETE',
     label: 'Electronics',
     icon: Waves,
-    description: 'Electronic circuits, sensors, and telecommunications.',
-    image: '/images/program-ete.jpg',
-    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
+    description: 'Electronic circuits, sensors and telecommunications.',
+    image: '/images/program-ete.jpg'
+  },
+  {
+    id: 'IND',
+    label: 'Individual Training',
+    icon: User,
+    description: 'Personalized one-on-one engineering training adapted to your project and learning pace.',
+    image: '/images/program-individual.jpg'
   }
-];
+]
 
 export default function Home() {
-  const [isHeroReady] = useState(true);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
 
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+
+      <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
+
           <div className="flex items-center gap-3">
-            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
+            <Image src="/logo.png" alt="Energy & Logics" width={45} height={45} />
             <div>
-              <p className="font-bold text-primary text-lg">Energy & Logics</p>
-              <p className="text-xs text-muted-foreground">Engineering Academy</p>
+              <p className="font-bold text-lg text-blue-700">Energy & Logics</p>
+              <p className="text-xs text-gray-500">Engineering Academy</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link href="/portal">
-              <Button>Student Portal</Button>
-            </Link>
-            <Link href="/programs">
-              <Button variant="ghost">Programs</Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="ghost">Contact</Button>
-            </Link>
-            <Link href="/admin/login">
-              <Button variant="outline">Admin</Button>
-            </Link>
+          <div className="flex gap-4">
+            <Link href="/portal"><Button>Student Portal</Button></Link>
+            <Link href="/programs"><Button variant="ghost">Programs</Button></Link>
+            <Link href="/contact"><Button variant="ghost">Contact</Button></Link>
+            <Link href="/admin/login"><Button variant="outline">Admin</Button></Link>
           </div>
+
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <Image src="/images/hero-electrical.jpg" alt="Hero Banner" fill className="object-cover -z-10" />
-        <div className="absolute inset-0 bg-black/30 -z-0"></div>
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
-          <h1 className="text-6xl font-bold mb-6 text-foreground leading-tight text-balance">
+      <section className="relative h-[85vh] flex items-center justify-center">
+
+        <Image
+          src="/hero-electrical.jpg"
+          alt="Engineering training"
+          fill
+          priority
+          className="object-cover"
+        />
+
+        <div className="absolute inset-0 bg-black/60"></div>
+
+        <div className="relative text-center text-white px-6 max-w-3xl">
+
+          <h1 className="text-5xl font-bold mb-6 leading-tight">
             Build Your Future in Engineering
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-pretty">
-            Master electrical systems, embedded technology, IoT solutions, and electronics through hands-on internship programs designed by industry experts.
+
+          <p className="text-lg mb-8 text-gray-200">
+            Hands-on internship programs in Electrical Engineering, Embedded Systems,
+            Electronics and IoT designed for real industry skills.
           </p>
 
           <div className="flex justify-center gap-4 flex-wrap">
+
             <Link href="/apply">
-              <Button className="px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
-                Start Your Application <ArrowRight className="ml-2 w-5 h-5" />
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg shadow-lg">
+                Apply Now <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
+
             <a href="https://wa.me/250783986252" target="_blank">
-              <Button variant="outline" className="px-8 py-6 text-lg border-primary text-primary hover:bg-primary/10">
+              <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg shadow-lg">
                 <MessageCircle className="mr-2 w-5 h-5" /> WhatsApp Us
               </Button>
             </a>
+
           </div>
+
         </div>
+
       </section>
 
-      {/* PROGRAMS GRID */}
-      <section className="py-20 px-4 bg-card">
+      {/* PROGRAMS */}
+
+      <section className="py-20 bg-gray-50 px-4">
+
         <div className="max-w-6xl mx-auto">
+
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Engineering Programs</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Choose from our specialized internship tracks designed to develop practical skills in modern engineering disciplines.
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Professional internship programs designed to build practical engineering skills.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
             {PROGRAMS.map((program) => {
-              const IconComponent = program.icon;
+              const Icon = program.icon
+
               return (
-                <Card key={program.id} className="overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all duration-300 group">
-                  <Image src={program.image} alt={program.label} width={400} height={200} className="object-cover w-full h-48" />
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition">
-                        <IconComponent className="w-6 h-6 text-primary" />
+
+                <Card key={program.id} className="hover:shadow-xl transition overflow-hidden">
+
+                  <Image
+                    src={program.image}
+                    alt={program.label}
+                    width={500}
+                    height={250}
+                    className="w-full h-48 object-cover"
+                  />
+
+                  <CardHeader>
+
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <Icon className="w-5 h-5 text-blue-600" />
                       </div>
+                      <CardTitle>{program.label}</CardTitle>
                     </div>
-                    <CardTitle className="text-lg">{program.label}</CardTitle>
+
                   </CardHeader>
+
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">{program.description}</p>
-                    <p className="mt-2 text-sm font-semibold text-primary">{program.pricing}</p>
-                  </CardContent>
-                  <div className="px-6 pb-6">
+
+                    <p className="text-gray-600 text-sm mb-4">
+                      {program.description}
+                    </p>
+
                     <Link href={`/programs/${program.id}`}>
-                      <Button variant="outline" className="w-full border-primary text-primary hover:bg-primary/10 group-hover:bg-primary/10">
-                        Learn More <ArrowRight className="ml-2 w-4 h-4" />
+                      <Button variant="outline" className="w-full">
+                        Learn More
                       </Button>
                     </Link>
-                  </div>
+
+                  </CardContent>
+
                 </Card>
-              );
+
+              )
+
             })}
+
           </div>
+
         </div>
+
       </section>
 
-      {/* CTA Section */}
+      {/* TRAINING FEES */}
+
       <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-3xl">Ready to Start Your Journey?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <p className="text-lg text-muted-foreground">
-                Our internship programs are designed to equip you with practical skills and industry experience. Join hundreds of graduates who have successfully launched their engineering careers.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/apply" className="flex-1">
-                  <Button className="w-full px-8 py-6 text-lg bg-primary hover:bg-primary/90 text-primary-foreground">
-                    Apply Now <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
-                <a href="https://wa.me/250783986252" target="_blank" className="flex-1">
-                  <Button variant="outline" className="w-full px-8 py-6 text-lg border-primary text-primary hover:bg-primary/10">
-                    <MessageCircle className="mr-2 w-5 h-5" /> Get More Info
-                  </Button>
-                </a>
-              </div>
-            </CardContent>
-          </Card>
+
+        <div className="max-w-5xl mx-auto text-center">
+
+          <h2 className="text-4xl font-bold mb-12">
+            Training Fees
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-8">
+
+            <Card className="border-blue-500 border-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Engineering Internship</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-blue-600 mb-4">
+                  30,000 RWF
+                </p>
+                <p className="text-gray-600">1 Month Program</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-500 border-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Short Intensive Training</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-green-600 mb-4">
+                  20,000 RWF
+                </p>
+                <p className="text-gray-600">2 Weeks Program</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-500 border-2 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl">Individual Training</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-4xl font-bold text-purple-600 mb-4">
+                  Custom Price
+                </p>
+                <p className="text-gray-600">Based on project and training needs</p>
+              </CardContent>
+            </Card>
+
+          </div>
+
         </div>
+
       </section>
 
-      {/* Contact Section */}
-      <section className="bg-primary text-primary-foreground py-20 px-4">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-              <Phone className="w-8 h-8" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Phone</h3>
-            <p className="text-primary-foreground/90">+250 783 986 252</p>
-          </div>
-          <div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-              <Mail className="w-8 h-8" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Email</h3>
-            <p className="text-primary-foreground/90">energylogicsltd@gmail.com</p>
-          </div>
-          <div>
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-foreground/10 mb-4">
-              <MapPin className="w-8 h-8" />
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Location</h3>
-            <p className="text-primary-foreground/90">Nyamirambo, Kigali, Rwanda</p>
-          </div>
+      {/* CTA */}
+
+      <section className="py-20 px-4 bg-blue-50">
+
+        <div className="max-w-3xl mx-auto text-center">
+
+          <h2 className="text-3xl font-bold mb-6">
+            Ready to Start Your Journey?
+          </h2>
+
+          <p className="text-gray-600 mb-8">
+            Join our engineering internship program and develop practical skills
+            that industry needs.
+          </p>
+
+          <Link href="/apply">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-6 text-lg shadow-lg">
+              Apply Now
+            </Button>
+          </Link>
+
         </div>
+
       </section>
 
-      {/* Footer */}
-      <footer className="bg-secondary text-secondary-foreground border-t border-border py-8 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center mb-8">
-          <div className="flex items-center gap-3 mb-6 md:mb-0">
-            <Image src="/images/logo.jpg" alt="Energy & Logics" width={40} height={40} className="w-10 h-10" />
-            <div>
-              <p className="font-bold">Energy & Logics</p>
-              <p className="text-xs text-secondary-foreground/70">Engineering Academy</p>
-            </div>
+      {/* CONTACT */}
+
+      <section className="bg-blue-700 text-white py-20 px-4">
+
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 text-center">
+
+          <div>
+            <Phone className="mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">Phone</h3>
+            <p>+250 783 986 252</p>
           </div>
-          <p className="text-sm text-secondary-foreground/70">© 2025 Energy & Logics. All rights reserved.</p>
+
+          <div>
+            <Mail className="mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">Email</h3>
+            <p>energylogicsltd@gmail.com</p>
+          </div>
+
+          <div>
+            <MapPin className="mx-auto mb-4" />
+            <h3 className="font-semibold mb-2">Location</h3>
+            <p>Nyamirambo, Kigali, Rwanda</p>
+          </div>
+
         </div>
-        <div className="border-t border-secondary-foreground/20 pt-4 text-center text-sm text-secondary-foreground/70">
-          Engineering Sustainable Solutions
-        </div>
+
+      </section>
+
+      {/* FOOTER */}
+
+      <footer className="py-8 text-center text-gray-500 text-sm border-t">
+        © 2025 Energy & Logics — Engineering Sustainable Solutions
       </footer>
 
     </main>
-  );
+  )
 }
