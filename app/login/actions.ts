@@ -16,7 +16,7 @@ export async function loginStudent(formData: FormData) {
     .single()
 
   if (!data) {
-    redirect("/student/login?error=invalid")
+    redirect("login?error=invalid")
   }
 
   redirect("/student/dashboard")
