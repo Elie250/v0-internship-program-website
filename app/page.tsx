@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waveform, ArrowRight } from 'lucide-react'
+import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, ArrowRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,7 +30,7 @@ const PROGRAMS = [
   {
     id: 'ETE',
     label: 'Electronics',
-    icon: Waveform,
+    icon: Waves,
     description: 'Electronic circuits, sensors, and telecommunications.'
   }
 ]
