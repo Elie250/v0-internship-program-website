@@ -121,6 +121,7 @@ export default function StudentLoginPage() {
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </Button>
+
               <div className="text-center text-sm text-muted-foreground">
                 <p>Don't have an account?</p>
                 <Link href="/apply" className="text-primary hover:underline">
