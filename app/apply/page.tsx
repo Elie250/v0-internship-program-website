@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { submitApplication } from './actions'
 
 const PROGRAMS = [
   { id: 'ELT', label: 'Electrical Technology' },
@@ -82,15 +83,10 @@ export default function ApplyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
-    try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
 
-      if (response.ok) {
+    try {
+      const result = await submitApplication(formData)
+      if (result.success) {
         setSubmitted(true)
         setFormData({
           fullName: '',
@@ -173,54 +169,25 @@ export default function ApplyPage() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="fullName">Full Name *</Label>
-                      <Input
-                        id="fullName"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        required
-                        className="mt-1"
-                      />
+                      <Input id="fullName" name="fullName" value={formData.fullName} onChange={handleInputChange} required className="mt-1" />
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-1"
-                        />
+                        <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} required className="mt-1" />
                       </div>
 
                       <div>
                         <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          required
-                          className="mt-1"
-                        />
+                        <Input id="phone" name="phone" value={formData.phone} onChange={handleInputChange} required className="mt-1" />
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                        <Input
-                          id="dateOfBirth"
-                          name="dateOfBirth"
-                          type="date"
-                          value={formData.dateOfBirth}
-                          onChange={handleInputChange}
-                          className="mt-1"
-                        />
+                        <Input id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} className="mt-1" />
                       </div>
 
                       <div>
@@ -230,9 +197,7 @@ export default function ApplyPage() {
                             <SelectValue placeholder="Select province" />
                           </SelectTrigger>
                           <SelectContent>
-                            {PROVINCES.map(p => (
-                              <SelectItem key={p} value={p}>{p}</SelectItem>
-                            ))}
+                            {PROVINCES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -240,14 +205,7 @@ export default function ApplyPage() {
 
                     <div>
                       <Label htmlFor="district">District *</Label>
-                      <Input
-                        id="district"
-                        name="district"
-                        value={formData.district}
-                        onChange={handleInputChange}
-                        required
-                        className="mt-1"
-                      />
+                      <Input id="district" name="district" value={formData.district} onChange={handleInputChange} required className="mt-1" />
                     </div>
                   </div>
                 </div>
@@ -263,9 +221,7 @@ export default function ApplyPage() {
                           <SelectValue placeholder="Select program" />
                         </SelectTrigger>
                         <SelectContent>
-                          {PROGRAMS.map(p => (
-                            <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>
-                          ))}
+                          {PROGRAMS.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -278,9 +234,7 @@ export default function ApplyPage() {
                             <SelectValue placeholder="Select duration" />
                           </SelectTrigger>
                           <SelectContent>
-                            {DURATIONS.map(d => (
-                              <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
-                            ))}
+                            {DURATIONS.map(d => <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -292,9 +246,7 @@ export default function ApplyPage() {
                             <SelectValue placeholder="Select level" />
                           </SelectTrigger>
                           <SelectContent>
-                            {LEVELS.map(l => (
-                              <SelectItem key={l.id} value={l.id}>{l.label}</SelectItem>
-                            ))}
+                            {LEVELS.map(l => <SelectItem key={l.id} value={l.id}>{l.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>
@@ -308,24 +260,12 @@ export default function ApplyPage() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="school">School/College/University</Label>
-                      <Input
-                        id="school"
-                        name="school"
-                        value={formData.school}
-                        onChange={handleInputChange}
-                        className="mt-1"
-                      />
+                      <Input id="school" name="school" value={formData.school} onChange={handleInputChange} className="mt-1" />
                     </div>
 
                     <div>
                       <Label htmlFor="fieldOfStudy">Field of Study</Label>
-                      <Input
-                        id="fieldOfStudy"
-                        name="fieldOfStudy"
-                        value={formData.fieldOfStudy}
-                        onChange={handleInputChange}
-                        className="mt-1"
-                      />
+                      <Input id="fieldOfStudy" name="fieldOfStudy" value={formData.fieldOfStudy} onChange={handleInputChange} className="mt-1" />
                     </div>
                   </div>
                 </div>
@@ -347,27 +287,21 @@ export default function ApplyPage() {
                   </div>
                 </div>
 
-                {/* Terms and Conditions */}
-                <div>
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="terms"
-                      checked={formData.agreedToTerms}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreedToTerms: checked as boolean }))}
-                    />
-                    <Label htmlFor="terms" className="text-sm text-muted-foreground mt-0.5">
-                      I agree to the terms and conditions and understand that my information will be used to process my application.
-                    </Label>
-                  </div>
+                {/* Terms */}
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.agreedToTerms}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreedToTerms: checked as boolean }))}
+                  />
+                  <Label htmlFor="terms" className="text-sm text-muted-foreground mt-0.5">
+                    I agree to the terms and conditions.
+                  </Label>
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit */}
                 <div className="flex gap-4">
-                  <Button
-                    type="submit"
-                    disabled={loading || !formData.agreedToTerms}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-2 text-base"
-                  >
+                  <Button type="submit" disabled={loading || !formData.agreedToTerms} className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-2 text-base">
                     {loading ? 'Submitting...' : 'Submit Application'}
                   </Button>
                   <Link href="/" className="flex-1">
@@ -377,19 +311,6 @@ export default function ApplyPage() {
                   </Link>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-
-          {/* Info Box */}
-          <Card className="mt-8 border-primary/20 bg-primary/5">
-            <CardContent className="pt-6">
-              <h4 className="font-semibold mb-2">What Happens Next?</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>1. We review your application within 2-3 business days</li>
-                <li>2. You'll receive a confirmation email with next steps</li>
-                <li>3. Schedule your interview with our admissions team</li>
-                <li>4. Get accepted and start your engineering journey!</li>
-              </ul>
             </CardContent>
           </Card>
         </div>
