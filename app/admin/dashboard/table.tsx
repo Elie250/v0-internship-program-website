@@ -1,254 +1,104 @@
-'use client'
+<div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead className="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Program</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Duration</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+          <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
+        </tr>
+      </thead>
 
-import { useState } from 'react'
-import { acceptApplication, declineApplication } from './actions'
-import { CheckCircle, XCircle, Clock, Download, FileText } from 'lucide-react'
-import { downloadExcel, downloadStatisticsSheet } from '@/lib/excel-export'
-import { downloadPDFReport } from '@/lib/pdf-export'
+      <tbody className="divide-y divide-gray-200">
+        {filtered.length === 0 ? (
+          <tr>
+            <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+              No applications found
+            </td>
+          </tr>
+        ) : (
+          filtered.map((r) => {
+            const name = r.full_name || 'N/A'
+            const status = r.registration_status || 'Pending'
 
-interface Registration {
-  id: string
-  full_name: string
-  email: string
-  registration_type: string
-  program: string
-  registration_status: string
-  created_at: string
-}
+            return (
+              <tr key={r.id} className="hover:bg-gray-50 transition-colors">
 
-interface DashboardTableProps {
-  registrations: Registration[]
-}
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  {name}
+                </td>
 
-export default function DashboardTable({ registrations }: DashboardTableProps) {
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [sortBy, setSortBy] = useState<string>('date')
-  const [loadingId, setLoadingId] = useState<string | null>(null)
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {r.email}
+                </td>
 
-  // Filter registrations
-  let filtered = registrations.filter((r) => {
-    const name = r.full_name || ''
-    const matchesSearch =
-      name.toLowerCase().includes(search.toLowerCase()) ||
-      (r.email || '').toLowerCase().includes(search.toLowerCase())
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {r.registration_type || '-'}
+                </td>
 
-    const status = r.registration_status || 'Pending'
-    const matchesStatus =
-      statusFilter === 'all' || status.toLowerCase() === statusFilter.toLowerCase()
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {r.program || '-'}
+                </td>
 
-    const matchesType = typeFilter === 'all' || r.registration_type === typeFilter
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {r.duration || '-'}
+                </td>
 
-    return matchesSearch && matchesStatus && matchesType
-  })
+                <td className="px-6 py-4 text-sm">
+                  {getStatusBadge(status)}
+                </td>
 
-  // Sort
-  if (sortBy === 'date') {
-    filtered.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-  } else if (sortBy === 'name') {
-    filtered.sort((a, b) => (a.full_name || '').toLowerCase().localeCompare((b.full_name || '').toLowerCase()))
-  } else if (sortBy === 'program') {
-    filtered.sort((a, b) =>
-      (a.program || '').localeCompare(b.program || '')
-    )
-  }
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {new Date(r.created_at).toLocaleDateString()}
+                </td>
 
-  const handleAccept = async (id: string) => {
-    setLoadingId(id)
-    await acceptApplication(id)
-    setLoadingId(null)
-  }
+                <td className="px-6 py-4 text-sm">
+                  <div className="flex gap-2 justify-center">
 
-  const handleDecline = async (id: string) => {
-    setLoadingId(id)
-    await declineApplication(id)
-    setLoadingId(null)
-  }
+                    {/* Accept */}
+                    <button
+                      disabled={loadingId === r.id || status.toLowerCase() === 'accepted'}
+                      onClick={() => handleAccept(r.id)}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
+                    >
+                      Accept
+                    </button>
 
-  const getStatusBadge = (status: string | null) => {
-    const s = (status || 'pending').toLowerCase()
-    if (s === 'accepted') {
-      return (
-        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-          <CheckCircle className="w-4 h-4" />
-          Accepted
-        </span>
-      )
-    }
-    if (s === 'declined') {
-      return (
-        <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-medium">
-          <XCircle className="w-4 h-4" />
-          Declined
-        </span>
-      )
-    }
-    return (
-      <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
-        <Clock className="w-4 h-4" />
-        Pending
-      </span>
-    )
-  }
+                    {/* Decline */}
+                    <button
+                      disabled={loadingId === r.id || status.toLowerCase() === 'declined'}
+                      onClick={() => handleDecline(r.id)}
+                      className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
+                    >
+                      Decline
+                    </button>
 
-  return (
-    <div className="space-y-4">
-      {/* Filters & Export Buttons */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <input
-              placeholder="Search by name or email..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+                    {/* Certificate */}
+                    <button
+                      disabled={status.toLowerCase() !== 'accepted'}
+                      onClick={() => generateCertificate(r)}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
+                    >
+                      Certificate
+                    </button>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="accepted">Accepted</option>
-              <option value="declined">Declined</option>
-              <option value="enrolled">Enrolled</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
+                  </div>
+                </td>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="all">All Types</option>
-              <option value="Student">Student</option>
-              <option value="Individual">Individual</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-            <select
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="date">Date (Newest)</option>
-              <option value="name">Name (A-Z)</option>
-              <option value="program">Program</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Export Buttons */}
-        <div className="flex gap-3 pt-2 border-t border-gray-200">
-          <button
-            onClick={() => downloadExcel({ registrations: filtered })}
-            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Download CSV
-          </button>
-          <button
-            onClick={() => downloadStatisticsSheet(filtered)}
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            Download Stats
-          </button>
-          <button
-            onClick={() =>
-              downloadPDFReport({
-                registrations: filtered,
-                title: 'Energy & Logics - Applications Report',
-              })
-            }
-            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            Print as PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Program</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    No applications found
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((r) => {
-                  const name = r.full_name || 'N/A'
-                  const status = r.registration_status || 'Pending'
-                  return (
-                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{r.program || '-'}</td>
-                      <td className="px-6 py-4 text-sm">{getStatusBadge(status)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(r.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="flex gap-2 justify-center">
-                          <button
-                            disabled={loadingId === r.id || status.toLowerCase() === 'accepted'}
-                            onClick={() => handleAccept(r.id)}
-                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
-                          >
-                            Accept
-                          </button>
-                          <button
-                            disabled={loadingId === r.id || status.toLowerCase() === 'declined'}
-                            onClick={() => handleDecline(r.id)}
-                            className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
-                          >
-                            Decline
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+            )
+          })
+        )}
+      </tbody>
+    </table>
+  </div>
 
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
-          Showing {filtered.length} of {registrations.length} applications
-        </div>
-      </div>
-    </div>
-  )
-}
+  <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
+    Showing {filtered.length} of {registrations.length} applications
+  </div>
+</div>
