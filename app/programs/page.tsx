@@ -126,7 +126,7 @@ export default function ProgramsPage() {
                       <ul className="space-y-2">
                         {program.modules.map((module, idx) => (
                           <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0"></span>
                             {module}
                           </li>
                         ))}
@@ -161,7 +161,7 @@ export default function ProgramsPage() {
       <section className="py-20 px-4 bg-card border-t border-border">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-bold mb-12 text-center">Why Choose Energy & Logics?</h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="border-border">
               <CardHeader>
