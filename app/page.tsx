@@ -55,8 +55,9 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/student">
-              <Button variant="ghost">Student Portal</Button>
+
+            <Link href="/student/login">
+              <Button>Student Portal</Button>
             </Link>
             <Link href="/programs">
               <Button variant="ghost">Programs</Button>
