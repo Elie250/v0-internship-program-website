@@ -1,108 +1,50 @@
-export interface ExcelExportData {
-  registrations: any[]
-  filename?: string
-}
+export const downloadExcel = ({ registrations }: any) => {
 
-export function generateCSVContent(registrations: any[]): string {
   const headers = [
-    'Full Name',
-    'Email',
-    'Phone',
-    'Registration Type',
-    'School / Profession',
-    'Program',
-    'Level',
-    'Duration',
-    'Status',
-    'Date Applied',
+    "Full Name",
+    "Email",
+    "Phone",
+    "Program",
+    "Duration",
+    "Current Level",
+    "School",
+    "Field of Study",
+    "Province",
+    "District",
+    "Date of Birth",
+    "Motivation",
+    "Status",
+    "Date Applied"
   ]
 
-  const rows = registrations.map((reg) => [
-    escapeCsvValue(reg.full_name),
-    escapeCsvValue(reg.email),
-    escapeCsvValue(reg.phone || ''),
-    escapeCsvValue(reg.registration_type || ''),
-    escapeCsvValue(reg.school || reg.profession || ''),
-    escapeCsvValue(reg.program || reg.training_program || ''),
-    escapeCsvValue(reg.level || ''),
-    escapeCsvValue(reg.duration || ''),
-    escapeCsvValue(reg.status || 'pending'),
-    reg.created_at ? new Date(reg.created_at).toLocaleDateString() : '',
+  const rows = registrations.map((r: any) => [
+    r.full_name || '',
+    r.email || '',
+    r.phone || '',
+    r.program || '',
+    r.duration || '',
+    r.current_level || '',
+    r.school || '',
+    r.field_of_study || '',
+    r.province || '',
+    r.district || '',
+    r.date_of_birth || '',
+    r.motivation || '',
+    r.status || 'pending',
+    new Date(r.created_at).toLocaleDateString()
   ])
 
-  const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n')
+  const csvContent =
+    [headers, ...rows]
+      .map(e => e.map(v => `"${v}"`).join(","))
+      .join("\n")
 
-  return csvContent
-}
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
 
-export function downloadExcel(data: ExcelExportData, filename: string = 'registrations.csv'): void {
-  const csvContent = generateCSVContent(data.registrations)
+  const link = document.createElement("a")
+  link.href = URL.createObjectURL(blob)
 
-  // Create blob
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  link.download = `energy-logics-applications-${new Date().toISOString().slice(0, 10)}.csv`
 
-  // Create download link
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-
-  link.setAttribute('href', url)
-  link.setAttribute('download', filename)
-  link.style.visibility = 'hidden'
-
-  document.body.appendChild(link)
   link.click()
-  document.body.removeChild(link)
-}
-
-function escapeCsvValue(value: string): string {
-  if (!value) return ''
-
-  // If the value contains comma, quote, or newline, wrap it in quotes
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    // Escape any existing quotes by doubling them
-    return `"${value.replace(/"/g, '""')}""`
-  }
-
-  return value
-}
-
-// Advanced Excel export with multiple sheets (requires a library, but we'll provide the structure)
-export function generateStatisticsSheet(registrations: any[]): string {
-  const headers = ['Metric', 'Count', 'Percentage']
-
-  const total = registrations.length
-  const accepted = registrations.filter((r) => r.status === 'accepted').length
-  const declined = registrations.filter((r) => r.status === 'declined').length
-  const pending = registrations.filter((r) => r.status === 'pending' || !r.status).length
-  const students = registrations.filter((r) => r.registration_type === 'Student').length
-  const individuals = registrations.filter((r) => r.registration_type === 'Individual').length
-
-  const stats = [
-    ['Total Applications', total, '100%'],
-    ['Accepted', accepted, `${((accepted / total) * 100).toFixed(1)}%`],
-    ['Declined', declined, `${((declined / total) * 100).toFixed(1)}%`],
-    ['Pending', pending, `${((pending / total) * 100).toFixed(1)}%`],
-    ['Students', students, `${((students / total) * 100).toFixed(1)}%`],
-    ['Individuals', individuals, `${((individuals / total) * 100).toFixed(1)}%`],
-  ]
-
-  const csvContent = [headers, ...stats].map((row) => row.join(',')).join('\n')
-
-  return csvContent
-}
-
-export function downloadStatisticsSheet(registrations: any[]): void {
-  const csvContent = generateStatisticsSheet(registrations)
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-
-  link.setAttribute('href', url)
-  link.setAttribute('download', 'statistics.csv')
-  link.style.visibility = 'hidden'
-
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }

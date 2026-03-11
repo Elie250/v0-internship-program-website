@@ -26,10 +26,10 @@ const PROGRAMS = [
 ]
 
 const DURATIONS = [
-  { id: '3', label: '3 Months' },
-  { id: '4', label: '4 Months' },
-  { id: '5', label: '5 Months' },
-  { id: '6', label: '6 Months' }
+  { id: '2', label: '2 Weeks' },
+  { id: '1', label: '1 Month' },
+  { id: '0', label: 'Individual' }
+
 ]
 
 const LEVELS = [
