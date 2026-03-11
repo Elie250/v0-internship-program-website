@@ -20,8 +20,8 @@ export async function createStudent(formData: FormData) {
     ])
 
   if (error) {
-    redirect("/student/signup?error=userexists")
+    redirect("signup?error=userexists")
   }
 
-  redirect("/student/login?created=true")
+  redirect("login?created=true")
 }
