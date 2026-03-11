@@ -8,25 +8,30 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Electrical & Automation Internship Program - Energy and Logics Ltd',
-  description: 'Join our internship program in Electrical, Automation, Embedded Systems and IoT. Located in Nyamirambo, Kigali, Rwanda.',
-  generator: 'v0.app',
+  title: 'Energy & Logics Engineering Academy - Professional Internship Programs',
+  description: 'Master Electrical Systems, Embedded Technology, IoT Solutions, and Electronics through hands-on internship programs. Industry-expert training in Kigali, Rwanda.',
+  keywords: 'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
+  authors: [{ name: 'Energy & Logics Ltd' }],
+  creator: 'Energy & Logics Ltd',
+  publisher: 'Energy & Logics Ltd',
+  robots: 'index, follow',
   icons: {
-    icon: [
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://energyandlogics.com',
+    title: 'Energy & Logics Engineering Academy',
+    description: 'Professional internship programs in engineering disciplines',
+    images: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: '/hero-banner.jpg',
+        width: 1920,
+        height: 600,
       },
     ],
-    apple: '/apple-icon.png',
   },
 }
 
