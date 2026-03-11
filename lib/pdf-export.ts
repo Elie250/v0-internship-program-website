@@ -1,54 +1,63 @@
-import jsPDF from "jspdf"
-import autoTable from "jspdf-autotable"
+// lib/pdf-export.ts
+import 'jspdf-autotable'
+import jsPDF from 'jspdf'
 
-export const downloadPDFReport = ({ registrations, title }: any) => {
+interface Registration {
+  full_name: string
+  email: string
+  registration_type: string
+  program: string
+  duration: string
+  registration_status: string
+  created_at: string
+}
+
+interface PDFExportProps {
+  registrations: Registration[]
+  title?: string
+}
+
+export function downloadPDFReport({ registrations, title = 'Applications Report' }: PDFExportProps) {
+  if (!registrations || registrations.length === 0) return
 
   const doc = new jsPDF()
 
+  // Title
   doc.setFontSize(18)
-  doc.text(title, 14, 20)
+  doc.text(title, 14, 22)
 
-  doc.setFontSize(10)
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28)
-
-  const tableColumn = [
-    "Name",
-    "Email",
-    "Phone",
-    "Program",
-    "Duration",
-    "Level",
-    "School",
-    "Status",
-    "Date"
+  // Table header
+  const headers = [
+    'Full Name',
+    'Email',
+    'Type',
+    'Program',
+    'Duration',
+    'Status',
+    'Application Date',
   ]
 
-  const tableRows: any[] = []
+  const rows = registrations.map(r => [
+    r.full_name || '',
+    r.email || '',
+    r.registration_type || '',
+    r.program || '',
+    r.duration || '',
+    r.registration_status || '',
+    r.created_at ? new Date(r.created_at).toLocaleString() : '',
+  ])
 
-  registrations.forEach((r: any) => {
-
-    const row = [
-      r.full_name,
-      r.email,
-      r.phone,
-      r.program,
-      r.duration,
-      r.current_level,
-      r.school,
-      r.status || "pending",
-      new Date(r.created_at).toLocaleDateString()
-    ]
-
-    tableRows.push(row)
-
+  // Auto-table setup
+  // You need jspdf-autotable
+  // If not installed, do: pnpm add jspdf-autotable
+  // @ts-ignore
+  doc.autoTable({
+    head: [headers],
+    body: rows,
+    startY: 30,
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [54, 162, 235] },
   })
 
-  autoTable(doc, {
-    head: [tableColumn],
-    body: tableRows,
-    startY: 35
-  })
-
-  doc.save("energy-logics-applications.pdf")
-
+  doc.save('applications.pdf')
 }
