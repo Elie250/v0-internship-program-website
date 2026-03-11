@@ -14,9 +14,11 @@ export default function DashboardTable({ registrations }: any) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   let filtered = registrations.filter((r: any) => {
-    const matchesSearch = r.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      r.email.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || (r.status || 'pending') === statusFilter
+    const name = r.full_name || r.name || ''
+    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) ||
+      (r.email || '').toLowerCase().includes(search.toLowerCase())
+    const status = r.registration_status || r.status || 'Pending'
+    const matchesStatus = statusFilter === 'all' || status.toLowerCase() === statusFilter.toLowerCase()
     const matchesType = typeFilter === 'all' || r.registration_type === typeFilter
 
     return matchesSearch && matchesStatus && matchesType
@@ -26,7 +28,11 @@ export default function DashboardTable({ registrations }: any) {
   if (sortBy === 'date') {
     filtered.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
   } else if (sortBy === 'name') {
-    filtered.sort((a: any, b: any) => a.full_name.localeCompare(b.full_name))
+    filtered.sort((a: any, b: any) => {
+      const nameA = (a.full_name || a.name || '').toLowerCase()
+      const nameB = (b.full_name || b.name || '').toLowerCase()
+      return nameA.localeCompare(nameB)
+    })
   } else if (sortBy === 'program') {
     filtered.sort((a: any, b: any) =>
       (a.program || a.training_program || '').localeCompare(b.program || b.training_program || '')
@@ -91,6 +97,8 @@ export default function DashboardTable({ registrations }: any) {
               <option value="pending">Pending</option>
               <option value="accepted">Accepted</option>
               <option value="declined">Declined</option>
+              <option value="enrolled">Enrolled</option>
+              <option value="completed">Completed</option>
             </select>
           </div>
 
@@ -175,36 +183,40 @@ export default function DashboardTable({ registrations }: any) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((r: any) => (
-                  <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{r.full_name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{r.program || r.training_program || '-'}</td>
-                    <td className="px-6 py-4 text-sm">{getStatusBadge(r.status)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(r.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="flex gap-2 justify-center">
-                        <button
-                          disabled={loadingId === r.id || r.status === 'accepted'}
-                          onClick={() => handleAccept(r.id)}
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          disabled={loadingId === r.id || r.status === 'declined'}
-                          onClick={() => handleDecline(r.id)}
-                          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                filtered.map((r: any) => {
+                  const name = r.full_name || r.name || 'N/A'
+                  const status = r.registration_status || r.status || 'Pending'
+                  return (
+                    <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">{r.program || r.training_program || '-'}</td>
+                      <td className="px-6 py-4 text-sm">{getStatusBadge(status)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {new Date(r.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            disabled={loadingId === r.id || status.toLowerCase() === 'accepted'}
+                            onClick={() => handleAccept(r.id)}
+                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            disabled={loadingId === r.id || status.toLowerCase() === 'declined'}
+                            onClick={() => handleDecline(r.id)}
+                            className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
