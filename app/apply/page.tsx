@@ -253,7 +253,6 @@ export default function ApplyPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* Education Background */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-primary">Education Background</h3>
