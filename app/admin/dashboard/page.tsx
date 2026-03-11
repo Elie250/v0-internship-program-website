@@ -34,7 +34,7 @@ export default async function Dashboard() {
   const pending = data.filter((d: any) => d.status === 'pending' || !d.status).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6 md:p-10">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-6 md:p-10">
       <div className="max-w-7xl mx-auto space-y-10">
 
         {/* Header */}
@@ -51,7 +51,6 @@ export default async function Dashboard() {
             Last updated: {new Date().toLocaleString()}
           </div>
         </div>
-
         {/* Stats Cards */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <StatsCards

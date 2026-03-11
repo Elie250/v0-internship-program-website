@@ -55,7 +55,7 @@ export default function StudentPortalPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative w-full h-64 sm:h-96 bg-gradient-to-r from-blue-100 to-blue-200 flex items-center justify-center">
+      <section className="relative w-full h-64 sm:h-96 bg-linear-to-r from-blue-100 to-blue-200 flex items-center justify-center">
         <div className="text-center px-4">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Welcome to the Student Portal</h1>
           <p className="text-lg text-gray-700 max-w-2xl mx-auto">
