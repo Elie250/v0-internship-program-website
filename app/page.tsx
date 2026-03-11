@@ -55,6 +55,9 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
+            <Link href="/student">
+              <Button variant="ghost">Student Portal</Button>
+            </Link>
             <Link href="/programs">
               <Button variant="ghost">Programs</Button>
             </Link>
@@ -72,7 +75,7 @@ export default function Home() {
 
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10"></div>
-        
+
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
           <div className="mb-6 inline-block">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/20 border border-accent/40">
