@@ -46,7 +46,7 @@ export default function StudentPortalPage() {
               Login
             </Button>
           </Link>
-          <Link href="/student/signup">
+          <Link href="/signup">
             <Button className="text-white bg-blue-600 hover:bg-blue-700">
               Sign Up
             </Button>
