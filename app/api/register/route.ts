@@ -14,34 +14,57 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare data for database
-    const registrationData = {
-      registration_type: body.registrationType,
-      full_name: body.fullName,
+    const registrationData: any = {
+      name: body.fullName,
       email: body.email,
       phone: body.phone,
-      status: 'pending',
+      registration_status: 'Pending',
       created_at: new Date().toISOString(),
     };
 
-    // Add type-specific fields
-    if (body.registrationType === 'Student') {
-      Object.assign(registrationData, {
-        school: body.school,
-        program: body.program,
-        level: body.level,
-        duration: body.duration,
-      });
-    } else if (body.registrationType === 'Individual') {
-      Object.assign(registrationData, {
-        profession: body.profession,
-        training_program: body.trainingProgram,
-        schedule: body.schedule,
-      });
+    // Add program and duration if provided
+    if (body.program) {
+      registrationData.program = body.program;
+    }
+    if (body.duration) {
+      registrationData.duration = body.duration;
     }
 
-    // Add optional message
+    // Add educational information
+    if (body.currentLevel) {
+      registrationData.level = body.currentLevel;
+    }
+    if (body.school) {
+      registrationData.school = body.school;
+    }
+    if (body.fieldOfStudy) {
+      registrationData.field_of_study = body.fieldOfStudy;
+    }
+
+    // Add location information
+    if (body.province) {
+      registrationData.location_province = body.province;
+    }
+    if (body.district) {
+      registrationData.location_district = body.district;
+    }
+
+    // Add personal information
+    if (body.dateOfBirth) {
+      registrationData.date_of_birth = body.dateOfBirth;
+    }
+
+    // Add motivation and agreement
+    if (body.motivation) {
+      registrationData.motivation = body.motivation;
+    }
+    if (body.agreedToTerms !== undefined) {
+      registrationData.agreement_confirmed = body.agreedToTerms;
+    }
+
+    // Add optional message (for backwards compatibility)
     if (body.message) {
-      Object.assign(registrationData, { message: body.message });
+      registrationData.message = body.message;
     }
 
     // Insert into database

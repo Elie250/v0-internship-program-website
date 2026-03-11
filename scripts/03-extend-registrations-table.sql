@@ -28,7 +28,7 @@ ALTER TABLE registrations
 
 -- Add status field for tracking application progress
 ALTER TABLE registrations
-  ADD COLUMN IF NOT EXISTS registration_status VARCHAR(50) DEFAULT 'Pending' DEFAULT 'Pending';
+  ADD COLUMN IF NOT EXISTS registration_status VARCHAR(50) DEFAULT 'Pending';
 
 -- Create index on registration_status for filtering
 CREATE INDEX IF NOT EXISTS registrations_registration_status_idx ON registrations(registration_status);
