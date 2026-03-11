@@ -75,7 +75,7 @@ export default function Home() {
       {/* HERO */}
 
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10"></div>
+        <div className="absolute inset-0 bg-linear-to-brrom-primary/10 to-secondary/10"></div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
           <div className="mb-6 inline-block">
@@ -160,7 +160,7 @@ export default function Home() {
 
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-secondary/5">
+          <Card className="overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-secondary/5">
             <CardHeader className="pb-4">
               <CardTitle className="text-3xl">Ready to Start Your Journey?</CardTitle>
             </CardHeader>
