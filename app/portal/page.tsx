@@ -41,7 +41,7 @@ export default function StudentPortalPage() {
       <header className="border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-end">
 
-          <Link href="/student/login">
+          <Link href="/login">
             <Button className="text-white bg-blue-600 hover:bg-blue-700">
               Login
             </Button>
