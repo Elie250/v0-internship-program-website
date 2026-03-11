@@ -1,46 +1,50 @@
 'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, ArrowRight } from 'lucide-react'
+import { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, ArrowRight } from 'lucide-react';
 
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PROGRAMS = [
   {
     id: 'ELT',
     label: 'Electrical Technology',
     icon: Zap,
-    description: 'Domestic electricity, industrial installation, PLC automation and motor control.',
-    image: '/programs/electrical.jpg'
+    description: 'Domestic electricity, industrial installation, PLC automation, and motor control.',
+    image: '/images/hero-electrical.jpg',
+    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
   },
   {
     id: 'CSA',
     label: 'Embedded Systems',
     icon: Cpu,
     description: 'Microcontrollers, embedded programming, and hardware-software integration.',
-    image: '/images/embedded-systems.jpg'
+    image: '/images/embedded-systems.jpg',
+    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
   },
   {
     id: 'NIT',
     label: 'IoT & Networking',
     icon: Wifi,
     description: 'IoT connectivity, network infrastructure, and communication systems.',
-    image: '/programs/iot.jpg'
+    image: '/images/program-nit.jpg',
+    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
   },
   {
     id: 'ETE',
     label: 'Electronics',
     icon: Waves,
     description: 'Electronic circuits, sensors, and telecommunications.',
-    image: '/programs/electronics.jpg'
+    image: '/images/program-ete.jpg',
+    pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
   }
-]
+];
 
 export default function Home() {
-  const [isHeroReady] = useState(true)
+  const [isHeroReady] = useState(true);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -75,7 +79,7 @@ export default function Home() {
 
       {/* HERO */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <Image src="/images/hero-baner.jpg" alt="Hero Banner" fill className="object-cover -z-10" />
+        <Image src="/images/hero-electrical.jpg" alt="Hero Banner" fill className="object-cover -z-10" />
         <div className="absolute inset-0 bg-black/30 -z-0"></div>
 
         <div className="relative z-10 max-w-4xl mx-auto text-center px-6 py-20">
@@ -113,7 +117,7 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {PROGRAMS.map((program) => {
-              const IconComponent = program.icon
+              const IconComponent = program.icon;
               return (
                 <Card key={program.id} className="overflow-hidden hover:shadow-lg hover:border-primary/50 transition-all duration-300 group">
                   <Image src={program.image} alt={program.label} width={400} height={200} className="object-cover w-full h-48" />
@@ -127,6 +131,7 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">{program.description}</p>
+                    <p className="mt-2 text-sm font-semibold text-primary">{program.pricing}</p>
                   </CardContent>
                   <div className="px-6 pb-6">
                     <Link href={`/programs/${program.id}`}>
@@ -136,7 +141,7 @@ export default function Home() {
                     </Link>
                   </div>
                 </Card>
-              )
+              );
             })}
           </div>
         </div>
@@ -215,5 +220,5 @@ export default function Home() {
       </footer>
 
     </main>
-  )
+  );
 }
