@@ -1,18 +1,24 @@
-import { loginStudent } from './actions'
+import { createStudent } from './actions'
 
-export default function LoginPage() {
+export default function SignupPage() {
 
   return (
 
-    <form action={loginStudent} className="max-w-md mx-auto p-10 space-y-4">
+    <form action={createStudent} className="max-w-md mx-auto p-10 space-y-4">
 
       <h1 className="text-2xl font-bold">
-        Student Login
+        Create Student Account
       </h1>
 
       <input
         name="username"
         placeholder="Username"
+        className="border p-2 w-full"
+      />
+
+      <input
+        name="email"
+        placeholder="Email"
         className="border p-2 w-full"
       />
 
@@ -25,9 +31,9 @@ export default function LoginPage() {
 
       <button
         type="submit"
-        className="bg-green-600 text-white px-4 py-2"
+        className="bg-blue-600 text-white px-4 py-2"
       >
-        Login
+        Create Account
       </button>
 
     </form>
