@@ -1,63 +1,44 @@
 // lib/pdf-export.ts
-import 'jspdf-autotable'
-import jsPDF from 'jspdf'
+import { jsPDF } from "jspdf";
+import { Registration } from "@/types/registration";
 
-interface Registration {
-  full_name: string
-  email: string
-  registration_type: string
-  program: string
-  duration: string
-  registration_status: string
-  created_at: string
-}
+export const downloadPDFReport = ({
+  registrations,
+  title = "Registrations Report",
+}: {
+  registrations: Registration[];
+  title?: string;
+}) => {
+  const doc = new jsPDF();
 
-interface PDFExportProps {
-  registrations: Registration[]
-  title?: string
-}
+  doc.setFontSize(18);
+  doc.text(title, 14, 22);
 
-export function downloadPDFReport({ registrations, title = 'Applications Report' }: PDFExportProps) {
-  if (!registrations || registrations.length === 0) return
+  doc.setFontSize(12);
+  const headers = ["Name", "Email", "Type", "Program", "Duration", "Status", "Date"];
+  const rows = registrations.map((r) => [
+    r.full_name,
+    r.email,
+    r.registration_type,
+    r.program,
+    r.duration || "-",
+    r.status,
+    new Date(r.created_at).toLocaleDateString(),
+  ]);
 
-  const doc = new jsPDF()
+  // Add table manually
+  let startY = 30;
+  doc.setFont("helvetica", "bold");
+  headers.forEach((header, i) => {
+    doc.text(header, 14 + i * 28, startY);
+  });
 
-  // Title
-  doc.setFontSize(18)
-  doc.text(title, 14, 22)
+  doc.setFont("helvetica", "normal");
+  rows.forEach((row, rowIndex) => {
+    row.forEach((cell, i) => {
+      doc.text(String(cell), 14 + i * 28, startY + 10 + rowIndex * 8);
+    });
+  });
 
-  // Table header
-  const headers = [
-    'Full Name',
-    'Email',
-    'Type',
-    'Program',
-    'Duration',
-    'Status',
-    'Application Date',
-  ]
-
-  const rows = registrations.map(r => [
-    r.full_name || '',
-    r.email || '',
-    r.registration_type || '',
-    r.program || '',
-    r.duration || '',
-    r.registration_status || '',
-    r.created_at ? new Date(r.created_at).toLocaleString() : '',
-  ])
-
-  // Auto-table setup
-  // You need jspdf-autotable
-  // If not installed, do: pnpm add jspdf-autotable
-  // @ts-ignore
-  doc.autoTable({
-    head: [headers],
-    body: rows,
-    startY: 30,
-    styles: { fontSize: 10 },
-    headStyles: { fillColor: [54, 162, 235] },
-  })
-
-  doc.save('applications.pdf')
-}
+  doc.save(`${title.replace(/\s/g, "_")}.pdf`);
+};
