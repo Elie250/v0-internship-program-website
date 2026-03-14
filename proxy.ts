@@ -1,31 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+// This is the required export function
+export function proxy(request: NextRequest) {
+  const cookies = request.cookies
+  const adminSession = cookies.get('admin_session')
+  const studentSession = cookies.get('student_session')
 
-  // Protect /admin/dashboard route
-  if (pathname.startsWith('/admin/dashboard')) {
-    const sessionCookie = request.cookies.get('admin_session');
+  const pathname = request.nextUrl.pathname
 
-    if (!sessionCookie) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
+  // Protect /admin routes
+  if (pathname.startsWith('/admin') && !adminSession) {
+    return NextResponse.redirect(new URL('/admin/login', request.url))
   }
 
-  // Redirect from /admin to /admin/login if not authenticated
-  if (pathname === '/admin' || pathname === '/admin/') {
-    const sessionCookie = request.cookies.get('admin_session');
-
-    if (!sessionCookie) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-    }
+  // Protect /student/portal routes
+  if (pathname.startsWith('/student/portal') && !studentSession) {
+    return NextResponse.redirect(new URL('/student/login', request.url))
   }
 
-  return NextResponse.next();
+  // Allow all other requests
+  return NextResponse.next()
 }
 
+// Paths this proxy applies to
 export const config = {
-  matcher: ['/admin/:path*'],
-};
+  matcher: ['/admin/:path*', '/student/portal/:path*']
+}
