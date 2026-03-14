@@ -1,9 +1,9 @@
 'use server'
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendApplicationEmail } from '@/lib/email'
+import { supabaseAdmin } from '../../../lib/supabaseAdmin' // fixed relative path
 
 export async function acceptApplication(id: string) {
+  // fetch the application
   const { data: application, error: fetchError } = await supabaseAdmin
     .from('registrations')
     .select('*')
@@ -12,6 +12,7 @@ export async function acceptApplication(id: string) {
 
   if (fetchError || !application) return { success: false }
 
+  // update status to accepted
   const { error: updateError } = await supabaseAdmin
     .from('registrations')
     .update({ status: 'accepted', certificate_generated: true })
@@ -19,17 +20,11 @@ export async function acceptApplication(id: string) {
 
   if (updateError) return { success: false }
 
-  await sendApplicationEmail({
-    to: application.email,
-    full_name: application.full_name,
-    program: application.program,
-    status: 'accepted'
-  })
-
   return { success: true }
 }
 
 export async function declineApplication(id: string) {
+  // fetch the application
   const { data: application, error: fetchError } = await supabaseAdmin
     .from('registrations')
     .select('*')
@@ -38,19 +33,13 @@ export async function declineApplication(id: string) {
 
   if (fetchError || !application) return { success: false }
 
+  // update status to declined
   const { error: updateError } = await supabaseAdmin
     .from('registrations')
     .update({ status: 'declined' })
     .eq('id', id)
 
   if (updateError) return { success: false }
-
-  await sendApplicationEmail({
-    to: application.email,
-    full_name: application.full_name,
-    program: application.program,
-    status: 'declined'
-  })
 
   return { success: true }
 }

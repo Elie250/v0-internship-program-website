@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { generateCertificate } from '@/lib/certificate-generator'
 import { acceptApplication, declineApplication } from './actions'
 
 export default function DashboardTable({ registrations }: any) {
@@ -76,44 +75,22 @@ export default function DashboardTable({ registrations }: any) {
               </tr>
             ) : (
               filtered.map((r: any) => {
-
                 const name = r.full_name || 'N/A'
                 const status = r.status || 'pending'
 
                 return (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
 
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {name}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.email}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.registration_type || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.program || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.duration || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm">
-                      {getStatusBadge(status)}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {new Date(r.created_at).toLocaleDateString()}
-                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.program || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.duration || '-'}</td>
+                    <td className="px-6 py-4 text-sm">{getStatusBadge(status)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{new Date(r.created_at).toLocaleDateString()}</td>
 
                     <td className="px-6 py-4 text-sm">
                       <div className="flex gap-2 justify-center">
-
                         {/* Accept */}
                         <button
                           disabled={loadingId === r.id || status === 'accepted'}
@@ -131,16 +108,6 @@ export default function DashboardTable({ registrations }: any) {
                         >
                           Decline
                         </button>
-
-                        {/* Certificate */}
-                        <button
-                          disabled={status !== 'accepted'}
-                          onClick={() => generateCertificate(r)}
-                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
-                        >
-                          Certificate
-                        </button>
-
                       </div>
                     </td>
 
