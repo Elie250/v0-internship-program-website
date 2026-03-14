@@ -22,3 +22,13 @@ export async function login(formData: FormData) {
 
   return { success: true, user: data.user }
 }
+
+export async function logout() {
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    return { success: false }
+  }
+
+  return { success: true }
+}
