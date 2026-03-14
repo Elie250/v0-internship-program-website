@@ -1,20 +1,28 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// This handles file uploads from your admin page
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const file = formData.get('file') as File
+    const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ success: false, message: 'No file uploaded' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, message: 'No file uploaded' },
+        { status: 400 }
+      )
     }
 
-    // TODO: process the file (save to storage, database, etc.)
+    // TODO: save the file to Supabase or other storage
+    // Example: upload to Supabase Storage
+    // await supabase.storage.from('uploads').upload(file.name, file)
 
     return NextResponse.json({ success: true, message: 'File uploaded successfully' })
   } catch (error) {
-    return NextResponse.json({ success: false, message: (error as Error).message }, { status: 500 })
+    console.error(error)
+    return NextResponse.json(
+      { success: false, message: 'Server error during upload' },
+      { status: 500 }
+    )
   }
 }
