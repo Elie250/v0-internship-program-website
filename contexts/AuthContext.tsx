@@ -1,11 +1,34 @@
-import React, { createContext, useContext, useState } from 'react';
+'use client';
 
-const AuthContext = createContext(null);
+import { createContext, ReactNode, useState } from 'react';
 
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+// Define User type
+export type User = {
+    id: string;
+    name: string;
+    email: string;
+    roles?: string[];
+};
 
-    const login = (userData) => {
+// Define context type
+export type AuthContextType = {
+    user: User | null;
+    login: (userData: User) => void;
+    logout: () => void;
+};
+
+// Create context
+export const AuthContext = createContext<AuthContextType | null>(null);
+
+// Props for provider
+type AuthProviderProps = {
+    children: ReactNode;
+};
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+    const [user, setUser] = useState<User | null>(null);
+
+    const login = (userData: User) => {
         setUser(userData);
     };
 
@@ -18,8 +41,4 @@ export const AuthProvider = ({ children }) => {
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = () => {
-    return useContext(AuthContext);
 };
