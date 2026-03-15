@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Zap, Cpu, Wifi, Waves, Clock, Users, Award, ArrowLeft, Radio } from 'lucide-react'
+import { Zap, Cpu, Wifi, Waves, Clock, Users, Award, ArrowLeft } from 'lucide-react'
 
 const PROGRAMS_DETAILED = [
   {
@@ -27,7 +27,7 @@ const PROGRAMS_DETAILED = [
   {
     id: 'ETE',
     title: 'Electronics',
-    icon: Radio,
+    icon: Waves,
     duration: '3-5 months',
     level: 'Beginner to Intermediate',
     description: 'Comprehensive training in electronic circuit design, signal processing, and telecommunications.',

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Radio, User, ArrowRight } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, Gear, Build, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,7 +32,7 @@ const PROGRAMS = [
   {
     id: 'ELEC2',
     label: 'Electronics',
-    icon: Radio,
+    icon: Waves,
     description: 'Circuit design, sensors, telecommunications, and electronics projects.',
     image: '/images/program-electronics.jpg',
   },
@@ -105,6 +105,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       {/* PROGRAMS */}
       <section className="py-20 bg-gray-50 px-4">
         <div className="max-w-6xl mx-auto">
