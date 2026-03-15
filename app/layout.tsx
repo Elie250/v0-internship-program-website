@@ -8,7 +8,6 @@ import { AuthProvider } from '../contexts/AuthContext'
 // Import global components
 import Navbar from '../components/Navbar'  // correct if file is app/components/Navbar.tsx
 import Footer from '../components/Footer'
-
 // Google fonts
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
