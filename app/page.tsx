@@ -105,7 +105,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* PROGRAMS */}
       <section className="py-20 bg-gray-50 px-4">
         <div className="max-w-6xl mx-auto">
