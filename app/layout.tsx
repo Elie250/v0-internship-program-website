@@ -6,7 +6,7 @@ import './globals.css'
 // Import AuthProvider
 import { AuthProvider } from '../contexts/AuthContext'
 // Import global components
-import Navbar from '../components/Navbar'
+import Navbar from '../components/Navbar'  // correct if file is app/components/Navbar.tsx
 import Footer from '../components/Footer'
 
 // Google fonts
