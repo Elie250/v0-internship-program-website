@@ -2,29 +2,29 @@
 
 import { createContext, ReactNode, useState } from 'react';
 
-// Define a type for your user object
-type User = {
+// Define User type
+export type User = {
     id: string;
     name: string;
-    email?: string;
+    email: string;
+    roles?: string[];
 };
 
-// Props for AuthProvider
-interface AuthProviderProps {
-    children: ReactNode;
-}
-
-// Context type
-type AuthContextType = {
+// Define context type
+export type AuthContextType = {
     user: User | null;
     login: (userData: User) => void;
     logout: () => void;
 };
 
-// Create context with type
+// Create context
 export const AuthContext = createContext<AuthContextType | null>(null);
 
-// AuthProvider with typed children
+// Props for provider
+type AuthProviderProps = {
+    children: ReactNode;
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [user, setUser] = useState<User | null>(null);
 

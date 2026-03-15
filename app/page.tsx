@@ -3,47 +3,17 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, ArrowRight } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PROGRAMS = [
-  {
-    id: 'ELT',
-    label: 'Electrical Technology',
-    icon: Zap,
-    description: 'Domestic electricity, industrial installation, PLC automation and motor control.',
-    image: '/images/program-elt.jpg',
-  },
-  {
-    id: 'CSA',
-    label: 'Embedded Systems',
-    icon: Cpu,
-    description: 'Microcontrollers, embedded programming, and hardware-software integration.',
-    image: '/images/program-csa.jpg',
-  },
-  {
-    id: 'NIT',
-    label: 'IoT & Networking',
-    icon: Wifi,
-    description: 'IoT connectivity, network infrastructure, and communication systems.',
-    image: '/images/program-nit.jpg',
-  },
-  {
-    id: 'ETE',
-    label: 'Electronics',
-    icon: Waves,
-    description: 'Electronic circuits, sensors and telecommunications.',
-    image: '/images/program-ete.jpg',
-  },
-  {
-    id: 'IND',
-    label: 'Individual Training',
-    icon: User,
-    description: 'Personalized one-on-one engineering training adapted to your project and learning pace.',
-    image: '/programs/electrical.jpg',
-  },
+  { id: 'ELT', label: 'Electrical Technology', icon: Zap, description: 'Domestic electricity, industrial installation, PLC automation and motor control.', image: '/images/program-elt.jpg' },
+  { id: 'CSA', label: 'Embedded Systems', icon: Cpu, description: 'Microcontrollers, embedded programming, and hardware-software integration.', image: '/images/program-csa.jpg' },
+  { id: 'NIT', label: 'IoT & Networking', icon: Wifi, description: 'IoT connectivity, network infrastructure, and communication systems.', image: '/images/program-nit.jpg' },
+  { id: 'ETE', label: 'Electronics', icon: Waves, description: 'Electronic circuits, sensors and telecommunications.', image: '/images/program-ete.jpg' },
+  { id: 'IND', label: 'Individual Training', icon: User, description: 'Personalized one-on-one engineering training adapted to your project and learning pace.', image: '/programs/electrical.jpg' },
 ];
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -69,16 +39,10 @@ export default function Home() {
 
       {/* HERO */}
       <section className="relative h-[85vh] flex items-center justify-center">
-        <Image
-          src="/hero-electrical.jpg"
-          alt="Engineering training"
-          fill
-          priority
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-black/80"></div> {/* darker overlay */}
+        <Image src="/hero-electrical.jpg" alt="Engineering training" fill priority className="object-cover" />
+        <div className="absolute inset-0 bg-black/80"></div>
         <div className="relative text-center text-white px-6 max-w-3xl">
-          <h1 className="text-5xl font-extrabold mb-6 leading-tight text-white drop-shadow-2xl">
+          <h1 className="text-5xl font-extrabold mb-6 leading-tight drop-shadow-2xl">
             Build Your Future in Engineering
           </h1>
           <p className="text-lg mb-8 text-white/90 drop-shadow-lg">
@@ -114,27 +78,17 @@ export default function Home() {
               const Icon = program.icon;
               return (
                 <Card key={program.id} className="hover:shadow-xl transition overflow-hidden">
-                  <Image
-                    src={program.image}
-                    alt={program.label}
-                    width={500}
-                    height={250}
-                    className="w-full h-48 object-cover"
-                  />
+                  <Image src={program.image} alt={program.label} width={500} height={250} className="w-full h-48 object-cover" />
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="bg-blue-100 p-2 rounded-lg">
-                        <Icon className="w-5 h-5 text-blue-600" />
-                      </div>
+                      <div className="bg-blue-100 p-2 rounded-lg"><Icon className="w-5 h-5 text-blue-600" /></div>
                       <CardTitle>{program.label}</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-600 text-sm mb-4">{program.description}</p>
                     <Link href={`/programs/${program.id}`}>
-                      <Button variant="outline" className="w-full">
-                        Learn More
-                      </Button>
+                      <Button variant="outline" className="w-full">Learn More</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -160,11 +114,11 @@ export default function Home() {
               <CardHeader><CardTitle className="text-xl">Weekend Training Program</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-4xl font-bold text-green-600 mb-4">50,000 RWF</p>
-                <p className="text-gray-600"> </p>
+                <p className="text-gray-600">Short weekend courses</p>
               </CardContent>
             </Card>
             <Card className="border-purple-500 border-2 shadow-lg">
-              <CardHeader><CardTitle className="text-xl">Individual Training/Online sessions</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-xl">Individual Training/Online</CardTitle></CardHeader>
               <CardContent>
                 <p className="text-4xl font-bold text-purple-600 mb-4">Custom Price</p>
                 <p className="text-gray-600">Based on project and training needs</p>
@@ -193,21 +147,9 @@ export default function Home() {
       {/* CONTACT */}
       <section className="bg-blue-700 text-white py-20 px-4">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 text-center">
-          <div>
-            <Phone className="mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Phone</h3>
-            <p>+250 783 986 252</p>
-          </div>
-          <div>
-            <Mail className="mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Email</h3>
-            <p>energylogicsltd@gmail.com</p>
-          </div>
-          <div>
-            <MapPin className="mx-auto mb-4" />
-            <h3 className="font-semibold mb-2">Location</h3>
-            <p>Butansinda, Nyanza, Rwanda</p>
-          </div>
+          <div><Phone className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Phone</h3><p>+250 783 986 252</p></div>
+          <div><Mail className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Email</h3><p>energylogicsltd@gmail.com</p></div>
+          <div><MapPin className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Location</h3><p>Butansinda, Nyanza, Rwanda</p></div>
         </div>
       </section>
 
@@ -215,6 +157,7 @@ export default function Home() {
       <footer className="py-8 text-center text-gray-500 text-sm border-t">
         © 2025 Energy & Logics — Engineering Sustainable Solutions
       </footer>
+
     </main>
   );
 }
