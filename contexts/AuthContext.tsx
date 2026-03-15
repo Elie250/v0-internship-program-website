@@ -1,3 +1,5 @@
+'use client'; // Must be at the very top
+
 import { createContext, ReactNode, useState } from 'react';
 
 type User = {
@@ -13,6 +15,7 @@ type AuthContextType = {
   logout: () => void;
 };
 
+// Create the context with default empty functions
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   login: () => { },
@@ -23,6 +26,7 @@ type AuthProviderProps = {
   children: ReactNode;
 };
 
+// Provider component that wraps the app
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
 
