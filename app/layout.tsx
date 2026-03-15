@@ -3,14 +3,22 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
+// Import AuthProvider
+import { AuthProvider } from '../contexts/AuthContext'
+// Import global components
+import Navbar from '../components/Navbar'
+import Footer from '../components/Footer'
+
 // Google fonts
 const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Energy & Logics Engineering Academy - Professional Internship Programs',
-  description: 'Master Electrical Systems, Embedded Technology, IoT Solutions, and Electronics through hands-on internship programs. Industry-expert training in Kigali, Rwanda.',
-  keywords: 'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
+  description:
+    'Master Electrical Systems, Embedded Technology, IoT Solutions, and Electronics through hands-on internship programs. Industry-expert training in Kigali, Rwanda.',
+  keywords:
+    'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
   authors: [{ name: 'Energy & Logics Ltd' }],
   creator: 'Energy & Logics Ltd',
   publisher: 'Energy & Logics Ltd',
@@ -41,11 +49,18 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${_geist.className} font-sans antialiased`}>
-        {children}
-        <Analytics />
-      </body>
-    </html>
+    <AuthProvider>
+      <html lang="en">
+        <body className={`${_geist.className} font-sans antialiased`}>
+          {/* Navbar */}
+          <Navbar />
+          {/* Main content */}
+          {children}
+          {/* Footer */}
+          <Footer />
+          <Analytics />
+        </body>
+      </html>
+    </AuthProvider>
   )
 }
