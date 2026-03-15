@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowRight, Zap, Cpu, Wifi, Waves } from 'lucide-react';
+import { ArrowRight, Zap, Cpu, Wifi, Waves, Radio } from 'lucide-react';
 
 const PROGRAMS = [
   {
@@ -34,7 +34,7 @@ const PROGRAMS = [
   {
     id: 'ETE',
     label: 'Electronics',
-    icon: Waves,
+    icon: Radio,
     description: 'Electronic circuits, sensors, and telecommunications.',
     image: '/programs/electronics.jpg',
     pricing: 'Level 4 & 5: 1 month = 30,000 Rwf. Level 3: 2 weeks = 20,000 Rwf. Other packages discussed on request.'
