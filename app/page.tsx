@@ -32,7 +32,7 @@ const PROGRAMS = [
   {
     id: 'ELEC2',
     label: 'Electronics',
-    icon: Waves,
+    icon: Radio,
     description: 'Circuit design, sensors, telecommunications, and electronics projects.',
     image: '/images/program-electronics.jpg',
   },
