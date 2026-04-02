@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Phone, MapPin, BrandLinkedin, BrandTwitter, Facebook } from 'lucide-react';
+import { Mail, Phone, MapPin, BrandLinkedin, BrandTwitter, BrandFacebook } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -72,7 +72,7 @@ export default function Footer() {
                 <BrandTwitter className="w-5 h-5" />
               </a>
               <a href="#" className="text-slate-400 hover:text-blue-400 transition">
-                <Facebook className="w-5 h-5" />
+                <BrandFacebook className="w-5 h-5" />
               </a>
             </div>
             <p className="text-slate-400 text-sm">
