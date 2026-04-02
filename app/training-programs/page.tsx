@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CheckCircle2, Clock, Users, Certificate } from 'lucide-react'
+import { CheckCircle2, Clock, Users, Verified } from 'lucide-react'
 
 export default function TrainingPage() {
   const programs = [
@@ -63,7 +63,7 @@ export default function TrainingPage() {
               <div key={program.id} className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition flex flex-col">
                 <h3 className="text-2xl font-bold mb-2">{program.title}</h3>
                 <p className="text-slate-600 dark:text-slate-400 mb-4 flex-grow">{program.description}</p>
-                
+
                 <div className="flex flex-wrap gap-3 mb-6">
                   <div className="flex items-center gap-2 text-sm">
                     <Clock className="w-4 h-4 text-blue-600" />
@@ -74,7 +74,7 @@ export default function TrainingPage() {
                     <span>{program.students} enrolled</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Certificate className="w-4 h-4 text-blue-600" />
+                    <Verified className="w-4 h-4 text-blue-600" />
                     <span>{program.level}</span>
                   </div>
                 </div>
