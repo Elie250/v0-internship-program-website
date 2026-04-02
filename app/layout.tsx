@@ -13,11 +13,11 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Energy & Logics Engineering Academy - Professional Internship Programs',
+  title: 'Energy & Logics - Engineering Hub | Training, Internships & Services',
   description:
-    'Master Electrical Systems, Embedded Technology, IoT Solutions, and Electronics through hands-on internship programs. Industry-expert training in Kigali, Rwanda.',
+    'Leading engineering hub offering embedded systems training, IoT solutions, industrial automation, and engineering services. Join our webinars, internships, and professional training programs.',
   keywords:
-    'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
+    'engineering hub, embedded systems, IoT solutions, industrial automation, PLC training, internship programs, webinars, engineering consulting',
   authors: [{ name: 'Energy & Logics Ltd' }],
   creator: 'Energy & Logics Ltd',
   publisher: 'Energy & Logics Ltd',
@@ -30,8 +30,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://energyandlogics.com',
-    title: 'Energy & Logics Engineering Academy',
-    description: 'Professional internship programs in engineering disciplines',
+    title: 'Energy & Logics Engineering Hub',
+    description: 'Training, internships, and professional engineering services',
     images: [
       {
         url: '/hero-banner.jpg',

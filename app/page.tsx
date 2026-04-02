@@ -1,227 +1,257 @@
 'use client'
 
-import Image from "next/image"
-import Link from "next/link"
-import { Cpu, Wrench, Settings, GraduationCap, Bot, Network } from "lucide-react"
+import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowRight, Code2, Zap, Cpu, Lightbulb, Users, CheckCircle2, Star } from 'lucide-react'
+
+const testimonials = [
+  {
+    name: 'Ahmed Hassan',
+    role: 'Software Engineer',
+    content: 'The internship program transformed my career. Highly recommend Energy & Logics!',
+  },
+  {
+    name: 'Farah Mohamed',
+    role: 'IoT Developer',
+    content: 'Best training I received. Professional mentors and real-world projects.',
+  },
+  {
+    name: 'John Mwangi',
+    role: 'Automation Specialist',
+    content: 'The services team delivered exceptional solutions for our company.',
+  },
+]
 
 export default function HomePage() {
   return (
-    <main className="flex flex-col">
+    <main className="flex flex-col min-h-screen">
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]"></div>
+        
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/20 mb-6">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span className="text-sm text-blue-200">Welcome to Engineering Excellence</span>
+              </div>
 
-      {/* HERO SECTION */}
+              <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-balance leading-tight">
+                Energy & Logics Engineering Hub
+              </h1>
 
-      <section className="bg-gradient-to-r from-blue-700 to-blue-900 text-white py-24 px-6">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+              <p className="text-xl text-slate-300 mb-8 text-pretty">
+                Transform your career with cutting-edge training in embedded systems, automation, IoT, and industrial engineering. Industry-expert mentorship and real-world projects.
+              </p>
 
-          <div>
-            <h1 className="text-5xl font-bold mb-4">
-              Energy & Logics Ltd
-            </h1>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/internships"
+                  className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                >
+                  Apply for Internship
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
+                <Link
+                  href="/webinars"
+                  className="inline-flex items-center justify-center px-6 py-3 border border-slate-500 text-slate-200 rounded-lg font-semibold hover:bg-slate-700 transition"
+                >
+                  Join Webinars
+                </Link>
+              </div>
 
-            <h2 className="text-3xl font-semibold mb-6">
-              Engineering Hub for Automation & Embedded Systems
-            </h2>
+              <div className="flex gap-8 mt-12 pt-8 border-t border-slate-700">
+                <div>
+                  <p className="text-3xl font-bold text-blue-400">500+</p>
+                  <p className="text-slate-400">Students Trained</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-blue-400">95%</p>
+                  <p className="text-slate-400">Success Rate</p>
+                </div>
+                <div>
+                  <p className="text-3xl font-bold text-blue-400">50+</p>
+                  <p className="text-slate-400">Companies</p>
+                </div>
+              </div>
+            </div>
 
-            <p className="text-lg text-blue-100 mb-8">
-              We provide professional engineering training, industrial automation
-              solutions, and embedded system development for students,
-              engineers and companies.
-            </p>
-
-            <div className="flex gap-4">
-              <Link
-                href="/programs"
-                className="bg-white text-blue-700 px-6 py-3 rounded-lg font-semibold"
-              >
-                Explore Trainings
-              </Link>
-
-              <Link
-                href="/contact"
-                className="border border-white px-6 py-3 rounded-lg"
-              >
-                Contact Us
-              </Link>
+            <div className="hidden md:block">
+              <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl p-8 backdrop-blur-sm border border-blue-400/20">
+                <div className="space-y-6">
+                  <div className="flex gap-4">
+                    <Cpu className="w-8 h-8 text-blue-400 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold mb-1">Embedded Systems</h3>
+                      <p className="text-sm text-slate-400">Master microcontrollers & firmware</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Zap className="w-8 h-8 text-yellow-400 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold mb-1">Industrial Automation</h3>
+                      <p className="text-sm text-slate-400">PLC & SCADA programming</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Lightbulb className="w-8 h-8 text-amber-400 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold mb-1">IoT Solutions</h3>
+                      <p className="text-sm text-slate-400">Connected systems development</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="flex justify-center">
-            <Image
-              src="/images/automation-lab.jpg"
-              alt="Engineering Hub"
-              width={520}
-              height={420}
-              className="rounded-xl shadow-xl"
-            />
-          </div>
-
         </div>
       </section>
 
-      {/* SERVICES */}
-
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
-
-          <h2 className="text-4xl font-bold text-center mb-14">
-            Our Engineering Services
-          </h2>
-
-          <div className="grid md:grid-cols-4 gap-10">
-
-            <div className="p-6 border rounded-xl text-center hover:shadow-lg transition">
-              <Cpu size={40} className="mx-auto mb-4 text-blue-600" />
-              <h3 className="text-xl font-semibold mb-3">Technical Trainings</h3>
-              <p className="text-gray-600">
-                PLC programming, SCADA systems, Arduino development and
-                industrial automation training programs.
-              </p>
-            </div>
-
-            <div className="p-6 border rounded-xl text-center hover:shadow-lg transition">
-              <Wrench size={40} className="mx-auto mb-4 text-blue-600" />
-              <h3 className="text-xl font-semibold mb-3">Hands-on Workshops</h3>
-              <p className="text-gray-600">
-                Practical engineering workshops focused on robotics,
-                IoT systems and industrial control technologies.
-              </p>
-            </div>
-
-            <div className="p-6 border rounded-xl text-center hover:shadow-lg transition">
-              <Settings size={40} className="mx-auto mb-4 text-blue-600" />
-              <h3 className="text-xl font-semibold mb-3">Engineering Consultancy</h3>
-              <p className="text-gray-600">
-                Automation system design, machine control integration,
-                and industrial troubleshooting services.
-              </p>
-            </div>
-
-            <div className="p-6 border rounded-xl text-center hover:shadow-lg transition">
-              <GraduationCap size={40} className="mx-auto mb-4 text-blue-600" />
-              <h3 className="text-xl font-semibold mb-3">Student Programs</h3>
-              <p className="text-gray-600">
-                Engineering internships, mentorship programs and final
-                year project technical support.
-              </p>
-            </div>
-
+      {/* Services Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">Our Services</h2>
+            <p className="text-xl text-slate-600 dark:text-slate-400">Comprehensive engineering solutions for every need</p>
           </div>
 
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { icon: Code2, title: 'Embedded Development', description: 'Custom firmware and hardware integration' },
+              { icon: Zap, title: 'Industrial Automation', description: 'PLC programming and system design' },
+              { icon: Lightbulb, title: 'IoT Solutions', description: 'Connected devices and cloud integration' },
+              { icon: Cpu, title: 'Engineering Consulting', description: 'Technical expertise for your projects' },
+              { icon: Users, title: 'Team Training', description: 'Upskill your engineering team' },
+              { icon: Wrench, title: 'Renewable Energy', description: 'Solar and sustainable solutions' },
+            ].map((service, idx) => {
+              const Icon = service.icon
+              return (
+                <div key={idx} className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition">
+                  <Icon className="w-12 h-12 text-blue-600 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">{service.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400">{service.description}</p>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </section>
 
-      {/* TECHNOLOGIES */}
-
-      <section className="bg-gray-100 py-20 px-6">
-        <div className="max-w-7xl mx-auto">
-
-          <h2 className="text-4xl font-bold text-center mb-14">
-            Technologies We Work With
-          </h2>
-
-          <div className="grid md:grid-cols-4 gap-10 text-center">
-
-            <div>
-              <Cpu size={40} className="mx-auto mb-3 text-blue-700" />
-              <h3 className="font-semibold">PLC Systems</h3>
-              <p className="text-gray-600 text-sm">
-                Industrial PLC programming and automation control.
-              </p>
-            </div>
-
-            <div>
-              <Bot size={40} className="mx-auto mb-3 text-blue-700" />
-              <h3 className="font-semibold">Robotics</h3>
-              <p className="text-gray-600 text-sm">
-                Automation robotics and smart manufacturing systems.
-              </p>
-            </div>
-
-            <div>
-              <Network size={40} className="mx-auto mb-3 text-blue-700" />
-              <h3 className="font-semibold">IoT Systems</h3>
-              <p className="text-gray-600 text-sm">
-                Smart devices, sensors and connected technologies.
-              </p>
-            </div>
-
-            <div>
-              <Settings size={40} className="mx-auto mb-3 text-blue-700" />
-              <h3 className="font-semibold">Embedded Systems</h3>
-              <p className="text-gray-600 text-sm">
-                Arduino and microcontroller-based system development.
-              </p>
-            </div>
-
+      {/* Upcoming Webinars */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold mb-12">Upcoming Webinars</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { title: 'Advanced Arduino Programming', date: 'Mar 20, 2025', speaker: 'Dr. Ahmed Hassan' },
+              { title: 'IoT with Node-RED', date: 'Mar 27, 2025', speaker: 'Eng. Fatima Ali' },
+              { title: 'PLC Fundamentals', date: 'Apr 3, 2025', speaker: 'Eng. Mohamed Sayed' },
+            ].map((webinar, idx) => (
+              <div key={idx} className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 rounded-lg border border-blue-200 dark:border-slate-600">
+                <h3 className="font-semibold text-lg mb-2">{webinar.title}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{webinar.date}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Speaker: {webinar.speaker}</p>
+                <Link href="/webinars" className="text-blue-600 dark:text-blue-400 font-semibold text-sm hover:underline">
+                  Register Now →
+                </Link>
+              </div>
+            ))}
           </div>
-
         </div>
       </section>
 
-      {/* HUB DESCRIPTION */}
-
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-
-          <Image
-            src="/images/plc-training.jpg"
-            alt="PLC Training"
-            width={520}
-            height={420}
-            className="rounded-xl shadow-lg"
-          />
-
-          <div>
-            <h2 className="text-3xl font-bold mb-6">
-              Engineering Innovation Hub
-            </h2>
-
-            <p className="text-gray-600 mb-4">
-              Energy & Logics Engineering Hub is designed to bridge the gap
-              between theoretical engineering education and real industrial
-              automation systems.
-            </p>
-
-            <p className="text-gray-600 mb-4">
-              Our hub offers a modern learning environment equipped with
-              automation systems, PLC controllers, embedded platforms,
-              sensors and industrial communication technologies.
-            </p>
-
-            <p className="text-gray-600">
-              We aim to empower engineers and students with practical skills
-              required for the future of Industry 4.0.
-            </p>
+      {/* Training Programs */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold mb-12">Training Programs</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            {[
+              {
+                title: 'Embedded Systems Bootcamp',
+                duration: '12 Weeks',
+                level: 'Intermediate',
+                features: ['C/C++ Programming', 'Microcontrollers', 'Real-time systems', 'IoT projects'],
+              },
+              {
+                title: 'Industrial Automation',
+                duration: '8 Weeks',
+                level: 'Beginner',
+                features: ['PLC Programming', 'SCADA Systems', 'Ladder Logic', 'Real projects'],
+              },
+              {
+                title: 'IoT Development',
+                duration: '10 Weeks',
+                level: 'Intermediate',
+                features: ['MQTT/CoAP', 'Cloud APIs', 'Edge Computing', 'Security'],
+              },
+              {
+                title: 'Advanced Automation',
+                duration: '6 Weeks',
+                level: 'Advanced',
+                features: ['Advanced PLC', 'Networking', 'Cybersecurity', 'Industry 4.0'],
+              },
+            ].map((prog, idx) => (
+              <div key={idx} className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                <h3 className="text-xl font-semibold mb-2">{prog.title}</h3>
+                <div className="flex gap-4 mb-4 text-sm">
+                  <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">{prog.duration}</span>
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded">{prog.level}</span>
+                </div>
+                <ul className="space-y-2 mb-4">
+                  {prog.features.map((feat, i) => (
+                    <li key={i} className="flex gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/training-programs" className="text-blue-600 dark:text-blue-400 font-semibold text-sm">
+                  Learn More →
+                </Link>
+              </div>
+            ))}
           </div>
-
         </div>
       </section>
 
-      {/* CONTACT */}
-
-      <section className="bg-blue-800 text-white py-16 text-center px-6">
-
-        <h2 className="text-3xl font-bold mb-4">
-          Get In Touch
-        </h2>
-
-        <p className="mb-2">
-          Email: energylogicsltd@gmail.com
-        </p>
-
-        <p className="mb-6">
-          Phone: +250 783 986 252
-        </p>
-
-        <Link
-          href="/contact"
-          className="bg-white text-blue-800 px-6 py-3 rounded-lg font-semibold"
-        >
-          Contact Energy & Logics
-        </Link>
-
+      {/* Testimonials */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold mb-12 text-center">What Our Clients Say</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, idx) => (
+              <div key={idx} className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 mb-4 italic">"{testimonial.content}"</p>
+                <div>
+                  <p className="font-semibold">{testimonial.name}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{testimonial.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-6">Ready to Start Your Journey?</h2>
+          <p className="text-xl text-blue-100 mb-8">Join hundreds of engineers who transformed their careers with Energy & Logics</p>
+          <Link
+            href="/contact"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition"
+          >
+            Get in Touch
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
     </main>
   )
 }
