@@ -37,8 +37,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated');
     if (!adminAuth) {
-      router.push('/admin/login');
-      return;
+      // Small delay to ensure we don't cause a redirect loop
+      const timer = setTimeout(() => {
+        router.push('/admin/login');
+      }, 100);
+      return () => clearTimeout(timer);
     }
     setIsAuthenticated(true);
     loadData();

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { login } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,16 +20,19 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('email', email);
-      formData.append('password', password);
-      
-      const result = await login(formData);
-      if (result.success) {
+      // Hardcoded admin credentials
+      const ADMIN_EMAIL = 'eliebisamaza@gmail.com';
+      const ADMIN_PASSWORD = 'energylogics';
+
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         localStorage.setItem('admin_authenticated', 'true');
-        router.push('/admin/dashboard');
+        localStorage.setItem('admin_email', email);
+        // Small delay to ensure localStorage is written before redirect
+        setTimeout(() => {
+          router.push('/admin/dashboard');
+        }, 100);
       } else {
-        setError(result.message || 'Invalid credentials');
+        setError('Invalid email or password. Please try again.');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');

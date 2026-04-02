@@ -30,11 +30,15 @@ export default function StudentLoginPage() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         localStorage.setItem('student_auth_token', data.token);
         localStorage.setItem('student_id', data.student_id);
         localStorage.setItem('student_name', data.name);
-        router.push('/student/dashboard');
+        localStorage.setItem('student_email', data.email);
+        // Add small delay to ensure localStorage is written
+        setTimeout(() => {
+          router.push('/student/dashboard');
+        }, 100);
       } else {
         setError(data.message || 'Invalid email or password');
       }
