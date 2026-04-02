@@ -10,6 +10,7 @@ import { login } from '@/app/actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState('eliebisamaza@gmail.com');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,12 +21,16 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await login(password);
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+      
+      const result = await login(formData);
       if (result.success) {
         localStorage.setItem('admin_authenticated', 'true');
         router.push('/admin/dashboard');
       } else {
-        setError(result.error || 'Invalid password');
+        setError(result.message || 'Invalid credentials');
       }
     } catch (err) {
       setError('An error occurred. Please try again.');
@@ -52,6 +57,19 @@ export default function LoginPage() {
               </div>
             )}
             
+            <div>
+              <Label htmlFor="email">Admin Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter admin email"
+                required
+                className="mt-1"
+              />
+            </div>
+
             <div>
               <Label htmlFor="password">Admin Password</Label>
               <Input
