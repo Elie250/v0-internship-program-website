@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Phone, MapPin, FaTLinkedin, FaTwitter, FaTFacebook } react - icons / fa";
+import { FaLinkedin, FaTwitter, FaFacebook } from "react-icons/fa";
+import { Mail, Phone, MapPin } from "lucide-react";
 
 export default function Footer() {
   return (
