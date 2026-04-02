@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Code2, Zap, Cpu, Lightbulb, Users, CheckCircle2, Star } from 'lucide-react'
+import { ArrowRight, Wrench, Code2, Zap, Cpu, Lightbulb, Users, CheckCircle2, Star } from 'lucide-react'
 
 const testimonials = [
   {
@@ -28,7 +28,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]"></div>
-        
+
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
