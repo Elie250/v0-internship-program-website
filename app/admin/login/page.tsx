@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
+
   const router = useRouter()
 
   const [email, setEmail] = useState('')
@@ -11,16 +12,10 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // If already logged in, go to dashboard
-  useEffect(() => {
-    const cookies = document.cookie
-    if (cookies.includes('admin_session=true')) {
-      router.push('/admin/dashboard')
-    }
-  }, [router])
-
   const handleSubmit = (e: React.FormEvent) => {
+
     e.preventDefault()
+
     setLoading(true)
     setError('')
 
@@ -28,58 +23,60 @@ export default function LoginPage() {
     const ADMIN_PASSWORD = 'energylogics'
 
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      // Set authentication cookie
-      document.cookie = 'admin_session=true; path=/; max-age=86400'
 
-      // Redirect to dashboard
-      router.push('/admin/dashboard')
+      // set cookie
+      document.cookie = "admin_session=true; path=/; max-age=86400"
+
+      // small delay so proxy detects cookie
+      setTimeout(() => {
+        router.push('/admin/dashboard')
+      }, 200)
+
     } else {
+
       setError('Invalid email or password')
       setLoading(false)
+
     }
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <form onSubmit={handleSubmit} style={{ width: 320, padding: 20, border: '1px solid #ddd', borderRadius: 8 }}>
-        <h2 style={{ marginBottom: 20 }}>Admin Login</h2>
+    <div className="flex min-h-screen items-center justify-center">
 
-        {error && (
-          <div style={{ color: 'red', marginBottom: 10 }}>
-            {error}
-          </div>
-        )}
+      <form onSubmit={handleSubmit} className="p-6 border rounded w-80 space-y-4">
 
-        <div style={{ marginBottom: 10 }}>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
+        <h2 className="text-xl font-bold">Admin Login</h2>
 
-        <div style={{ marginBottom: 20 }}>
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
+        {error && <p className="text-red-600">{error}</p>}
+
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border p-2"
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border p-2"
+          required
+        />
 
         <button
           type="submit"
           disabled={loading}
-          style={{ width: '100%', padding: 10, cursor: 'pointer' }}
+          className="w-full bg-blue-600 text-white p-2 rounded"
         >
           {loading ? 'Logging in...' : 'Login'}
         </button>
+
       </form>
+
     </div>
   )
 }
