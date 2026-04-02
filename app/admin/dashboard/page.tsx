@@ -85,7 +85,6 @@ export default function AdminDashboard() {
       localStorage.setItem('webinars', JSON.stringify(sampleWebinars));
     }
   };
-
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
 
@@ -206,8 +205,8 @@ export default function AdminDashboard() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 font-semibold transition ${activeTab === 'overview'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             Overview
@@ -215,8 +214,8 @@ export default function AdminDashboard() {
           <button
             onClick={() => setActiveTab('applications')}
             className={`px-4 py-2 font-semibold transition ${activeTab === 'applications'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             Applications ({applications.length})
@@ -224,8 +223,8 @@ export default function AdminDashboard() {
           <button
             onClick={() => setActiveTab('webinars')}
             className={`px-4 py-2 font-semibold transition ${activeTab === 'webinars'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-slate-600 hover:text-slate-900'
               }`}
           >
             Webinars
@@ -274,10 +273,10 @@ export default function AdminDashboard() {
                               value={app.status}
                               onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
                               className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : app.status === 'Approved'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : app.status === 'Approved'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
                                 }`}
                             >
                               <option>Pending</option>
@@ -395,8 +394,8 @@ export default function AdminDashboard() {
                           <p className="text-sm text-slate-600">{app.program}</p>
                         </div>
                         <span className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                            app.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
+                          app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
                           }`}>
                           {app.status}
                         </span>
