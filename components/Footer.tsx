@@ -67,13 +67,13 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex gap-4 mb-4 md:mb-0">
               <a href="#" className="text-slate-400 hover:text-blue-400 transition">
-                <FaTLinkedin className="w-5 h-5" />
+                <FaLinkedin className="w-5 h-5" />
               </a>
               <a href="#" className="text-slate-400 hover:text-blue-400 transition">
                 <FaTwitter className="w-5 h-5" />
               </a>
               <a href="#" className="text-slate-400 hover:text-blue-400 transition">
-                <FaTFacebook className="w-5 h-5" />
+                <FaFacebook className="w-5 h-5" />
               </a>
             </div>
             <p className="text-slate-400 text-sm">
