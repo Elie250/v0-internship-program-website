@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, Award, Target, Zap } from 'lucide-react'
+import { Users, Wrench, Award, Target, Zap } from 'lucide-react'
 
 export default function AboutPage() {
   return (
