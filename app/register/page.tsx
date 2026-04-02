@@ -106,7 +106,6 @@ export default function RegisterPage() {
     setErrors({});
 
     try {
-      // Only send required fields to API
       const payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -142,7 +141,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // Save student info locally
       localStorage.setItem('student_email', formData.email);
       localStorage.setItem('student_auth_token', 'token_' + data.student_id);
       localStorage.setItem('student_id', data.student_id);
@@ -178,10 +176,10 @@ export default function RegisterPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {errors.submit && <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900 border border-red-200">{errors.submit}</div>}
+
               {/* Step 1 */}
               {step === 1 && (
                 <div className="space-y-4">
-                  {/* First and Last Name */}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName">First Name *</Label>
@@ -194,7 +192,6 @@ export default function RegisterPage() {
                       {errors.lastName && <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>}
                     </div>
                   </div>
-                  {/* Email and Phone */}
                   <div>
                     <Label htmlFor="email">Email *</Label>
                     <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} />
@@ -228,9 +225,122 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Steps 2–4 are similar, omitted for brevity, copy your previous JSX for them */}
-              {/* Make sure handleNextStep and previous buttons work */}
+              {/* Step 2 */}
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nationalId">National ID *</Label>
+                    <Input id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleInputChange} />
+                    {errors.nationalId && <p className="text-red-600 text-sm mt-1">{errors.nationalId}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Address *</Label>
+                    <Input id="address" name="address" value={formData.address} onChange={handleInputChange} />
+                    {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="city">City *</Label>
+                      <Input id="city" name="city" value={formData.city} onChange={handleInputChange} />
+                      {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
+                    </div>
+                    <div>
+                      <Label htmlFor="province">Province *</Label>
+                      <Input id="province" name="province" value={formData.province} onChange={handleInputChange} />
+                      {errors.province && <p className="text-red-600 text-sm mt-1">{errors.province}</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="postalCode">Postal Code *</Label>
+                    <Input id="postalCode" name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
+                    {errors.postalCode && <p className="text-red-600 text-sm mt-1">{errors.postalCode}</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={() => setStep(1)} variant="outline" className="flex-1">Previous</Button>
+                    <Button type="button" onClick={handleNextStep} className="flex-1 bg-blue-600 hover:bg-blue-700">Next Step <ArrowRight className="ml-2 w-4 h-4" /></Button>
+                  </div>
+                </div>
+              )}
 
+              {/* Step 3 */}
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="school">School/University *</Label>
+                    <Input id="school" name="school" value={formData.school} onChange={handleInputChange} />
+                    {errors.school && <p className="text-red-600 text-sm mt-1">{errors.school}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="fieldOfStudy">Field of Study *</Label>
+                    <Input id="fieldOfStudy" name="fieldOfStudy" value={formData.fieldOfStudy} onChange={handleInputChange} />
+                    {errors.fieldOfStudy && <p className="text-red-600 text-sm mt-1">{errors.fieldOfStudy}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="educationLevel">Education Level *</Label>
+                    <select id="educationLevel" name="educationLevel" value={formData.educationLevel} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md">
+                      <option value="">Select Level</option>
+                      <option value="High School">High School</option>
+                      <option value="Diploma">Diploma</option>
+                      <option value="Bachelor">Bachelor's Degree</option>
+                      <option value="Master">Master's Degree</option>
+                    </select>
+                    {errors.educationLevel && <p className="text-red-600 text-sm mt-1">{errors.educationLevel}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="program">Program *</Label>
+                    <select id="program" name="program" value={formData.program} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md">
+                      <option value="">Select Program</option>
+                      <option value="Embedded Systems">Embedded Systems</option>
+                      <option value="Industrial Automation">Industrial Automation</option>
+                      <option value="IoT Solutions">IoT Solutions</option>
+                      <option value="PLC Programming">PLC Programming</option>
+                      <option value="Arduino Development">Arduino Development</option>
+                    </select>
+                    {errors.program && <p className="text-red-600 text-sm mt-1">{errors.program}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="duration">Duration *</Label>
+                    <select id="duration" name="duration" value={formData.duration} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-md">
+                      <option value="">Select Duration</option>
+                      <option value="3 months">3 months</option>
+                      <option value="6 months">6 months</option>
+                      <option value="12 months">12 months</option>
+                    </select>
+                    {errors.duration && <p className="text-red-600 text-sm mt-1">{errors.duration}</p>}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={() => setStep(2)} variant="outline" className="flex-1">Previous</Button>
+                    <Button type="button" onClick={handleNextStep} className="flex-1 bg-blue-600 hover:bg-blue-700">Next Step <ArrowRight className="ml-2 w-4 h-4" /></Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4 */}
+              {step === 4 && (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input id="password" name="password" type="password" value={formData.password} onChange={handleInputChange} />
+                    {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                    <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleInputChange} />
+                    {errors.confirmPassword && <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>}
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <input id="agreedToTerms" name="agreedToTerms" type="checkbox" checked={formData.agreedToTerms} onChange={handleInputChange} className="mt-1" />
+                    <Label htmlFor="agreedToTerms" className="text-sm">I agree to the terms and conditions *</Label>
+                  </div>
+                  {errors.agreedToTerms && <p className="text-red-600 text-sm">{errors.agreedToTerms}</p>}
+                  <div className="flex gap-2">
+                    <Button type="button" onClick={() => setStep(3)} variant="outline" className="flex-1">Previous</Button>
+                    <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700" disabled={isLoading}>
+                      {isLoading ? 'Submitting...' : 'Submit Application'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
