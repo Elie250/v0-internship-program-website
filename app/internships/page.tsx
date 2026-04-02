@@ -86,7 +86,7 @@ export default function InternshipsPage() {
                         ))}
                       </ul>
                     </div>
-                    <Link href="/contact" className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <Link href="/register" className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
                       Apply Now
                       <ChevronRight className="w-4 h-4" />
                     </Link>

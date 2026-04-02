@@ -36,7 +36,7 @@ export default function Footer() {
               <li><Link href="/" className="hover:text-blue-400 transition">Home</Link></li>
               <li><Link href="/about" className="hover:text-blue-400 transition">About Us</Link></li>
               <li><Link href="/contact" className="hover:text-blue-400 transition">Contact</Link></li>
-              <li><Link href="/dashboard" className="hover:text-blue-400 transition">Dashboard</Link></li>
+              <li><Link href="/student/login" className="hover:text-blue-400 transition">Student Portal</Link></li>
             </ul>
           </div>
 
@@ -66,18 +66,18 @@ export default function Footer() {
         <div className="border-t border-slate-700 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex gap-4 mb-4 md:mb-0">
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition">
+              <a href="https://www.linkedin.com/company/energy-logics-ltd/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-400 transition" title="LinkedIn">
                 <FaLinkedin className="w-5 h-5" />
               </a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition">
+              <a href="#" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-400 transition" title="Twitter">
                 <FaTwitter className="w-5 h-5" />
               </a>
-              <a href="#" className="text-slate-400 hover:text-blue-400 transition">
+              <a href="https://www.facebook.com/profile.php?id=61587992170089" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-400 transition" title="Facebook">
                 <FaFacebook className="w-5 h-5" />
               </a>
             </div>
             <p className="text-slate-400 text-sm">
-              © 2026 Energy & Logics Ltd. All rights reserved.
+              © 2025 Energy & Logics Ltd. All rights reserved.
             </p>
           </div>
         </div>

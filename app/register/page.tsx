@@ -119,6 +119,22 @@ export default function RegisterPage() {
 
       if (response.ok) {
         localStorage.setItem('student_email', formData.email);
+        
+        // Save application to admin dashboard
+        const newApplication = {
+          id: Date.now().toString(),
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          program: formData.program,
+          status: 'Pending',
+          created_at: new Date().toISOString(),
+        };
+        
+        const existingApps = localStorage.getItem('applications');
+        const applications = existingApps ? JSON.parse(existingApps) : [];
+        applications.push(newApplication);
+        localStorage.setItem('applications', JSON.stringify(applications));
+        
         router.push('/register/success');
       } else {
         const data = await response.json();

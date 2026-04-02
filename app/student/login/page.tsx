@@ -105,9 +105,9 @@ export default function StudentLoginPage() {
               <p className="text-sm text-slate-600 text-center">
                 Don&apos;t have an account?
               </p>
-              <Link href="/internships">
+              <Link href="/register">
                 <Button variant="outline" className="w-full">
-                  Apply for Internship
+                  Create Account / Apply Now
                 </Button>
               </Link>
             </div>
