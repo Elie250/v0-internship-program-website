@@ -1,100 +1,85 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('eliebisamaza@gmail.com');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-    try {
-      // Hardcoded admin credentials
-      const ADMIN_EMAIL = 'eliebisamaza@gmail.com';
-      const ADMIN_PASSWORD = 'energylogics';
-
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        localStorage.setItem('admin_authenticated', 'true');
-        localStorage.setItem('admin_email', email);
-        // Small delay to ensure localStorage is written before redirect
-        setTimeout(() => {
-          router.push('/admin/dashboard');
-        }, 100);
-      } else {
-        setError('Invalid email or password. Please try again.');
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
+  // If already logged in, go to dashboard
+  useEffect(() => {
+    const cookies = document.cookie
+    if (cookies.includes('admin_session=true')) {
+      router.push('/admin/dashboard')
     }
-  };
+  }, [router])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    const ADMIN_EMAIL = 'eliebisamaza@gmail.com'
+    const ADMIN_PASSWORD = 'energylogics'
+
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      // Set authentication cookie
+      document.cookie = 'admin_session=true; path=/; max-age=86400'
+
+      // Redirect to dashboard
+      router.push('/admin/dashboard')
+    } else {
+      setError('Invalid email or password')
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-16">
-      <Card className="w-full max-w-sm border-border">
-        <CardHeader>
-          <CardTitle>Admin Login</CardTitle>
-          <CardDescription>
-            Enter your password to access the admin dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900 border border-red-200">
-                {error}
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="email">Admin Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter admin email"
-                required
-                className="mt-1"
-              />
-            </div>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <form onSubmit={handleSubmit} style={{ width: 320, padding: 20, border: '1px solid #ddd', borderRadius: 8 }}>
+        <h2 style={{ marginBottom: 20 }}>Admin Login</h2>
 
-            <div>
-              <Label htmlFor="password">Admin Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
-                required
-                className="mt-1"
-              />
-            </div>
+        {error && (
+          <div style={{ color: 'red', marginBottom: 10 }}>
+            {error}
+          </div>
+        )}
 
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Logging in...' : 'Login'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+        <div style={{ marginBottom: 10 }}>
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{ width: '100%', padding: 8 }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{ width: '100%', padding: 8 }}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{ width: '100%', padding: 10, cursor: 'pointer' }}
+        >
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
+      </form>
     </div>
-  );
+  )
 }
