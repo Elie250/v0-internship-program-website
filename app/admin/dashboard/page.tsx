@@ -88,7 +88,11 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_authenticated');
-    router.push('/');
+
+    document.cookie =
+      "admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+
+    router.push('/admin/login');
   };
 
   const updateApplicationStatus = (id: string, newStatus: string) => {
@@ -201,31 +205,28 @@ export default function AdminDashboard() {
         <div className="flex gap-4 mb-8 border-b border-slate-200">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 font-semibold transition ${
-              activeTab === 'overview'
+            className={`px-4 py-2 font-semibold transition ${activeTab === 'overview'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('applications')}
-            className={`px-4 py-2 font-semibold transition ${
-              activeTab === 'applications'
+            className={`px-4 py-2 font-semibold transition ${activeTab === 'applications'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Applications ({applications.length})
           </button>
           <button
             onClick={() => setActiveTab('webinars')}
-            className={`px-4 py-2 font-semibold transition ${
-              activeTab === 'webinars'
+            className={`px-4 py-2 font-semibold transition ${activeTab === 'webinars'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             Webinars
           </button>
@@ -272,13 +273,12 @@ export default function AdminDashboard() {
                             <select
                               value={app.status}
                               onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
-                              className={`px-3 py-1 rounded text-sm font-semibold ${
-                                app.status === 'Pending'
+                              className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : app.status === 'Approved'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
                             >
                               <option>Pending</option>
                               <option>Approved</option>
@@ -394,11 +394,10 @@ export default function AdminDashboard() {
                           <p className="font-semibold">{app.name}</p>
                           <p className="text-sm text-slate-600">{app.program}</p>
                         </div>
-                        <span className={`px-3 py-1 rounded text-sm font-semibold ${
-                          app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          app.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
+                        <span className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                            app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                              'bg-red-100 text-red-800'
+                          }`}>
                           {app.status}
                         </span>
                       </div>
