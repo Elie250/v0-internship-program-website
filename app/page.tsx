@@ -26,82 +26,93 @@ export default function HomePage() {
   return (
     <main className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.1))]"></div>
+      <section className="relative h-screen flex items-center justify-center text-white py-32 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('/hero.jpg')`,
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 bg-black/50"></div>
+        </div>
 
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="max-w-6xl mx-auto relative z-10 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 border border-blue-400/40 mb-6">
+            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+            <span className="text-sm text-blue-100">Welcome to Engineering Excellence</span>
+          </div>
+
+          <h1 className="text-5xl lg:text-7xl font-bold mb-6 text-balance leading-tight text-white">
+            Energy & Logics Engineering Hub
+          </h1>
+
+          <p className="text-xl text-white/90 mb-8 text-pretty max-w-3xl mx-auto">
+            Transform your career with cutting-edge training in embedded systems, automation, IoT, and industrial engineering. Industry-expert mentorship and real-world projects.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link
+              href="/internships"
+              className="inline-flex items-center justify-center px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition transform hover:scale-105"
+            >
+              Apply for Internship
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Link>
+            <Link
+              href="/webinars"
+              className="inline-flex items-center justify-center px-8 py-4 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition transform hover:scale-105"
+            >
+              Join Webinars
+            </Link>
+            <Link
+              href="/training-programs"
+              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white rounded-lg font-semibold hover:bg-white/10 transition"
+            >
+              Explore Training
+            </Link>
+          </div>
+
+          <div className="flex gap-8 mt-12 pt-8 border-t border-white/30 justify-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-400/20 mb-6">
-                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                <span className="text-sm text-blue-200">Welcome to Engineering Excellence</span>
-              </div>
+              <p className="text-4xl font-bold text-amber-400">500+</p>
+              <p className="text-white/80">Students Trained</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-amber-400">95%</p>
+              <p className="text-white/80">Success Rate</p>
+            </div>
+            <div>
+              <p className="text-4xl font-bold text-amber-400">50+</p>
+              <p className="text-white/80">Companies</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <h1 className="text-5xl lg:text-6xl font-bold mb-6 text-balance leading-tight">
-                Energy & Logics Engineering Hub
-              </h1>
-
-              <p className="text-xl text-slate-300 mb-8 text-pretty">
-                Transform your career with cutting-edge training in embedded systems, automation, IoT, and industrial engineering. Industry-expert mentorship and real-world projects.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/internships"
-                  className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-                >
-                  Apply for Internship
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-                <Link
-                  href="/webinars"
-                  className="inline-flex items-center justify-center px-6 py-3 border border-slate-500 text-slate-200 rounded-lg font-semibold hover:bg-slate-700 transition"
-                >
-                  Join Webinars
-                </Link>
-              </div>
-
-              <div className="flex gap-8 mt-12 pt-8 border-t border-slate-700">
-                <div>
-                  <p className="text-3xl font-bold text-blue-400">500+</p>
-                  <p className="text-slate-400">Students Trained</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-blue-400">95%</p>
-                  <p className="text-slate-400">Success Rate</p>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-blue-400">50+</p>
-                  <p className="text-slate-400">Companies</p>
-                </div>
+      {/* Quick Features Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="flex gap-4">
+              <Cpu className="w-8 h-8 text-blue-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold mb-2 text-lg">Embedded Systems</h3>
+                <p className="text-slate-600">Master microcontrollers & firmware</p>
               </div>
             </div>
-
-            <div className="hidden md:block">
-              <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl p-8 backdrop-blur-sm border border-blue-400/20">
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <Cpu className="w-8 h-8 text-blue-400 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold mb-1">Embedded Systems</h3>
-                      <p className="text-sm text-slate-400">Master microcontrollers & firmware</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <Zap className="w-8 h-8 text-yellow-400 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold mb-1">Industrial Automation</h3>
-                      <p className="text-sm text-slate-400">PLC & SCADA programming</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <Lightbulb className="w-8 h-8 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold mb-1">IoT Solutions</h3>
-                      <p className="text-sm text-slate-400">Connected systems development</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex gap-4">
+              <Zap className="w-8 h-8 text-amber-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold mb-2 text-lg">Industrial Automation</h3>
+                <p className="text-slate-600">PLC & SCADA programming</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Lightbulb className="w-8 h-8 text-yellow-600 flex-shrink-0 mt-1" />
+              <div>
+                <h3 className="font-semibold mb-2 text-lg">IoT Solutions</h3>
+                <p className="text-slate-600">Connected systems development</p>
               </div>
             </div>
           </div>
@@ -234,6 +245,51 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Explore All Sections */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50 dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl font-bold mb-12 text-center">Explore Everything We Offer</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link href="/about" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">About Us</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Learn about our mission and team</p>
+            </Link>
+            <Link href="/webinars" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Live Webinars</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Join expert-led webinars and workshops</p>
+            </Link>
+            <Link href="/training-programs" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Training Programs</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Comprehensive courses in engineering</p>
+            </Link>
+            <Link href="/internships" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Internship Programs</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Launch your engineering career</p>
+            </Link>
+            <Link href="/services" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Engineering Services</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Consulting and custom solutions</p>
+            </Link>
+            <Link href="/projects" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Our Projects</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">See our completed engineering work</p>
+            </Link>
+            <Link href="/blog" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Blog & Insights</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Read articles and engineering tips</p>
+            </Link>
+            <Link href="/contact" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">Contact Us</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Get in touch with our team</p>
+            </Link>
+            <Link href="/dashboard" className="p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:shadow-lg transition transform hover:scale-105">
+              <h3 className="font-semibold text-lg mb-2">User Dashboard</h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm">Access your personal dashboard</p>
+            </Link>
           </div>
         </div>
       </section>
