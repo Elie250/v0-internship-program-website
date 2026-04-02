@@ -1,3 +1,4 @@
+// /api/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
@@ -5,34 +6,48 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Validate required fields
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'gender', 'nationalId', 'address', 'city', 'province', 'postalCode', 'school', 'fieldOfStudy', 'educationLevel', 'program', 'duration', 'password'];
-    
+    // 1. Validate required fields
+    const requiredFields = [
+      'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'gender',
+      'nationalId', 'address', 'city', 'province', 'postalCode', 'school',
+      'fieldOfStudy', 'educationLevel', 'program', 'duration', 'password'
+    ];
+
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json(
-          { message: `${field} is required` },
-          { status: 400 }
-        );
+        return NextResponse.json({ message: `${field} is required` }, { status: 400 });
       }
     }
 
-    // Check if email already exists
-    const { data: existingUser } = await supabaseAdmin
+    // 2. Check if email already exists in Auth
+    const { data: existingUser, error: authCheckError } = await supabaseAdmin
       .from('registrations')
       .select('id')
       .eq('email', body.email)
       .single();
 
     if (existingUser) {
-      return NextResponse.json(
-        { message: 'Email already registered' },
-        { status: 409 }
-      );
+      return NextResponse.json({ message: 'Email already registered' }, { status: 409 });
     }
 
-    // Prepare comprehensive registration data
+    // 3. Create user in Supabase Auth
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: body.email,
+      password: body.password,
+      user_metadata: {
+        firstName: body.firstName,
+        lastName: body.lastName,
+        phone: body.phone,
+      },
+    });
+
+    if (authError) {
+      return NextResponse.json({ message: authError.message }, { status: 400 });
+    }
+
+    // 4. Insert registration data in table (without password)
     const registrationData = {
+      student_id: authUser.id, // link to auth user
       first_name: body.firstName,
       last_name: body.lastName,
       name: `${body.firstName} ${body.lastName}`,
@@ -52,41 +67,31 @@ export async function POST(request: NextRequest) {
       program_name: body.program,
       program: body.program,
       duration: body.duration,
-      password_hash: Buffer.from(body.password).toString('base64'),
       registration_status: 'Pending',
       status: 'Pending',
       agreement_confirmed: body.agreedToTerms || false,
       created_at: new Date().toISOString(),
     };
 
-    // Insert into database
     const { data, error } = await supabaseAdmin
       .from('registrations')
       .insert([registrationData])
       .select();
 
     if (error) {
-      console.error('[v0] Database error:', error);
-      return NextResponse.json(
-        { message: 'Failed to save registration. Please try again.' },
-        { status: 500 }
-      );
+      console.error('Database insert error:', error);
+      return NextResponse.json({ message: 'Failed to save registration.' }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Registration submitted successfully! Please check your email for next steps.',
-        data: data?.[0],
-        student_id: data?.[0]?.id
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({
+      success: true,
+      message: 'Registration submitted successfully!',
+      data: data?.[0],
+      student_id: authUser.id
+    }, { status: 201 });
+
   } catch (error) {
-    console.error('[v0] API error:', error);
-    return NextResponse.json(
-      { message: 'An error occurred during registration' },
-      { status: 500 }
-    );
+    console.error('API error:', error);
+    return NextResponse.json({ message: 'An error occurred during registration' }, { status: 500 });
   }
 }
