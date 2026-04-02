@@ -32,16 +32,22 @@ export default function Navbar() {
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-4">
+            <Link
+              href="/student/login"
+              className="px-3 sm:px-4 py-2 border border-green-500 text-green-400 hover:bg-green-500/10 rounded-lg font-semibold transition text-xs sm:text-sm"
+            >
+              Student Login
+            </Link>
             <Link
               href="/admin/login"
-              className="px-4 py-2 border border-amber-500 text-amber-400 hover:bg-amber-500/10 rounded-lg font-semibold transition text-sm"
+              className="px-3 sm:px-4 py-2 border border-amber-500 text-amber-400 hover:bg-amber-500/10 rounded-lg font-semibold transition text-xs sm:text-sm"
             >
               Admin
             </Link>
             <Link
-              href="/internships"
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition"
+              href="/register"
+              className="px-3 sm:px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition text-xs sm:text-sm"
             >
               Apply Now
             </Link>
@@ -57,7 +63,9 @@ export default function Navbar() {
           <Link href="/services" className="text-xs hover:text-blue-400 transition">Services</Link>
           <Link href="/projects" className="text-xs hover:text-blue-400 transition">Projects</Link>
           <Link href="/blog" className="text-xs hover:text-blue-400 transition">Blog</Link>
+          <Link href="/student/login" className="text-xs hover:text-green-400 transition">Student</Link>
           <Link href="/admin/login" className="text-xs hover:text-amber-400 transition">Admin</Link>
+          <Link href="/register" className="text-xs hover:text-blue-400 transition">Register</Link>
         </div>
       </div>
     </nav>
