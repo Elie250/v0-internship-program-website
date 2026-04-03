@@ -3,7 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
-    // Admin authorization
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
 
@@ -11,21 +10,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all applications from Supabase
     const { data: applications, error } = await supabaseAdmin
       .from('applications')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Fetch error:', error);
-      return NextResponse.json({ message: 'Failed to fetch applications' }, { status: 500 });
-    }
+    if (error) throw error;
 
-    return NextResponse.json({ success: true, data: applications, count: applications?.length || 0 }, { status: 200 });
+    return NextResponse.json({ success: true, data: applications });
   } catch (err) {
-    console.error('GET API error:', err);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    console.error('Admin API GET error:', err);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
 
@@ -34,32 +29,30 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, status, permissions } = body;
 
-    if (!id) return NextResponse.json({ message: 'Application ID is required' }, { status: 400 });
+    if (!id) return NextResponse.json({ message: 'ID required' }, { status: 400 });
 
     const updates: any = {};
     if (status) updates.status = status;
-    if (permissions) updates.permissions = permissions; // store permissions as JSON column
 
-    const { data: updated, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('applications')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {
-      console.error('Update error:', error);
-      return NextResponse.json({ message: 'Failed to update application' }, { status: 500 });
+    if (error) throw error;
+
+    // Optionally update permissions table if needed
+    if (permissions) {
+      await supabaseAdmin
+        .from('student_permissions')
+        .upsert({ student_id: id, ...permissions });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Application updated successfully',
-      data: updated,
-    }, { status: 200 });
-
+    return NextResponse.json({ success: true, data });
   } catch (err) {
-    console.error('PATCH API error:', err);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    console.error('Admin API PATCH error:', err);
+    return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
   }
 }
