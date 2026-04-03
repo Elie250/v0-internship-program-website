@@ -14,7 +14,7 @@ export default function StudentLogin() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // stop form from refreshing page
+    e.preventDefault(); // prevent page refresh
     setLoading(true);
     setError('');
 
@@ -22,7 +22,7 @@ export default function StudentLogin() {
       const res = await fetch('/api/student-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password })
       });
 
       const data = await res.json();
@@ -33,22 +33,21 @@ export default function StudentLogin() {
         return;
       }
 
-      console.log('Login success:', data); // Check fetched user
+      console.log('Login success:', data);
       alert(`Welcome ${data.name}, status: ${data.status}`);
-      setLoading(false);
 
-      // Optional: redirect to dashboard or homepage
-      // router.push('/student/dashboard');
-
+      // redirect to dashboard or homepage
+      router.push('/student/dashboard'); // or any page you have
     } catch (err) {
       console.error(err);
       setError('An error occurred');
+    } finally {
       setLoading(false);
     }
   };
 
   const handleCreateAccount = () => {
-    router.push('/register'); // Redirect to app/register/page.tsx
+    router.push('/register'); // redirect to register page
   };
 
   return (
@@ -60,37 +59,19 @@ export default function StudentLogin() {
 
         <div className="mb-4">
           <Label>Email</Label>
-          <Input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
+          <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
         </div>
 
         <div className="mb-6">
           <Label>Password</Label>
-          <Input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
+          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
         </div>
 
-        <Button
-          type="submit" // must be submit
-          disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 mb-4"
-        >
+        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 mb-4" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </Button>
 
-        <Button
-          type="button"
-          onClick={handleCreateAccount}
-          className="w-full bg-green-600 hover:bg-green-700"
-        >
+        <Button type="button" className="w-full bg-green-600 hover:bg-green-700" onClick={handleCreateAccount}>
           Create Account
         </Button>
       </form>
