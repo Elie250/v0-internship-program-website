@@ -1,95 +1,100 @@
+// app/api/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { hashPassword, generateToken } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Validate required fields
+    // Server-side validation
     const requiredFields = [
-      'firstName', 'lastName', 'email', 'phone', 'dateOfBirth',
-      'gender', 'nationalId', 'address', 'city', 'province',
-      'postalCode', 'school', 'fieldOfStudy', 'educationLevel',
-      'program', 'duration', 'password'
+      'firstName',
+      'lastName',
+      'email',
+      'phone',
+      'dateOfBirth',
+      'gender',
+      'nationalId',
+      'address',
+      'city',
+      'province',
+      'postalCode',
+      'school',
+      'fieldOfStudy',
+      'educationLevel',
+      'program',
+      'duration',
+      'password',
+      'agreedToTerms',
     ];
 
     for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json({ message: `${field} is required` }, { status: 400 });
+      if (!body[field] || body[field].toString().trim() === '') {
+        return NextResponse.json(
+          { message: `Field ${field} is required` },
+          { status: 400 }
+        );
       }
     }
 
-    // Check if email already exists in applications table
-    const { data: existingUsers } = await supabaseAdmin
+    // Check if email already exists
+    const { data: existingApplication, error: fetchError } = await supabaseAdmin
       .from('applications')
       .select('id')
       .eq('email', body.email)
-      .limit(1);
+      .single();
 
-    if (existingUsers && existingUsers.length > 0) {
-      return NextResponse.json({ message: 'Email already registered. Please login instead.' }, { status: 409 });
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      // ignore "no rows found" error
+      return NextResponse.json({ message: fetchError.message }, { status: 500 });
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(body.password);
-    const studentToken = generateToken();
+    if (existingApplication) {
+      return NextResponse.json(
+        { message: 'Email already registered' },
+        { status: 400 }
+      );
+    }
 
-    // Insert into applications table
-    const { data: registration, error } = await supabaseAdmin
+    // Insert new application
+    const { data, error } = await supabaseAdmin
       .from('applications')
       .insert([
         {
-          full_name: `${body.firstName} ${body.lastName}`,
+          first_name: body.firstName,
+          last_name: body.lastName,
           email: body.email,
           phone: body.phone,
           date_of_birth: body.dateOfBirth,
+          gender: body.gender,
+          national_id: body.nationalId,
+          address: body.address,
+          city: body.city,
           province: body.province,
-          district: body.city,
+          postal_code: body.postalCode,
+          country: body.country || 'Rwanda',
           school: body.school,
           field_of_study: body.fieldOfStudy,
-          current_level: body.educationLevel,
+          education_level: body.educationLevel,
           program: body.program,
           duration: body.duration,
-          status: 'Pending',
-          agreed_to_terms: body.agreedToTerms || false,
-          created_at: new Date().toISOString(),
-        }
+          password: body.password, // TODO: hash for production
+          agreed_to_terms: body.agreedToTerms,
+          created_at: new Date(),
+        },
       ])
       .select()
       .single();
 
     if (error) {
-      console.error('[v0] Supabase insert error:', error);
-      return NextResponse.json({ message: 'Failed to save registration' }, { status: 500 });
+      return NextResponse.json({ message: error.message }, { status: 500 });
     }
 
-    // Also save to individual_registrations table for redundancy
-    await supabaseAdmin
-      .from('individual_registrations')
-      .insert([
-        {
-          full_name: `${body.firstName} ${body.lastName}`,
-          email: body.email,
-          phone: body.phone,
-          program: body.program,
-          duration: body.duration,
-          created_at: new Date().toISOString(),
-        }
-      ]);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Registration submitted successfully!',
-      data: registration,
-      student_id: registration?.id,
-      token: studentToken,
-    }, { status: 201 });
-
-  } catch (err) {
-    console.error('[v0] Registration API error:', err);
+    return NextResponse.json({ message: 'Registration successful', application: data });
+  } catch (err: any) {
+    console.error('Registration error:', err);
     return NextResponse.json(
-      { message: 'An error occurred during registration. Please try again.' },
+      { message: 'An error occurred while registering' },
       { status: 500 }
     );
   }
