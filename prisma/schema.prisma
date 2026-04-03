@@ -1,0 +1,42 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // we'll fix DATABASE_URL in .env later
+}
+
+model User {
+  id        String       @id @default(cuid())
+  email     String       @unique
+  password  String
+  role      String       @default("student")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  registration Registration?  // one-to-one relation with Registration
+}
+
+model Registration {
+  id          String      @id @default(cuid())
+  studentId   String      @unique
+  firstName   String
+  lastName    String
+  fullName    String
+  createdAt   DateTime    @default(now())
+
+  user        User        @relation(fields: [studentId], references: [id])
+  enrollments Enrollment[]  // one-to-many relation with Enrollment
+}
+
+model Enrollment {
+  id             String       @id @default(cuid())
+  registrationId String
+  course         String
+  enrolledAt     DateTime     @default(now())
+
+  registration   Registration @relation(fields: [registrationId], references: [id])
+}
