@@ -53,7 +53,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       icon: LayoutDashboard,
       path: '/admin/dashboard'
     },
-
+    {
+      name: 'Applications',
+      icon: Users,
+      path: '/admin/applications'
+    }
     {
       name: 'Users',
       icon: Users,
