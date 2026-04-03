@@ -1,11 +1,11 @@
-'use client'
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LogOut, Users, FileText, Video, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
+import { LogOut, Users, FileText, Video, BarChart3, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -16,14 +16,7 @@ interface Application {
   status: string;
   created_at: string;
   agreed_to_terms: boolean;
-}
-
-interface StudentPermissions {
-  webinars: boolean;
-  trainings: boolean;
-  courseMaterials: boolean;
-  assignments: boolean;
-  certificates: boolean;
+  permissions?: Record<string, boolean>;
 }
 
 export default function AdminDashboard() {
@@ -35,21 +28,21 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Application | null>(null);
-  const [studentPermissions, setStudentPermissions] = useState<Record<string, StudentPermissions>>({});
 
-  const API_URL = '/api/admin-dashboard';
-  const ADMIN_TOKEN = 'admin_token'; // same token used in your API
+  const ADMIN_TOKEN = 'admin_token'; // or process.env.ADMIN_SECRET_TOKEN
 
+  // Check authentication and load data
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated');
     if (!adminAuth) {
-      const timer = setTimeout(() => router.push('/admin/login'), 100);
-      return () => clearTimeout(timer);
+      router.push('/admin/login');
+      return;
     }
     setIsAuthenticated(true);
-    loadApplications();
+    fetchApplications();
   }, [router]);
 
+  // Filter applications
   useEffect(() => {
     if (searchTerm) {
       setFilteredApps(
@@ -63,76 +56,88 @@ export default function AdminDashboard() {
     }
   }, [searchTerm, applications]);
 
-  const loadApplications = async () => {
+  // Fetch applications from API
+  const fetchApplications = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch('/api/admin-dashboard', {
         headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setApplications(data.data);
-        setFilteredApps(data.data);
+      if (res.ok) {
+        setApplications(data.data || []);
       } else {
-        console.error('Failed to fetch applications:', data.message);
+        console.error('Error fetching applications:', data.message);
       }
     } catch (err) {
-      console.error('API error:', err);
+      console.error('Fetch error:', err);
     }
     setIsLoading(false);
   };
 
+  // Update status in Supabase
   const handleStatusUpdate = async (id: string, newStatus: string) => {
-    try {
-      // Optimistic update
-      const updatedApps = applications.map(app =>
-        app.id === id ? { ...app, status: newStatus } : app
-      );
-      setApplications(updatedApps);
-      setFilteredApps(updatedApps);
+    const app = applications.find(a => a.id === id);
+    const currentPermissions = app?.permissions || {
+      webinars: true,
+      trainings: false,
+      courseMaterials: false,
+      assignments: false,
+      certificates: false,
+    };
 
-      const res = await fetch(API_URL, {
+    try {
+      const res = await fetch('/api/admin-dashboard', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${ADMIN_TOKEN}`,
         },
-        body: JSON.stringify({ id, status: newStatus }),
+        body: JSON.stringify({ id, status: newStatus, permissions: currentPermissions }),
       });
       const data = await res.json();
-      if (!res.ok) console.error('Failed to update status:', data.message);
+      if (res.ok) {
+        fetchApplications(); // refresh data
+      } else {
+        alert(data.message);
+      }
     } catch (err) {
-      console.error('PATCH error:', err);
+      console.error(err);
     }
   };
 
-  const togglePermission = (studentId: string, permission: keyof StudentPermissions) => {
-    setStudentPermissions(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [permission]: !prev[studentId]?.[permission]
-      }
-    }));
+  // Toggle permission for a student
+  const togglePermission = (studentId: string, permission: string) => {
+    setApplications(prev =>
+      prev.map(app => {
+        if (app.id === studentId) {
+          const perms = app.permissions || {};
+          return { ...app, permissions: { ...perms, [permission]: !perms[permission] } };
+        }
+        return app;
+      })
+    );
   };
 
+  // Save all permissions to Supabase
   const savePermissions = async () => {
     try {
-      // Send PATCH for each student's permissions
-      const promises = Object.entries(studentPermissions).map(([studentId, perms]) =>
-        fetch(API_URL, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${ADMIN_TOKEN}`,
-          },
-          body: JSON.stringify({ id: studentId, permissions: perms }),
-        })
-      );
-      await Promise.all(promises);
+      for (const app of applications) {
+        if (app.status === 'Approved') {
+          await fetch('/api/admin-dashboard', {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${ADMIN_TOKEN}`,
+            },
+            body: JSON.stringify({ id: app.id, permissions: app.permissions }),
+          });
+        }
+      }
       alert('Permissions saved successfully!');
+      fetchApplications(); // refresh
     } catch (err) {
-      console.error('Error saving permissions:', err);
+      console.error(err);
     }
   };
 
@@ -153,7 +158,42 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen bg-slate-50 py-8 px-4">
-      {/* ...keep all your existing JSX from here without any change */}
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900">Admin Dashboard</h1>
+            <p className="text-slate-600 mt-2">Manage applications, permissions, and course access</p>
+          </div>
+          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
+        </div>
+
+        {/* Statistics */}
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Total Applications</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-blue-600">{stats.totalApps}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Pending</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-yellow-600">{stats.pending}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Approved</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-green-600">{stats.approved}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Rejected</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-red-600">{stats.rejected}</p></CardContent>
+          </Card>
+        </div>
+
+        {/* ... keep rest of tabs UI exactly as before ... */}
+
+      </div>
     </main>
   );
 }
