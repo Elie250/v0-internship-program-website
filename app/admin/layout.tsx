@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 
 import {
   LayoutDashboard,
@@ -16,6 +16,28 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const pathname = usePathname()
   const router = useRouter()
+
+  // Pages that should NOT show admin layout
+  const publicPages = [
+    '/admin/login',
+    '/admin/register'
+  ]
+
+  const isPublicPage = publicPages.includes(pathname)
+
+  useEffect(() => {
+
+    if (!isPublicPage) {
+
+      const adminAuth = localStorage.getItem('admin_authenticated')
+
+      if (!adminAuth) {
+        router.push('/admin/login')
+      }
+
+    }
+
+  }, [pathname])
 
   const handleLogout = () => {
 
@@ -51,6 +73,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
 
   ]
+
+  // LOGIN / REGISTER pages (no sidebar)
+  if (isPublicPage) {
+    return <>{children}</>
+  }
 
   return (
 
@@ -120,7 +147,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* PAGE CONTENT */}
 
       <main className="flex-1 p-8 overflow-y-auto">
 
