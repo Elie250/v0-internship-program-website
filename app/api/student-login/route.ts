@@ -1,8 +1,8 @@
-// api/student-login.ts
+// app/api/student-login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateToken } from '@/lib/auth';
-import bcrypt from 'bcrypt'; // If you use hashed passwords
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,13 +10,10 @@ export async function POST(request: NextRequest) {
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json(
-        { message: 'Email and password are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
 
-    // Demo credentials (optional)
+    // Demo login for testing
     if (email === 'student@example.com' && password === 'password123') {
       const token = generateToken();
       return NextResponse.json({
@@ -38,26 +35,15 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (error || !applications || applications.length === 0) {
-      return NextResponse.json(
-        { message: 'Invalid email or password' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
     const student = applications[0];
 
-    // Check password
-    // If passwords are plain text:
-    const passwordMatches = password === student.password;
-
-    // If you stored hashed passwords, use:
-    // const passwordMatches = await bcrypt.compare(password, student.password);
-
+    // Compare password with hashed password
+    const passwordMatches = await bcrypt.compare(password, student.password);
     if (!passwordMatches) {
-      return NextResponse.json(
-        { message: 'Invalid email or password' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
     // Check if account is approved
@@ -68,7 +54,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token
     const token = generateToken();
 
     return NextResponse.json({
@@ -83,9 +68,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('[v0] Student login error:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
