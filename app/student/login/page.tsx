@@ -35,7 +35,7 @@ export default function StudentLoginPage() {
         localStorage.setItem('student_id', data.student_id);
         localStorage.setItem('student_name', data.name);
         localStorage.setItem('student_email', data.email);
-        // Add small delay to ensure localStorage is written
+        // small delay to ensure localStorage is written
         setTimeout(() => {
           router.push('/student/dashboard');
         }, 100);
@@ -43,8 +43,8 @@ export default function StudentLoginPage() {
         setError(data.message || 'Invalid email or password');
       }
     } catch (err) {
-      setError('An error occurred. Please try again.');
       console.error('Login error:', err);
+      setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -105,9 +105,9 @@ export default function StudentLoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 pt-6 border-t space-y-4">
-              <p className="text-sm text-slate-600 text-center">
-                Don&apos;t have an account?
+            <div className="mt-6 pt-6 border-t space-y-4 text-center">
+              <p className="text-sm text-slate-600">
+                Don't have an account?
               </p>
               <Link href="/register">
                 <Button variant="outline" className="w-full">
