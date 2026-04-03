@@ -1,6 +1,8 @@
+// api/student-login.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateToken } from '@/lib/auth';
+import bcrypt from 'bcrypt'; // If you use hashed passwords
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,69 +16,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Demo credentials for testing
+    // Demo credentials (optional)
     if (email === 'student@example.com' && password === 'password123') {
       const token = generateToken();
+      return NextResponse.json({
+        success: true,
+        message: 'Login successful',
+        token,
+        student_id: 'demo_student_001',
+        name: 'Demo Student',
+        email: email,
+        status: 'Approved'
+      }, { status: 200 });
+    }
+
+    // Authenticate against applications table
+    const { data: applications, error } = await supabaseAdmin
+      .from('applications')
+      .select('id, first_name, last_name, full_name, email, password, status')
+      .eq('email', email)
+      .limit(1);
+
+    if (error || !applications || applications.length === 0) {
       return NextResponse.json(
-        { 
-          success: true, 
-          message: 'Login successful',
-          token,
-          student_id: 'demo_student_001',
-          name: 'Demo Student',
-          email: email,
-          status: 'Approved'
-        },
-        { status: 200 }
+        { message: 'Invalid email or password' },
+        { status: 401 }
       );
     }
 
-    // Try to authenticate against applications table
-    try {
-      const { data: applications, error } = await supabaseAdmin
-        .from('applications')
-        .select('id, full_name, email, status')
-        .eq('email', email)
-        .limit(1);
+    const student = applications[0];
 
-      if (error || !applications || applications.length === 0) {
-        return NextResponse.json(
-          { message: 'Invalid email or password' },
-          { status: 401 }
-        );
-      }
+    // Check password
+    // If passwords are plain text:
+    const passwordMatches = password === student.password;
 
-      const student = applications[0];
+    // If you stored hashed passwords, use:
+    // const passwordMatches = await bcrypt.compare(password, student.password);
 
-      // Check if account is approved
-      if (student.status !== 'Approved' && student.status !== 'Active') {
-        return NextResponse.json(
-          { message: `Your account is ${student.status}. Please wait for admin approval.` },
-          { status: 403 }
-        );
-      }
-
-      const token = generateToken();
+    if (!passwordMatches) {
       return NextResponse.json(
-        { 
-          success: true, 
-          message: 'Login successful',
-          token,
-          student_id: student.id,
-          name: student.full_name,
-          email: student.email,
-          status: student.status
-        },
-        { status: 200 }
+        { message: 'Invalid email or password' },
+        { status: 401 }
       );
-    } catch (dbError) {
-      console.error('[v0] Database check error:', dbError);
     }
 
-    return NextResponse.json(
-      { message: 'Invalid email or password' },
-      { status: 401 }
-    );
+    // Check if account is approved
+    if (student.status !== 'Approved' && student.status !== 'Active') {
+      return NextResponse.json(
+        { message: `Your account is ${student.status}. Please wait for admin approval.` },
+        { status: 403 }
+      );
+    }
+
+    // Generate token
+    const token = generateToken();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      token,
+      student_id: student.id,
+      name: student.full_name || `${student.first_name} ${student.last_name}`,
+      email: student.email,
+      status: student.status
+    }, { status: 200 });
+
   } catch (error) {
     console.error('[v0] Student login error:', error);
     return NextResponse.json(
