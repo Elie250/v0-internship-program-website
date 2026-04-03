@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { NextResponse } from "next/server"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function POST(req: Request) {
 
   try {
 
-    const body = await req.json();
+    const body = await req.json()
 
     const {
       firstName,
@@ -25,10 +25,10 @@ export async function POST(req: Request) {
       educationLevel,
       program,
       duration,
-      password,
-    } = body;
+      password
+    } = body
 
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("applications")
       .insert([
         {
@@ -51,29 +51,32 @@ export async function POST(req: Request) {
           program: program,
           duration: duration,
           password: password,
-          status: "Pending",
-          created_at: new Date().toISOString(),
-        },
-      ]);
+          status: "Pending"
+        }
+      ])
+      .select()
 
     if (error) {
-      console.error("Supabase error:", error);
+
+      console.error("SUPABASE ERROR:", error)
+
       return NextResponse.json(
-        { message: "Failed to save registration" },
+        { message: error.message },
         { status: 500 }
-      );
+      )
+
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data })
 
   } catch (err) {
 
-    console.error(err);
+    console.error("SERVER ERROR:", err)
 
     return NextResponse.json(
       { message: "Server error" },
       { status: 500 }
-    );
+    )
 
   }
 
