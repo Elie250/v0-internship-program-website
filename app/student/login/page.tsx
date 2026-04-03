@@ -13,8 +13,8 @@ export default function StudentLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // stop form from refreshing page
     setLoading(true);
     setError('');
 
@@ -37,7 +37,7 @@ export default function StudentLogin() {
       alert(`Welcome ${data.name}, status: ${data.status}`);
       setLoading(false);
 
-      // Optional: redirect to dashboard
+      // Optional: redirect to dashboard or homepage
       // router.push('/student/dashboard');
 
     } catch (err) {
@@ -45,6 +45,10 @@ export default function StudentLogin() {
       setError('An error occurred');
       setLoading(false);
     }
+  };
+
+  const handleCreateAccount = () => {
+    router.push('/register'); // Redirect to app/register/page.tsx
   };
 
   return (
@@ -74,8 +78,20 @@ export default function StudentLogin() {
           />
         </div>
 
-        <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700">
+        <Button
+          type="submit" // must be submit
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 mb-4"
+        >
           {loading ? 'Logging in...' : 'Login'}
+        </Button>
+
+        <Button
+          type="button"
+          onClick={handleCreateAccount}
+          className="w-full bg-green-600 hover:bg-green-700"
+        >
+          Create Account
         </Button>
       </form>
     </div>
