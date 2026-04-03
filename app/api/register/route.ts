@@ -1,14 +1,12 @@
-// app/api/register/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../lib/prisma';
-import { getAuthUser } from '../../lib/auth';
-import bcrypt from 'bcrypt';
+import { supabaseAdmin } from '@/lib/supabase';
+import { hashPassword, generateToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // 1️⃣ Validate required fields
+    // Validate required fields
     const requiredFields = [
       'firstName', 'lastName', 'email', 'phone', 'dateOfBirth',
       'gender', 'nationalId', 'address', 'city', 'province',
@@ -22,63 +20,76 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2️⃣ Check if email already exists
-    const existingUser = await prisma.registration.findUnique({
-      where: { email: body.email },
-    });
+    // Check if email already exists in applications table
+    const { data: existingUsers } = await supabaseAdmin
+      .from('applications')
+      .select('id')
+      .eq('email', body.email)
+      .limit(1);
 
-    if (existingUser) {
-      return NextResponse.json({ message: 'Email already registered' }, { status: 409 });
+    if (existingUsers && existingUsers.length > 0) {
+      return NextResponse.json({ message: 'Email already registered. Please login instead.' }, { status: 409 });
     }
 
-    // 3️⃣ Get auth user (optional, for linking if using JWT)
-    const { user: authUser } = await getAuthUser(req);
+    // Hash password
+    const passwordHash = await hashPassword(body.password);
+    const studentToken = generateToken();
 
-    // 4️⃣ Hash password
-    const passwordHash = await bcrypt.hash(body.password, 10);
+    // Insert into applications table
+    const { data: registration, error } = await supabaseAdmin
+      .from('applications')
+      .insert([
+        {
+          full_name: `${body.firstName} ${body.lastName}`,
+          email: body.email,
+          phone: body.phone,
+          date_of_birth: body.dateOfBirth,
+          province: body.province,
+          district: body.city,
+          school: body.school,
+          field_of_study: body.fieldOfStudy,
+          current_level: body.educationLevel,
+          program: body.program,
+          duration: body.duration,
+          status: 'Pending',
+          agreed_to_terms: body.agreedToTerms || false,
+          created_at: new Date().toISOString(),
+        }
+      ])
+      .select()
+      .single();
 
-    // 5️⃣ Insert registration
-    const registration = await prisma.registration.create({
-      data: {
-        student_id: authUser?.id || '', // optional link to auth user
-        first_name: body.firstName,
-        last_name: body.lastName,
-        name: `${body.firstName} ${body.lastName}`,
-        email: body.email,
-        phone: body.phone,
-        date_of_birth: body.dateOfBirth,
-        gender: body.gender,
-        national_id: body.nationalId,
-        address: body.address,
-        city: body.city,
-        province: body.province,
-        postal_code: body.postalCode,
-        country: body.country || 'Rwanda',
-        school: body.school,
-        field_of_study: body.fieldOfStudy,
-        education_level: body.educationLevel,
-        program_name: body.program,
-        program: body.program,
-        duration: body.duration,
-        password_hash: passwordHash,
-        registration_status: 'Pending',
-        status: 'Pending',
-        agreement_confirmed: body.agreedToTerms || false,
-        created_at: new Date(),
-      },
-    });
+    if (error) {
+      console.error('[v0] Supabase insert error:', error);
+      return NextResponse.json({ message: 'Failed to save registration' }, { status: 500 });
+    }
+
+    // Also save to individual_registrations table for redundancy
+    await supabaseAdmin
+      .from('individual_registrations')
+      .insert([
+        {
+          full_name: `${body.firstName} ${body.lastName}`,
+          email: body.email,
+          phone: body.phone,
+          program: body.program,
+          duration: body.duration,
+          created_at: new Date().toISOString(),
+        }
+      ]);
 
     return NextResponse.json({
       success: true,
       message: 'Registration submitted successfully!',
       data: registration,
-      student_id: registration.id,
+      student_id: registration?.id,
+      token: studentToken,
     }, { status: 201 });
 
   } catch (err) {
-    console.error('Registration API error:', err);
+    console.error('[v0] Registration API error:', err);
     return NextResponse.json(
-      { message: 'An error occurred during registration' },
+      { message: 'An error occurred during registration. Please try again.' },
       { status: 500 }
     );
   }

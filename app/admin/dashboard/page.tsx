@@ -2,134 +2,138 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, Users, FileText, Video, BarChart3, Settings, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { LogOut, Users, FileText, Video, BarChart3, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
 
 interface Application {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
+  phone: string;
   program: string;
   status: string;
   created_at: string;
+  agreed_to_terms: boolean;
 }
 
-interface Webinar {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  instructor: string;
-  capacity: number;
-  registrations: number;
+interface StudentPermissions {
+  webinars: boolean;
+  trainings: boolean;
+  courseMaterials: boolean;
+  assignments: boolean;
+  certificates: boolean;
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [webinars, setWebinars] = useState<Webinar[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [filteredApps, setFilteredApps] = useState<Application[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState<Application | null>(null);
+  const [studentPermissions, setStudentPermissions] = useState<Record<string, StudentPermissions>>({});
 
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated');
     if (!adminAuth) {
-      // Small delay to ensure we don't cause a redirect loop
-      const timer = setTimeout(() => {
-        router.push('/admin/login');
-      }, 100);
+      const timer = setTimeout(() => router.push('/admin/login'), 100);
       return () => clearTimeout(timer);
     }
     setIsAuthenticated(true);
     loadData();
-    setIsLoading(false);
   }, [router]);
 
-  const loadData = () => {
-    // Load applications from localStorage (in production, this would be from API)
-    const savedApplications = localStorage.getItem('applications');
-    if (savedApplications) {
-      setApplications(JSON.parse(savedApplications));
-    }
-
-    // Load webinars from localStorage
-    const savedWebinars = localStorage.getItem('webinars');
-    if (savedWebinars) {
-      setWebinars(JSON.parse(savedWebinars));
+  useEffect(() => {
+    if (searchTerm) {
+      setFilteredApps(
+        applications.filter(app =>
+          app.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.email.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
     } else {
-      // Initialize with sample webinars
-      const sampleWebinars = [
-        {
-          id: '1',
-          title: 'Introduction to IoT Solutions',
-          date: '2025-05-15',
-          time: '14:00',
-          instructor: 'Dr. John Doe',
-          capacity: 50,
-          registrations: 28,
-        },
-        {
-          id: '2',
-          title: 'PLC Programming Basics',
-          date: '2025-05-20',
-          time: '10:00',
-          instructor: 'Eng. Sarah Smith',
-          capacity: 40,
-          registrations: 35,
-        },
-      ];
-      setWebinars(sampleWebinars);
-      localStorage.setItem('webinars', JSON.stringify(sampleWebinars));
+      setFilteredApps(applications);
     }
+  }, [searchTerm, applications]);
+
+  const loadData = () => {
+    // Load from localStorage or Supabase
+    const savedApps = localStorage.getItem('applications');
+    if (savedApps) {
+      setApplications(JSON.parse(savedApps));
+    }
+    const savedPerms = localStorage.getItem('student_permissions');
+    if (savedPerms) {
+      setStudentPermissions(JSON.parse(savedPerms));
+    }
+    setIsLoading(false);
   };
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated');
 
-    document.cookie =
-      "admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-
-    router.push('/admin/login');
-  };
-
-  const updateApplicationStatus = (id: string, newStatus: string) => {
+  const handleStatusUpdate = (id: string, newStatus: string) => {
     const updated = applications.map(app =>
       app.id === id ? { ...app, status: newStatus } : app
     );
     setApplications(updated);
     localStorage.setItem('applications', JSON.stringify(updated));
+    
+    if (newStatus === 'Approved') {
+      // Grant default permissions
+      const newPerms = {
+        webinars: true,
+        trainings: false,
+        courseMaterials: false,
+        assignments: false,
+        certificates: false,
+      };
+      setStudentPermissions(prev => ({
+        ...prev,
+        [id]: newPerms
+      }));
+    }
   };
 
-  const deleteApplication = (id: string) => {
-    const updated = applications.filter(app => app.id !== id);
-    setApplications(updated);
-    localStorage.setItem('applications', JSON.stringify(updated));
+  const togglePermission = (studentId: string, permission: keyof StudentPermissions) => {
+    setStudentPermissions(prev => ({
+      ...prev,
+      [studentId]: {
+        ...prev[studentId],
+        [permission]: !prev[studentId]?.[permission]
+      }
+    }));
   };
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-slate-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-slate-600">Loading admin dashboard...</p>
-        </div>
-      </main>
-    );
-  }
+  const savePermissions = () => {
+    localStorage.setItem('student_permissions', JSON.stringify(studentPermissions));
+    alert('Permissions saved successfully!');
+  };
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    router.push('/admin/login');
+  };
+
+  if (isLoading) return <div className="min-h-screen bg-slate-50 py-8 px-4 text-center">Loading dashboard...</div>;
+  if (!isAuthenticated) return null;
+
+  const stats = {
+    totalApps: applications.length,
+    pending: applications.filter(a => a.status === 'Pending').length,
+    approved: applications.filter(a => a.status === 'Approved').length,
+    rejected: applications.filter(a => a.status === 'Rejected').length,
+  };
 
   return (
-    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-slate-900">Admin Dashboard</h1>
-            <p className="text-slate-600 mt-2">Manage applications, webinars, and users</p>
+            <p className="text-slate-600 mt-2">Manage applications, permissions, and course access</p>
           </div>
           <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
             <LogOut className="w-4 h-4" />
@@ -137,147 +141,145 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistics */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Applications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-blue-600">{applications.length}</p>
-              <p className="text-sm text-slate-600 mt-2">
-                {applications.filter(a => a.status === 'Pending').length} pending
-              </p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-sm">Total Applications</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-blue-600">{stats.totalApps}</p></CardContent>
           </Card>
-
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Video className="w-4 h-4" />
-                Webinars
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-green-600">{webinars.length}</p>
-              <p className="text-sm text-slate-600 mt-2">Active webinars</p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-sm">Pending</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-yellow-600">{stats.pending}</p></CardContent>
           </Card>
-
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                Total Students
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-purple-600">
-                {applications.filter(a => a.status === 'Approved').length}
-              </p>
-              <p className="text-sm text-slate-600 mt-2">Approved applications</p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-sm">Approved</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-green-600">{stats.approved}</p></CardContent>
           </Card>
-
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Conversion
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-amber-600">
-                {applications.length > 0
-                  ? Math.round((applications.filter(a => a.status === 'Approved').length / applications.length) * 100)
-                  : 0}%
-              </p>
-              <p className="text-sm text-slate-600 mt-2">Approval rate</p>
-            </CardContent>
+            <CardHeader><CardTitle className="text-sm">Rejected</CardTitle></CardHeader>
+            <CardContent><p className="text-3xl font-bold text-red-600">{stats.rejected}</p></CardContent>
           </Card>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-200">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 font-semibold transition ${activeTab === 'overview'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-slate-600 hover:text-slate-900'
+          {['overview', 'applications', 'permissions', 'settings'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 font-semibold transition ${
+                activeTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('applications')}
-            className={`px-4 py-2 font-semibold transition ${activeTab === 'applications'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            Applications ({applications.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('webinars')}
-            className={`px-4 py-2 font-semibold transition ${activeTab === 'webinars'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-slate-600 hover:text-slate-900'
-              }`}
-          >
-            Webinars
-          </button>
-          <Link href="/admin/users">
-            <button className="px-4 py-2 font-semibold text-slate-600 hover:text-slate-900 transition flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Users & Permissions
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
-          </Link>
+          ))}
         </div>
+
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700">
+                  <FileText className="w-4 h-4" />
+                  View All Applications
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-green-600 hover:bg-green-700">
+                  <Video className="w-4 h-4" />
+                  Manage Webinars
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-purple-600 hover:bg-purple-700">
+                  <Users className="w-4 h-4" />
+                  Manage Permissions
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-slate-600 hover:bg-slate-700">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Recent Applications</CardTitle></CardHeader>
+              <CardContent>
+                {applications.length === 0 ? (
+                  <p className="text-slate-600">No applications yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {applications.slice(-5).map(app => (
+                      <div key={app.id} className="flex justify-between items-center py-2 border-b border-slate-100">
+                        <div>
+                          <p className="font-semibold text-sm">{app.full_name}</p>
+                          <p className="text-xs text-slate-600">{app.program}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {app.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Applications Tab */}
         {activeTab === 'applications' && (
           <Card>
             <CardHeader>
-              <CardTitle>Student Applications</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>All Applications</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              {applications.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600">No applications received yet</p>
-                </div>
+              {filteredApps.length === 0 ? (
+                <p className="text-center text-slate-600 py-8">No applications found</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-4">Name</th>
-                        <th className="text-left py-3 px-4">Email</th>
-                        <th className="text-left py-3 px-4">Program</th>
-                        <th className="text-left py-3 px-4">Status</th>
-                        <th className="text-left py-3 px-4">Date</th>
-                        <th className="text-left py-3 px-4">Actions</th>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        <th className="text-left py-3 px-4 font-semibold">Name</th>
+                        <th className="text-left py-3 px-4 font-semibold">Email</th>
+                        <th className="text-left py-3 px-4 font-semibold">Program</th>
+                        <th className="text-left py-3 px-4 font-semibold">Status</th>
+                        <th className="text-left py-3 px-4 font-semibold">Date</th>
+                        <th className="text-left py-3 px-4 font-semibold">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {applications.map(app => (
+                      {filteredApps.map(app => (
                         <tr key={app.id} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="py-3 px-4">{app.name}</td>
-                          <td className="py-3 px-4">{app.email}</td>
+                          <td className="py-3 px-4">{app.full_name}</td>
+                          <td className="py-3 px-4 text-sm">{app.email}</td>
                           <td className="py-3 px-4">{app.program}</td>
                           <td className="py-3 px-4">
                             <select
                               value={app.status}
-                              onChange={(e) => updateApplicationStatus(app.id, e.target.value)}
-                              className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : app.status === 'Approved'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                                }`}
+                              onChange={(e) => handleStatusUpdate(app.id, e.target.value)}
+                              className={`px-3 py-1 rounded text-sm font-semibold border-none ${
+                                app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}
                             >
                               <option>Pending</option>
                               <option>Approved</option>
@@ -289,12 +291,11 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-3 px-4">
                             <Button
-                              onClick={() => deleteApplication(app.id)}
-                              variant="outline"
+                              onClick={() => setSelectedStudent(app)}
                               size="sm"
-                              className="text-red-600 hover:text-red-700"
+                              variant="outline"
                             >
-                              Delete
+                              <Eye className="w-4 h-4" />
                             </Button>
                           </td>
                         </tr>
@@ -307,102 +308,130 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {/* Webinars Tab */}
-        {activeTab === 'webinars' && (
+        {/* Permissions Tab */}
+        {activeTab === 'permissions' && (
           <Card>
-            <CardHeader className="flex justify-between items-center">
-              <CardTitle>Manage Webinars</CardTitle>
-              <Link href="/admin/webinars/create">
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  + Create Webinar
-                </Button>
-              </Link>
+            <CardHeader>
+              <CardTitle>Student Permissions Management</CardTitle>
             </CardHeader>
             <CardContent>
-              {webinars.length === 0 ? (
-                <div className="text-center py-8">
-                  <Video className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-600 mb-4">No webinars created yet</p>
-                  <Link href="/admin/webinars/create">
-                    <Button>Create First Webinar</Button>
-                  </Link>
-                </div>
+              {applications.filter(a => a.status === 'Approved').length === 0 ? (
+                <p className="text-slate-600">No approved students yet</p>
               ) : (
-                <div className="grid md:grid-cols-2 gap-6">
-                  {webinars.map(webinar => (
-                    <div key={webinar.id} className="p-4 border border-slate-200 rounded-lg hover:shadow-md transition">
-                      <h3 className="font-semibold text-lg mb-2">{webinar.title}</h3>
-                      <div className="space-y-2 text-sm text-slate-600 mb-4">
-                        <p>📅 {webinar.date} at {webinar.time}</p>
-                        <p>👨‍🏫 Instructor: {webinar.instructor}</p>
-                        <p>👥 {webinar.registrations}/{webinar.capacity} registered</p>
+                <div className="space-y-6">
+                  {applications.filter(a => a.status === 'Approved').map(student => {
+                    const perms = studentPermissions[student.id] || {
+                      webinars: true,
+                      trainings: false,
+                      courseMaterials: false,
+                      assignments: false,
+                      certificates: false,
+                    };
+                    return (
+                      <div key={student.id} className="p-4 border border-slate-200 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold">{student.full_name}</h3>
+                            <p className="text-sm text-slate-600">{student.email}</p>
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {Object.entries(perms).map(([key, value]) => (
+                            <button
+                              key={key}
+                              onClick={() => togglePermission(student.id, key as keyof StudentPermissions)}
+                              className={`flex items-center gap-3 p-3 rounded border transition ${
+                                value
+                                  ? 'bg-green-50 border-green-200 text-green-900'
+                                  : 'bg-slate-50 border-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {value ? (
+                                <Unlock className="w-4 h-4" />
+                              ) : (
+                                <Lock className="w-4 h-4" />
+                              )}
+                              <span className="capitalize">{key}</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">Edit</Button>
-                        <Button variant="outline" size="sm" className="text-red-600">Delete</Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  <Button onClick={savePermissions} className="w-full bg-blue-600 hover:bg-blue-700">
+                    Save All Permissions
+                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
         )}
 
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="grid md:grid-cols-3 gap-4">
-                <Link href="/admin/users">
-                  <Button className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700">
-                    <Users className="w-4 h-4" />
-                    Manage Users
-                  </Button>
-                </Link>
-                <Link href="/admin/webinars/create">
-                  <Button className="w-full justify-start gap-2 bg-green-600 hover:bg-green-700">
-                    <Video className="w-4 h-4" />
-                    Create Webinar
-                  </Button>
-                </Link>
-                <Link href="/admin/settings">
-                  <Button className="w-full justify-start gap-2 bg-slate-600 hover:bg-slate-700">
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Applications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {applications.length === 0 ? (
-                  <p className="text-slate-600">No applications yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {applications.slice(-5).map(app => (
-                      <div key={app.id} className="flex justify-between items-center py-2 border-b border-slate-100">
-                        <div>
-                          <p className="font-semibold">{app.name}</p>
-                          <p className="text-sm text-slate-600">{app.program}</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded text-sm font-semibold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          app.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                          {app.status}
-                        </span>
-                      </div>
-                    ))}
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <Card>
+            <CardHeader><CardTitle>Admin Settings</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-semibold mb-2">Course Materials</h3>
+                <p className="text-sm text-slate-600 mb-3">Manage what materials are available to students</p>
+                <div className="space-y-2">
+                  {['Webinars', 'Trainings', 'Course Materials', 'Assignments', 'Certificates'].map(item => (
+                    <label key={item} className="flex items-center gap-2">
+                      <input type="checkbox" defaultChecked className="rounded" />
+                      <span className="text-sm">{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="pt-6 border-t border-slate-200">
+                <h3 className="font-semibold mb-2">System Settings</h3>
+                <p className="text-sm text-slate-600 mb-3">Configure application behavior</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-semibold">Auto-approve applications after days</label>
+                    <Input type="number" placeholder="7" defaultValue="7" className="mt-1" />
                   </div>
-                )}
+                  <div>
+                    <label className="text-sm font-semibold">Email notifications for new applications</label>
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="outline" size="sm">Enable</Button>
+                      <Button variant="outline" size="sm">Disable</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Student Detail Modal */}
+        {selectedStudent && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-2xl">
+              <CardHeader className="flex justify-between items-start">
+                <CardTitle>{selectedStudent.full_name}</CardTitle>
+                <Button onClick={() => setSelectedStudent(null)} variant="outline" size="sm">Close</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-600">Email</p>
+                    <p className="font-semibold">{selectedStudent.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Phone</p>
+                    <p className="font-semibold">{selectedStudent.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Program</p>
+                    <p className="font-semibold">{selectedStudent.program}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Status</p>
+                    <p className="font-semibold">{selectedStudent.status}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

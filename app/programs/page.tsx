@@ -144,9 +144,9 @@ export default function ProgramsPage() {
                       </div>
                     </div>
 
-                    <Link href="/apply" className="block">
+                    <Link href="/register" className="block">
                       <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                        Apply for This Program
+                        Enroll Now
                       </Button>
                     </Link>
                   </CardContent>
