@@ -1,103 +1,86 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Video, FileText, LogOut } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
-export default function AdminDashboard() {
+export default function AdminDashboardPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [applications, setApplications] = useState([]);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    mentors: 0,
+    totalWebinars: 0,
+    totalProjects: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_authenticated');
-    if (!token) router.push('/admin/login');
-    fetchApplications();
+    const adminAuth = localStorage.getItem('admin_authenticated');
+    if (!adminAuth) router.push('/admin/login');
+
+    const fetchStats = async () => {
+      try {
+        const usersRes = await fetch('/api/admin-dashboard/users');
+        const usersData = await usersRes.json();
+        const webinarsRes = await fetch('/api/admin-dashboard/webinars');
+        const webinarsData = await webinarsRes.json();
+        const projectsRes = await fetch('/api/admin-dashboard/projects');
+        const projectsData = await projectsRes.json();
+
+        const users = usersData.data || [];
+        setStats({
+          totalUsers: users.length,
+          activeUsers: users.filter((u: any) => u.status === 'Active').length,
+          mentors: users.filter((u: any) => u.permission_level === 'Mentor').length,
+          totalWebinars: webinarsData.data?.length || 0,
+          totalProjects: projectsData.data?.length || 0,
+        });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, [router]);
 
-  const fetchApplications = async () => {
-    setIsLoading(true);
-    const res = await fetch('/api/admin-dashboard', {
-      headers: { Authorization: 'Bearer admin_token' },
-    });
-    const data = await res.json();
-    if (data.success) setApplications(data.data || []);
-    setIsLoading(false);
-  };
-
-  const stats = {
-    total: applications.length,
-    pending: applications.filter(a => a.status === 'Pending').length,
-    approved: applications.filter(a => a.status === 'Approved').length,
-    rejected: applications.filter(a => a.status === 'Rejected').length,
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_authenticated');
-    router.push('/admin/login');
-  };
-
-  if (isLoading) return <p className="p-8">Loading dashboard...</p>;
+  if (loading) return <p className="text-center py-10">Loading dashboard...</p>;
 
   return (
-    <div className="p-8 min-h-screen bg-slate-50">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-slate-600 mt-1">Manage applications, permissions, and course access</p>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          <LogOut className="w-4 h-4" /> Logout
-        </button>
-      </div>
-
-      {/* Statistics */}
-      <div className="grid md:grid-cols-4 gap-4 mb-8">
+    <main className="min-h-screen bg-slate-50 p-8">
+      <h1 className="text-4xl font-bold mb-6">Admin Dashboard</h1>
+      <div className="grid md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader><CardTitle>Total Applications</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-bold">{stats.total}</CardContent>
+          <CardHeader><CardTitle>Total Users</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{stats.totalUsers}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Pending</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-bold text-yellow-600">{stats.pending}</CardContent>
+          <CardHeader><CardTitle>Active Users</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold text-green-600">{stats.activeUsers}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Approved</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-bold text-green-600">{stats.approved}</CardContent>
+          <CardHeader><CardTitle>Mentors</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold text-purple-600">{stats.mentors}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Rejected</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-bold text-red-600">{stats.rejected}</CardContent>
+          <CardHeader><CardTitle>Webinars</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold text-blue-600">{stats.totalWebinars}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Projects</CardTitle></CardHeader>
+          <CardContent><p className="text-2xl font-bold text-orange-600">{stats.totalProjects}</p></CardContent>
         </Card>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Link href="/admin/users">
-          <Card className="cursor-pointer hover:shadow-lg transition">
-            <CardHeader>
-              <CardTitle>
-                <Users className="inline w-5 h-5 mr-2" /> Manage Users
-              </CardTitle>
-            </CardHeader>
-            <CardContent>View applications and manage permissions</CardContent>
-          </Card>
-        </Link>
-        <Link href="/admin/webinars">
-          <Card className="cursor-pointer hover:shadow-lg transition">
-            <CardHeader>
-              <CardTitle>
-                <Video className="inline w-5 h-5 mr-2" /> Manage Webinars
-              </CardTitle>
-            </CardHeader>
-            <CardContent>Add, edit, or remove webinars</CardContent>
-          </Card>
-        </Link>
+      <div className="mt-8 flex gap-4">
+        <Link href="/admin/users"><Button>Manage Users</Button></Link>
+        <Link href="/admin/webinars"><Button>Manage Webinars</Button></Link>
+        <Link href="/admin/projects"><Button>Manage Projects</Button></Link>
       </div>
-    </div>
+    </main>
   );
 }

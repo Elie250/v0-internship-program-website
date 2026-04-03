@@ -1,229 +1,284 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Edit, Trash2, LogOut, PlusCircle } from 'lucide-react';
 
-export default function WebinarsPage() {
+interface Webinar {
+  id: string;
+  title: string;
+  instructor: string;
+  date: string;
+  time: string;
+  capacity: number;
+  registrations: number;
+  description: string;
+  status: 'Upcoming' | 'Ongoing' | 'Completed';
+}
+
+export default function AdminWebinarsPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [webinars, setWebinars] = useState<Webinar[]>([]);
+  const [filtered, setFiltered] = useState<Webinar[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [selectedWebinar, setSelectedWebinar] = useState<Webinar | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState<Omit<Webinar, 'id' | 'registrations'>>({
     title: '',
+    instructor: '',
     date: '',
     time: '',
-    instructor: '',
-    capacity: '50',
+    capacity: 50,
     description: '',
+    status: 'Upcoming',
   });
-  const [webinars, setWebinars] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
-  // Fetch existing webinars from Supabase on load
+  // Fetch webinars
   useEffect(() => {
-    fetchWebinars();
-  }, []);
+    const adminAuth = localStorage.getItem('admin_authenticated');
+    if (!adminAuth) router.push('/admin/login');
 
-  const fetchWebinars = async () => {
+    const fetchWebinars = async () => {
+      try {
+        const res = await fetch('/api/admin-dashboard/webinars');
+        const data = await res.json();
+        if (data.success) {
+          setWebinars(data.data);
+          setFiltered(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWebinars();
+  }, [router]);
+
+  // Search filter
+  useEffect(() => {
+    let temp = webinars;
+    if (searchTerm) temp = temp.filter(w =>
+      w.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      w.instructor.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFiltered(temp);
+  }, [searchTerm, webinars]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_authenticated');
+    router.push('/admin/login');
+  };
+
+  const handleEdit = (webinar: Webinar) => {
+    setSelectedWebinar(webinar);
+    setFormData({
+      title: webinar.title,
+      instructor: webinar.instructor,
+      date: webinar.date,
+      time: webinar.time,
+      capacity: webinar.capacity,
+      description: webinar.description,
+      status: webinar.status,
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this webinar?')) return;
     try {
       const res = await fetch('/api/admin-dashboard/webinars', {
-        headers: { Authorization: 'Bearer admin_token' },
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
       });
       const data = await res.json();
-      if (data.success) setWebinars(data.data);
+      if (data.success) setWebinars(webinars.filter(w => w.id !== id));
     } catch (err) {
-      console.error('Error fetching webinars:', err);
+      console.error(err);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
+  const handleSubmit = async () => {
     try {
-      const newWebinar = {
-        title: formData.title,
-        date: formData.date,
-        time: formData.time,
-        instructor: formData.instructor,
-        capacity: parseInt(formData.capacity),
-        registrations: 0,
-        description: formData.description,
-      };
-
+      const method = selectedWebinar ? 'PATCH' : 'POST';
+      const body = selectedWebinar
+        ? { ...formData, id: selectedWebinar.id }
+        : formData;
       const res = await fetch('/api/admin-dashboard/webinars', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: 'Bearer admin_token',
-        },
-        body: JSON.stringify(newWebinar),
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
-
       const data = await res.json();
-
       if (data.success) {
-        setSuccess(true);
-        fetchWebinars(); // Refresh list
-        setTimeout(() => router.push('/admin/dashboard'), 2000);
-      } else {
-        console.error('Failed to create webinar:', data.message);
+        if (selectedWebinar) {
+          setWebinars(webinars.map(w => w.id === data.data.id ? data.data : w));
+        } else {
+          setWebinars([...webinars, data.data]);
+        }
       }
     } catch (err) {
-      console.error('Error creating webinar:', err);
+      console.error(err);
     } finally {
-      setIsLoading(false);
+      setShowModal(false);
+      setSelectedWebinar(null);
+      setFormData({
+        title: '',
+        instructor: '',
+        date: '',
+        time: '',
+        capacity: 50,
+        description: '',
+        status: 'Upcoming',
+      });
     }
   };
 
+  const statusColor = (status: Webinar['status']) => {
+    switch (status) {
+      case 'Upcoming': return 'bg-blue-100 text-blue-800';
+      case 'Ongoing': return 'bg-green-100 text-green-800';
+      case 'Completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-slate-100 text-slate-800';
+    }
+  };
+
+  if (loading) return <p className="text-center py-10">Loading webinars...</p>;
+
   return (
-    <main className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <Link href="/admin/dashboard" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </Link>
-
-        <Card className="shadow-lg mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl">Create New Webinar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {success ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl text-green-600">✓</span>
-                </div>
-                <h3 className="text-lg font-semibold text-green-600 mb-2">Webinar Created Successfully!</h3>
-                <p className="text-slate-600">Redirecting to dashboard...</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="title">Webinar Title *</Label>
-                    <Input
-                      id="title"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleChange}
-                      placeholder="e.g., Introduction to IoT Solutions"
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="instructor">Instructor Name *</Label>
-                    <Input
-                      id="instructor"
-                      name="instructor"
-                      value={formData.instructor}
-                      onChange={handleChange}
-                      placeholder="e.g., Dr. John Doe"
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="date">Date *</Label>
-                    <Input
-                      id="date"
-                      name="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={handleChange}
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time">Time *</Label>
-                    <Input
-                      id="time"
-                      name="time"
-                      type="time"
-                      value={formData.time}
-                      onChange={handleChange}
-                      required
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="capacity">Capacity *</Label>
-                  <Input
-                    id="capacity"
-                    name="capacity"
-                    type="number"
-                    value={formData.capacity}
-                    onChange={handleChange}
-                    min="1"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    rows={4}
-                    className="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="flex gap-4">
-                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                    {isLoading ? 'Creating...' : 'Create Webinar'}
-                  </Button>
-                  <Link href="/admin/dashboard" className="flex-1">
-                    <Button variant="outline" className="w-full">Cancel</Button>
-                  </Link>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Display existing webinars */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Existing Webinars</h2>
-          {webinars.length === 0 ? (
-            <p className="text-slate-600">No webinars found.</p>
-          ) : (
-            <div className="grid md:grid-cols-2 gap-4">
-              {webinars.map(webinar => (
-                <Card key={webinar.id}>
-                  <CardHeader>
-                    <CardTitle>{webinar.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p><strong>Instructor:</strong> {webinar.instructor}</p>
-                    <p><strong>Date:</strong> {webinar.date} at {webinar.time}</p>
-                    <p><strong>Capacity:</strong> {webinar.capacity}</p>
-                    <p>{webinar.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+    <main className="min-h-screen bg-slate-50 p-8">
+      <div className="flex justify-between mb-6">
+        <h1 className="text-4xl font-bold">Webinars Management</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
+          <Button variant="default" onClick={() => setShowModal(true)} className="flex items-center gap-2">
+            <PlusCircle className="w-4 h-4" /> Add Webinar
+          </Button>
         </div>
       </div>
+
+      {/* Search */}
+      <Input
+        placeholder="Search by title or instructor..."
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+        className="mb-4"
+      />
+
+      {/* Webinars Table */}
+      <Card className="shadow-lg overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-slate-100">
+            <tr>
+              <th className="px-4 py-2 text-left">Title</th>
+              <th>Instructor</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Capacity</th>
+              <th>Registrations</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(webinar => (
+              <tr key={webinar.id} className="border-b hover:bg-slate-50">
+                <td className="px-4 py-2">{webinar.title}</td>
+                <td>{webinar.instructor}</td>
+                <td>{webinar.date}</td>
+                <td>{webinar.time}</td>
+                <td>{webinar.capacity}</td>
+                <td>{webinar.registrations}</td>
+                <td>
+                  <Badge className={`px-2 py-1 rounded-full text-xs ${statusColor(webinar.status)}`}>
+                    {webinar.status}
+                  </Badge>
+                </td>
+                <td className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleEdit(webinar)}>
+                    <Edit className="w-4 h-4" /> Edit
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(webinar.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {/* Modal for Add/Edit */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full shadow-xl">
+            <CardHeader>
+              <CardTitle>{selectedWebinar ? 'Edit Webinar' : 'Add New Webinar'}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder="Title"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+              />
+              <Input
+                placeholder="Instructor"
+                value={formData.instructor}
+                onChange={e => setFormData({ ...formData, instructor: e.target.value })}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                />
+                <Input
+                  type="time"
+                  value={formData.time}
+                  onChange={e => setFormData({ ...formData, time: e.target.value })}
+                />
+              </div>
+              <Input
+                type="number"
+                placeholder="Capacity"
+                value={formData.capacity}
+                onChange={e => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              />
+              <Input
+                placeholder="Description"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+              />
+              <select
+                value={formData.status}
+                onChange={e => setFormData({ ...formData, status: e.target.value as Webinar['status'] })}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="Upcoming">Upcoming</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setShowModal(false); setSelectedWebinar(null) }}>
+                  Cancel
+                </Button>
+                <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSubmit}>
+                  {selectedWebinar ? 'Update' : 'Create'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }
