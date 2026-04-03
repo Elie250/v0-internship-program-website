@@ -1,11 +1,16 @@
-import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+// /api/register/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import bcrypt from "bcrypt";
 
-export async function POST(req: Request) {
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
+export async function POST(req: NextRequest) {
   try {
-
-    const body = await req.json()
+    const body = await req.json();
 
     const {
       firstName,
@@ -26,8 +31,12 @@ export async function POST(req: Request) {
       program,
       duration,
       password
-    } = body
+    } = body;
 
+    // Hash password before storing
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert into applications table
     const { data, error } = await supabaseAdmin
       .from("applications")
       .insert([
@@ -50,34 +59,29 @@ export async function POST(req: Request) {
           education_level: educationLevel,
           program: program,
           duration: duration,
-          password: password,
-          status: "Pending"
+          password: hashedPassword,
+          status: "pending"  // Must match your check constraint exactly
         }
-      ])
-      .select()
+      ]);
 
     if (error) {
-
-      console.error("SUPABASE ERROR:", error)
-
+      console.error("Supabase Insert Error:", error);
       return NextResponse.json(
-        { message: error.message },
-        { status: 500 }
-      )
-
+        { message: "Failed to save registration", error },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json(
+      { message: "Registration successful", data },
+      { status: 200 }
+    );
 
   } catch (err) {
-
-    console.error("SERVER ERROR:", err)
-
+    console.error("API Error:", err);
     return NextResponse.json(
-      { message: "Server error" },
+      { message: "Registration failed", error: err },
       { status: 500 }
-    )
-
+    );
   }
-
 }
