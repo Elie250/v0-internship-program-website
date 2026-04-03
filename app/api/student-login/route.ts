@@ -1,8 +1,6 @@
-// app/api/student-login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateToken } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
 
-    // Demo login for testing
+    // Demo credentials
     if (email === 'student@example.com' && password === 'password123') {
       const token = generateToken();
       return NextResponse.json({
@@ -27,10 +25,10 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
-    // Authenticate against applications table
+    // Check database for plain-text password
     const { data: applications, error } = await supabaseAdmin
       .from('applications')
-      .select('id, first_name, last_name, full_name, email, password, status')
+      .select('id, full_name, email, password, status')
       .eq('email', email)
       .limit(1);
 
@@ -40,34 +38,29 @@ export async function POST(request: NextRequest) {
 
     const student = applications[0];
 
-    // Compare password with hashed password
-    const passwordMatches = await bcrypt.compare(password, student.password);
-    if (!passwordMatches) {
+    // Compare plain-text password
+    if (student.password !== password) {
       return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
     }
 
-    // Check if account is approved
+    // Check account status
     if (student.status !== 'Approved' && student.status !== 'Active') {
-      return NextResponse.json(
-        { message: `Your account is ${student.status}. Please wait for admin approval.` },
-        { status: 403 }
-      );
+      return NextResponse.json({ message: `Your account is ${student.status}. Please wait for admin approval.` }, { status: 403 });
     }
 
     const token = generateToken();
-
     return NextResponse.json({
       success: true,
       message: 'Login successful',
       token,
       student_id: student.id,
-      name: student.full_name || `${student.first_name} ${student.last_name}`,
+      name: student.full_name,
       email: student.email,
       status: student.status
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[v0] Student login error:', error);
+    console.error('Student login error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
