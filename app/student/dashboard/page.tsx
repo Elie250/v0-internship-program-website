@@ -9,11 +9,10 @@ import { LogOut, BookOpen, Clock, CheckCircle, AlertCircle, User, FileText } fro
 
 interface StudentData {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   program: string;
   duration: string;
-  startDate: string;
   status: string;
   progress: number;
 }
@@ -25,34 +24,54 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem('student_auth_token');
-    const studentId = localStorage.getItem('student_id');
-    const studentName = localStorage.getItem('student_name');
 
-    if (!token || !studentId) {
+    if (!token) {
       router.push('/student/login');
       return;
     }
 
-    // Simulate fetching student data - in production, this would call an API
-    setStudent({
-      id: studentId,
-      name: studentName || 'Student',
-      email: localStorage.getItem('student_email') || '',
-      program: 'Embedded Systems Internship',
-      duration: '6 months',
-      startDate: new Date().toLocaleDateString(),
-      status: 'Active',
-      progress: 65,
-    });
+    // Fetch student data from API
+    const fetchStudentData = async () => {
+      try {
+        const res = await fetch('/api/student-dashboard', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-    setIsLoading(false);
+        if (!res.ok) {
+          localStorage.clear(); // clear invalid session
+          router.push('/student/login');
+          return;
+        }
+
+        const data = await res.json();
+
+        setStudent({
+          id: data.id,
+          full_name: data.full_name,
+          email: data.email,
+          program: data.program || 'N/A',
+          duration: data.duration || 'N/A',
+          status: data.status,
+          progress: data.progress || 0,
+        });
+      } catch (err) {
+        console.error('Error fetching student:', err);
+        localStorage.clear();
+        router.push('/student/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudentData();
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('student_auth_token');
-    localStorage.removeItem('student_id');
-    localStorage.removeItem('student_name');
-    router.push('/');
+    localStorage.clear();
+    router.push('/student/login');
   };
 
   if (isLoading) {
@@ -82,16 +101,11 @@ export default function StudentDashboard() {
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Welcome, {student.name}!</h1>
+            <h1 className="text-4xl font-bold text-slate-900 mb-2">Welcome, {student.full_name}!</h1>
             <p className="text-slate-600">Your personalized internship dashboard</p>
           </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
+          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
+            <LogOut className="w-4 h-4" /> Logout
           </Button>
         </div>
 
@@ -99,15 +113,14 @@ export default function StudentDashboard() {
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Profile Information
+              <User className="w-5 h-5" /> Profile Information
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-slate-600">Full Name</p>
-                <p className="text-lg font-semibold">{student.name}</p>
+                <p className="text-lg font-semibold">{student.full_name}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600">Email</p>
@@ -120,10 +133,6 @@ export default function StudentDashboard() {
               <div>
                 <p className="text-sm text-slate-600">Duration</p>
                 <p className="text-lg font-semibold">{student.duration}</p>
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Start Date</p>
-                <p className="text-lg font-semibold">{student.startDate}</p>
               </div>
               <div>
                 <p className="text-sm text-slate-600">Status</p>
@@ -140,8 +149,7 @@ export default function StudentDashboard() {
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Progress Tracking
+              <BookOpen className="w-5 h-5" /> Progress Tracking
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -159,88 +167,8 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <p className="text-sm text-slate-600 mt-4">
-                You&apos;re doing great! Keep up the excellent work on your internship.
+                You're doing great! Keep up the excellent work on your internship.
               </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="shadow hover:shadow-lg transition">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Clock className="w-5 h-5 text-amber-600" />
-                Time Tracking
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-amber-600 mb-4">156</p>
-              <p className="text-sm text-slate-600 mb-4">hours logged</p>
-              <Button className="w-full bg-amber-600 hover:bg-amber-700">Log Hours</Button>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow hover:shadow-lg transition">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="w-5 h-5 text-green-600" />
-                Assignments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-green-600 mb-4">3</p>
-              <p className="text-sm text-slate-600 mb-4">active assignments</p>
-              <Button className="w-full bg-green-600 hover:bg-green-700">View All</Button>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow hover:shadow-lg transition">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
-                Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-blue-600 mb-4">2</p>
-              <p className="text-sm text-slate-600 mb-4">new messages</p>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">Check Messages</Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Resources Section */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Learning Resources</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Link href="/training-programs">
-                <div className="p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition cursor-pointer">
-                  <h3 className="font-semibold text-blue-600 mb-2">Training Materials</h3>
-                  <p className="text-sm text-slate-600">Access your course materials and videos</p>
-                </div>
-              </Link>
-              <Link href="/webinars">
-                <div className="p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition cursor-pointer">
-                  <h3 className="font-semibold text-blue-600 mb-2">Upcoming Webinars</h3>
-                  <p className="text-sm text-slate-600">Register for live expert-led sessions</p>
-                </div>
-              </Link>
-              <Link href="#">
-                <div className="p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition cursor-pointer">
-                  <h3 className="font-semibold text-blue-600 mb-2">Performance Reports</h3>
-                  <p className="text-sm text-slate-600">View your progress and feedback</p>
-                </div>
-              </Link>
-              <Link href="#">
-                <div className="p-4 border border-blue-200 rounded-lg hover:bg-blue-50 transition cursor-pointer">
-                  <h3 className="font-semibold text-blue-600 mb-2">Support & Help</h3>
-                  <p className="text-sm text-slate-600">Contact your mentor or administration</p>
-                </div>
-              </Link>
             </div>
           </CardContent>
         </Card>
