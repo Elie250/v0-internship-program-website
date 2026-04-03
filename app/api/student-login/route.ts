@@ -1,49 +1,51 @@
+// /app/api/student-login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// simple random token generator for testing
-function generateToken() {
-  return Math.random().toString(36).substring(2, 15) +
-    Math.random().toString(36).substring(2, 15);
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ message: 'Email and password required' }, { status: 400 });
+      return NextResponse.json({ message: 'Email and password are required' }, { status: 400 });
     }
 
-    const { data: users, error } = await supabaseAdmin
+    // Fetch user from applications table
+    const { data, error } = await supabaseAdmin
       .from('applications')
-      .select('*')
+      .select('id, full_name, email, password, status')
       .eq('email', email)
-      .limit(1);
+      .limit(1)
+      .single(); // get single row
 
-    if (error) return NextResponse.json({ message: 'Database error', error }, { status: 500 });
-    if (!users || users.length === 0) return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    if (error || !data) {
+      console.log('User not found or Supabase error:', error);
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
+    }
 
-    const user = users[0];
+    // Compare plain-text password (for testing only)
+    if (data.password !== password) {
+      return NextResponse.json({ message: 'Invalid email or password' }, { status: 401 });
+    }
 
-    if (user.password !== password) return NextResponse.json({ message: 'Incorrect password' }, { status: 401 });
-
-    // For testing, generate a simple dummy token
-    const token = generateToken();
+    // Check account status
+    if (data.status !== 'Approved' && data.status !== 'Active') {
+      return NextResponse.json({
+        message: `Your account is ${data.status}. Please wait for admin approval.`
+      }, { status: 403 });
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Login successful',
-      token,
-      student_id: user.id,
-      name: user.full_name || `${user.first_name} ${user.last_name}`,
-      email: user.email,
-      status: user.status
+      student_id: data.id,
+      name: data.full_name,
+      email: data.email,
+      status: data.status
     }, { status: 200 });
 
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Student login error:', err);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
