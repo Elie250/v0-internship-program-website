@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { v4 as uuidv4 } from 'uuid'; // dummy token
+
+// simple random token generator for testing
+function generateToken() {
+  return Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,8 +29,8 @@ export async function POST(request: NextRequest) {
 
     if (user.password !== password) return NextResponse.json({ message: 'Incorrect password' }, { status: 401 });
 
-    // For testing, create dummy token
-    const token = uuidv4();
+    // For testing, generate a simple dummy token
+    const token = generateToken();
 
     return NextResponse.json({
       success: true,
