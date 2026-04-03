@@ -6,17 +6,17 @@ import { ArrowRight, Wrench, Code2, Zap, Cpu, Lightbulb, Users, CheckCircle2, St
 
 const testimonials = [
   {
-    name: 'Ahmed Hassan',
+    name: 'Elie BISAMAZA',
     role: 'Software Engineer',
     content: 'The internship program transformed my career. Highly recommend Energy & Logics!',
   },
   {
-    name: 'Farah Mohamed',
+    name: 'Elie BISAMAZA',
     role: 'IoT Developer',
     content: 'Best training I received. Professional mentors and real-world projects.',
   },
   {
-    name: 'John Mwangi',
+    name: 'Elie BISAMAZA',
     role: 'Automation Specialist',
     content: 'The services team delivered exceptional solutions for our company.',
   },
