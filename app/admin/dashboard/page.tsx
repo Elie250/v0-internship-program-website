@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LogOut, Users, FileText, Video, BarChart3, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
+import { LogOut, Users, FileText, Video, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
 
   const ADMIN_TOKEN = 'admin_token'; // or process.env.ADMIN_SECRET_TOKEN
 
-  // Check authentication and load data
+  // Check admin auth & fetch applications
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated');
     if (!adminAuth) {
@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     fetchApplications();
   }, [router]);
 
-  // Filter applications
+  // Filter apps by search
   useEffect(() => {
     if (searchTerm) {
       setFilteredApps(
@@ -56,7 +56,6 @@ export default function AdminDashboard() {
     }
   }, [searchTerm, applications]);
 
-  // Fetch applications from API
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
@@ -70,12 +69,11 @@ export default function AdminDashboard() {
         console.error('Error fetching applications:', data.message);
       }
     } catch (err) {
-      console.error('Fetch error:', err);
+      console.error(err);
     }
     setIsLoading(false);
   };
 
-  // Update status in Supabase
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     const app = applications.find(a => a.id === id);
     const currentPermissions = app?.permissions || {
@@ -97,7 +95,7 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        fetchApplications(); // refresh data
+        fetchApplications();
       } else {
         alert(data.message);
       }
@@ -106,7 +104,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Toggle permission for a student
   const togglePermission = (studentId: string, permission: string) => {
     setApplications(prev =>
       prev.map(app => {
@@ -119,7 +116,6 @@ export default function AdminDashboard() {
     );
   };
 
-  // Save all permissions to Supabase
   const savePermissions = async () => {
     try {
       for (const app of applications) {
@@ -135,7 +131,7 @@ export default function AdminDashboard() {
         }
       }
       alert('Permissions saved successfully!');
-      fetchApplications(); // refresh
+      fetchApplications();
     } catch (err) {
       console.error(err);
     }
@@ -166,8 +162,7 @@ export default function AdminDashboard() {
             <p className="text-slate-600 mt-2">Manage applications, permissions, and course access</p>
           </div>
           <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
-            <LogOut className="w-4 h-4" />
-            Logout
+            <LogOut className="w-4 h-4" /> Logout
           </Button>
         </div>
 
@@ -191,8 +186,221 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* ... keep rest of tabs UI exactly as before ... */}
+        {/* Tabs */}
+        <div className="flex gap-4 mb-8 border-b border-slate-200">
+          {['overview', 'applications', 'permissions', 'settings'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 font-semibold transition ${activeTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+                }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
 
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <Button className="w-full justify-start gap-2 bg-blue-600 hover:bg-blue-700">
+                  <FileText className="w-4 h-4" /> View All Applications
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-green-600 hover:bg-green-700">
+                  <Video className="w-4 h-4" /> Manage Webinars
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-purple-600 hover:bg-purple-700">
+                  <Users className="w-4 h-4" /> Manage Permissions
+                </Button>
+                <Button className="w-full justify-start gap-2 bg-slate-600 hover:bg-slate-700">
+                  <Settings className="w-4 h-4" /> Settings
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Recent Applications</CardTitle></CardHeader>
+              <CardContent>
+                {applications.length === 0 ? (
+                  <p className="text-slate-600">No applications yet</p>
+                ) : (
+                  applications.slice(-5).map(app => (
+                    <div key={app.id} className="flex justify-between items-center py-2 border-b border-slate-100">
+                      <div>
+                        <p className="font-semibold text-sm">{app.full_name}</p>
+                        <p className="text-xs text-slate-600">{app.program}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-semibold ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                        }`}>
+                        {app.status}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Applications Tab */}
+        {activeTab === 'applications' && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>All Applications</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {filteredApps.length === 0 ? (
+                <p className="text-center text-slate-600 py-8">No applications found</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50">
+                        <th className="text-left py-3 px-4 font-semibold">Name</th>
+                        <th className="text-left py-3 px-4 font-semibold">Email</th>
+                        <th className="text-left py-3 px-4 font-semibold">Program</th>
+                        <th className="text-left py-3 px-4 font-semibold">Status</th>
+                        <th className="text-left py-3 px-4 font-semibold">Date</th>
+                        <th className="text-left py-3 px-4 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredApps.map(app => (
+                        <tr key={app.id} className="border-b border-slate-200 hover:bg-slate-50">
+                          <td className="py-3 px-4">{app.full_name}</td>
+                          <td className="py-3 px-4 text-sm">{app.email}</td>
+                          <td className="py-3 px-4">{app.program}</td>
+                          <td className="py-3 px-4">
+                            <select
+                              value={app.status}
+                              onChange={(e) => handleStatusUpdate(app.id, e.target.value)}
+                              className={`px-3 py-1 rounded text-sm font-semibold border-none ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  app.status === 'Approved' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'
+                                }`}
+                            >
+                              <option>Pending</option>
+                              <option>Approved</option>
+                              <option>Rejected</option>
+                            </select>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">{new Date(app.created_at).toLocaleDateString()}</td>
+                          <td className="py-3 px-4">
+                            <Button onClick={() => setSelectedStudent(app)} size="sm" variant="outline">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Permissions Tab */}
+        {activeTab === 'permissions' && (
+          <Card>
+            <CardHeader><CardTitle>Student Permissions Management</CardTitle></CardHeader>
+            <CardContent>
+              {applications.filter(a => a.status === 'Approved').length === 0 ? (
+                <p className="text-slate-600">No approved students yet</p>
+              ) : (
+                <div className="space-y-6">
+                  {applications.filter(a => a.status === 'Approved').map(student => {
+                    const perms = student.permissions || {
+                      webinars: true,
+                      trainings: false,
+                      courseMaterials: false,
+                      assignments: false,
+                      certificates: false,
+                    };
+                    return (
+                      <div key={student.id} className="p-4 border border-slate-200 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold">{student.full_name}</h3>
+                            <p className="text-sm text-slate-600">{student.email}</p>
+                          </div>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {Object.entries(perms).map(([key, value]) => (
+                            <button
+                              key={key}
+                              onClick={() => togglePermission(student.id, key)}
+                              className={`flex items-center gap-3 p-3 rounded border transition ${value
+                                  ? 'bg-green-50 border-green-200 text-green-900'
+                                  : 'bg-slate-50 border-slate-200 text-slate-600'
+                                }`}
+                            >
+                              {value ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                              <span className="capitalize">{key}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <Button onClick={savePermissions} className="w-full bg-blue-600 hover:bg-blue-700">
+                    Save All Permissions
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Student Detail Modal */}
+        {selectedStudent && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <Card className="w-full max-w-2xl">
+              <CardHeader className="flex justify-between items-start">
+                <CardTitle>{selectedStudent.full_name}</CardTitle>
+                <Button onClick={() => setSelectedStudent(null)} variant="outline" size="sm">Close</Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-600">Email</p>
+                    <p className="font-semibold">{selectedStudent.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Phone</p>
+                    <p className="font-semibold">{selectedStudent.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Program</p>
+                    <p className="font-semibold">{selectedStudent.program}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-600">Status</p>
+                    <p className="font-semibold">{selectedStudent.status}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </main>
   );
