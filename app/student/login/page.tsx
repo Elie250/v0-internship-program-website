@@ -97,7 +97,7 @@ router.push("/student/dashboard")
     <div className="mt-6 flex flex-col gap-3 text-center">
 
       <Link
-        href="/student/register"
+        href="/register"
         className="text-blue-600 font-medium hover:underline"
       >
         Create Account
