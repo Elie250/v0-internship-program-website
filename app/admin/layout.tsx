@@ -57,7 +57,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       name: 'Applications',
       icon: Users,
       path: '/admin/applications'
-    }
+    },
     {
       name: 'Users',
       icon: Users,
