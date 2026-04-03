@@ -1,7 +1,5 @@
-// /api/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import bcrypt from "bcrypt";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // Extract data
     const {
       firstName,
       lastName,
@@ -33,9 +32,6 @@ export async function POST(req: NextRequest) {
       password
     } = body;
 
-    // Hash password before storing
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Insert into applications table
     const { data, error } = await supabaseAdmin
       .from("applications")
@@ -43,45 +39,35 @@ export async function POST(req: NextRequest) {
         {
           first_name: firstName,
           last_name: lastName,
-          full_name: `${firstName} ${lastName}`,
-          email: email,
-          phone: phone,
+          email,
+          phone,
           date_of_birth: dateOfBirth,
-          gender: gender,
+          gender,
           national_id: nationalId,
-          address: address,
-          city: city,
-          province: province,
+          address,
+          city,
+          province,
           postal_code: postalCode,
-          country: country,
-          school: school,
+          country,
+          school,
           field_of_study: fieldOfStudy,
           education_level: educationLevel,
-          program: program,
-          duration: duration,
-          password: hashedPassword,
-          status: "pending"  // Must match your check constraint exactly
+          program,
+          duration,
+          password, // plain password for now
+          status: "pending" // must match check constraint
         }
-      ]);
+      ])
+      .select()
+      .single();
 
     if (error) {
-      console.error("Supabase Insert Error:", error);
-      return NextResponse.json(
-        { message: "Failed to save registration", error },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { message: "Registration successful", data },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Registration successful", data });
 
-  } catch (err) {
-    console.error("API Error:", err);
-    return NextResponse.json(
-      { message: "Registration failed", error: err },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return NextResponse.json({ message: err.message || "Registration failed" }, { status: 500 });
   }
 }
