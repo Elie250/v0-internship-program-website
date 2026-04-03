@@ -1,27 +1,34 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export async function GET(req: Request) {
-  try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-    const token = authHeader.replace('Bearer ', '');
-    // For testing, just return demo user if token exists
-    if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+export async function POST(req: Request) {
 
-    // Replace this with actual Supabase fetch using student ID from token
-    const studentData = await supabaseAdmin
-      .from('applications')
-      .select('id, full_name, email, program, duration, status')
-      .limit(1)
-      .maybeSingle();
+  const { email, password } = await req.json();
 
-    if (!studentData) return NextResponse.json({ message: 'Student not found' }, { status: 404 });
+  const { data, error } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("email", email)
+    .single();
 
-    return NextResponse.json({ ...studentData.data, progress: 65 });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+  if (error || !data) {
+    return NextResponse.json({ message: "Student not found" }, { status: 404 });
   }
+
+  if (data.password !== password) {
+    return NextResponse.json({ message: "Invalid password" }, { status: 401 });
+  }
+
+  return NextResponse.json({
+    token: "student-session",
+    student_id: data.id,
+    name: data.full_name,
+    email: data.email
+  });
+
 }

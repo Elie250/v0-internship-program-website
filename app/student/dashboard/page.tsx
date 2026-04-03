@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, BookOpen, Clock, CheckCircle, AlertCircle, User, FileText } from 'lucide-react';
+import { LogOut, BookOpen, CheckCircle, User } from 'lucide-react';
 
 interface StudentData {
   id: string;
@@ -24,24 +23,25 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem('student_auth_token');
+    const email = localStorage.getItem('student_email');
 
-    if (!token) {
+    if (!token || !email) {
       router.push('/student/login');
       return;
     }
 
-    // Fetch student data from API
     const fetchStudentData = async () => {
       try {
         const res = await fetch('/api/student-dashboard', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`,
+            'x-student-email': email
+          }
         });
 
         if (!res.ok) {
-          localStorage.clear(); // clear invalid session
+          console.error('Dashboard API error');
           router.push('/student/login');
           return;
         }
@@ -54,12 +54,12 @@ export default function StudentDashboard() {
           email: data.email,
           program: data.program || 'N/A',
           duration: data.duration || 'N/A',
-          status: data.status,
-          progress: data.progress || 0,
+          status: data.status || 'pending',
+          progress: data.progress || 0
         });
-      } catch (err) {
-        console.error('Error fetching student:', err);
-        localStorage.clear();
+
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
         router.push('/student/login');
       } finally {
         setIsLoading(false);
@@ -76,102 +76,120 @@ export default function StudentDashboard() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-slate-600">Loading your dashboard...</p>
-        </div>
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Loading your dashboard...</p>
       </main>
     );
   }
 
   if (!student) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-slate-600 mb-4">Failed to load your profile</p>
-          <Button onClick={handleLogout}>Return to Login</Button>
-        </div>
+      <main className="min-h-screen flex items-center justify-center">
+        <Button onClick={handleLogout}>Return to Login</Button>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-6xl mx-auto">
+
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Welcome, {student.full_name}!</h1>
-            <p className="text-slate-600">Your personalized internship dashboard</p>
+            <h1 className="text-4xl font-bold mb-2">
+              Welcome, {student.full_name}!
+            </h1>
+            <p className="text-slate-600">
+              Your personalized internship dashboard
+            </p>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="flex items-center gap-2">
+
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
             <LogOut className="w-4 h-4" /> Logout
           </Button>
         </div>
 
-        {/* Profile Overview Card */}
+        {/* Profile Card */}
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" /> Profile Information
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">
+
               <div>
                 <p className="text-sm text-slate-600">Full Name</p>
                 <p className="text-lg font-semibold">{student.full_name}</p>
               </div>
+
               <div>
                 <p className="text-sm text-slate-600">Email</p>
                 <p className="text-lg font-semibold">{student.email}</p>
               </div>
+
               <div>
                 <p className="text-sm text-slate-600">Program</p>
                 <p className="text-lg font-semibold">{student.program}</p>
               </div>
+
               <div>
                 <p className="text-sm text-slate-600">Duration</p>
                 <p className="text-lg font-semibold">{student.duration}</p>
               </div>
+
               <div>
                 <p className="text-sm text-slate-600">Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-lg font-semibold text-green-600">{student.status}</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    {student.status}
+                  </span>
                 </div>
               </div>
+
             </div>
           </CardContent>
         </Card>
 
         {/* Progress Card */}
-        <Card className="mb-8 shadow-lg">
+        <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="w-5 h-5" /> Progress Tracking
             </CardTitle>
           </CardHeader>
+
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold">Overall Progress</span>
-                  <span className="text-2xl font-bold text-blue-600">{student.progress}%</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-3">
-                  <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${student.progress}%` }}
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-slate-600 mt-4">
-                You're doing great! Keep up the excellent work on your internship.
-              </p>
+
+            <div className="flex justify-between mb-2">
+              <span>Overall Progress</span>
+              <span className="text-2xl font-bold text-blue-600">
+                {student.progress}%
+              </span>
             </div>
+
+            <div className="w-full bg-slate-200 rounded-full h-3">
+              <div
+                className="bg-blue-600 h-3 rounded-full"
+                style={{ width: `${student.progress}%` }}
+              />
+            </div>
+
+            <p className="text-sm text-slate-600 mt-4">
+              Keep progressing through your internship program.
+            </p>
+
           </CardContent>
         </Card>
+
       </div>
     </main>
   );

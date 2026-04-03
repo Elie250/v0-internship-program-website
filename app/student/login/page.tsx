@@ -1,94 +1,84 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 
-export default function StudentLoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-  const [loading, setLoading] = useState(false);
+export default function StudentLogin() {
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // ✅ prevents page refresh
-    setErrorMsg('');
-    setLoading(true);
+  const router = useRouter()
 
-    try {
-      const res = await fetch('/api/student-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
-      const data = await res.json();
+  const handleLogin = async (e: any) => {
 
-      if (!res.ok) {
-        setErrorMsg(data.message || 'Login failed');
-        setLoading(false);
-        return;
-      }
+    e.preventDefault()
 
-      // Save to localStorage
-      localStorage.setItem('student_auth_token', data.token);
-      localStorage.setItem('student_id', data.student_id);
-      localStorage.setItem('student_name', data.name);
-      localStorage.setItem('student_email', data.email);
+    setLoading(true)
+    setError("")
 
-      // Redirect
-      router.push('/student/dashboard');
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Something went wrong. Try again.');
-    } finally {
-      setLoading(false);
+    const res = await fetch("/api/student-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.message)
+      setLoading(false)
+      return
     }
-  };
+
+    localStorage.setItem("student_auth_token", data.token)
+    localStorage.setItem("student_email", data.email)
+
+    router.push("/student/dashboard")
+
+  }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-6 text-slate-900">Student Login</h1>
-        {errorMsg && <p className="text-red-600 mb-4 text-center">{errorMsg}</p>}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm text-slate-700 mb-1">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
-            />
-          </div>
+    <main className="min-h-screen flex items-center justify-center">
 
-          <div>
-            <label className="block text-sm text-slate-700 mb-1">Password</label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Enter your password"
-            />
-          </div>
+      <form onSubmit={handleLogin} className="space-y-4 w-80">
 
-          <Button type="submit" className="w-full mt-2" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
+        <h1 className="text-2xl font-bold">Student Login</h1>
 
-        <div className="mt-6 text-center text-sm text-slate-600">
-          Don&apos;t have an account?{' '}
-          <a href="/student/register" className="text-blue-600 hover:underline">
-            Create Account
-          </a>
-        </div>
-      </div>
+        <input
+          className="border p-2 w-full"
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <input
+          className="border p-2 w-full"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        {error && <p className="text-red-500">{error}</p>}
+
+        <button
+          className="bg-blue-600 text-white p-2 w-full"
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+      </form>
+
     </main>
-  );
+
+  )
+
 }
