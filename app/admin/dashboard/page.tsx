@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LogOut, Users, FileText, Video, BarChart3, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
+import { LogOut, Users, FileText, Video, Settings, Search, Eye, Lock, Unlock } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -27,12 +26,6 @@ interface StudentPermissions {
   certificates: boolean;
 }
 
-// Initialize Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,6 +37,9 @@ export default function AdminDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<Application | null>(null);
   const [studentPermissions, setStudentPermissions] = useState<Record<string, StudentPermissions>>({});
 
+  const API_URL = '/api/admin-dashboard';
+  const ADMIN_TOKEN = 'admin_token'; // same token used in your API
+
   useEffect(() => {
     const adminAuth = localStorage.getItem('admin_authenticated');
     if (!adminAuth) {
@@ -51,7 +47,7 @@ export default function AdminDashboard() {
       return () => clearTimeout(timer);
     }
     setIsAuthenticated(true);
-    loadData();
+    loadApplications();
   }, [router]);
 
   useEffect(() => {
@@ -67,78 +63,46 @@ export default function AdminDashboard() {
     }
   }, [searchTerm, applications]);
 
-  const loadData = async () => {
+  const loadApplications = async () => {
     setIsLoading(true);
-    // Fetch applications from Supabase
-    const { data: appsData, error: appsError } = await supabase
-      .from('applications')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (appsError) {
-      console.error('Error fetching applications:', appsError);
-    } else {
-      setApplications(appsData as Application[]);
-      setFilteredApps(appsData as Application[]);
-    }
-
-    // Fetch permissions from Supabase
-    const { data: permsData, error: permsError } = await supabase
-      .from('student_permissions')
-      .select('*');
-
-    if (permsError) {
-      console.error('Error fetching permissions:', permsError);
-    } else {
-      const permsMap: Record<string, StudentPermissions> = {};
-      (permsData || []).forEach((p: any) => {
-        permsMap[p.student_id] = {
-          webinars: p.webinars,
-          trainings: p.trainings,
-          courseMaterials: p.courseMaterials,
-          assignments: p.assignments,
-          certificates: p.certificates,
-        };
+    try {
+      const res = await fetch(API_URL, {
+        headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
       });
-      setStudentPermissions(permsMap);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setApplications(data.data);
+        setFilteredApps(data.data);
+      } else {
+        console.error('Failed to fetch applications:', data.message);
+      }
+    } catch (err) {
+      console.error('API error:', err);
     }
-
     setIsLoading(false);
   };
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
-    // Update locally
-    const updated = applications.map(app =>
-      app.id === id ? { ...app, status: newStatus } : app
-    );
-    setApplications(updated);
-    setFilteredApps(updated);
+    try {
+      // Optimistic update
+      const updatedApps = applications.map(app =>
+        app.id === id ? { ...app, status: newStatus } : app
+      );
+      setApplications(updatedApps);
+      setFilteredApps(updatedApps);
 
-    // Update in Supabase
-    const { error } = await supabase
-      .from('applications')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (error) console.error('Error updating status:', error);
-
-    // Grant default permissions if approved
-    if (newStatus === 'Approved') {
-      const newPerms: StudentPermissions = {
-        webinars: true,
-        trainings: false,
-        courseMaterials: false,
-        assignments: false,
-        certificates: false,
-      };
-      setStudentPermissions(prev => ({ ...prev, [id]: newPerms }));
-
-      // Insert or upsert permissions in Supabase
-      const { error: permError } = await supabase
-        .from('student_permissions')
-        .upsert({ student_id: id, ...newPerms });
-
-      if (permError) console.error('Error saving permissions:', permError);
+      const res = await fetch(API_URL, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${ADMIN_TOKEN}`,
+        },
+        body: JSON.stringify({ id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) console.error('Failed to update status:', data.message);
+    } catch (err) {
+      console.error('PATCH error:', err);
     }
   };
 
@@ -153,12 +117,23 @@ export default function AdminDashboard() {
   };
 
   const savePermissions = async () => {
-    // Save to Supabase
-    const promises = Object.entries(studentPermissions).map(([studentId, perms]) =>
-      supabase.from('student_permissions').upsert({ student_id: studentId, ...perms })
-    );
-    await Promise.all(promises);
-    alert('Permissions saved successfully!');
+    try {
+      // Send PATCH for each student's permissions
+      const promises = Object.entries(studentPermissions).map(([studentId, perms]) =>
+        fetch(API_URL, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${ADMIN_TOKEN}`,
+          },
+          body: JSON.stringify({ id: studentId, permissions: perms }),
+        })
+      );
+      await Promise.all(promises);
+      alert('Permissions saved successfully!');
+    } catch (err) {
+      console.error('Error saving permissions:', err);
+    }
   };
 
   const handleLogout = () => {
@@ -177,9 +152,8 @@ export default function AdminDashboard() {
   };
 
   return (
-    // <-- The rest of your UI remains exactly the same as your original code -->
     <main className="min-h-screen bg-slate-50 py-8 px-4">
-      {/* ...your existing dashboard JSX here... */}
+      {/* ...keep all your existing JSX from here without any change */}
     </main>
   );
 }
