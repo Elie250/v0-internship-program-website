@@ -1,73 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
+
   try {
-    const body = await request.json();
+
+    const body = await req.json();
 
     const {
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       email,
-      password,
       phone,
+      dateOfBirth,
       gender,
+      nationalId,
+      address,
       city,
       province,
+      postalCode,
       country,
       school,
+      fieldOfStudy,
+      educationLevel,
       program,
-      duration
+      duration,
+      password,
     } = body;
 
-    if (!first_name || !last_name || !email || !password) {
-      return NextResponse.json(
-        { message: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('applications')
+    const { error } = await supabaseAdmin
+      .from("applications")
       .insert([
         {
-          first_name,
-          last_name,
-          full_name: `${first_name} ${last_name}`,
-          email,
-          password, // stored as plain text
-          phone,
-          gender,
-          city,
-          province,
-          country,
-          school,
-          program,
-          duration,
-          status: 'Approved', // allow login immediately
-          created_at: new Date().toISOString()
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
+          email: email,
+          phone: phone,
+          date_of_birth: dateOfBirth,
+          gender: gender,
+          national_id: nationalId,
+          address: address,
+          city: city,
+          province: province,
+          postal_code: postalCode,
+          country: country,
+          school: school,
+          field_of_study: fieldOfStudy,
+          education_level: educationLevel,
+          program: program,
+          duration: duration,
+          password: password,
+          status: "Pending",
+          created_at: new Date().toISOString(),
         },
       ]);
 
     if (error) {
-      console.error('Registration error:', error);
+      console.error("Supabase error:", error);
       return NextResponse.json(
-        { message: 'Failed to save registration' },
+        { message: "Failed to save registration" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Registration successful',
-    });
+    return NextResponse.json({ success: true });
 
-  } catch (error) {
-    console.error('Register API error:', error);
+  } catch (err) {
+
+    console.error(err);
 
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { message: "Server error" },
       { status: 500 }
     );
+
   }
+
 }
