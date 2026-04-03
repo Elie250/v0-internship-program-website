@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { UserPlus, ArrowRight } from 'lucide-react';
 
 export default function RegisterPage() {
+
   const router = useRouter();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -28,295 +30,297 @@ export default function RegisterPage() {
     educationLevel: '',
     program: '',
     duration: '',
+    customDuration: '',
     password: '',
     confirmPassword: '',
-    agreedToTerms: false,
-  });
+    agreedToTerms: false
+  })
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState<any>({})
+  const [step, setStep] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const target = e.target;
-    let value: string | boolean = '';
-    if (target instanceof HTMLInputElement) {
-      value = target.type === 'checkbox' ? target.checked : target.value;
-    } else if (target instanceof HTMLSelectElement) {
-      value = target.value;
-    }
+  const handleInputChange = (e: any) => {
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [target.name]: value,
-    }));
-  };
+      [name]: type === 'checkbox' ? checked : value
+    }))
+  }
 
-  const validateStep = (stepNum: number) => {
-    const newErrors: Record<string, string> = {};
+  const handleNextStep = () => { setStep(step + 1) }
+  const handlePreviousStep = () => { setStep(step - 1) }
 
-    if (stepNum === 1) {
-      if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-      if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-      if (!formData.email.trim()) newErrors.email = 'Email is required';
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-      if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
-      if (!formData.gender) newErrors.gender = 'Gender is required';
+  const handleSubmit = async (e: any) => {
+    e.preventDefault()
+
+    const finalDuration =
+      formData.duration === 'custom'
+        ? formData.customDuration
+        : formData.duration
+
+    const payload = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      date_of_birth: formData.dateOfBirth,
+      gender: formData.gender,
+      national_id: formData.nationalId,
+      address: formData.address,
+      city: formData.city,
+      province: formData.province,
+      postal_code: formData.postalCode,
+      country: formData.country,
+      school: formData.school,
+      field_of_study: formData.fieldOfStudy,
+      education_level: formData.educationLevel,
+      program: formData.program,
+      duration: finalDuration,
+      password: formData.password
     }
 
-    if (stepNum === 2) {
-      if (!formData.nationalId.trim()) newErrors.nationalId = 'National ID is required';
-      if (!formData.address.trim()) newErrors.address = 'Address is required';
-      if (!formData.city.trim()) newErrors.city = 'City is required';
-      if (!formData.province.trim()) newErrors.province = 'Province is required';
-      if (!formData.postalCode.trim()) newErrors.postalCode = 'Postal code is required';
-    }
+    setIsLoading(true)
 
-    if (stepNum === 3) {
-      if (!formData.school.trim()) newErrors.school = 'School/University name is required';
-      if (!formData.fieldOfStudy.trim()) newErrors.fieldOfStudy = 'Field of study is required';
-      if (!formData.educationLevel) newErrors.educationLevel = 'Education level is required';
-      if (!formData.program.trim()) newErrors.program = 'Program is required';
-      if (!formData.duration.trim()) newErrors.duration = 'Duration is required';
-    }
-
-    if (stepNum === 4) {
-      if (!formData.password) newErrors.password = 'Password is required';
-      if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-      if (!formData.agreedToTerms) newErrors.agreedToTerms = 'You must agree to the terms';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleNextStep = () => {
-    if (validateStep(step)) {
-      setStep(step + 1);
-      window.scrollTo(0, 0);
-    }
-  };
-
-  const handlePreviousStep = () => {
-    setStep(step - 1);
-    window.scrollTo(0, 0);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateStep(4)) return;
-
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/register', {
+
+      const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+        body: JSON.stringify(payload)
+      })
 
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('student_email', formData.email);
-        router.push('/register/success');
-      } else {
-        setErrors({ submit: data.message || 'Registration failed' });
+      const data = await res.json()
+
+      if (res.ok) {
+        router.push('/student/login')
       }
+      else {
+        setErrors({ submit: data.message })
+      }
+
     } catch (err) {
-      console.error(err);
-      setErrors({ submit: 'An error occurred. Please try again.' });
-    } finally {
-      setIsLoading(false);
+      setErrors({ submit: 'Registration failed' })
     }
-  };
+
+    setIsLoading(false)
+
+  }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+
       <div className="max-w-2xl mx-auto">
-        <Card className="shadow-lg">
+
+        <Card>
+
           <CardHeader>
-            <div className="flex items-center gap-3 mb-4">
-              <UserPlus className="w-8 h-8 text-blue-600" />
-              <CardTitle className="text-2xl">Internship Application</CardTitle>
+
+            <div className="flex items-center gap-3">
+
+              <UserPlus className="text-blue-600" />
+
+              <CardTitle>Internship Application</CardTitle>
+
             </div>
-            <div className="flex gap-2 mb-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className={`h-2 flex-1 rounded-full ${i <= step ? 'bg-blue-600' : 'bg-slate-200'}`} />
-              ))}
-            </div>
-            <p className="text-sm text-slate-600">
-              Step {step} of 4: {
-                step === 1 ? 'Personal Information' :
-                  step === 2 ? 'Address Details' :
-                    step === 3 ? 'Education & Program' :
-                      'Create Account'
-              }
-            </p>
+
           </CardHeader>
 
           <CardContent>
+
             <form onSubmit={handleSubmit} className="space-y-6">
-              {errors.submit && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900 border border-red-200">
-                  {errors.submit}
-                </div>
-              )}
 
-              {/* ------------------ STEP 1 ------------------ */}
+              {/* STEP 1 */}
+
               {step === 1 && (
+
                 <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First Name *</Label>
-                      <Input name="firstName" value={formData.firstName} onChange={handleInputChange} />
-                      {errors.firstName && <p className="text-red-600 text-sm mt-1">{errors.firstName}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last Name *</Label>
-                      <Input name="lastName" value={formData.lastName} onChange={handleInputChange} />
-                      {errors.lastName && <p className="text-red-600 text-sm mt-1">{errors.lastName}</p>}
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email *</Label>
-                    <Input name="email" type="email" value={formData.email} onChange={handleInputChange} />
-                    {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input name="phone" value={formData.phone} onChange={handleInputChange} />
-                    {errors.phone && <p className="text-red-600 text-sm mt-1">{errors.phone}</p>}
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                      <Input name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} />
-                      {errors.dateOfBirth && <p className="text-red-600 text-sm mt-1">{errors.dateOfBirth}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="gender">Gender *</Label>
-                      <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full border rounded-md">
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      {errors.gender && <p className="text-red-600 text-sm mt-1">{errors.gender}</p>}
-                    </div>
-                  </div>
-                  <Button type="button" onClick={handleNextStep} className="w-full bg-blue-600 hover:bg-blue-700">
-                    Next Step <ArrowRight className="ml-2 w-4 h-4" />
+
+                  <Input placeholder="First Name" name="firstName" value={formData.firstName} onChange={handleInputChange} />
+
+                  <Input placeholder="Last Name" name="lastName" value={formData.lastName} onChange={handleInputChange} />
+
+                  <Input placeholder="Email" name="email" value={formData.email} onChange={handleInputChange} />
+
+                  <Input placeholder="Phone" name="phone" value={formData.phone} onChange={handleInputChange} />
+
+                  <Input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} />
+
+                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full border rounded-md p-2">
+
+                    <option value="">Select Gender</option>
+
+                    <option>Male</option>
+
+                    <option>Female</option>
+
+                  </select>
+
+                  <Button type="button" onClick={handleNextStep} className="w-full bg-blue-600">
+
+                    Next <ArrowRight className="ml-2 w-4 h-4" />
+
                   </Button>
+
                 </div>
+
               )}
 
-              {/* ------------------ STEP 2 ------------------ */}
+              {/* STEP 2 */}
+
               {step === 2 && (
+
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="nationalId">National ID *</Label>
-                    <Input name="nationalId" value={formData.nationalId} onChange={handleInputChange} />
-                    {errors.nationalId && <p className="text-red-600 text-sm mt-1">{errors.nationalId}</p>}
+
+                  <Input placeholder="National ID" name="nationalId" value={formData.nationalId} onChange={handleInputChange} />
+
+                  <Input placeholder="Address" name="address" value={formData.address} onChange={handleInputChange} />
+
+                  <Input placeholder="City" name="city" value={formData.city} onChange={handleInputChange} />
+
+                  <Input placeholder="Province" name="province" value={formData.province} onChange={handleInputChange} />
+
+                  <Input placeholder="Postal Code" name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
+
+                  <div className="flex gap-2">
+
+                    <Button type="button" onClick={handlePreviousStep}>Previous</Button>
+
+                    <Button type="button" onClick={handleNextStep}>Next</Button>
+
                   </div>
-                  <div>
-                    <Label htmlFor="address">Address *</Label>
-                    <Input name="address" value={formData.address} onChange={handleInputChange} />
-                    {errors.address && <p className="text-red-600 text-sm mt-1">{errors.address}</p>}
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="city">City *</Label>
-                      <Input name="city" value={formData.city} onChange={handleInputChange} />
-                      {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="province">Province *</Label>
-                      <Input name="province" value={formData.province} onChange={handleInputChange} />
-                      {errors.province && <p className="text-red-600 text-sm mt-1">{errors.province}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="postalCode">Postal Code *</Label>
-                      <Input name="postalCode" value={formData.postalCode} onChange={handleInputChange} />
-                      {errors.postalCode && <p className="text-red-600 text-sm mt-1">{errors.postalCode}</p>}
-                    </div>
-                  </div>
-                  <Button type="button" onClick={handlePreviousStep} className="bg-gray-300 hover:bg-gray-400 mr-2">Previous</Button>
-                  <Button type="button" onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">Next Step <ArrowRight className="ml-2 w-4 h-4" /></Button>
+
                 </div>
+
               )}
 
-              {/* ------------------ STEP 3 ------------------ */}
+              {/* STEP 3 */}
+
               {step === 3 && (
+
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="school">School/University *</Label>
-                    <Input name="school" value={formData.school} onChange={handleInputChange} />
-                    {errors.school && <p className="text-red-600 text-sm mt-1">{errors.school}</p>}
+
+                  <Input placeholder="School / University" name="school" value={formData.school} onChange={handleInputChange} />
+
+                  <Input placeholder="Field of Study" name="fieldOfStudy" value={formData.fieldOfStudy} onChange={handleInputChange} />
+
+                  <select name="educationLevel" value={formData.educationLevel} onChange={handleInputChange} className="w-full border rounded-md p-2">
+
+                    <option value="">Education Level</option>
+
+                    <option>High school</option>
+
+                    <option>Advanced diploma</option>
+
+                    <option>A0 degree</option>
+
+                    <option>Masters</option>
+
+                  </select>
+
+                  <select name="program" value={formData.program} onChange={handleInputChange} className="w-full border rounded-md p-2">
+
+                    <option value="">Select Program</option>
+
+                    <option>Embedded Systems Bootcamp</option>
+
+                    <option>Industrial Automation</option>
+
+                    <option>IoT Development</option>
+
+                    <option>Advanced PLC & Networking</option>
+
+                  </select>
+
+                  <select name="duration" value={formData.duration} onChange={handleInputChange} className="w-full border rounded-md p-2">
+
+                    <option value="">Duration</option>
+
+                    <option>2 weeks</option>
+
+                    <option>1 month</option>
+
+                    <option>3 months</option>
+
+                    <option>6 months</option>
+
+                    <option value="custom">Custom</option>
+
+                  </select>
+
+                  {formData.duration === "custom" && (
+
+                    <Input
+
+                      placeholder="Enter custom duration"
+
+                      name="customDuration"
+
+                      value={formData.customDuration}
+
+                      onChange={handleInputChange}
+
+                    />
+
+                  )}
+
+                  <div className="flex gap-2">
+
+                    <Button type="button" onClick={handlePreviousStep}>Previous</Button>
+
+                    <Button type="button" onClick={handleNextStep}>Next</Button>
+
                   </div>
-                  <div>
-                    <Label htmlFor="fieldOfStudy">Field of Study *</Label>
-                    <Input name="fieldOfStudy" value={formData.fieldOfStudy} onChange={handleInputChange} />
-                    {errors.fieldOfStudy && <p className="text-red-600 text-sm mt-1">{errors.fieldOfStudy}</p>}
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="educationLevel">Education Level *</Label>
-                      <select name="educationLevel" value={formData.educationLevel} onChange={handleInputChange} className="w-full border rounded-md">
-                        <option value="">Select Level</option>
-                        <option value="High School">High School</option>
-                        <option value="Bachelor">Bachelor</option>
-                        <option value="Master">Master</option>
-                        <option value="PhD">PhD</option>
-                      </select>
-                      {errors.educationLevel && <p className="text-red-600 text-sm mt-1">{errors.educationLevel}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="program">Program *</Label>
-                      <Input name="program" value={formData.program} onChange={handleInputChange} />
-                      {errors.program && <p className="text-red-600 text-sm mt-1">{errors.program}</p>}
-                    </div>
-                    <div>
-                      <Label htmlFor="duration">Duration *</Label>
-                      <Input name="duration" value={formData.duration} onChange={handleInputChange} />
-                      {errors.duration && <p className="text-red-600 text-sm mt-1">{errors.duration}</p>}
-                    </div>
-                  </div>
-                  <Button type="button" onClick={handlePreviousStep} className="bg-gray-300 hover:bg-gray-400 mr-2">Previous</Button>
-                  <Button type="button" onClick={handleNextStep} className="bg-blue-600 hover:bg-blue-700">Next Step <ArrowRight className="ml-2 w-4 h-4" /></Button>
+
                 </div>
+
               )}
 
-              {/* ------------------ STEP 4 ------------------ */}
+              {/* STEP 4 */}
+
               {step === 4 && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="password">Password *</Label>
-                    <Input type="password" name="password" value={formData.password} onChange={handleInputChange} />
-                    {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                    <Input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} />
-                    {errors.confirmPassword && <p className="text-red-600 text-sm mt-1">{errors.confirmPassword}</p>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" name="agreedToTerms" checked={formData.agreedToTerms} onChange={handleInputChange} />
-                    <Label htmlFor="agreedToTerms">I agree to the terms and conditions *</Label>
-                  </div>
-                  {errors.agreedToTerms && <p className="text-red-600 text-sm mt-1">{errors.agreedToTerms}</p>}
 
-                  <Button type="button" onClick={handlePreviousStep} className="bg-gray-300 hover:bg-gray-400 mr-2">Previous</Button>
-                  <Button type="submit" disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700">
-                    {isLoading ? 'Submitting...' : 'Submit Application'}
-                  </Button>
+                <div className="space-y-4">
+
+                  <Input type="password" placeholder="Password" name="password" value={formData.password} onChange={handleInputChange} />
+
+                  <Input type="password" placeholder="Confirm Password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} />
+
+                  <label className="flex items-center gap-2">
+
+                    <input type="checkbox" name="agreedToTerms" checked={formData.agreedToTerms} onChange={handleInputChange} />
+
+                    Agree to terms
+
+                  </label>
+
+                  <div className="flex gap-2">
+
+                    <Button type="button" onClick={handlePreviousStep}>Previous</Button>
+
+                    <Button type="submit" className="bg-green-600 text-white">
+
+                      {isLoading ? 'Submitting...' : 'Submit Application'}
+
+                    </Button>
+
+                  </div>
+
                 </div>
+
               )}
+
             </form>
+
           </CardContent>
+
         </Card>
+
       </div>
+
     </main>
-  );
+
+  )
+
 }
