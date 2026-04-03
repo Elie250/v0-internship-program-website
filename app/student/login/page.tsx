@@ -46,7 +46,7 @@ export default function StudentLogin() {
 
       <form onSubmit={handleLogin} className="space-y-4 w-80">
 
-        <h1 className="text-2xl font-bold">Student Login</h1>
+        <h1 className="text-2xl font-bold">Student Loggin</h1>
 
         <input
           className="border p-2 w-full"
