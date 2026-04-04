@@ -9,6 +9,7 @@ import {
   Users,
   Video,
   FileText,
+  Megaphone,
   FolderKanban,
   LogOut
 } from 'lucide-react'
@@ -74,8 +75,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       name: 'Projects',
       icon: FolderKanban,
       path: '/admin/projects'
+    },
+    {
+      name: 'Announcements',
+      icon: Megaphone,
+      path: '/admin/announcements'
     }
-
   ]
 
   // LOGIN / REGISTER pages (no sidebar)
