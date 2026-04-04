@@ -22,11 +22,11 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
     '/student/login'
   ]
 
-  const isPublic = publicPages.includes(pathname)
+  const isPublicPage = publicPages.includes(pathname)
 
   useEffect(() => {
 
-    if (!isPublic) {
+    if (!isPublicPage) {
 
       const token = localStorage.getItem('student_auth_token')
 
@@ -36,7 +36,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
 
     }
 
-  }, [])
+  }, [pathname])
 
   const handleLogout = () => {
 
@@ -56,30 +56,30 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
     {
       name: 'Announcements',
       icon: Megaphone,
-      path: '/announcement'
+      path: '/student/announcement'
     },
 
     {
       name: 'Documents',
       icon: FileText,
-      path: '/documents'
+      path: '/student/documents'
     },
 
     {
       name: 'Certificates',
       icon: Award,
-      path: '/certificates'
+      path: '/student/certificates'
     },
 
     {
       name: 'Profile',
       icon: User,
-      path: '/profile'
+      path: '/student/profile'
     }
 
   ]
 
-  if (isPublic) {
+  if (isPublicPage) {
     return <>{children}</>
   }
 
@@ -87,7 +87,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
 
     <div className="flex min-h-screen bg-slate-100">
 
-      {/* SIDEBAR */}
+      {/* Sidebar */}
 
       <aside className="w-64 bg-white shadow-lg flex flex-col">
 
@@ -150,7 +150,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
 
       </aside>
 
-      {/* CONTENT */}
+      {/* Page Content */}
 
       <main className="flex-1 p-8 overflow-y-auto">
 
@@ -159,5 +159,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
       </main>
 
     </div>
+
   )
+
 }
