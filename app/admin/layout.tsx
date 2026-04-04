@@ -71,12 +71,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       path: '/admin/webinars'
     },
     {
-      name: 'Documents',
-      icon: FileText,
-      path: '/admin/upload'
-    },
-
-    {
       name: 'Projects',
       icon: FolderKanban,
       path: '/admin/projects'
