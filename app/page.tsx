@@ -155,9 +155,9 @@ export default function HomePage() {
           <h2 className="text-4xl font-bold mb-12">Upcoming Webinars</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { title: 'Advanced Arduino Programming', date: 'Mar 20, 2025', speaker: 'Dr. Ahmed Hassan' },
-              { title: 'IoT with Node-RED', date: 'Mar 27, 2025', speaker: 'Eng. Fatima Ali' },
-              { title: 'PLC Fundamentals', date: 'Apr 3, 2025', speaker: 'Eng. Mohamed Sayed' },
+              { title: 'Advanced Arduino Programming', date: 'Mar 20, 2025', speaker: 'Elie BISAMAZA' },
+              { title: 'IoT with Node-RED', date: 'Mar 27, 2025', speaker: 'Elie BISAMAZA' },
+              { title: 'PLC Fundamentals', date: 'Apr 3, 2025', speaker: 'Elie BISAMAZA' },
             ].map((webinar, idx) => (
               <div key={idx} className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 rounded-lg border border-blue-200 dark:border-slate-600">
                 <h3 className="font-semibold text-lg mb-2">{webinar.title}</h3>
