@@ -56,7 +56,7 @@ export default function StudentLayout({ children }: { children: ReactNode }) {
     {
       name: 'Announcements',
       icon: Megaphone,
-      path: '/student/announcement'
+      path: '/student/announcements'
     },
 
     {
