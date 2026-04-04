@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Users,
   Video,
+  FileText,
   FolderKanban,
   LogOut
 } from 'lucide-react'
