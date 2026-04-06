@@ -14,7 +14,6 @@ export default async function Dashboard() {
   if (error) {
     console.error('Supabase error:', error)
   }
-
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
