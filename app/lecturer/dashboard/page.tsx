@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Users, LogOut } from 'lucide-react';
+import { BookOpen, Users, LogOut, Home } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -81,10 +81,16 @@ export default function LecturerDashboard() {
             <h1 className="text-2xl font-bold text-primary">Lecturer Dashboard</h1>
             <p className="text-sm text-muted-foreground">Welcome, {user.firstName} {user.lastName}</p>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => router.push('/')}>
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+            <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 

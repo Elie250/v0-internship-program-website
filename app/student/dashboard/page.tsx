@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Award, Bell, LogOut, User } from 'lucide-react';
+import { BookOpen, Award, Bell, LogOut, User, Home } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -91,10 +91,16 @@ export default function StudentDashboard() {
             <h1 className="text-2xl font-bold text-primary">Student Dashboard</h1>
             <p className="text-sm text-muted-foreground">Welcome, {user.firstName} {user.lastName}</p>
           </div>
-          <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => router.push('/')}>
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+            <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
