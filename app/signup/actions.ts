@@ -9,6 +9,10 @@ export async function createStudent(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
+  if (!supabaseAdmin) {
+    redirect("/signup?error=server")
+  }
+
   const { error } = await supabaseAdmin
     .from("students")
     .insert([

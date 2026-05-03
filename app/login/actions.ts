@@ -8,6 +8,10 @@ export async function loginStudent(formData: FormData) {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
 
+  if (!supabaseAdmin) {
+    redirect("login?error=server")
+  }
+
   const { data } = await supabaseAdmin
     .from("students")
     .select("*")

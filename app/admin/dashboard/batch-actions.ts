@@ -18,6 +18,10 @@ export async function batchAcceptApplications({
   sendEmail = true,
 }: BatchAcceptParams) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured', processed: 0 }
+    }
+
     // Get all applications
     const { data: applications, error: fetchError } = await supabaseAdmin
       .from('applications')
@@ -79,6 +83,10 @@ export async function batchDeclineApplications({
   sendEmail = true,
 }: BatchDeclineParams) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured', processed: 0 }
+    }
+
     // Get all applications
     const { data: applications, error: fetchError } = await supabaseAdmin
       .from('applications')
@@ -134,6 +142,10 @@ export async function batchDeclineApplications({
 
 export async function deleteApplications(ids: string[]) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured' }
+    }
+
     const { error } = await supabaseAdmin.from('applications').delete().in('id', ids)
 
     if (error) {
