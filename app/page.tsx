@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, Gear, Building, ArrowRight } from 'lucide-react';
+import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, Settings, Building, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ const PROGRAMS = [
   {
     id: 'MECH',
     label: 'Mechanical Engineering',
-    icon: Gear,
+    icon: Settings,
     description: 'Mechanical design, CAD, manufacturing processes, robotics.',
     image: '/images/program-mech.jpg',
   },
