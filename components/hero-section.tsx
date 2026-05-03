@@ -95,22 +95,17 @@ export function HeroSection() {
           </div>
 
           {/* Right Image */}
-          <div className="relative h-96 md:h-full min-h-96 rounded-lg overflow-hidden shadow-2xl">
-            {announcement?.image_url ? (
-              <Image
-                src={announcement.image_url}
-                alt={announcement.title}
-                fill
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-muted-foreground">Featured announcement image</p>
-                </div>
-              </div>
-            )}
+          <div className="relative h-96 md:h-full min-h-96 rounded-lg overflow-hidden shadow-2xl border border-border">
+            <Image
+              src={announcement?.image_url || '/hero-laboratory.jpg'}
+              alt={announcement?.title || 'Engineering Laboratory - Students Training'}
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+            {/* Professional gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
         </div>
 

@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { ReactNode, createContext, useContext, useState } from 'react';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext<any>(null);
 
-export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const [user, setUser] = useState<any>(null);
 
-    const login = (userData) => {
+    const login = (userData: any) => {
         setUser(userData);
     };
 

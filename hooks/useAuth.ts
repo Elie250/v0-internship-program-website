@@ -2,10 +2,16 @@ import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
 const useAuth = () => {
-    const { user } = useContext(AuthContext);
+    const context = useContext(AuthContext);
 
-    const hasRole = (role) => {
-        return user && user.roles && user.roles.includes(role);
+    if (!context) {
+        return { user: null, hasRole: () => false, isAuthenticated: () => false };
+    }
+
+    const { user } = context;
+
+    const hasRole = (role: string) => {
+        return user && user.role === role;
     };
 
     const isAuthenticated = () => {

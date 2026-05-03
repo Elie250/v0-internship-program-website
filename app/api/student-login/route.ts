@@ -13,6 +13,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      )
+    }
+
     // Fetch the registration by email
     const { data, error } = await supabaseAdmin
       .from('registrations')
