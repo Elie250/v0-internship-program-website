@@ -6,6 +6,7 @@ import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, Gear, 
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { HeroSection } from '@/components/hero-section';
 
 const PROGRAMS = [
   {
@@ -46,7 +47,7 @@ const PROGRAMS = [
   {
     id: 'CIV',
     label: 'Civil Engineering',
-    icon: Build,
+    icon: Building,
     description: 'Construction design, structural analysis, sustainable building projects.',
     image: '/images/program-civil.jpg',
   },
@@ -64,54 +65,31 @@ export default function Home() {
     <main className="min-h-screen bg-background text-foreground">
 
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
+      <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Engineering Hub" width={45} height={45} />
+            <Image src="/logo.png" alt="Energy & Logics" width={45} height={45} />
             <div>
-              <p className="font-bold text-lg text-blue-700">Engineering Hub</p>
-              <p className="text-xs text-gray-500">Your Gateway to Industry Skills</p>
+              <p className="font-bold text-lg text-primary">Energy & Logics</p>
+              <p className="text-xs text-muted-foreground">Engineering Academy</p>
             </div>
           </div>
-          <div className="flex gap-4">
-            <Link href="/portal"><Button>Student Portal</Button></Link>
-            <Link href="/programs"><Button variant="ghost">Programs</Button></Link>
-            <Link href="/contact"><Button variant="ghost">Contact</Button></Link>
-            <Link href="/admin/login"><Button variant="outline">Admin</Button></Link>
+          <div className="flex gap-2 md:gap-4">
+            <Link href="/auth/login"><Button variant="ghost">Login</Button></Link>
+            <Link href="/auth/register"><Button variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90">Join Academy</Button></Link>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="relative h-[85vh] flex items-center justify-center">
-        <Image src="/hero-engineering.jpg" alt="Engineering training" fill priority className="object-cover" />
-        <div className="absolute inset-0 bg-black/60"></div>
-        <div className="relative text-center text-white px-6 max-w-3xl">
-          <h1 className="text-5xl font-bold mb-6 leading-tight">Empower Your Career Across All Engineering Disciplines</h1>
-          <p className="text-lg mb-8 text-gray-200">
-            Hands-on internship programs and professional training across Electrical, Electronics, Mechanical, Civil, Embedded, and IoT fields.
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Link href="/apply">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg shadow-lg">
-                Apply Now <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <a href="https://wa.me/250783986252" target="_blank">
-              <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg shadow-lg">
-                <MessageCircle className="mr-2 w-5 h-5" /> WhatsApp Us
-              </Button>
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* HERO SECTION WITH DYNAMIC CONTENT */}
+      <HeroSection />
 
-      {/* PROGRAMS */}
-      <section className="py-20 bg-gray-50 px-4">
+      {/* PROGRAMS SECTION */}
+      <section className="py-20 bg-muted/30 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Engineering Programs</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
+            <h2 className="text-4xl font-bold text-primary mb-4">Our Engineering Programs</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Professional programs designed to build practical engineering skills across multiple sectors.
             </p>
           </div>
@@ -119,18 +97,18 @@ export default function Home() {
             {PROGRAMS.map((program) => {
               const Icon = program.icon;
               return (
-                <Card key={program.id} className="hover:shadow-xl transition overflow-hidden">
+                <Card key={program.id} className="hover:shadow-xl transition overflow-hidden border-border hover:border-primary/50">
                   <Image src={program.image} alt={program.label} width={500} height={250} className="w-full h-48 object-cover" />
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="bg-blue-100 p-2 rounded-lg">
-                        <Icon className="w-5 h-5 text-blue-600" />
+                      <div className="bg-primary/10 p-2 rounded-lg">
+                        <Icon className="w-5 h-5 text-primary" />
                       </div>
-                      <CardTitle>{program.label}</CardTitle>
+                      <CardTitle className="text-lg">{program.label}</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 text-sm mb-4">{program.description}</p>
+                    <p className="text-muted-foreground text-sm mb-4">{program.description}</p>
                     <Link href={`/programs/${program.id}`}>
                       <Button variant="outline" className="w-full">Learn More</Button>
                     </Link>
@@ -142,61 +120,124 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TRAINING FEES */}
+      {/* FEATURES SECTION */}
       <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-12">Training Fees</h2>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-primary mb-4">Why Choose Us</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We provide industry-leading training with hands-on experience
+            </p>
+          </div>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-blue-500 border-2 shadow-lg">
-              <CardHeader><CardTitle className="text-xl">Engineering Internship</CardTitle></CardHeader>
+            <Card className="border-border">
+              <CardHeader>
+                <div className="bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <CardTitle>Expert Instructors</CardTitle>
+              </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-blue-600 mb-4">30,000 RWF</p>
-                <p className="text-gray-600">1 Month Program</p>
+                <p className="text-muted-foreground">Learn from industry professionals with years of hands-on experience in their fields.</p>
               </CardContent>
             </Card>
-            <Card className="border-green-500 border-2 shadow-lg">
-              <CardHeader><CardTitle className="text-xl">Short Intensive Training</CardTitle></CardHeader>
+
+            <Card className="border-border">
+              <CardHeader>
+                <div className="bg-secondary/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <Cpu className="w-6 h-6 text-secondary" />
+                </div>
+                <CardTitle>Hands-On Training</CardTitle>
+              </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-green-600 mb-4">20,000 RWF</p>
-                <p className="text-gray-600">2 Weeks Program</p>
+                <p className="text-muted-foreground">Work with real equipment and tools used in professional engineering environments.</p>
               </CardContent>
             </Card>
-            <Card className="border-purple-500 border-2 shadow-lg">
-              <CardHeader><CardTitle className="text-xl">Individual Training</CardTitle></CardHeader>
+
+            <Card className="border-border">
+              <CardHeader>
+                <div className="bg-accent/10 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                  <User className="w-6 h-6 text-accent" />
+                </div>
+                <CardTitle>Career Support</CardTitle>
+              </CardHeader>
               <CardContent>
-                <p className="text-4xl font-bold text-purple-600 mb-4">Custom Price</p>
-                <p className="text-gray-600">Based on project and training needs</p>
+                <p className="text-muted-foreground">Get help with job placement and career guidance after completing your training.</p>
               </CardContent>
             </Card>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 px-4 bg-blue-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Start Your Engineering Journey?</h2>
-          <p className="text-gray-600 mb-8">Join our hub and gain hands-on experience in the engineering sector you want to master.</p>
-          <Link href="/apply">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-6 text-lg shadow-lg">Apply Now</Button>
+      {/* CONTACT SECTION */}
+      <section className="py-20 px-4 bg-primary text-primary-foreground">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold mb-8">Get in Touch</h2>
+          <p className="text-lg mb-8 opacity-90">
+            Ready to start your engineering journey? Contact us today to learn more about our programs.
+          </p>
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div>
+              <Phone className="w-8 h-8 mx-auto mb-4" />
+              <p className="font-semibold">Phone</p>
+              <a href="tel:+250783986252" className="hover:underline">+250 783 986 252</a>
+            </div>
+            <div>
+              <Mail className="w-8 h-8 mx-auto mb-4" />
+              <p className="font-semibold">Email</p>
+              <a href="mailto:info@energyandlogics.com" className="hover:underline">info@energyandlogics.com</a>
+            </div>
+            <div>
+              <MapPin className="w-8 h-8 mx-auto mb-4" />
+              <p className="font-semibold">Location</p>
+              <p>Kigali, Rwanda</p>
+            </div>
+          </div>
+          <Link href="/auth/register">
+            <Button size="lg" className="bg-white text-primary hover:bg-gray-100">
+              Get Started Now <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
           </Link>
         </div>
       </section>
 
-      {/* CONTACT */}
-      <section className="bg-blue-700 text-white py-20 px-4">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 text-center">
-          <div><Phone className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Phone</h3><p>+250 783 986 252</p></div>
-          <div><Mail className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Email</h3><p>energylogicsltd@gmail.com</p></div>
-          <div><MapPin className="mx-auto mb-4" /><h3 className="font-semibold mb-2">Location</h3><p>Nyamirambo, Kigali, Rwanda</p></div>
-        </div>
-      </section>
-
       {/* FOOTER */}
-      <footer className="py-8 text-center text-gray-500 text-sm border-t">
-        © 2026 Engineering Hub — Bridging Skills with Industry
+      <footer className="bg-card border-t border-border px-4 py-12">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h3 className="font-bold text-lg text-primary mb-4">Energy & Logics</h3>
+              <p className="text-muted-foreground text-sm">Professional engineering training academy.</p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link href="/auth/login" className="hover:text-primary">Login</Link></li>
+                <li><Link href="/auth/register" className="hover:text-primary">Register</Link></li>
+                <li><Link href="/" className="hover:text-primary">Programs</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Contact</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="tel:+250783986252" className="hover:text-primary">+250 783 986 252</a></li>
+                <li><a href="mailto:info@energyandlogics.com" className="hover:text-primary">info@energyandlogics.com</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Follow Us</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-primary">Twitter</a></li>
+                <li><a href="#" className="hover:text-primary">LinkedIn</a></li>
+                <li><a href="#" className="hover:text-primary">Facebook</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2024 Energy & Logics Engineering Academy. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
-
     </main>
   );
 }

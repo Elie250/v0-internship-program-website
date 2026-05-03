@@ -1,84 +1,193 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import DashboardTable from './table'
-import StatsCards from '@/components/dashboard/stats-cards'
-import AnalyticsSection from '@/components/dashboard/analytics-section'
+'use client';
 
-export const dynamic = 'force-dynamic' // Always fetch fresh data
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getCurrentUser, logoutUser } from '@/app/actions/auth-service';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Users, BookOpen, Megaphone, FileText, BarChart3, LogOut } from 'lucide-react';
 
-export default async function Dashboard() {
-  const { data, error } = await supabaseAdmin
-    .from('applications') // updated table
-    .select('*')
-    .order('created_at', { ascending: false })
+export default function AdminDashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({ users: 0, courses: 0, announcements: 0 });
 
-  if (error) {
-    console.error('Supabase error:', error)
-  }
+  useEffect(() => {
+    const checkAuth = async () => {
+      const currentUser = await getCurrentUser();
+      
+      if (!currentUser || currentUser.role !== 'admin') {
+        router.push('/auth/login');
+        return;
+      }
 
-  if (!data) {
+      setUser(currentUser);
+
+      // Fetch stats
+      try {
+        const supabase = createClient();
+        
+        const [userRes, courseRes, announcementRes] = await Promise.all([
+          supabase.from('users').select('count', { count: 'exact' }),
+          supabase.from('courses').select('count', { count: 'exact' }),
+          supabase.from('announcements').select('count', { count: 'exact' }),
+        ]);
+
+        setStats({
+          users: userRes.count || 0,
+          courses: courseRes.count || 0,
+          announcements: announcementRes.count || 0,
+        });
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    router.push('/');
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white shadow-lg rounded-xl p-10 text-center">
-          <p className="text-gray-700 font-medium">
-            Failed to load dashboard data
-          </p>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
       </div>
-    )
+    );
   }
 
-  // Statistics
-  const total = data.length
-  const accepted = data.filter((d: any) => d.status === 'accepted').length
-  const declined = data.filter((d: any) => d.status === 'declined').length
-  const pending = data.filter((d: any) => d.status === 'pending' || !d.status).length
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 p-6 md:p-10">
-      <div className="max-w-7xl mx-auto space-y-10">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
           <div>
-            <h1 className="text-4xl font-bold text-slate-900">
-              Energy & Logics Admin
-            </h1>
-            <p className="text-slate-600 mt-1">
-              Manage applications and track registrations
-            </p>
+            <h1 className="text-2xl font-bold text-primary">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground">Welcome, {user.firstName} {user.lastName}</p>
           </div>
-          <div className="bg-white shadow-md rounded-lg px-4 py-2 text-sm text-slate-600">
-            Last updated: {new Date().toLocaleString()}
-          </div>
+          <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
         </div>
-        {/* Stats Cards */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <StatsCards
-            total={total}
-            accepted={accepted}
-            declined={declined}
-            pending={pending}
-            students={data.filter((d: any) => d.current_level === 'secondary' || d.current_level === 'technician').length}
-            individuals={data.filter((d: any) => d.current_level === 'bachelor' || d.current_level === 'professional').length}
-          />
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Stats Grid */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.users}</div>
+              <p className="text-xs text-muted-foreground mt-1">Active users on platform</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Courses</CardTitle>
+              <BookOpen className="w-4 h-4 text-secondary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.courses}</div>
+              <p className="text-xs text-muted-foreground mt-1">Published courses</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Announcements</CardTitle>
+              <Megaphone className="w-4 h-4 text-accent" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.announcements}</div>
+              <p className="text-xs text-muted-foreground mt-1">Active announcements</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Analytics */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <AnalyticsSection registrations={data} />
-        </div>
+        {/* Tabs */}
+        <Tabs defaultValue="users" className="space-y-4">
+          <TabsList className="bg-card border border-border">
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Courses
+            </TabsTrigger>
+            <TabsTrigger value="announcements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Announcements
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Reports
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Applications Table */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">Applications</h2>
-            <span className="text-sm text-slate-500">{total} total applications</span>
-          </div>
+          <TabsContent value="users" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">User management interface coming soon</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          <DashboardTable registrations={data} /> {/* pass all applications */}
-        </div>
+          <TabsContent value="courses" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Course management interface coming soon</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-      </div>
+          <TabsContent value="announcements" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Announcement Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Announcement management interface coming soon</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">Reports interface coming soon</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
-  )
+  );
 }
