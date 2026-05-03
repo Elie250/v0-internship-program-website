@@ -7,6 +7,7 @@ import { Mail, Phone, MapPin, MessageCircle, Zap, Cpu, Wifi, Waves, User, Settin
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { HeroSection } from '@/components/hero-section';
+import ServicesSection from '@/components/services-section';
 
 const PROGRAMS = [
   {
@@ -202,6 +203,9 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* SERVICES SECTION - Dynamic from Database */}
+      <ServicesSection />
 
       {/* FOOTER */}
       <footer className="bg-card border-t border-border px-4 py-12">
