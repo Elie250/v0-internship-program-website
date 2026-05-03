@@ -7,7 +7,13 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Megaphone, FileText, BarChart3, LogOut } from 'lucide-react';
+import { Users, BookOpen, Megaphone, BarChart3, LogOut } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const UserManagementTab = dynamic(() => import('@/components/admin/user-management'), { ssr: false });
+const CourseManagementTab = dynamic(() => import('@/components/admin/course-management'), { ssr: false });
+const AnnouncementTab = dynamic(() => import('@/components/admin/announcement-management'), { ssr: false });
+const ReportsTab = dynamic(() => import('@/components/admin/reports-tab'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
