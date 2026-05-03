@@ -67,14 +67,15 @@ export default function Home() {
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition">
             <Image src="/logo.png" alt="Energy & Logics" width={45} height={45} />
             <div>
               <p className="font-bold text-lg text-primary">Energy & Logics</p>
               <p className="text-xs text-muted-foreground">Engineering Academy</p>
             </div>
-          </div>
+          </Link>
           <div className="flex gap-2 md:gap-4">
+            <Link href="/"><Button variant="ghost">Home</Button></Link>
             <Link href="/auth/login"><Button variant="ghost">Login</Button></Link>
             <Link href="/auth/register"><Button variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90">Join Academy</Button></Link>
           </div>
@@ -88,6 +89,7 @@ export default function Home() {
       <section className="py-20 bg-muted/30 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
+            <p className="text-lg font-semibold text-secondary mb-2">Engineering sustainable solutions</p>
             <h2 className="text-4xl font-bold text-primary mb-4">Our Engineering Programs</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Professional programs designed to build practical engineering skills across multiple sectors.

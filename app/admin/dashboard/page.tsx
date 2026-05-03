@@ -7,13 +7,14 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Megaphone, BarChart3, LogOut } from 'lucide-react';
+import { Users, BookOpen, Megaphone, BarChart3, LogOut, Zap } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const UserManagementTab = dynamic(() => import('@/components/admin/user-management'), { ssr: false });
 const CourseManagementTab = dynamic(() => import('@/components/admin/course-management'), { ssr: false });
 const AnnouncementTab = dynamic(() => import('@/components/admin/announcement-management'), { ssr: false });
 const ReportsTab = dynamic(() => import('@/components/admin/reports-tab'), { ssr: false });
+const ServiceManagement = dynamic(() => import('@/components/admin/service-management'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -131,6 +132,10 @@ export default function AdminDashboard() {
         {/* Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
           <TabsList className="bg-card border border-border">
+            <TabsTrigger value="services" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Zap className="w-4 h-4 mr-2" />
+              Services
+            </TabsTrigger>
             <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Users className="w-4 h-4 mr-2" />
               Users
@@ -148,6 +153,10 @@ export default function AdminDashboard() {
               Reports
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="services" className="space-y-4">
+            <ServiceManagement />
+          </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
             <Card>
