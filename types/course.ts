@@ -1,6 +1,6 @@
 // types/course.ts
 
-type Course = {
+export type Course = {
     id: string;
     title: string;
     description: string;
@@ -10,11 +10,9 @@ type Course = {
 };
 
 
-type CourseRegistration = {
+export type CourseRegistration = {
     courseId: string;
     userId: string;
     registrationDate: Date;
     status: 'registered' | 'completed' | 'dropped';
 };
-
-export { Course, CourseRegistration };

@@ -5,6 +5,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function submitApplication(formData: any) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured' }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('applications')
       .insert([

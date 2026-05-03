@@ -5,6 +5,10 @@ import { sendApplicationEmail } from '@/lib/email'
 
 export async function acceptApplication(id: string) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured' }
+    }
+
     // Get application details first
     const { data: application, error: fetchError } = await supabaseAdmin
       .from('applications')
@@ -53,6 +57,10 @@ export async function acceptApplication(id: string) {
 
 export async function declineApplication(id: string) {
   try {
+    if (!supabaseAdmin) {
+      return { success: false, error: 'Database not configured' }
+    }
+
     // Get application details first
     const { data: application, error: fetchError } = await supabaseAdmin
       .from('applications')

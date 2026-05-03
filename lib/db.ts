@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase database client initialization
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Helper functions
-export const getUser = async (id) => {
+export const getUser = async (id: string) => {
     const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -16,7 +16,7 @@ export const getUser = async (id) => {
     return data;
 };
 
-export const addUser = async (userData) => {
+export const addUser = async (userData: any) => {
     const { data, error } = await supabase
         .from('users')
         .insert([userData]);
