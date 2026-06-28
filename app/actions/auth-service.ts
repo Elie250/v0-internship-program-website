@@ -105,7 +105,7 @@ export async function registerUser(
     return {
       success: false,
       error: `Registration exception: ${formatUnknownError(error)}`,
-      debug: isAuthDebugEnabled() ? debug : undefined,
+      debug,
     }
   }
 }
@@ -233,7 +233,7 @@ export async function loginUser(
     return {
       success: false,
       error: `Login exception: ${formatUnknownError(error)}`,
-      debug: isAuthDebugEnabled() ? debug : undefined,
+      debug,
     }
   }
 }
