@@ -6,9 +6,13 @@ import { cookies } from 'next/headers';
 
 function getAdminClient() {
   if (!supabaseAdmin) {
-    throw new Error('Database not configured (missing SUPABASE_SERVICE_ROLE_KEY)');
+    return null;
   }
   return supabaseAdmin;
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 export async function registerUser(
@@ -20,13 +24,21 @@ export async function registerUser(
 ) {
   try {
     const supabase = getAdminClient();
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Server auth is not configured. Set SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.',
+      };
+    }
+
+    const normalizedEmail = normalizeEmail(email);
 
     // Check if user exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
-      .eq('email', email)
-      .single();
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
     if (existingUser) {
       return { success: false, error: 'User already exists' };
@@ -40,7 +52,7 @@ export async function registerUser(
       .from('users')
       .insert([
         {
-          email,
+          email: normalizedEmail,
           password_hash: passwordHash,
           first_name: firstName,
           last_name: lastName,
@@ -69,31 +81,50 @@ export async function loginUser(
 ) {
   try {
     const supabase = getAdminClient();
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Server auth is not configured. Set SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.',
+      };
+    }
 
-    // Get user by email (service role — bypasses RLS; required for auth)
+    const normalizedEmail = normalizeEmail(email);
+
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
-      .eq('role', role)
-      .single();
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-    if (error || !user) {
-      return { success: false, error: 'Invalid email or password' };
+    if (error) {
+      console.error('[v0] Login query error:', error);
+      return { success: false, error: `Database error: ${error.message}` };
     }
 
-    // Check if user is active
+    if (!user) {
+      return { success: false, error: 'No account found for this email. Run scripts/00 and 05 in Supabase SQL Editor.' };
+    }
+
+    if (user.role !== role) {
+      return {
+        success: false,
+        error: `Wrong role selected. This account is "${user.role}" — select the matching role on the login page.`,
+      };
+    }
+
     if (user.status !== 'active') {
       return { success: false, error: 'Your account is not active' };
     }
 
-    // Verify password
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-    if (!passwordMatch) {
-      return { success: false, error: 'Invalid email or password' };
+    if (!user.password_hash) {
+      return { success: false, error: 'Account has no password set. Re-run scripts/05-seed-admin-user.sql.' };
     }
 
-    // Create session
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    if (!passwordMatch) {
+      return { success: false, error: 'Incorrect password. Default after seed script is: password' };
+    }
+
     const cookieStore = await cookies();
     cookieStore.set('user_session', JSON.stringify({
       id: user.id,
@@ -105,13 +136,22 @@ export async function loginUser(
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
+
+    if (user.role === 'admin') {
+      cookieStore.set('admin_session', 'authenticated', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
 
     return { success: true, user };
   } catch (error) {
     console.error('[v0] Login error:', error);
-    return { success: false, error: 'Login failed' };
+    return { success: false, error: 'Login failed unexpectedly. Check Vercel logs.' };
   }
 }
 
@@ -145,6 +185,7 @@ export async function getCurrentUser() {
 export async function checkUserPermission(userId: string, permission: string) {
   try {
     const supabase = getAdminClient();
+    if (!supabase) return false;
 
     const { data: user } = await supabase
       .from('users')

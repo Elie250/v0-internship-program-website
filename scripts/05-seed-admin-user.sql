@@ -1,12 +1,13 @@
--- Seed or reset platform administrator
--- Uses bcryptjs-compatible hash (NOT pgcrypto crypt — that breaks app login)
+-- Seed platform administrator (run AFTER 00-create-users-table.sql)
+-- bcryptjs-compatible hash for password: password
 --
 -- Login at /auth/login:
---   Email: admin@energyandlogics.com
+--   Email:    admin@energyandlogics.com
 --   Password: password
---   Role: Administrator (admin)
---
--- Change this password immediately after first login.
+--   Role:     Administrator (admin)
+
+-- Remove any broken rows from earlier pgcrypto attempts
+DELETE FROM users WHERE lower(email) = lower('admin@energyandlogics.com');
 
 INSERT INTO users (email, password_hash, first_name, last_name, role, status)
 VALUES (
@@ -16,10 +17,9 @@ VALUES (
   'Admin',
   'admin',
   'active'
-)
-ON CONFLICT (email) DO UPDATE SET
-  password_hash = EXCLUDED.password_hash,
-  first_name = EXCLUDED.first_name,
-  last_name = EXCLUDED.last_name,
-  role = 'admin',
-  status = 'active';
+);
+
+-- Verify (should return 1 row, role admin, status active)
+SELECT email, role, status, left(password_hash, 7) AS hash_type
+FROM users
+WHERE lower(email) = lower('admin@energyandlogics.com');
