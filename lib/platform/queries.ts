@@ -1,0 +1,201 @@
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import type {
+  Announcement,
+  Category,
+  Course,
+  EventItem,
+  HeroContent,
+  Internship,
+  MembershipPlan,
+  Product,
+  Service,
+} from '@/types/platform'
+
+function db() {
+  if (!supabaseAdmin) return null
+  return supabaseAdmin
+}
+
+export async function getActiveHero(): Promise<HeroContent | null> {
+  const client = db()
+  if (!client) return null
+  const { data } = await client
+    .from('site_hero')
+    .select('*')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data
+}
+
+export async function getMembershipPlans(): Promise<MembershipPlan[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('membership_plans')
+    .select('*')
+    .eq('status', 'published')
+    .order('sort_order', { ascending: true })
+  return (data ?? []).map((plan) => ({
+    ...plan,
+    benefits: Array.isArray(plan.benefits) ? plan.benefits : [],
+    features: Array.isArray(plan.features) ? plan.features : [],
+  }))
+}
+
+export async function getPublishedServices(): Promise<Service[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('services')
+    .select('*')
+    .eq('is_published', true)
+    .order('created_at', { ascending: false })
+  return data ?? []
+}
+
+export async function getPublishedAnnouncements(limit = 6): Promise<Announcement[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('announcements')
+    .select('*')
+    .or('status.eq.published,is_featured.eq.true')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  return data ?? []
+}
+
+export async function getPublishedEvents(past?: boolean): Promise<EventItem[]> {
+  const client = db()
+  if (!client) return []
+  let query = client.from('events').select('*').eq('status', 'published')
+  if (past !== undefined) query = query.eq('is_past', past)
+  const { data } = await query.order('start_date', { ascending: false })
+  return data ?? []
+}
+
+export async function getCategories(type: Category['type']): Promise<Category[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('categories')
+    .select('*')
+    .eq('type', type)
+    .eq('status', 'published')
+    .order('name')
+  return data ?? []
+}
+
+export async function getPublishedCourses(categorySlug?: string): Promise<Course[]> {
+  const client = db()
+  if (!client) return []
+  let query = client
+    .from('courses')
+    .select('*, category:categories(*)')
+    .eq('status', 'published')
+  if (categorySlug) {
+    const { data: cat } = await client
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle()
+    if (cat) query = query.eq('category_id', cat.id)
+  }
+  const { data } = await query.order('created_at', { ascending: false })
+  return data ?? []
+}
+
+export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {
+  const client = db()
+  if (!client) return []
+  let query = client
+    .from('products')
+    .select('*, category:categories(*)')
+    .eq('status', 'published')
+  if (categorySlug) {
+    const { data: cat } = await client
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle()
+    if (cat) query = query.eq('category_id', cat.id)
+  }
+  const { data } = await query.order('created_at', { ascending: false })
+  let products = (data ?? []).map((p) => ({
+    ...p,
+    images: Array.isArray(p.images) ? p.images : [],
+    specifications: p.specifications ?? {},
+  }))
+  if (search) {
+    const q = search.toLowerCase()
+    products = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q)
+    )
+  }
+  return products
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+  const client = db()
+  if (!client) return null
+  const { data } = await client
+    .from('products')
+    .select('*, category:categories(*)')
+    .eq('id', id)
+    .eq('status', 'published')
+    .maybeSingle()
+  if (!data) return null
+  return {
+    ...data,
+    images: Array.isArray(data.images) ? data.images : [],
+    specifications: data.specifications ?? {},
+  }
+}
+
+export async function getPublishedInternships(): Promise<Internship[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('internships')
+    .select('*')
+    .eq('status', 'published')
+    .order('deadline', { ascending: true })
+  return data ?? []
+}
+
+export async function getCareerItems() {
+  const client = db()
+  if (!client) return { webinars: [], workshops: [], mentorship: [] }
+  const [webinars, workshops, mentorship] = await Promise.all([
+    client.from('webinars').select('*').eq('status', 'published').order('scheduled_at'),
+    client.from('workshops').select('*').eq('status', 'published').order('scheduled_at'),
+    client.from('mentorship_programs').select('*').eq('status', 'published').order('created_at'),
+  ])
+  return {
+    webinars: webinars.data ?? [],
+    workshops: workshops.data ?? [],
+    mentorship: mentorship.data ?? [],
+  }
+}
+
+export async function getSupportCategories() {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('support_categories')
+    .select('*')
+    .eq('status', 'published')
+    .order('name')
+  return data ?? []
+}
+
+export async function getSiteSetting(key: string, fallback = '') {
+  const client = db()
+  if (!client) return fallback
+  const { data } = await client.from('site_settings').select('value').eq('key', key).maybeSingle()
+  return data?.value ?? fallback
+}

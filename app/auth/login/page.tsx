@@ -29,13 +29,17 @@ export default function UnifiedLoginPage() {
 
       if (result.success) {
         // Redirect based on role
-        const dashboardMap = {
+        const dashboardMap: Record<string, string> = {
           admin: '/admin/dashboard',
-          student: '/student/dashboard',
-          lecturer: '/lecturer/dashboard',
-          engineer: '/engineer/dashboard',
+          student: '/dashboard',
+          lecturer: '/dashboard',
+          engineer: '/dashboard',
+          mentor: '/dashboard',
+          instructor: '/dashboard',
+          support_staff: '/dashboard',
+          registered: '/dashboard',
         };
-        router.push(dashboardMap[role]);
+        router.push(dashboardMap[role] ?? '/dashboard');
       } else {
         setError(result.error || 'Login failed');
       }

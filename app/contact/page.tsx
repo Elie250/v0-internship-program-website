@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { SiteHeader } from '@/components/layout/site-header'
+import { SiteFooter } from '@/components/layout/site-footer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Phone, MapPin, Clock, ArrowLeft } from 'lucide-react'
+import { Mail, Phone, MapPin, Clock } from 'lucide-react'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -50,17 +51,12 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="bg-primary text-primary-foreground py-12 px-4">
+      <SiteHeader />
+      <div className="bg-[#1e3a5f] text-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <Link href="/">
-            <Button variant="outline" className="mb-6 border-primary-foreground text-primary-foreground hover:bg-primary-foreground/10">
-              <ArrowLeft className="w-4 h-4 mr-2" /> Back Home
-            </Button>
-          </Link>
           <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
-          <p className="text-lg text-primary-foreground/90">
-            Have questions? We're here to help you every step of the way.
+          <p className="text-lg text-white/90">
+            Have questions? We&apos;re here to help you every step of the way.
           </p>
         </div>
       </div>
@@ -245,6 +241,7 @@ export default function ContactPage() {
           </div>
         </div>
       </section>
+      <SiteFooter />
     </main>
   )
 }
