@@ -1,6 +1,6 @@
 'use server'
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { supabaseAdmin, supabaseAdminConfig } from '@/lib/supabaseAdmin'
 import bcrypt from 'bcryptjs'
 import { cookies } from 'next/headers'
 import {
@@ -15,6 +15,7 @@ type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 export type AuthResult = {
   success: boolean
   error?: string
+  redirectTo?: string
   debug?: AuthDebugInfo
 }
 
@@ -32,9 +33,73 @@ function baseDebug(email: string, role: AuthRole): AuthDebugInfo {
     step: 'init',
     supabaseUrlSet: config.supabaseUrlSet,
     serviceRoleKeySet: config.serviceRoleKeySet,
+    supabaseUrlValid: config.supabaseUrlValid,
+    supabaseUrlIssue: config.supabaseUrlIssue,
+    supabaseHostname: config.supabaseHostname,
     email: email.trim(),
     role,
     userFound: false,
+  }
+}
+
+function supabaseNotConfiguredMessage(): string {
+  const { urlSet, serviceRoleKeySet, urlValidation } = supabaseAdminConfig
+
+  if (!urlSet) {
+    return 'Database not configured — set NEXT_PUBLIC_SUPABASE_URL in Vercel (https://YOUR_PROJECT.supabase.co, no /rest/v1 path)'
+  }
+  if (!urlValidation.valid) {
+    return `Invalid Supabase URL: ${urlValidation.issue}`
+  }
+  if (!serviceRoleKeySet) {
+    return 'Database not configured — set SUPABASE_SERVICE_ROLE_KEY in Vercel'
+  }
+  return 'Database client could not be initialized'
+}
+
+function pgrst125Hint(): string {
+  return ' Check NEXT_PUBLIC_SUPABASE_URL is exactly https://YOUR_PROJECT_REF.supabase.co (no trailing slash or /rest/v1). Then run scripts/00-create-users-table.sql and NOTIFY pgrst, \'reload schema\'; in Supabase SQL editor.'
+}
+
+function dashboardPathForRole(role: string): string {
+  if (role === 'admin') return '/admin/dashboard'
+  return '/dashboard'
+}
+
+type SessionUser = {
+  id: string
+  email: string
+  role: string
+  first_name?: string | null
+  last_name?: string | null
+}
+
+async function establishUserSession(user: SessionUser) {
+  const cookieStore = await cookies()
+  cookieStore.set(
+    'user_session',
+    JSON.stringify({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.first_name,
+      lastName: user.last_name,
+    }),
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+    }
+  )
+
+  if (user.role === 'admin') {
+    cookieStore.set('admin_session', 'authenticated', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+    })
   }
 }
 
@@ -51,7 +116,7 @@ export async function registerUser(
       debug.step = 'supabase_not_configured'
       return {
         success: false,
-        error: 'Database not configured — SUPABASE_SERVICE_ROLE_KEY missing in Vercel',
+        error: supabaseNotConfiguredMessage(),
         debug,
       }
     }
@@ -77,28 +142,35 @@ export async function registerUser(
         {
           email: trimmedEmail,
           password_hash: passwordHash,
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
           role,
           status: 'active',
         },
       ])
-      .select()
+      .select('id, email, role, first_name, last_name, status')
       .single()
 
-    if (error) {
+    if (error || !newUser) {
       debug.step = 'insert_failed'
-      debug.dbError = error.message
-      debug.dbCode = error.code
+      debug.dbError = error?.message
+      debug.dbCode = error?.code
       return {
         success: false,
-        error: `Registration failed: ${error.message}`,
+        error: `Registration failed: ${error?.message ?? 'Could not create user'}`,
         debug,
       }
     }
 
+    debug.step = 'set_session_cookie'
+    await establishUserSession(newUser)
+
     debug.step = 'registration_success'
-    return { success: true, user: newUser, debug: undefined }
+    return {
+      success: true,
+      redirectTo: dashboardPathForRole(newUser.role),
+      debug: undefined,
+    }
   } catch (error) {
     debug.step = 'registration_exception'
     debug.exception = formatUnknownError(error)
@@ -121,7 +193,7 @@ export async function loginUser(
       debug.step = 'supabase_not_configured'
       return {
         success: false,
-        error: 'Database not configured — SUPABASE_SERVICE_ROLE_KEY missing in Vercel',
+        error: supabaseNotConfiguredMessage(),
         debug,
       }
     }
@@ -140,9 +212,10 @@ export async function loginUser(
       debug.step = 'query_failed'
       debug.dbError = error.message
       debug.dbCode = error.code
+      const hint = error.code === 'PGRST125' ? pgrst125Hint() : ''
       return {
         success: false,
-        error: `Database query failed: ${error.message}${error.code ? ` (${error.code})` : ''}`,
+        error: `Database query failed: ${error.message}${error.code ? ` (${error.code})` : ''}${hint}`,
         debug,
       }
     }
@@ -198,35 +271,14 @@ export async function loginUser(
     }
 
     debug.step = 'set_session_cookie'
-    const cookieStore = await cookies()
-    cookieStore.set(
-      'user_session',
-      JSON.stringify({
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        firstName: user.first_name,
-        lastName: user.last_name,
-      }),
-      {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-      }
-    )
-
-    if (user.role === 'admin') {
-      cookieStore.set('admin_session', 'authenticated', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7,
-      })
-    }
+    await establishUserSession(user)
 
     debug.step = 'login_success'
-    return { success: true, user, debug: undefined }
+    return {
+      success: true,
+      redirectTo: dashboardPathForRole(user.role),
+      debug: undefined,
+    }
   } catch (error) {
     debug.step = 'login_exception'
     debug.exception = formatUnknownError(error)

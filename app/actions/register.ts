@@ -1,10 +1,11 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { resolveSupabaseServiceRoleKey, resolveSupabaseUrl } from '@/lib/supabase/config'
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  resolveSupabaseUrl(),
+  resolveSupabaseServiceRoleKey(),
 )
 
 export async function submitRegistration(data: any) {
