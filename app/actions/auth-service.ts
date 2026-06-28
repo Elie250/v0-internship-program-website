@@ -1,8 +1,15 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
+
+function getAdminClient() {
+  if (!supabaseAdmin) {
+    throw new Error('Database not configured (missing SUPABASE_SERVICE_ROLE_KEY)');
+  }
+  return supabaseAdmin;
+}
 
 export async function registerUser(
   email: string,
@@ -12,8 +19,8 @@ export async function registerUser(
   role: 'student' | 'lecturer' | 'engineer' | 'admin'
 ) {
   try {
-    const supabase = await createClient();
-    
+    const supabase = getAdminClient();
+
     // Check if user exists
     const { data: existingUser } = await supabase
       .from('users')
@@ -61,9 +68,9 @@ export async function loginUser(
   role: 'student' | 'lecturer' | 'engineer' | 'admin'
 ) {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
-    // Get user by email
+    // Get user by email (service role — bypasses RLS; required for auth)
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
@@ -137,7 +144,7 @@ export async function getCurrentUser() {
 
 export async function checkUserPermission(userId: string, permission: string) {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
 
     const { data: user } = await supabase
       .from('users')
