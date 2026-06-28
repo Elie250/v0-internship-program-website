@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { loginUser } from '@/app/actions/auth-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,22 +9,39 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AuthDebugPanel } from '@/components/auth/auth-debug-panel';
 import type { AuthDebugInfo } from '@/lib/auth-debug';
 
 export default function UnifiedLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [role, setRole] = useState<'student' | 'lecturer' | 'engineer' | 'admin'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [debug, setDebug] = useState<AuthDebugInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('message') === 'registered') {
+      setSuccess('Account created. You can log in with your email and password.');
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setDebug(null);
     setIsLoading(true);
 
@@ -32,18 +49,8 @@ export default function UnifiedLoginPage() {
       const result = await loginUser(email, password, role);
 
       if (result.success) {
-        // Redirect based on role
-        const dashboardMap: Record<string, string> = {
-          admin: '/admin/dashboard',
-          student: '/dashboard',
-          lecturer: '/dashboard',
-          engineer: '/dashboard',
-          mentor: '/dashboard',
-          instructor: '/dashboard',
-          support_staff: '/dashboard',
-          registered: '/dashboard',
-        };
-        router.push(dashboardMap[role] ?? '/dashboard');
+        router.push(result.redirectTo ?? '/dashboard');
+        router.refresh();
       } else {
         setError(result.error || 'Login failed');
         setDebug(result.debug ?? null);
@@ -119,6 +126,14 @@ export default function UnifiedLoginPage() {
                   </div>
                 </RadioGroup>
               </div>
+
+              {/* Success Message */}
+              {success && (
+                <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <p className="text-sm text-green-700 dark:text-green-400">{success}</p>
+                </div>
+              )}
 
               {/* Error Message */}
               {error && (

@@ -2,6 +2,9 @@ export type AuthDebugInfo = {
   step: string
   supabaseUrlSet: boolean
   serviceRoleKeySet: boolean
+  supabaseUrlValid?: boolean
+  supabaseUrlIssue?: string
+  supabaseHostname?: string
   email: string
   role: string
   userFound: boolean
@@ -24,12 +27,25 @@ export function isAuthDebugEnabled() {
   )
 }
 
+import {
+  resolveSupabaseUrl,
+  resolveSupabaseServiceRoleKey,
+  resolveSupabaseAnonKey,
+  validateSupabaseUrl,
+} from '@/lib/supabase/config'
+
 export function getSupabaseConfigStatus() {
+  const url = resolveSupabaseUrl()
+  const urlValidation = validateSupabaseUrl(url)
+
   return {
-    supabaseUrlSet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
-    serviceRoleKeySet: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-    anonKeySet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    supabaseUrlSet: Boolean(url),
+    serviceRoleKeySet: Boolean(resolveSupabaseServiceRoleKey()),
+    anonKeySet: Boolean(resolveSupabaseAnonKey()),
     authDebugEnabled: isAuthDebugEnabled(),
+    supabaseUrlValid: urlValidation.valid,
+    supabaseUrlIssue: urlValidation.issue,
+    supabaseHostname: urlValidation.hostname,
   }
 }
 

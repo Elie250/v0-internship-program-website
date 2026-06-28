@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AuthDebugPanel } from '@/components/auth/auth-debug-panel';
+import type { AuthDebugInfo } from '@/lib/auth-debug';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,11 +22,15 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState<AuthDebugInfo | null>(null);
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setDebug(null);
+    setSuccess('');
 
     // Validation
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
@@ -47,14 +53,23 @@ export default function RegisterPage() {
     try {
       const result = await registerUser(email, password, firstName, lastName, role);
 
-      if (result.success) {
-        // Redirect to login
-        router.push('/auth/login?message=registered');
-      } else {
-        setError(result.error || 'Registration failed');
+      if (!result) {
+        setError('No response from server. Check /api/auth/health and try again.');
+        return;
       }
+
+      if (result.success) {
+        setSuccess('Account created successfully. Redirecting…');
+        router.push(result.redirectTo ?? '/dashboard');
+        router.refresh();
+        return;
+      }
+
+      setError(result.error || 'Registration failed');
+      setDebug(result.debug ?? null);
     } catch (err) {
-      setError('An unexpected error occurred');
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Unexpected error: ${message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -105,11 +120,22 @@ export default function RegisterPage() {
                 </RadioGroup>
               </div>
 
+              {/* Success Message */}
+              {success && (
+                <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <p className="text-sm text-green-700 dark:text-green-400">{success}</p>
+                </div>
+              )}
+
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                  <p className="text-sm text-destructive">{error}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                  <AuthDebugPanel error={error} debug={debug} />
                 </div>
               )}
 

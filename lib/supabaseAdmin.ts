@@ -1,8 +1,24 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import {
+  resolveSupabaseServiceRoleKey,
+  resolveSupabaseUrl,
+  validateSupabaseUrl,
+} from '@/lib/supabase/config'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+const supabaseUrl = resolveSupabaseUrl()
+const supabaseServiceRoleKey = resolveSupabaseServiceRoleKey()
+const urlValidation = validateSupabaseUrl(supabaseUrl)
 
-export const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey 
-  ? createClient(supabaseUrl, supabaseServiceRoleKey)
-  : null
+export const supabaseAdmin: SupabaseClient | null =
+  supabaseUrl && supabaseServiceRoleKey && urlValidation.valid
+    ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        db: { schema: 'public' },
+      })
+    : null
+
+export const supabaseAdminConfig = {
+  urlSet: Boolean(supabaseUrl),
+  serviceRoleKeySet: Boolean(supabaseServiceRoleKey),
+  urlValidation,
+}

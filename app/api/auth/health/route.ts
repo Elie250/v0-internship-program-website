@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { supabaseAdmin, supabaseAdminConfig } from '@/lib/supabaseAdmin'
 import { getSupabaseConfigStatus } from '@/lib/auth-debug'
 
 /** Safe diagnostics — no secrets. Share this JSON when debugging login. */
@@ -14,7 +14,9 @@ export async function GET() {
   }
 
   if (!supabaseAdmin) {
-    report.error = 'supabaseAdmin is null — set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel'
+    report.error = supabaseAdminConfig.urlValidation.valid
+      ? 'supabaseAdmin is null — set SUPABASE_SERVICE_ROLE_KEY in Vercel'
+      : `Invalid Supabase URL: ${supabaseAdminConfig.urlValidation.issue}`
     return NextResponse.json(report, { status: 503 })
   }
 
@@ -29,6 +31,12 @@ export async function GET() {
         error: countError.message,
         code: countError.code,
         hint: countError.hint,
+        fix:
+          countError.code === 'PGRST125'
+            ? 'Set NEXT_PUBLIC_SUPABASE_URL to https://YOUR_PROJECT_REF.supabase.co only (no /rest/v1). Redeploy Vercel after changing env vars.'
+            : countError.code === '42P01'
+              ? 'Run scripts/00-create-users-table.sql in Supabase SQL editor, then NOTIFY pgrst, \'reload schema\';'
+              : undefined,
       }
       return NextResponse.json(report, { status: 500 })
     }
