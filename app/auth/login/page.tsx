@@ -10,6 +10,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
+import { AuthDebugPanel } from '@/components/auth/auth-debug-panel';
+import type { AuthDebugInfo } from '@/lib/auth-debug';
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -17,11 +19,13 @@ export default function UnifiedLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState<AuthDebugInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setDebug(null);
     setIsLoading(true);
 
     try {
@@ -42,9 +46,11 @@ export default function UnifiedLoginPage() {
         router.push(dashboardMap[role] ?? '/dashboard');
       } else {
         setError(result.error || 'Login failed');
+        setDebug(result.debug ?? null);
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Unexpected error: ${message}`);
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -116,9 +122,12 @@ export default function UnifiedLoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                  <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                  <p className="text-sm text-destructive">{error}</p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive">{error}</p>
+                  </div>
+                  <AuthDebugPanel error={error} debug={debug} />
                 </div>
               )}
 
@@ -174,8 +183,13 @@ export default function UnifiedLoginPage() {
         </Card>
 
         {/* Footer */}
-        <div className="mt-6 text-center text-xs text-muted-foreground">
+        <div className="mt-6 text-center text-xs text-muted-foreground space-y-1">
           <p>Energy & Logics Engineering Academy © 2024</p>
+          <p>
+            <Link href="/api/auth/health" target="_blank" className="underline">
+              Open auth health check (share JSON if login fails)
+            </Link>
+          </p>
         </div>
       </div>
     </div>
