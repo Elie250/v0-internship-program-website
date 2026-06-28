@@ -8,8 +8,8 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Energy & Logics Engineering Academy - Professional Internship Programs',
-  description: 'Master Electrical Systems, Embedded Technology, IoT Solutions, and Electronics through hands-on internship programs. Industry-expert training in Kigali, Rwanda.',
+  title: 'Engineering Hub | Energy & Logics — Multi-Portal Engineering Ecosystem',
+  description: 'Engineering education, career development, technical support, internships, and marketplace. Dynamic platform powered by Energy & Logics.',
   keywords: 'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
   authors: [{ name: 'Energy & Logics Ltd' }],
   creator: 'Energy & Logics Ltd',

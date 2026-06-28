@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Megaphone, BarChart3, LogOut, Zap, Home } from 'lucide-react';
+import { Users, BookOpen, Megaphone, BarChart3, LogOut, Zap, Home, ShoppingBag, FolderTree, Headphones } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const UserManagementTab = dynamic(() => import('@/components/admin/user-management'), { ssr: false });
@@ -15,6 +15,9 @@ const CourseManagementTab = dynamic(() => import('@/components/admin/course-mana
 const AnnouncementTab = dynamic(() => import('@/components/admin/announcement-management'), { ssr: false });
 const ReportsTab = dynamic(() => import('@/components/admin/reports-tab'), { ssr: false });
 const ServiceManagement = dynamic(() => import('@/components/admin/service-management'), { ssr: false });
+const ProductManagement = dynamic(() => import('@/components/admin/product-management'), { ssr: false });
+const CategoryManagement = dynamic(() => import('@/components/admin/category-management'), { ssr: false });
+const SupportManagement = dynamic(() => import('@/components/admin/support-management'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -136,7 +139,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="users" className="space-y-4">
+        <Tabs defaultValue="services" className="space-y-4">
           <TabsList className="bg-card border border-border">
             <TabsTrigger value="services" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Zap className="w-4 h-4 mr-2" />
@@ -154,6 +157,18 @@ export default function AdminDashboard() {
               <Megaphone className="w-4 h-4 mr-2" />
               Announcements
             </TabsTrigger>
+            <TabsTrigger value="products" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <FolderTree className="w-4 h-4 mr-2" />
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="support" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Headphones className="w-4 h-4 mr-2" />
+              Support
+            </TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <BarChart3 className="w-4 h-4 mr-2" />
               Reports
@@ -165,47 +180,31 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="users" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">User management interface coming soon</p>
-              </CardContent>
-            </Card>
+            <UserManagementTab />
           </TabsContent>
 
           <TabsContent value="courses" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Course management interface coming soon</p>
-              </CardContent>
-            </Card>
+            <CourseManagementTab />
           </TabsContent>
 
           <TabsContent value="announcements" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Announcement Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Announcement management interface coming soon</p>
-              </CardContent>
-            </Card>
+            <AnnouncementTab />
+          </TabsContent>
+
+          <TabsContent value="products" className="space-y-4">
+            <ProductManagement />
+          </TabsContent>
+
+          <TabsContent value="categories" className="space-y-4">
+            <CategoryManagement />
+          </TabsContent>
+
+          <TabsContent value="support" className="space-y-4">
+            <SupportManagement />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Reports</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Reports interface coming soon</p>
-              </CardContent>
-            </Card>
+            <ReportsTab />
           </TabsContent>
         </Tabs>
       </main>
