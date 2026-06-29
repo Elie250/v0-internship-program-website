@@ -8,7 +8,7 @@ import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { LessonViewer } from '@/components/student/lesson-viewer'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, FileText, Link2, PlayCircle } from 'lucide-react'
+import { ChevronLeft, FileText, Link2, PlayCircle, Radio, Download } from 'lucide-react'
 
 export default function StudentCoursePage() {
   const params = useParams()
@@ -64,7 +64,9 @@ export default function StudentCoursePage() {
 
   const lessonIcon = (type: string) => {
     if (type === 'video') return PlayCircle
+    if (type === 'webinar') return Radio
     if (type === 'pdf') return FileText
+    if (type === 'download') return Download
     return Link2
   }
 

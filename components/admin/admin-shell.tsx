@@ -144,7 +144,7 @@ export function AdminShell({
             </div>
           </div>
         </header>
-        <div className="flex-1 p-4 md:p-6">{children}</div>
+        <div className="flex-1 p-4 md:p-6 app-form-surface">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

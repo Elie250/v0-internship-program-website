@@ -7,13 +7,13 @@ export function PaymentCtaSection() {
   return (
     <section className="py-12 px-4 bg-white border-t border-slate-100">
       <div className="max-w-3xl mx-auto text-center">
-        <div className="relative mx-auto mb-4 h-24 w-full max-w-sm rounded-xl overflow-hidden bg-[#FFCC00]">
+        <div className="relative mx-auto mb-6 h-44 w-44 sm:h-52 sm:w-52 rounded-xl overflow-hidden bg-[#FFCC00] shadow-sm">
           <Image
             src="/images/mtn-momo.png"
             alt="MTN Mobile Money — Just MoMo it"
             fill
-            className="object-contain p-2"
-            sizes="384px"
+            className="object-cover"
+            sizes="208px"
           />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Pay with MTN MoMo</h2>

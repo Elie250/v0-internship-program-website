@@ -16,14 +16,19 @@ export function MomoPayCard({ className, amountLabel, compact = false }: MomoPay
         className
       )}
     >
-      <div className={cn('flex flex-col sm:flex-row', compact ? 'sm:items-center' : '')}>
-        <div className={cn('relative bg-[#FFCC00] shrink-0', compact ? 'h-28 sm:w-48' : 'h-36 sm:w-56')}>
+      <div className={cn('flex flex-col sm:flex-row', compact ? 'sm:items-stretch' : '')}>
+        <div
+          className={cn(
+            'relative bg-[#FFCC00] shrink-0 mx-auto sm:mx-0',
+            compact ? 'h-44 w-44 sm:h-40 sm:w-40' : 'h-52 w-52 sm:h-56 sm:w-56'
+          )}
+        >
           <Image
             src="/images/mtn-momo.png"
             alt="MTN Mobile Money — Just MoMo it"
             fill
-            className="object-contain p-2"
-            sizes="(max-width: 640px) 100vw, 224px"
+            className="object-cover"
+            sizes="(max-width: 640px) 224px, 224px"
             priority
           />
         </div>

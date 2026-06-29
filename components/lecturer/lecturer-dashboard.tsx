@@ -6,18 +6,10 @@ import Link from 'next/link'
 import { getCurrentUser, logoutUser } from '@/app/actions/auth-service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
+import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
 import {
   BookOpen,
   Users,
@@ -25,7 +17,6 @@ import {
   Home,
   ExternalLink,
   Video,
-  Trash2,
   LayoutDashboard,
 } from 'lucide-react'
 
@@ -55,14 +46,6 @@ type Enrollment = {
   created_at: string
 }
 
-type Lesson = {
-  id: string
-  title: string
-  content_type: string
-  content_url: string | null
-  sort_order: number
-}
-
 function statusBadge(status: string) {
   const map: Record<string, string> = {
     admitted: 'bg-green-100 text-green-800',
@@ -84,13 +67,6 @@ export function LecturerDashboardView() {
   const [courses, setCourses] = useState<LecturerCourse[]>([])
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [lessons, setLessons] = useState<Lesson[]>([])
-  const [lessonForm, setLessonForm] = useState({
-    title: '',
-    content_type: 'video',
-    content_url: '',
-    sort_order: '0',
-  })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -109,16 +85,12 @@ export function LecturerDashboardView() {
   const loadCoursePanel = useCallback(async (courseId: string) => {
     setPanelLoading(true)
     try {
-      const [enrollRes, contentRes] = await Promise.all([
-        fetch(`/api/lecturer/courses/${courseId}/enrollments`, { credentials: 'same-origin' }),
-        fetch(`/api/lecturer/courses/${courseId}/content`, { credentials: 'same-origin' }),
-      ])
+      const enrollRes = await fetch(`/api/lecturer/courses/${courseId}/enrollments`, {
+        credentials: 'same-origin',
+      })
       const enrollData = await enrollRes.json()
-      const contentData = await contentRes.json()
       if (!enrollRes.ok) throw new Error(enrollData.error || 'Failed to load students')
-      if (!contentRes.ok) throw new Error(contentData.error || 'Failed to load lessons')
       setEnrollments(Array.isArray(enrollData) ? enrollData : [])
-      setLessons(Array.isArray(contentData) ? contentData : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load course details')
     } finally {
@@ -159,41 +131,14 @@ export function LecturerDashboardView() {
   const canOpenAdmin =
     user?.role === 'admin' || user?.permissions?.includes('admin:access')
 
-  const handleAddLesson = async () => {
-    if (!selectedCourseId || !lessonForm.title.trim()) return
-    setError('')
-    setSuccess('')
-    const res = await fetch(`/api/lecturer/courses/${selectedCourseId}/content`, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...lessonForm,
-        sort_order: Number(lessonForm.sort_order),
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error || 'Failed to add lesson')
-      return
+  const handleLessonFeedback = (message: { type: 'success' | 'error'; text: string }) => {
+    if (message.type === 'success') {
+      setSuccess(message.text)
+      setError('')
+    } else {
+      setError(message.text)
+      setSuccess('')
     }
-    setLessonForm({ title: '', content_type: 'video', content_url: '', sort_order: '0' })
-    setSuccess('Lesson added')
-    await loadCoursePanel(selectedCourseId)
-  }
-
-  const handleDeleteLesson = async (lessonId: string) => {
-    if (!confirm('Remove this lesson?')) return
-    const res = await fetch(`/api/lecturer/course-content/${lessonId}`, {
-      method: 'DELETE',
-      credentials: 'same-origin',
-    })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error || 'Failed to delete lesson')
-      return
-    }
-    if (selectedCourseId) await loadCoursePanel(selectedCourseId)
   }
 
   const handleLogout = async () => {
@@ -242,7 +187,7 @@ export function LecturerDashboardView() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6 app-form-surface">
         {error ? (
           <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
         ) : null}
@@ -422,92 +367,15 @@ export function LecturerDashboardView() {
                       <Video className="w-4 h-4" /> Lessons & materials
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {lessons.length > 0 ? (
-                      <ul className="space-y-2">
-                        {lessons.map((lesson) => (
-                          <li
-                            key={lesson.id}
-                            className="flex items-center justify-between gap-2 rounded border px-3 py-2 text-sm"
-                          >
-                            <span>
-                              {lesson.title}{' '}
-                              <span className="text-slate-500">({lesson.content_type})</span>
-                            </span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteLesson(lesson.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-slate-600">No lessons yet. Add your first lesson below.</p>
-                    )}
-
-                    <div className="grid sm:grid-cols-2 gap-3 border-t pt-4">
-                      <div className="sm:col-span-2">
-                        <Label>Lesson title</Label>
-                        <Input
-                          className="mt-1"
-                          value={lessonForm.title}
-                          onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <Label>Type</Label>
-                        <Select
-                          value={lessonForm.content_type}
-                          onValueChange={(v) => setLessonForm({ ...lessonForm, content_type: v })}
-                        >
-                          <SelectTrigger className="mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {['video', 'pdf', 'document', 'link', 'download'].map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Sort order</Label>
-                        <Input
-                          className="mt-1"
-                          type="number"
-                          value={lessonForm.sort_order}
-                          onChange={(e) =>
-                            setLessonForm({ ...lessonForm, sort_order: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <Label>URL / file link</Label>
-                        <Input
-                          className="mt-1"
-                          value={lessonForm.content_url}
-                          onChange={(e) =>
-                            setLessonForm({ ...lessonForm, content_url: e.target.value })
-                          }
-                          placeholder="https://..."
-                        />
-                      </div>
-                      <div className="sm:col-span-2">
-                        <Button
-                          type="button"
-                          onClick={handleAddLesson}
-                          className="bg-[var(--brand-navy)] text-white"
-                        >
-                          Add lesson
-                        </Button>
-                      </div>
-                    </div>
+                  <CardContent>
+                    {selectedCourseId ? (
+                      <CourseLessonManager
+                        key={selectedCourseId}
+                        courseId={selectedCourseId}
+                        mode="lecturer"
+                        onFeedback={handleLessonFeedback}
+                      />
+                    ) : null}
                   </CardContent>
                 </Card>
               </div>
