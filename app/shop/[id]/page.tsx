@@ -2,10 +2,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { Package } from 'lucide-react'
-import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AddToCartButton } from '@/components/shop/add-to-cart-button'
 import { getProductById, getPublishedProducts } from '@/lib/platform/queries'
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,8 +22,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const images = product.images?.length ? product.images : []
 
   return (
-    <main className="min-h-screen bg-background">
-      <SiteHeader />
+    <>
       <section className="max-w-6xl mx-auto px-4 py-10 grid lg:grid-cols-2 gap-10">
         <div>
           <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
@@ -54,8 +53,26 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           {product.discount ? (
             <p className="text-sm text-muted-foreground line-through mb-4">{product.price.toLocaleString()} RWF</p>
           ) : null}
-          <p className="text-sm mb-6">SKU: {product.sku ?? 'N/A'} · Stock: {product.stock}</p>
-          <Link href="/auth/register"><Button size="lg" className="bg-[#1e3a5f]">Purchase / Register</Button></Link>
+          <p className="text-sm mb-6">
+            SKU: {product.sku ?? 'N/A'} ·{' '}
+            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <AddToCartButton
+              productId={product.id}
+              name={product.name}
+              price={finalPrice}
+              stock={product.stock}
+              image={images[0]}
+              className="bg-[#1e3a5f]"
+            />
+            <Link href="/shop">
+              <Button size="lg" variant="outline">Back to shop</Button>
+            </Link>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Open the cart (top bar) to submit your order with contact details for delivery or pickup in Nyanza.
+          </p>
           {specs.length > 0 && (
             <Card className="mt-8">
               <CardHeader><CardTitle>Specifications</CardTitle></CardHeader>
@@ -97,6 +114,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         </section>
       )}
       <SiteFooter />
-    </main>
+    </>
   )
 }

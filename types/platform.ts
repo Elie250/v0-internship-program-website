@@ -124,6 +124,7 @@ export interface Product {
   price: number
   discount: number | null
   stock: number
+  low_stock_threshold?: number | null
   images: string[]
   specifications: Record<string, string>
   status: ContentStatus
@@ -154,4 +155,28 @@ export interface Internship {
 export interface SiteSetting {
   key: string
   value: string
+}
+
+export interface ShopOrderItem {
+  id: string
+  product_id: string
+  product_name?: string | null
+  quantity: number
+  unit_price: number
+  line_total?: number | null
+}
+
+export interface ShopOrder {
+  id: string
+  order_number?: string | null
+  customer_name?: string | null
+  customer_email?: string | null
+  customer_phone?: string | null
+  fulfillment_type?: 'pickup' | 'delivery' | string | null
+  delivery_address?: string | null
+  notes?: string | null
+  total_amount: number
+  status: string
+  created_at: string
+  items?: ShopOrderItem[]
 }

@@ -8,6 +8,7 @@ import { Package, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { AddToCartButton } from '@/components/shop/add-to-cart-button'
 import type { Category, Product } from '@/types/platform'
 
 function ProductImage({ src, alt }: { src?: string; alt: string }) {
@@ -97,9 +98,24 @@ export function ShopCatalog({
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{product.description}</p>
                   <div className="flex items-center justify-between mb-4">
                     <span className="font-bold text-[#1e3a5f]">{finalPrice.toLocaleString()} RWF</span>
-                    <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {product.stock > 0 ? `Stock: ${product.stock}` : 'Out of stock'}
+                    </span>
                   </div>
-                  <Link href={`/shop/${product.id}`}><Button size="sm" className="w-full bg-[#1e3a5f]">View Details</Button></Link>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href={`/shop/${product.id}`}>
+                      <Button size="sm" variant="outline" className="w-full">Details</Button>
+                    </Link>
+                    <AddToCartButton
+                      productId={product.id}
+                      name={product.name}
+                      price={finalPrice}
+                      stock={product.stock}
+                      image={image}
+                      size="sm"
+                      className="w-full"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )

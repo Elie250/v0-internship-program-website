@@ -53,6 +53,9 @@ export default async function LearningPage({
         </div>
 
         <h2 className="text-2xl font-bold text-[#1e3a5f] mb-6">{moduleTitles[module] ?? 'Courses'}</h2>
+        <p className="text-sm text-muted-foreground mb-6 -mt-4">
+          Published courses appear here. Select a programme to apply, pay via MTN MoMo, and upload your receipt for admission.
+        </p>
 
         {courses.length === 0 ? (
           <Card>
@@ -92,11 +95,23 @@ export default async function LearningPage({
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{course.description}</p>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-4">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-2">
                     <span>{course.difficulty ?? 'All levels'}</span>
                     <span>{course.duration ?? 'Flexible'}</span>
                   </div>
-                  <Link href="/auth/register"><Button size="sm" className="w-full">Enroll</Button></Link>
+                  <p className="text-sm font-semibold text-[#1e3a5f] mb-4">
+                    {Number(course.pricing ?? 0) > 0
+                      ? `${Number(course.pricing).toLocaleString()} RWF`
+                      : 'Pricing on request'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href={`/learning/${course.id}`}>
+                      <Button size="sm" variant="outline" className="w-full">Details</Button>
+                    </Link>
+                    <Link href={`/learning/${course.id}/enroll`}>
+                      <Button size="sm" className="w-full bg-[#1e3a5f]">Apply</Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}

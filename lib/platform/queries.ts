@@ -110,6 +110,18 @@ export async function getPublishedCourses(categorySlug?: string): Promise<Course
   return data ?? []
 }
 
+export async function getCourseById(id: string): Promise<Course | null> {
+  const client = db()
+  if (!client) return null
+  const { data } = await client
+    .from('courses')
+    .select('*, category:categories(*)')
+    .eq('id', id)
+    .eq('status', 'published')
+    .maybeSingle()
+  return data
+}
+
 export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {
   const client = db()
   if (!client) return []

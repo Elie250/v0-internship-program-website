@@ -45,7 +45,7 @@ const emptyForm = {
   duration: '',
   thumbnail: '',
   pricing: '0',
-  status: 'draft',
+  status: 'published',
 }
 
 export default function CourseManagementTab() {
@@ -56,6 +56,8 @@ export default function CourseManagementTab() {
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [createError, setCreateError] = useState('')
+  const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
@@ -75,8 +77,13 @@ export default function CourseManagementTab() {
   }, [])
 
   const handleCreate = async () => {
+    if (!form.title.trim()) {
+      setCreateError('Course title is required')
+      return
+    }
     setSaving(true)
-    setError('')
+    setCreateError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
@@ -92,9 +99,14 @@ export default function CourseManagementTab() {
 
       setForm(emptyForm)
       setIsCreateOpen(false)
+      setSuccess(
+        form.status === 'published'
+          ? `Course "${data.title}" created and visible on /learning`
+          : `Course "${data.title}" saved as draft — publish it to show on /learning`
+      )
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed')
+      setCreateError(err instanceof Error ? err.message : 'Create failed')
     } finally {
       setSaving(false)
     }
@@ -160,12 +172,22 @@ export default function CourseManagementTab() {
 
   const togglePublish = async (course: Course) => {
     const nextStatus = course.status === 'published' ? 'draft' : 'published'
-    await fetch(`/api/admin/courses/${course.id}`, {
+    const res = await fetch(`/api/admin/courses/${course.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: nextStatus, is_published: nextStatus === 'published' }),
+      body: JSON.stringify({ status: nextStatus }),
     })
-    load()
+    const data = await res.json()
+    if (res.ok) {
+      setSuccess(
+        nextStatus === 'published'
+          ? `"${course.title}" is now live on /learning`
+          : `"${course.title}" unpublished`
+      )
+      load()
+    } else {
+      setError(data.error || 'Publish failed')
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -184,7 +206,11 @@ export default function CourseManagementTab() {
         <div>
           <h1 className="text-2xl font-bold">Programs / Courses</h1>
           <p className="text-muted-foreground mt-1">
-            Manage learning programmes with thumbnails for the Learning portal.
+            Manage learning programmes. <strong>Published</strong> courses appear on the public{' '}
+            <a href="/learning" target="_blank" rel="noopener noreferrer" className="text-[#1e3a5f] underline">
+              Learning portal
+            </a>
+            .
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -201,13 +227,21 @@ export default function CourseManagementTab() {
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {success ? <p className="text-sm text-green-700">{success}</p> : null}
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) setCreateError('')
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create course</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} />
+          {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={saving} className="bg-[#1e3a5f]">Create</Button>
@@ -257,6 +291,11 @@ export default function CourseManagementTab() {
                     <span className="font-semibold">Duration:</span> {course.duration}
                   </p>
                 ) : null}
+                <p className="text-sm font-medium text-[#1e3a5f]">
+                  {Number(course.pricing ?? 0) > 0
+                    ? `${Number(course.pricing).toLocaleString()} RWF`
+                    : 'Free / pricing TBD'}
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => togglePublish(course)}>
                     {course.status === 'published' ? 'Unpublish' : 'Publish'}
