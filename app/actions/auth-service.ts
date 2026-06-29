@@ -184,6 +184,13 @@ export async function registerUser(
     }
 
     if (needsApproval) {
+      const { sendStaffRegistrationPendingToAdmin } = await import('@/lib/email/notifications')
+      void sendStaffRegistrationPendingToAdmin({
+        fullName: `${firstName.trim()} ${lastName.trim()}`.trim() || trimmedEmail,
+        email: trimmedEmail,
+        role,
+      })
+
       debug.step = 'registration_pending_approval'
       return {
         success: true,

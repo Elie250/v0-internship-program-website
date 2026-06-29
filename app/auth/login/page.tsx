@@ -12,6 +12,7 @@ import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { AuthDebugPanel } from '@/components/auth/auth-debug-panel'
 import type { AuthDebugInfo } from '@/lib/auth-debug'
 import { COMPANY } from '@/lib/company/constants'
+import { SiteHeader } from '@/components/layout/site-header'
 
 type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
@@ -96,11 +97,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <SiteHeader />
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="w-full max-w-[400px]">
         <div className="text-center mb-8">
-          <p className="text-2xl font-bold text-slate-900">{COMPANY.brandName}</p>
-          <p className="text-sm text-slate-500 mt-1">{COMPANY.platformName}</p>
+          <p className="text-sm text-slate-500">{COMPANY.platformName}</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-8">
@@ -225,6 +227,7 @@ function LoginForm() {
         <p className="text-center text-xs text-slate-400 mt-6">
           © {new Date().getFullYear()} {COMPANY.brandName}
         </p>
+      </div>
       </div>
     </div>
   )

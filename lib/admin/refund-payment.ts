@@ -15,7 +15,7 @@ export async function refundApprovedPayment(
   const { data: payment, error: fetchError } = await supabaseAdmin
     .from('payments')
     .select(
-      'id, status, receipt_url, course_enrollment_id, support_subscription_id, admin_notes'
+      'id, status, receipt_url, course_enrollment_id, support_subscription_id, admin_notes, payer_name, payer_email, amount, course_id, application_id'
     )
     .eq('id', paymentId)
     .maybeSingle()
@@ -77,6 +77,33 @@ export async function refundApprovedPayment(
       adminNotes: note || 'Support subscription refunded',
     })
     if (!revoke.success) return revoke
+  }
+
+  if (payment.payer_email) {
+    const { sendPaymentRefundedEmail } = await import('@/lib/email/notifications')
+    let context = 'Platform payment'
+    if (payment.course_enrollment_id || payment.course_id) {
+      context = 'Course enrollment'
+      if (payment.course_id) {
+        const { data: course } = await supabaseAdmin
+          .from('courses')
+          .select('title')
+          .eq('id', payment.course_id)
+          .maybeSingle()
+        if (course?.title) context = `Course: ${course.title}`
+      }
+    } else if (payment.support_subscription_id) {
+      context = 'Engineering support subscription'
+    } else if (payment.application_id) {
+      context = 'Programme application'
+    }
+
+    void sendPaymentRefundedEmail({
+      to: payment.payer_email as string,
+      payerName: (payment.payer_name as string | null)?.trim() || (payment.payer_email as string),
+      context,
+      adminNotes: note,
+    })
   }
 
   return { success: true }

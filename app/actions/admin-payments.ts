@@ -145,6 +145,13 @@ export async function reviewPayment(input: {
       }
     }
 
+    const { notifyPaymentReviewed } = await import('@/lib/email/payment-hooks')
+    void notifyPaymentReviewed({
+      paymentId: input.id,
+      decision: input.decision,
+      adminNotes: input.adminNotes,
+    })
+
     return { success: true }
   } catch (error) {
     return {
@@ -182,6 +189,16 @@ export async function submitManualPayment(input: {
     ])
 
     if (error) return { success: false, error: error.message }
+
+    const { sendPaymentSubmittedToAdmin } = await import('@/lib/email/notifications')
+    void sendPaymentSubmittedToAdmin({
+      payerName: input.payerName.trim(),
+      payerEmail: input.payerEmail.trim(),
+      amount: input.amount,
+      context: input.applicationId ? 'Programme application' : 'Manual payment',
+      receiptNumber: input.receiptNumber,
+    })
+
     return { success: true }
   } catch (error) {
     return {
