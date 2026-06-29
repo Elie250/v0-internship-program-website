@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,9 +45,20 @@ export default async function AboutPage() {
         <Card>
           <CardHeader><CardTitle>{FOUNDER.role}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <p className="font-semibold text-lg text-[#1e3a5f]">{FOUNDER.name}</p>
-              <p className="text-muted-foreground">{FOUNDER.title}</p>
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+              <div className="relative w-40 h-48 rounded-xl overflow-hidden border shrink-0">
+                <Image
+                  src={FOUNDER.photo}
+                  alt={`${FOUNDER.name} — ${FOUNDER.title}`}
+                  fill
+                  className="object-cover object-top"
+                  sizes="160px"
+                />
+              </div>
+              <div>
+                <p className="font-semibold text-lg text-[#1e3a5f]">{FOUNDER.name}</p>
+                <p className="text-muted-foreground">{FOUNDER.title}</p>
+              </div>
             </div>
             <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{FOUNDER.bio}</p>
             <ul className="grid sm:grid-cols-2 gap-2">
