@@ -12,6 +12,7 @@ export type AdminNavIconName =
   | 'folder-tree'
   | 'book-open'
   | 'graduation-cap'
+  | 'video'
   | 'megaphone'
   | 'zap'
   | 'headphones'
@@ -131,6 +132,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/enrollments',
         icon: 'graduation-cap',
         permission: PERMISSIONS.LEARNING_STUDENTS,
+      },
+      {
+        id: 'webinars',
+        label: 'Webinars',
+        href: '/admin/dashboard/webinars',
+        icon: 'video',
+        permission: PERMISSIONS.LEARNING_PROGRAMS,
       },
     ],
   },

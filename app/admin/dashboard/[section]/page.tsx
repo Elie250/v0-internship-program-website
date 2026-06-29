@@ -13,6 +13,7 @@ const SECTIONS: Record<string, ComponentType> = {
   services: dynamic(() => import('@/components/admin/service-management')),
   courses: dynamic(() => import('@/components/admin/course-management')),
   enrollments: dynamic(() => import('@/components/admin/enrollment-management')),
+  webinars: dynamic(() => import('@/components/admin/webinar-management')),
   announcements: dynamic(() => import('@/components/admin/announcement-management')),
   products: dynamic(() => import('@/components/admin/product-management')),
   stock: dynamic(() => import('@/components/admin/stock-management')),

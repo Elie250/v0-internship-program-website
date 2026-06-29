@@ -64,6 +64,9 @@ function pgrst125Hint(): string {
 
 function dashboardPathForRole(role: string): string {
   if (role === 'admin') return '/admin/dashboard'
+  if (role === 'student' || role === 'registered') return '/student/dashboard'
+  if (role === 'lecturer' || role === 'instructor') return '/lecturer/dashboard'
+  if (role === 'engineer') return '/engineer/dashboard'
   return '/dashboard'
 }
 
