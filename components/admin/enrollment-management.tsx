@@ -66,7 +66,6 @@ function statusBadge(status: string) {
 export default function EnrollmentManagement() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [filter, setFilter] = useState<'admitted' | 'pending' | 'rejected' | 'all'>('admitted')
-  const [filter, setFilter] = useState<'admitted' | 'pending' | 'rejected' | 'all'>('admitted')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [revokeTarget, setRevokeTarget] = useState<Enrollment | null>(null)
