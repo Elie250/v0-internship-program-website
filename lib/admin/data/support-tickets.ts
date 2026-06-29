@@ -43,6 +43,30 @@ export async function updateSupportTicket(input: {
 }): Promise<{ error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
+  let previousResponse: string | null = null
+  let ticketMeta: {
+    title: string
+    requester_email: string | null
+    requester_name: string | null
+  } | null = null
+
+  if (input.admin_response !== undefined && input.admin_response.trim()) {
+    const { data: existing } = await supabaseAdmin
+      .from('support_tickets')
+      .select('title, requester_email, requester_name, admin_response')
+      .eq('id', input.id)
+      .maybeSingle()
+
+    if (existing) {
+      previousResponse = existing.admin_response as string | null
+      ticketMeta = {
+        title: String(existing.title),
+        requester_email: existing.requester_email as string | null,
+        requester_name: existing.requester_name as string | null,
+      }
+    }
+  }
+
   const updates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   }
@@ -56,5 +80,21 @@ export async function updateSupportTicket(input: {
 
   const { error } = await supabaseAdmin.from('support_tickets').update(updates).eq('id', input.id)
   if (error) return { error: error.message }
+
+  const newResponse = input.admin_response?.trim()
+  if (
+    newResponse &&
+    ticketMeta?.requester_email &&
+    newResponse !== (previousResponse?.trim() ?? '')
+  ) {
+    const { sendSupportTicketResponseEmail } = await import('@/lib/email/notifications')
+    void sendSupportTicketResponseEmail({
+      to: ticketMeta.requester_email,
+      requesterName: ticketMeta.requester_name?.trim() || ticketMeta.requester_email,
+      ticketTitle: ticketMeta.title,
+      adminResponse: newResponse,
+    })
+  }
+
   return {}
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getUserSupportAccess } from '@/lib/support/subscription-access'
+import { sendSupportTicketCreatedToAdmin } from '@/lib/email/notifications'
 
 type SessionUser = {
   id: string
@@ -106,6 +107,14 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', access.subscription.id)
+
+    void sendSupportTicketCreatedToAdmin({
+      title,
+      requesterName: requesterName || sessionUser.email,
+      requesterEmail: sessionUser.email,
+      priority,
+      description,
+    })
 
     return NextResponse.json(data, { status: 201 })
   } catch (error) {

@@ -5,6 +5,10 @@ import { PENDING_ENROLLMENT_STATUSES } from '@/lib/enrollment/constants'
 import { getEnrollEligibility } from '@/lib/enrollment/eligibility'
 import { admitEnrollmentById } from '@/lib/enrollment/admit'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
+import {
+  sendEnrollmentAdmittedEmail,
+  sendPaymentSubmittedToAdmin,
+} from '@/lib/email/notifications'
 
 type SessionUser = {
   id: string
@@ -187,6 +191,12 @@ export async function POST(request: Request) {
           .eq('id', sessionUser.id)
       }
 
+      void sendEnrollmentAdmittedEmail({
+        to: applicantEmail,
+        studentName: applicantName || applicantEmail,
+        courseTitle: course.title,
+      })
+
       return NextResponse.json(
         {
           success: true,
@@ -239,6 +249,14 @@ export async function POST(request: Request) {
         .update({ phone: applicantPhone, updated_at: new Date().toISOString() })
         .eq('id', sessionUser.id)
     }
+
+    void sendPaymentSubmittedToAdmin({
+      payerName: applicantName || applicantEmail,
+      payerEmail: applicantEmail,
+      amount: amountDueFinal,
+      context: `Course: ${course.title}`,
+      receiptNumber: receiptNumber || null,
+    })
 
     return NextResponse.json(
       {

@@ -157,7 +157,7 @@ export async function approveStaffAccount(
 
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, role, status')
+      .select('id, email, first_name, last_name, role, status')
       .eq('id', id)
       .maybeSingle()
 
@@ -181,6 +181,18 @@ export async function approveStaffAccount(
       .eq('id', id)
 
     if (error) return { success: false, error: error.message }
+
+    if (user.email) {
+      const { sendStaffApprovedEmail } = await import('@/lib/email/notifications')
+      const fullName =
+        [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email
+      void sendStaffApprovedEmail({
+        to: user.email,
+        fullName,
+        role: String(user.role),
+      })
+    }
+
     return { success: true }
   } catch (error) {
     return {

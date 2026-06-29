@@ -1,6 +1,6 @@
-/** @deprecated Import from `@/lib/email` or `@/lib/email/notifications` */
+export { sendApplicationEmail } from '@/lib/email/notifications'
+export type { ApplicationEmailParams } from '@/lib/email/notifications'
 export {
-  sendApplicationEmail,
   sendPaymentSubmittedToAdmin,
   sendPaymentApprovedEmail,
   sendPaymentRejectedEmail,
@@ -14,5 +14,3 @@ export {
   sendSupportSubscriptionActivatedEmail,
   sendSupportSubscriptionRejectedEmail,
 } from '@/lib/email/notifications'
-
-export type { ApplicationEmailParams } from '@/lib/email/notifications'

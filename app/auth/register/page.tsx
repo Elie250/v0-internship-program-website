@@ -12,6 +12,7 @@ import { AlertCircle, CheckCircle2, ChevronDown, GraduationCap } from 'lucide-re
 import { AuthDebugPanel } from '@/components/auth/auth-debug-panel'
 import type { AuthDebugInfo } from '@/lib/auth-debug'
 import { COMPANY } from '@/lib/company/constants'
+import { SiteHeader } from '@/components/layout/site-header'
 
 type RegisterRole = 'student' | 'lecturer' | 'engineer'
 
@@ -102,8 +103,7 @@ function RegisterForm() {
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-8">
         <div className="text-center mb-6">
-          <p className="text-lg font-bold text-slate-900">{COMPANY.brandName}</p>
-          <h1 className="text-xl font-semibold text-slate-900 mt-3">Create account</h1>
+          <h1 className="text-xl font-semibold text-slate-900">Create account</h1>
           <p className="text-sm text-slate-500 mt-1">Free — takes about a minute</p>
         </div>
 
@@ -263,10 +263,16 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
-        <RegisterForm />
-      </Suspense>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <SiteHeader />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+          <RegisterForm />
+        </Suspense>
+      </div>
+      <p className="text-center text-xs text-slate-400 pb-6">
+        © {new Date().getFullYear()} {COMPANY.brandName}
+      </p>
     </div>
   )
 }

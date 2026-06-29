@@ -3,6 +3,10 @@ import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { SUPPORT_SUBSCRIBER_ROLES } from '@/lib/support/types'
 import { getUserSupportAccess } from '@/lib/support/subscription-access'
+import {
+  sendPaymentSubmittedToAdmin,
+  sendSupportSubscriptionActivatedEmail,
+} from '@/lib/email/notifications'
 
 type SessionUser = {
   id: string
@@ -126,6 +130,13 @@ export async function POST(request: Request) {
     }
 
     if (isFree) {
+      void sendSupportSubscriptionActivatedEmail({
+        to: sessionUser.email,
+        userName: payerName || sessionUser.email,
+        planName: plan.name,
+        endsAt: new Date(Date.now() + Number(plan.duration_days ?? 30) * 86400000).toISOString(),
+      })
+
       return NextResponse.json({
         subscriptionId: subscription.id,
         status: 'active',
@@ -161,6 +172,14 @@ export async function POST(request: Request) {
       .from('support_subscriptions')
       .update({ payment_id: payment.id, updated_at: new Date().toISOString() })
       .eq('id', subscription.id)
+
+    void sendPaymentSubmittedToAdmin({
+      payerName: payerName || sessionUser.email,
+      payerEmail: sessionUser.email,
+      amount: amountDue,
+      context: `Support plan: ${plan.name}`,
+      receiptNumber: receiptNumber || null,
+    })
 
     return NextResponse.json({
       subscriptionId: subscription.id,
