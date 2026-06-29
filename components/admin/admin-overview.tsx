@@ -13,7 +13,7 @@ export function AdminOverview({ stats }: { stats: AdminStats }) {
   const cards = [
     { label: 'Users', value: stats.users, icon: Users, hint: 'Registered accounts' },
     { label: 'Courses', value: stats.courses, icon: BookOpen, hint: `${stats.publishedCourses} published · visible on /learning` },
-    { label: 'Applications', value: stats.applications, icon: ClipboardList, hint: 'Pending review' },
+    { label: 'Applications', value: stats.applications, icon: ClipboardList, hint: 'Program applications in database' },
     { label: 'Products', value: stats.products, icon: ShoppingBag, hint: 'Shop catalog' },
     { label: 'Announcements', value: stats.announcements, icon: Megaphone, hint: 'Published content' },
     { label: 'Support tickets', value: stats.supportTickets, icon: Headphones, hint: 'Open pipeline' },

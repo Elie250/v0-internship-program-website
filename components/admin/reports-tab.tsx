@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useState } from 'react'
+import { getAdminStats } from '@/app/actions/admin-context'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { BarChart3, Users, BookOpen, TrendingUp, Download } from 'lucide-react';
@@ -33,33 +33,22 @@ export default function ReportsTab() {
 
   const fetchReportData = async () => {
     try {
-      const supabase = createClient();
-
-      // Fetch all data in parallel
-      const [usersRes, coursesRes, announcementsRes, enrollmentsRes] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact' }),
-        supabase.from('courses').select('*', { count: 'exact' }),
-        supabase.from('announcements').select('*', { count: 'exact' }),
-        supabase.from('enrollments').select('*', { count: 'exact' }),
-      ]);
-
-      const activeUsers = usersRes.data?.filter(u => u.status === 'active').length || 0;
-      const publishedCourses = coursesRes.data?.filter(c => c.is_published).length || 0;
+      const stats = await getAdminStats()
 
       setReportData({
-        totalUsers: usersRes.count || 0,
-        activeUsers,
-        totalCourses: coursesRes.count || 0,
-        publishedCourses,
-        totalAnnouncements: announcementsRes.count || 0,
-        totalEnrollments: enrollmentsRes.count || 0,
-      });
+        totalUsers: stats.users,
+        activeUsers: stats.users,
+        totalCourses: stats.courses,
+        publishedCourses: stats.publishedCourses,
+        totalAnnouncements: stats.announcements,
+        totalEnrollments: stats.applications,
+      })
     } catch (error) {
-      console.error('Failed to fetch report data:', error);
+      console.error('Failed to fetch report data:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleDownloadReport = () => {
     const reportContent = `

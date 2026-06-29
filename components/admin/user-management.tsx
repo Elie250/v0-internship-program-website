@@ -240,7 +240,14 @@ export default function UserManagementTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
                         {user.first_name} {user.last_name}
@@ -304,7 +311,8 @@ export default function UserManagementTab() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </div>

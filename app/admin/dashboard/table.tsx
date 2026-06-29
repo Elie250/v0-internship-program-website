@@ -2,30 +2,74 @@
 
 import { useState } from 'react'
 import { generateCertificate } from '@/lib/certificate-generator'
-import { acceptApplication, declineApplication } from './actions'
 
-export default function DashboardTable({ registrations }: any) {
+type ApplicationRow = {
+  id: string
+  full_name?: string
+  name?: string
+  email: string
+  registration_type?: string | null
+  program?: string | null
+  duration?: string | null
+  status?: string
+  created_at: string
+  source?: 'applications' | 'registrations'
+}
 
+type DashboardTableProps = {
+  registrations: ApplicationRow[]
+  source?: 'applications' | 'registrations'
+  onAccept?: (id: string, source: 'applications' | 'registrations') => Promise<{ success: boolean }>
+  onDecline?: (id: string, source: 'applications' | 'registrations') => Promise<{ success: boolean }>
+  onUpdated?: () => void
+}
+
+export default function DashboardTable({
+  registrations,
+  source = 'applications',
+  onAccept,
+  onDecline,
+  onUpdated,
+}: DashboardTableProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
 
   const filtered = registrations || []
 
   const handleAccept = async (id: string) => {
     setLoadingId(id)
-    await acceptApplication(id)
-    window.location.reload()
+    setActionError('')
+    const rowSource = filtered.find((r) => r.id === id)?.source ?? source
+    const result = onAccept
+      ? await onAccept(id, rowSource)
+      : { success: false }
+    if (!result.success) {
+      setActionError('Failed to accept application')
+    } else {
+      onUpdated?.()
+    }
+    setLoadingId(null)
   }
 
   const handleDecline = async (id: string) => {
     setLoadingId(id)
-    await declineApplication(id)
-    window.location.reload()
+    setActionError('')
+    const rowSource = filtered.find((r) => r.id === id)?.source ?? source
+    const result = onDecline
+      ? await onDecline(id, rowSource)
+      : { success: false }
+    if (!result.success) {
+      setActionError('Failed to decline application')
+    } else {
+      onUpdated?.()
+    }
+    setLoadingId(null)
   }
 
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase()
 
-    if (s === 'accepted') {
+    if (s === 'accepted' || s === 'approved') {
       return (
         <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-semibold">
           Accepted
@@ -50,10 +94,12 @@ export default function DashboardTable({ registrations }: any) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      {actionError ? (
+        <p className="text-sm text-destructive px-6 py-3 border-b border-gray-200">{actionError}</p>
+      ) : null}
 
       <div className="overflow-x-auto">
         <table className="w-full">
-
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
@@ -75,46 +121,23 @@ export default function DashboardTable({ registrations }: any) {
                 </td>
               </tr>
             ) : (
-              filtered.map((r: any) => {
-
-                const name = r.full_name || 'N/A'
+              filtered.map((r) => {
+                const name = r.full_name || r.name || 'N/A'
                 const status = r.status || 'pending'
 
                 return (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
-
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {name}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.email}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.registration_type || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.program || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {r.duration || '-'}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm">
-                      {getStatusBadge(status)}
-                    </td>
-
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.email}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.registration_type || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.program || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{r.duration || '-'}</td>
+                    <td className="px-6 py-4 text-sm">{getStatusBadge(status)}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {new Date(r.created_at).toLocaleDateString()}
                     </td>
-
                     <td className="px-6 py-4 text-sm">
                       <div className="flex gap-2 justify-center">
-
-                        {/* Accept */}
                         <button
                           disabled={loadingId === r.id || status === 'accepted'}
                           onClick={() => handleAccept(r.id)}
@@ -122,8 +145,6 @@ export default function DashboardTable({ registrations }: any) {
                         >
                           Accept
                         </button>
-
-                        {/* Decline */}
                         <button
                           disabled={loadingId === r.id || status === 'declined'}
                           onClick={() => handleDecline(r.id)}
@@ -131,8 +152,6 @@ export default function DashboardTable({ registrations }: any) {
                         >
                           Decline
                         </button>
-
-                        {/* Certificate */}
                         <button
                           disabled={status !== 'accepted'}
                           onClick={() => generateCertificate(r)}
@@ -140,23 +159,19 @@ export default function DashboardTable({ registrations }: any) {
                         >
                           Certificate
                         </button>
-
                       </div>
                     </td>
-
                   </tr>
                 )
               })
             )}
           </tbody>
-
         </table>
       </div>
 
       <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
         Showing {filtered.length} of {registrations.length} applications
       </div>
-
     </div>
   )
 }
