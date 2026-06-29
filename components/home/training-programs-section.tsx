@@ -55,7 +55,13 @@ export function TrainingProgramsSection() {
           })}
         </div>
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link href="/learning">
+            <Button className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90">
+              Browse all courses
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
           <Link href="/payment-instructions">
             <Button variant="link" className="text-[#1e3a5f]">
               How to pay with MTN MoMo →

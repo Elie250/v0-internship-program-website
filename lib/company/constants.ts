@@ -37,7 +37,7 @@ export const TRAINING_PROGRAMS = [
     summary:
       'Microcontrollers, firmware basics, sensors, and practical IoT projects for students and technicians.',
     topics: ['Arduino & microcontrollers', 'Sensors & actuators', 'Firmware fundamentals', 'Project-based labs'],
-    href: '/learning?module=training',
+    href: '/learning',
   },
   {
     id: 'industrial-control',
@@ -45,7 +45,7 @@ export const TRAINING_PROGRAMS = [
     summary:
       'PLC programming, industrial automation, control panels, and troubleshooting for factory and site work.',
     topics: ['PLC & ladder logic', 'Industrial automation', 'Control panel wiring', 'Fault finding on site'],
-    href: '/learning?module=training',
+    href: '/learning',
   },
   {
     id: 'advanced-electrical',
@@ -53,7 +53,7 @@ export const TRAINING_PROGRAMS = [
     summary:
       'Power systems, protection, installation practice, and applied electrical engineering for career advancement.',
     topics: ['Power & protection', 'Electrical installation', 'Solar & power applications', 'Safety & standards'],
-    href: '/learning?module=training',
+    href: '/learning',
   },
 ] as const
 
