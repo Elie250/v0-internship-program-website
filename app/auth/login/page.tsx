@@ -37,7 +37,12 @@ function LoginForm() {
     if (searchParams.get('message') === 'registered') {
       setSuccess('Account created. You can log in with your email and password.');
     }
+    if (searchParams.get('redirect')?.includes('/enroll')) {
+      setSuccess((prev) => prev || 'Log in with your student account to continue enrollment.');
+    }
   }, [searchParams]);
+
+  const redirectTo = searchParams.get('redirect');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +55,9 @@ function LoginForm() {
       const result = await loginUser(email, password, role);
 
       if (result.success) {
-        router.push(result.redirectTo ?? '/dashboard');
+        const dest =
+          redirectTo && redirectTo.startsWith('/') ? redirectTo : (result.redirectTo ?? '/dashboard');
+        router.push(dest);
         router.refresh();
       } else {
         setError(result.error || 'Login failed');
@@ -189,7 +196,14 @@ function LoginForm() {
               <div className="text-center space-y-2 text-sm">
                 <p className="text-muted-foreground">
                   Don&apos;t have an account?{' '}
-                  <Link href="/auth/register" className="text-primary font-semibold hover:underline">
+                  <Link
+                    href={
+                      redirectTo
+                        ? `/auth/register?redirect=${encodeURIComponent(redirectTo)}`
+                        : '/auth/register'
+                    }
+                    className="text-primary font-semibold hover:underline"
+                  >
                     Register here
                   </Link>
                 </p>

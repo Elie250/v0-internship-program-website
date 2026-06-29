@@ -9,21 +9,31 @@ import { BarChart3, Users, BookOpen, TrendingUp, Download } from 'lucide-react';
 
 interface ReportData {
   totalUsers: number;
-  activeUsers: number;
+  students: number;
   totalCourses: number;
   publishedCourses: number;
   totalAnnouncements: number;
-  totalEnrollments: number;
+  courseEnrollments: number;
+  admittedEnrollments: number;
+  pendingEnrollments: number;
+  pendingPayments: number;
+  approvedPaymentsTotal: number;
+  applications: number;
 }
 
 export default function ReportsTab() {
   const [reportData, setReportData] = useState<ReportData>({
     totalUsers: 0,
-    activeUsers: 0,
+    students: 0,
     totalCourses: 0,
     publishedCourses: 0,
     totalAnnouncements: 0,
-    totalEnrollments: 0,
+    courseEnrollments: 0,
+    admittedEnrollments: 0,
+    pendingEnrollments: 0,
+    pendingPayments: 0,
+    approvedPaymentsTotal: 0,
+    applications: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,11 +47,16 @@ export default function ReportsTab() {
 
       setReportData({
         totalUsers: stats.users,
-        activeUsers: stats.users,
+        students: stats.students,
         totalCourses: stats.courses,
         publishedCourses: stats.publishedCourses,
         totalAnnouncements: stats.announcements,
-        totalEnrollments: stats.applications,
+        courseEnrollments: stats.courseEnrollments,
+        admittedEnrollments: stats.admittedEnrollments,
+        pendingEnrollments: stats.pendingEnrollments,
+        pendingPayments: stats.pendingPayments,
+        approvedPaymentsTotal: stats.approvedPaymentsTotal,
+        applications: stats.applications,
       })
     } catch (error) {
       console.error('Failed to fetch report data:', error)
@@ -58,22 +73,25 @@ Generated: ${new Date().toLocaleString()}
 USER STATISTICS
 ===============
 Total Users: ${reportData.totalUsers}
-Active Users: ${reportData.activeUsers}
-Inactive Users: ${reportData.totalUsers - reportData.activeUsers}
+Students: ${reportData.students}
 
 COURSE STATISTICS
 ================
 Total Courses: ${reportData.totalCourses}
 Published Courses: ${reportData.publishedCourses}
-Draft Courses: ${reportData.totalCourses - reportData.publishedCourses}
+
+ENROLLMENTS & PAYMENTS
+======================
+Course Enrollments: ${reportData.courseEnrollments}
+Admitted: ${reportData.admittedEnrollments}
+Pending payment review: ${reportData.pendingEnrollments}
+Pending payment receipts: ${reportData.pendingPayments}
+Verified revenue (RWF): ${reportData.approvedPaymentsTotal.toLocaleString()}
+Internship applications: ${reportData.applications}
 
 ANNOUNCEMENTS
 =============
 Total Announcements: ${reportData.totalAnnouncements}
-
-ENROLLMENT DATA
-===============
-Total Enrollments: ${reportData.totalEnrollments}
 `;
 
     const element = document.createElement('a');
@@ -125,29 +143,31 @@ Total Enrollments: ${reportData.totalEnrollments}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{reportData.totalUsers}</div>
-                <p className="text-xs text-muted-foreground mt-1">{reportData.activeUsers} active</p>
+                <p className="text-xs text-muted-foreground mt-1">{reportData.students} students</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Available Courses</CardTitle>
-                <BookOpen className="w-4 h-4 text-secondary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{reportData.totalCourses}</div>
-                <p className="text-xs text-muted-foreground mt-1">{reportData.publishedCourses} published</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Enrollments</CardTitle>
+                <CardTitle className="text-sm font-medium">Course Enrollments</CardTitle>
                 <TrendingUp className="w-4 h-4 text-accent" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reportData.totalEnrollments}</div>
-                <p className="text-xs text-muted-foreground mt-1">Active enrollments</p>
+                <div className="text-2xl font-bold">{reportData.courseEnrollments}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {reportData.admittedEnrollments} admitted · {reportData.pendingEnrollments} pending
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Verified Payments</CardTitle>
+                <BookOpen className="w-4 h-4 text-secondary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reportData.approvedPaymentsTotal.toLocaleString()} RWF</div>
+                <p className="text-xs text-muted-foreground mt-1">{reportData.pendingPayments} receipts awaiting review</p>
               </CardContent>
             </Card>
           </div>
@@ -159,9 +179,12 @@ Total Enrollments: ${reportData.totalEnrollments}
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">User Engagement Rate</p>
+                  <p className="text-sm text-muted-foreground mb-1">Admission rate</p>
                   <p className="text-2xl font-bold">
-                    {reportData.totalUsers > 0 ? Math.round((reportData.activeUsers / reportData.totalUsers) * 100) : 0}%
+                    {reportData.courseEnrollments > 0
+                      ? Math.round((reportData.admittedEnrollments / reportData.courseEnrollments) * 100)
+                      : 0}
+                    %
                   </p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
@@ -185,25 +208,25 @@ Total Enrollments: ${reportData.totalEnrollments}
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <p className="text-sm">Active Users</p>
-                    <p className="font-semibold">{reportData.activeUsers}</p>
+                    <p className="text-sm">Students</p>
+                    <p className="font-semibold">{reportData.students}</p>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div 
                       className="bg-primary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalUsers > 0 ? (reportData.activeUsers / reportData.totalUsers) * 100 : 0}%` }}
+                      style={{ width: `${reportData.totalUsers > 0 ? (reportData.students / reportData.totalUsers) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <p className="text-sm">Inactive Users</p>
-                    <p className="font-semibold">{reportData.totalUsers - reportData.activeUsers}</p>
+                    <p className="text-sm">Staff & other roles</p>
+                    <p className="font-semibold">{reportData.totalUsers - reportData.students}</p>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
                     <div 
                       className="bg-secondary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalUsers > 0 ? ((reportData.totalUsers - reportData.activeUsers) / reportData.totalUsers) * 100 : 0}%` }}
+                      style={{ width: `${reportData.totalUsers > 0 ? ((reportData.totalUsers - reportData.students) / reportData.totalUsers) * 100 : 0}%` }}
                     ></div>
                   </div>
                 </div>
@@ -221,12 +244,12 @@ Total Enrollments: ${reportData.totalEnrollments}
                     <span className="font-semibold">{reportData.totalUsers}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Active</span>
-                    <span className="font-semibold text-green-600">{reportData.activeUsers}</span>
+                    <span className="text-muted-foreground">Students</span>
+                    <span className="font-semibold text-green-600">{reportData.students}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Inactive</span>
-                    <span className="font-semibold text-yellow-600">{reportData.totalUsers - reportData.activeUsers}</span>
+                    <span className="text-muted-foreground">Other roles</span>
+                    <span className="font-semibold text-yellow-600">{reportData.totalUsers - reportData.students}</span>
                   </li>
                 </ul>
               </CardContent>
@@ -289,7 +312,7 @@ Total Enrollments: ${reportData.totalEnrollments}
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground">Total Enrollments</span>
-                    <span className="font-semibold">{reportData.totalEnrollments}</span>
+                    <span className="font-semibold">{reportData.courseEnrollments}</span>
                   </li>
                 </ul>
               </CardContent>

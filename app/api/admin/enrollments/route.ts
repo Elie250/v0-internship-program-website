@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
 
 export async function GET() {
   try {
@@ -53,18 +54,42 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Enrollment id and status required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
+    if (status === 'admitted') {
+      const result = await admitEnrollmentById(id)
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 500 })
+      }
+      if (adminNotes?.trim()) {
+        await supabaseAdmin
+          .from('course_enrollments')
+          .update({ admin_notes: adminNotes.trim(), updated_at: new Date().toISOString() })
+          .eq('id', id)
+      }
+    } else if (status === 'payment_rejected') {
+      const result = await rejectEnrollmentById(id)
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 500 })
+      }
+    } else {
+      const { error } = await supabaseAdmin
+        .from('course_enrollments')
+        .update({
+          status,
+          admin_notes: adminNotes?.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    const { data, error: fetchError } = await supabaseAdmin
       .from('course_enrollments')
-      .update({
-        status,
-        admin_notes: adminNotes?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
       .select('*')
+      .eq('id', id)
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 })
 
     let course = null
     if (data?.course_id) {
