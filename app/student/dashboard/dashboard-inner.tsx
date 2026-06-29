@@ -19,7 +19,7 @@ import {
   Video,
 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
-import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
+import { AccessCountdown } from '@/components/student/access-countdown'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
@@ -96,7 +96,8 @@ export default function StudentDashboardInner() {
             <p className="font-medium text-red-900">Payment not verified</p>
             {portal.rejectedEnrollments.map((p) => (
               <p key={p.id} className="text-sm text-red-800">
-                {p.courseTitle} —{' '}
+                {p.courseTitle}
+                {p.rejectionReason ? ` — ${p.rejectionReason}` : ''} —{' '}
                 <Link
                   href={`/student/courses/${p.courseId}/enroll`}
                   className="font-medium text-red-900 underline underline-offset-2"
@@ -122,9 +123,15 @@ export default function StudentDashboardInner() {
               Enrolled — access starts soon
             </p>
             {portal.upcomingCourses.map((c) => (
-              <p key={c.enrollmentId} className="text-sm text-blue-800">
-                {c.title} — {c.accessLabel}
-              </p>
+              <div key={c.enrollmentId} className="text-sm text-blue-800 flex flex-wrap items-center gap-2">
+                <span>{c.title} — opens {c.accessStartsAt ? new Date(c.accessStartsAt).toLocaleString() : 'soon'}</span>
+                {c.accessStartsAt ? (
+                  <>
+                    <span className="text-blue-700">Countdown:</span>
+                    <AccessCountdown targetIso={c.accessStartsAt} />
+                  </>
+                ) : null}
+              </div>
             ))}
           </CardContent>
         </Card>
