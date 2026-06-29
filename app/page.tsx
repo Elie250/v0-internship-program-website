@@ -5,7 +5,7 @@ import { FounderSection } from '@/components/home/founder-section'
 import { TrainingProgramsSection } from '@/components/home/training-programs-section'
 import { BrowseCoursesSection } from '@/components/home/browse-courses-section'
 import { MembershipSection } from '@/components/home/membership-section'
-import { PaymentStepsSection } from '@/components/home/payment-steps-section'
+import { PaymentCtaSection } from '@/components/home/payment-cta-section'
 import { EventsSection } from '@/components/home/events-section'
 import { AnnouncementsSection, FeaturedServicesSection } from '@/components/home/announcements-section'
 
@@ -17,7 +17,7 @@ export default function HomePage() {
       <TrainingProgramsSection />
       <BrowseCoursesSection />
       <MembershipSection />
-      <PaymentStepsSection />
+      <PaymentCtaSection />
       <EventsSection />
       <AnnouncementsSection />
       <FeaturedServicesSection />

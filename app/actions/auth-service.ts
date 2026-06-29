@@ -16,6 +16,7 @@ import {
   loginBlockedMessage,
   requiresAdminApproval,
 } from '@/lib/auth/staff-registration'
+import { clearAuthCookies } from '@/lib/auth/session-cookies'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
@@ -324,9 +325,7 @@ export async function loginUser(
 
 export async function logoutUser() {
   try {
-    const cookieStore = await cookies()
-    cookieStore.delete('user_session')
-    cookieStore.delete('admin_session')
+    await clearAuthCookies()
     return { success: true }
   } catch (error) {
     console.error('[v0] Logout error:', error)
