@@ -22,20 +22,17 @@ export async function HomeHeroSection() {
   const hero = (await getActiveHero()) ?? defaultHero
 
   return (
-    <section className="relative min-h-[560px] md:min-h-[680px] lg:min-h-[760px] flex items-center overflow-hidden bg-[var(--brand-navy)]">
+    <section className="relative min-h-[560px] md:min-h-[680px] lg:min-h-[760px] flex items-center overflow-hidden bg-black">
       {hero.background_image && (
         <Image
           src={hero.background_image}
           alt={hero.title}
           fill
-          className="object-cover object-center scale-105 opacity-75"
+          className="object-cover object-center scale-105"
           priority
         />
       )}
-      <div
-        className="absolute inset-0 z-[1] bg-gradient-to-r from-[var(--brand-navy)]/95 via-[var(--brand-navy)]/80 to-[var(--brand-navy)]/35"
-        aria-hidden
-      />
+      <div className="absolute inset-0 z-[1] bg-black/50" aria-hidden />
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-24 w-full">
         <div className="max-w-2xl text-on-dark">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">{hero.title}</h1>

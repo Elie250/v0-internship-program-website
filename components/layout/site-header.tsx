@@ -28,6 +28,12 @@ const careerLinks = [
   { href: '/career?module=events', label: 'Events' },
 ]
 
+const navDropdownContentClass =
+  'nav-dropdown-panel z-[100] min-w-[14rem] bg-white text-slate-900 border border-slate-200 shadow-xl'
+
+const navDropdownItemClass =
+  'cursor-pointer text-slate-800 focus:bg-slate-100 focus:text-slate-900'
+
 export function SiteHeader() {
   const [logoUrl, setLogoUrl] = useState(COMPANY.logoUrl)
 
@@ -41,9 +47,9 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <nav className="sticky top-0 z-50 bg-[var(--brand-navy)] text-white border-b border-white/10 shadow-md">
+    <nav className="site-header text-on-dark sticky top-0 z-50 bg-[var(--brand-navy)] border-b border-white/10 shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
-        <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition no-underline hover:no-underline">
           <div className="bg-white rounded-lg p-1 shrink-0">
             <Image
               src={logoUrl}
@@ -55,67 +61,71 @@ export function SiteHeader() {
             />
           </div>
           <div>
-            <p className="font-bold text-lg leading-tight">{COMPANY.brandName}</p>
+            <p className="font-bold text-lg leading-tight text-white">{COMPANY.brandName}</p>
             <p className="text-[11px] text-white/70">{COMPANY.address} · Engineering Training</p>
           </div>
         </Link>
 
         <div className="hidden lg:flex items-center gap-1">
           <Link href="/">
-            <Button variant="ghost" className="text-white hover:bg-white/10">Home</Button>
+            <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">Home</Button>
           </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-white hover:bg-white/10">
+              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
                 Learning <ChevronDown className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className={navDropdownContentClass}>
               {learningLinks.map((link) => (
-                <DropdownMenuItem key={link.href} asChild>
-                  <Link href={link.href}>{link.label}</Link>
+                <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
+                    {link.label}
+                  </Link>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <Link href="/shop">
-            <Button variant="ghost" className="text-white hover:bg-white/10">Shop</Button>
+            <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">Shop</Button>
           </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-white hover:bg-white/10">
+              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">
                 Career <ChevronDown className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className={navDropdownContentClass}>
               {careerLinks.map((link) => (
-                <DropdownMenuItem key={link.href} asChild>
-                  <Link href={link.href}>{link.label}</Link>
+                <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
+                    {link.label}
+                  </Link>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <Link href="/engineering-support">
-            <Button variant="ghost" className="text-white hover:bg-white/10">Engineering Support</Button>
+            <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">Engineering Support</Button>
           </Link>
           <Link href="/about">
-            <Button variant="ghost" className="text-white hover:bg-white/10">About</Button>
-          </Link>
-          <Link href="/contact">
-            <Button variant="ghost" className="text-white hover:bg-white/10">Contact</Button>
+            <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-white">About</Button>
           </Link>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href="/auth/login" className="text-sm font-medium hover:underline">
+          <Link
+            href="/auth/login"
+            className="text-sm font-medium text-white hover:text-white/90 no-underline hover:underline"
+          >
             Login
           </Link>
-          <Link href="/auth/register" className="hidden sm:block">
-            <Button size="sm" className="bg-white text-[#1e3a5f] hover:bg-white/90">Register</Button>
+          <Link href="/auth/register" className="hidden sm:block no-underline hover:no-underline">
+            <Button size="sm" className="bg-white text-[var(--brand-navy)] hover:bg-white/90">Register</Button>
           </Link>
         </div>
       </div>

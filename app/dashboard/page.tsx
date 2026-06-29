@@ -38,7 +38,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="bg-[#1e3a5f] text-white px-4 py-4">
+      <header className="text-on-dark bg-[var(--brand-navy)] px-4 py-4">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">User Dashboard</h1>

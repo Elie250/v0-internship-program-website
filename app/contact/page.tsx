@@ -54,7 +54,7 @@ export default function ContactPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <SiteHeader />
-      <div className="bg-[#1e3a5f] text-white py-12 px-4">
+      <div className="text-on-dark bg-[var(--brand-navy)] py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-lg text-white/90">

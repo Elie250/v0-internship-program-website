@@ -14,7 +14,7 @@ export default async function ShopPage({
 
   return (
     <>
-      <section className="bg-[#1e3a5f] text-white py-12 px-4">
+      <section className="text-on-dark bg-[var(--brand-navy)] py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-4xl font-bold mb-2">Shop Portal</h1>
           <p className="text-white/80">
