@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   createAdminUser,
   deleteAdminUser,
-  listAdminUsers,
   resetAdminUserPassword,
   updateAdminUser,
   updateAdminUserStatus,
@@ -45,6 +44,7 @@ export default function UserManagementTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -59,21 +59,37 @@ export default function UserManagementTab() {
     role: 'student' as AdminUserRole,
   })
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 350)
+    return () => clearTimeout(timer)
+  }, [search])
+
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
     setError('')
-    const result = await listAdminUsers({
-      search,
-      role: roleFilter,
-      status: statusFilter,
-    })
-    if (result.success && result.users) {
-      setUsers(result.users)
-    } else {
-      setError(result.error || 'Failed to load users')
+    try {
+      const params = new URLSearchParams()
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim())
+      if (roleFilter !== 'all') params.set('role', roleFilter)
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      const qs = params.toString()
+      const res = await fetch(`/api/admin/users${qs ? `?${qs}` : ''}`, {
+        credentials: 'same-origin',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to load users')
+        setUsers([])
+        return
+      }
+      setUsers(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load users')
+      setUsers([])
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
-  }, [search, roleFilter, statusFilter])
+  }, [debouncedSearch, roleFilter, statusFilter])
 
   useEffect(() => {
     loadUsers()

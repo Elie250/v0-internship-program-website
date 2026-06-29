@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   acceptAdminApplication,
   declineAdminApplication,
-  listAdminApplications,
-  type AdminApplicationRow,
 } from '@/app/actions/admin-applications'
+import type { AdminApplicationRow } from '@/lib/admin/data/applications'
 import DashboardTable from '@/app/admin/dashboard/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -19,16 +18,24 @@ export default function ApplicationsManagement() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const result = await listAdminApplications()
-    if (!result.success) {
-      setError(result.error || 'Failed to load applications')
+    try {
+      const res = await fetch('/api/admin/applications', { credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to load applications')
+        setApplications([])
+        setRegistrations([])
+        return
+      }
+      setApplications(Array.isArray(data.applications) ? data.applications : [])
+      setRegistrations(Array.isArray(data.registrations) ? data.registrations : [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load applications')
       setApplications([])
       setRegistrations([])
-    } else {
-      setApplications(result.applications ?? [])
-      setRegistrations(result.registrations ?? [])
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {

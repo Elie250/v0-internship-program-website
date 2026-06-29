@@ -2,12 +2,10 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  getRolesPermissionsData,
   resetUserPermissionsToRole,
   updateUserCustomPermissions,
-  type RoleMatrixRow,
-  type StaffUserPermissions,
 } from '@/app/actions/admin-roles'
+import type { RoleMatrixRow, StaffUserPermissions } from '@/lib/admin/data/roles'
 import type { PermissionGroup } from '@/lib/admin/permissions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -40,19 +38,25 @@ export default function RolesPermissionsPanel() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const result = await getRolesPermissionsData()
-    if (!result.success) {
-      setError(result.error || 'Failed to load')
-    } else {
-      setGroups(result.groups)
-      setMatrix(result.matrix)
-      setStaffUsers(result.staffUsers)
-      if (result.staffUsers[0]) {
-        setSelectedUserId(result.staffUsers[0].id)
-        setUserPermissions(result.staffUsers[0].customPermissions)
+    try {
+      const res = await fetch('/api/admin/roles', { credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to load roles')
+        return
       }
+      setGroups(data.groups ?? [])
+      setMatrix(data.matrix ?? [])
+      setStaffUsers(data.staffUsers ?? [])
+      if (data.staffUsers?.[0]) {
+        setSelectedUserId(data.staffUsers[0].id)
+        setUserPermissions(data.staffUsers[0].customPermissions ?? [])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load roles')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {
