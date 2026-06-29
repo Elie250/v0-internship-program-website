@@ -43,21 +43,24 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href={`/learning/${course.id}/enroll`}>
-              <Button size="lg" className="bg-[#1e3a5f]">Apply & submit payment</Button>
+              <Button size="lg" className="bg-[var(--brand-navy)]">Enroll now</Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button size="lg" variant="outline">Log in</Button>
             </Link>
             <Link href="/learning">
-              <Button size="lg" variant="outline">All courses</Button>
+              <Button size="lg" variant="ghost">All courses</Button>
             </Link>
           </div>
-          <Card className="mt-8 border-[#1e3a5f]/20">
+          <Card className="mt-8 border-[var(--brand-navy)]/20">
             <CardHeader>
-              <CardTitle className="text-base">How admission works</CardTitle>
+              <CardTitle className="text-base">How enrollment works</CardTitle>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground space-y-2">
-              <p>1. Apply with your contact details on the next page.</p>
-              <p>2. Pay via MTN MoMo (Pay Code shown during application).</p>
-              <p>3. Upload your MoMo receipt for {COMPANY.brandName} to verify.</p>
-              <p>4. After approval, we contact you with enrollment confirmation and start dates.</p>
+              <p>1. <strong>Create a free student account</strong> or log in.</p>
+              <p>2. Enroll in this programme — your details are taken from your account.</p>
+              <p>3. Pay via MTN MoMo and upload your receipt on the enrollment form.</p>
+              <p>4. After payment verification (within 1 business day), materials unlock on your dashboard.</p>
             </CardContent>
           </Card>
         </div>

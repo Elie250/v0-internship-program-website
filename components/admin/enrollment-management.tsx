@@ -18,10 +18,14 @@ type Enrollment = {
   applicant_name: string
   applicant_email: string
   applicant_phone: string
+  user_id?: string | null
   motivation?: string | null
   amount_due: number
   status: string
   created_at: string
+  access_starts_at?: string | null
+  access_ends_at?: string | null
+  admitted_at?: string | null
   course?: { id: string; title: string; pricing?: number }
 }
 
@@ -135,6 +139,23 @@ export default function EnrollmentManagement() {
                   <a href={`tel:${row.applicant_phone}`} className="hover:underline">{row.applicant_phone}</a>
                 </p>
                 {row.motivation ? <p className="text-muted-foreground">{row.motivation}</p> : null}
+                {row.access_starts_at || row.access_ends_at ? (
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Access:{' '}
+                    {row.access_starts_at
+                      ? new Date(row.access_starts_at).toLocaleDateString()
+                      : '—'}{' '}
+                    →{' '}
+                    {row.access_ends_at
+                      ? new Date(row.access_ends_at).toLocaleDateString()
+                      : 'open-ended'}
+                  </p>
+                ) : null}
+                {row.user_id ? (
+                  <p className="text-xs text-green-700">Linked to user account</p>
+                ) : (
+                  <p className="text-xs text-amber-700">No linked account (legacy enrollment)</p>
+                )}
               </CardContent>
             </Card>
           ))}

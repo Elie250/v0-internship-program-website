@@ -37,6 +37,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
+  const enrollMatch = pathname.match(/^\/learning\/[^/]+\/enroll\/?$/)
+  if (enrollMatch && !user) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
   // Protect admin dashboard — accept either legacy admin_session or user_session with admin role
   if (pathname.startsWith('/admin/dashboard')) {
     const isAdmin = isAdminUser(user, adminSession)
@@ -57,5 +64,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/dashboard/:path*', '/student/:path*'],
+  matcher: ['/admin/:path*', '/dashboard/:path*', '/student/:path*', '/learning/:path*/enroll'],
 }

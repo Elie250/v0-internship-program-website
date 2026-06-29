@@ -112,6 +112,10 @@ export interface Course {
   duration: string | null
   pricing: number | null
   status: ContentStatus
+  program_start_date?: string | null
+  program_end_date?: string | null
+  default_access_days?: number | null
+  max_seats?: number | null
   category?: Category | null
 }
 

@@ -65,7 +65,7 @@ export default function StudentDashboardInner() {
   }
 
   const userName = [portal.user.firstName, portal.user.lastName].filter(Boolean).join(' ') || portal.user.email
-  const totalLessons = portal.admittedCourses.reduce((n, c) => n + c.lessons.length, 0)
+  const totalLessons = portal.activeCourses.reduce((n, c) => n + c.lessons.length, 0)
 
   return (
     <StudentPortalShell userName={userName}>
@@ -74,11 +74,12 @@ export default function StudentDashboardInner() {
           <CardContent className="pt-4 space-y-2">
             <p className="font-medium text-amber-900 flex items-center gap-2">
               <Lock className="h-4 w-4" />
-              Payment pending approval
+              Payment under review
             </p>
             {portal.pendingEnrollments.map((p) => (
               <p key={p.id} className="text-sm text-amber-800">
-                {p.courseTitle} — receipt under review. Materials unlock after admin approves your MoMo payment.
+                <strong>{p.courseTitle}</strong> — {p.statusLabel}. Materials unlock after admin approves your MoMo
+                receipt (usually within 1 business day).
               </p>
             ))}
             <Link href="/payment-instructions">
@@ -88,12 +89,49 @@ export default function StudentDashboardInner() {
         </Card>
       ) : null}
 
+      {portal.rejectedEnrollments.length > 0 ? (
+        <Card className="mb-6 border-red-200 bg-red-50">
+          <CardContent className="pt-4 space-y-2">
+            <p className="font-medium text-red-900">Payment not verified</p>
+            {portal.rejectedEnrollments.map((p) => (
+              <p key={p.id} className="text-sm text-red-800">
+                {p.courseTitle} — please resubmit your receipt from the course page.
+              </p>
+            ))}
+            <Link href="/learning">
+              <Button size="sm" variant="outline">Browse courses</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {portal.upcomingCourses.length > 0 ? (
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="pt-4 space-y-2">
+            <p className="font-medium text-blue-900 flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Enrolled — access starts soon
+            </p>
+            {portal.upcomingCourses.map((c) => (
+              <p key={c.enrollmentId} className="text-sm text-blue-800">
+                {c.title} — {c.accessLabel}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {tab === 'webinars' ? (
-        <WebinarsTab webinars={portal.webinars} locked={portal.admittedCourses.length === 0} />
+        <WebinarsTab webinars={portal.webinars} locked={portal.activeCourses.length === 0} />
       ) : tab === 'announcements' ? (
         <AnnouncementsTab announcements={portal.announcements} />
       ) : (
-        <CoursesTab courses={portal.admittedCourses} totalLessons={totalLessons} />
+        <CoursesTab
+          courses={portal.activeCourses}
+          upcoming={portal.upcomingCourses}
+          expired={portal.expiredCourses}
+          totalLessons={totalLessons}
+        />
       )}
     </StudentPortalShell>
   )
@@ -101,22 +139,26 @@ export default function StudentDashboardInner() {
 
 function CoursesTab({
   courses,
+  upcoming,
+  expired,
   totalLessons,
 }: {
-  courses: StudentPortalData['admittedCourses']
+  courses: StudentPortalData['activeCourses']
+  upcoming: StudentPortalData['upcomingCourses']
+  expired: StudentPortalData['expiredCourses']
   totalLessons: number
 }) {
-  if (courses.length === 0) {
+  if (courses.length === 0 && upcoming.length === 0) {
     return (
       <div className="max-w-2xl mx-auto text-center space-y-4 py-12">
         <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50" />
-        <h1 className="text-2xl font-bold text-[#1e3a5f]">Your learning library</h1>
+        <h1 className="text-2xl font-bold text-[var(--brand-navy)]">Your learning library</h1>
         <p className="text-muted-foreground">
-          Enroll in a programme, pay via MTN MoMo, and upload your receipt. Once {COMPANY.brandName} approves
-          payment, your courses and materials appear here.
+          Browse programmes, enroll with your account, pay via MTN MoMo, and upload your receipt. Once{' '}
+          {COMPANY.brandName} approves payment, your courses appear here.
         </p>
         <Link href="/learning">
-          <Button className="bg-[#1e3a5f]">Browse courses & apply</Button>
+          <Button className="bg-[var(--brand-navy)]">Browse courses & enroll</Button>
         </Link>
       </div>
     )
@@ -159,8 +201,9 @@ function CoursesTab({
               </div>
             )}
             <CardHeader className="pb-2">
-              <Badge className="w-fit mb-2 bg-green-100 text-green-800">Enrolled</Badge>
+              <Badge className="w-fit mb-2 bg-green-100 text-green-800">Active</Badge>
               <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
+              <p className="text-xs text-muted-foreground">{course.accessLabel}</p>
               {course.difficulty ? (
                 <p className="text-xs text-muted-foreground">{course.difficulty}</p>
               ) : null}
@@ -189,6 +232,28 @@ function CoursesTab({
           </Card>
         ))}
       </div>
+
+      {expired.length > 0 ? (
+        <div className="mt-10 space-y-3">
+          <h2 className="text-lg font-bold text-muted-foreground">Past courses</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {expired.map((course) => (
+              <Card key={course.enrollmentId} className="opacity-75">
+                <CardHeader className="pb-2">
+                  <Badge variant="outline" className="w-fit mb-2">Expired</Badge>
+                  <CardTitle className="text-base">{course.title}</CardTitle>
+                  <p className="text-xs text-muted-foreground">{course.accessLabel}</p>
+                </CardHeader>
+                <CardContent>
+                  <Link href="/contact">
+                    <Button size="sm" variant="outline">Contact us to renew</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

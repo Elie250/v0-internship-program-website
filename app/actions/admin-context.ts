@@ -15,12 +15,18 @@ import { getCurrentUser } from '@/app/actions/auth-service'
 
 export type AdminStats = {
   users: number
+  students: number
   courses: number
   publishedCourses: number
   announcements: number
   applications: number
   products: number
   supportTickets: number
+  courseEnrollments: number
+  admittedEnrollments: number
+  pendingEnrollments: number
+  pendingPayments: number
+  approvedPaymentsTotal: number
 }
 
 export type AdminSession = {
@@ -55,19 +61,91 @@ async function countPublishedCourses(): Promise<number> {
   }).length
 }
 
-async function fetchAdminStats(): Promise<AdminStats> {
-  const [users, courses, publishedCourses, announcements, applications, products, supportTickets] =
-    await Promise.all([
-      countTable('users'),
-      countTable('courses'),
-      countPublishedCourses(),
-      countTable('announcements'),
-      countTable('applications'),
-      countTable('products'),
-      countTable('support_tickets'),
-    ])
+async function countEnrollmentsByStatus(status?: string): Promise<number> {
+  if (!supabaseAdmin) return 0
+  let query = supabaseAdmin.from('course_enrollments').select('*', { count: 'exact', head: true })
+  if (status) query = query.eq('status', status)
+  const { count, error } = await query
+  if (error) return 0
+  return count ?? 0
+}
 
-  return { users, courses, publishedCourses, announcements, applications, products, supportTickets }
+async function countPendingPayments(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { count, error } = await supabaseAdmin
+    .from('payments')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['pending_review', 'Pending', 'pending'])
+  if (error) return 0
+  return count ?? 0
+}
+
+async function sumApprovedPayments(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { data, error } = await supabaseAdmin
+    .from('payments')
+    .select('amount')
+    .eq('status', 'approved')
+  if (error || !data) return 0
+  return data.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
+}
+
+async function countStudents(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .in('role', ['student', 'registered'])
+  if (error) return 0
+  return count ?? 0
+}
+
+async function fetchAdminStats(): Promise<AdminStats> {
+  const [
+    users,
+    students,
+    courses,
+    publishedCourses,
+    announcements,
+    applications,
+    products,
+    supportTickets,
+    courseEnrollments,
+    admittedEnrollments,
+    pendingEnrollments,
+    pendingPayments,
+    approvedPaymentsTotal,
+  ] = await Promise.all([
+    countTable('users'),
+    countStudents(),
+    countTable('courses'),
+    countPublishedCourses(),
+    countTable('announcements'),
+    countTable('applications'),
+    countTable('products'),
+    countTable('support_tickets'),
+    countEnrollmentsByStatus(),
+    countEnrollmentsByStatus('admitted'),
+    countEnrollmentsByStatus('payment_pending_review'),
+    countPendingPayments(),
+    sumApprovedPayments(),
+  ])
+
+  return {
+    users,
+    students,
+    courses,
+    publishedCourses,
+    announcements,
+    applications,
+    products,
+    supportTickets,
+    courseEnrollments,
+    admittedEnrollments,
+    pendingEnrollments,
+    pendingPayments,
+    approvedPaymentsTotal,
+  }
 }
 
 /** Single auth + nav resolution (user_session or legacy admin_session). */
@@ -117,12 +195,18 @@ export async function getAdminStats(): Promise<AdminStats> {
   if (!session || !supabaseAdmin) {
     return {
       users: 0,
+      students: 0,
       courses: 0,
       publishedCourses: 0,
       announcements: 0,
       applications: 0,
       products: 0,
       supportTickets: 0,
+      courseEnrollments: 0,
+      admittedEnrollments: 0,
+      pendingEnrollments: 0,
+      pendingPayments: 0,
+      approvedPaymentsTotal: 0,
     }
   }
 

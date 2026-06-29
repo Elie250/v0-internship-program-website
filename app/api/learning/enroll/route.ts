@@ -1,5 +1,26 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { PENDING_ENROLLMENT_STATUSES } from '@/lib/enrollment/constants'
+
+type SessionUser = {
+  id: string
+  email: string
+  role: string
+  firstName?: string
+  lastName?: string
+}
+
+async function getSessionUser(): Promise<SessionUser | null> {
+  const cookieStore = await cookies()
+  const session = cookieStore.get('user_session')
+  if (!session?.value) return null
+  try {
+    return JSON.parse(session.value) as SessionUser
+  } catch {
+    return null
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -7,18 +28,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
+    const sessionUser = await getSessionUser()
+    if (!sessionUser?.id || !sessionUser.email) {
+      return NextResponse.json(
+        {
+          error: 'Please log in or create an account before enrolling.',
+          code: 'AUTH_REQUIRED',
+        },
+        { status: 401 }
+      )
+    }
+
+    if (sessionUser.role !== 'student' && sessionUser.role !== 'registered') {
+      return NextResponse.json(
+        {
+          error: 'Course enrollment is for student accounts. Please register as a Student.',
+          code: 'WRONG_ROLE',
+        },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const courseId = String(body.courseId ?? '').trim()
-    const applicantName = String(body.applicantName ?? '').trim()
-    const applicantEmail = String(body.applicantEmail ?? '').trim()
     const applicantPhone = String(body.applicantPhone ?? '').trim()
     const motivation = String(body.motivation ?? '').trim()
     const receiptUrl = String(body.receiptUrl ?? '').trim()
     const receiptNumber = String(body.receiptNumber ?? '').trim()
 
-    if (!courseId || !applicantName || !applicantEmail || !applicantPhone) {
+    const applicantName = [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(' ').trim()
+    const applicantEmail = sessionUser.email.trim()
+
+    if (!courseId || !applicantPhone) {
       return NextResponse.json(
-        { error: 'Course, name, email, and phone are required' },
+        { error: 'Course and phone number are required' },
         { status: 400 }
       )
     }
@@ -31,13 +74,54 @@ export async function POST(request: Request) {
 
     const { data: course, error: courseError } = await supabaseAdmin
       .from('courses')
-      .select('id, title, pricing, status')
+      .select('id, title, pricing, status, max_seats')
       .eq('id', courseId)
       .eq('status', 'published')
       .maybeSingle()
 
     if (courseError || !course) {
       return NextResponse.json({ error: 'Course not found or not open for enrollment' }, { status: 404 })
+    }
+
+    const { data: existingRows } = await supabaseAdmin
+      .from('course_enrollments')
+      .select('id, status')
+      .eq('course_id', courseId)
+      .eq('user_id', sessionUser.id)
+      .order('created_at', { ascending: false })
+
+    const existing = (existingRows ?? []).find(
+      (row) => !['cancelled', 'payment_rejected'].includes(String(row.status))
+    )
+
+    if (existing) {
+      const pending = PENDING_ENROLLMENT_STATUSES.includes(
+        existing.status as (typeof PENDING_ENROLLMENT_STATUSES)[number]
+      )
+      return NextResponse.json(
+        {
+          error: pending
+            ? 'You already have a pending enrollment for this course. Check your student dashboard.'
+            : 'You are already enrolled in this course.',
+          code: 'DUPLICATE_ENROLLMENT',
+        },
+        { status: 409 }
+      )
+    }
+
+    if (course.max_seats) {
+      const { count } = await supabaseAdmin
+        .from('course_enrollments')
+        .select('*', { count: 'exact', head: true })
+        .eq('course_id', courseId)
+        .eq('status', 'admitted')
+
+      if ((count ?? 0) >= course.max_seats) {
+        return NextResponse.json(
+          { error: 'This course cohort is full. Contact us to join the waitlist.', code: 'COHORT_FULL' },
+          { status: 409 }
+        )
+      }
     }
 
     const amountDue = Number(course.pricing ?? 0)
@@ -47,7 +131,8 @@ export async function POST(request: Request) {
       .insert([
         {
           course_id: course.id,
-          applicant_name: applicantName,
+          user_id: sessionUser.id,
+          applicant_name: applicantName || applicantEmail,
           applicant_email: applicantEmail,
           applicant_phone: applicantPhone,
           motivation: motivation || null,
@@ -70,7 +155,7 @@ export async function POST(request: Request) {
       .insert([
         {
           amount: amountDue,
-          payer_name: applicantName,
+          payer_name: applicantName || applicantEmail,
           payer_email: applicantEmail,
           payer_phone: applicantPhone,
           payment_method: 'MTN MoMo',
@@ -97,6 +182,13 @@ export async function POST(request: Request) {
       .update({ payment_id: payment.id, updated_at: new Date().toISOString() })
       .eq('id', enrollment.id)
 
+    if (applicantPhone) {
+      await supabaseAdmin
+        .from('users')
+        .update({ phone: applicantPhone, updated_at: new Date().toISOString() })
+        .eq('id', sessionUser.id)
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -104,7 +196,7 @@ export async function POST(request: Request) {
         courseTitle: course.title,
         amountDue,
         message:
-          'Application submitted. Our team will verify your MoMo receipt and contact you to confirm admission.',
+          'Enrollment submitted! We will verify your MoMo receipt within one business day. Track progress on your student dashboard.',
       },
       { status: 201 }
     )

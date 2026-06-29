@@ -9,6 +9,7 @@ import {
   formatUnknownError,
   getSupabaseConfigStatus,
 } from '@/lib/auth-debug'
+import { linkEnrollmentsToUser } from '@/lib/enrollment/link-user'
 import { hasPermission, resolvePermissions, type Permission } from '@/lib/admin/permissions'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
@@ -115,7 +116,8 @@ export async function registerUser(
   password: string,
   firstName: string,
   lastName: string,
-  role: AuthRole
+  role: AuthRole,
+  phone?: string
 ): Promise<AuthResult & { user?: unknown }> {
   const debug = baseDebug(email, role)
   try {
@@ -153,6 +155,7 @@ export async function registerUser(
           last_name: lastName.trim(),
           role,
           status: 'active',
+          phone: phone?.trim() || null,
         },
       ])
       .select('id, email, role, first_name, last_name, status, permissions')
@@ -171,6 +174,7 @@ export async function registerUser(
 
     debug.step = 'set_session_cookie'
     await establishUserSession(newUser)
+    await linkEnrollmentsToUser(newUser.id, trimmedEmail)
 
     debug.step = 'registration_success'
     return {
@@ -279,6 +283,7 @@ export async function loginUser(
 
     debug.step = 'set_session_cookie'
     await establishUserSession(user)
+    await linkEnrollmentsToUser(user.id, trimmedEmail)
 
     debug.step = 'login_success'
     return {

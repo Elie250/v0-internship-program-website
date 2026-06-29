@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
 
 export type PaymentRecord = {
   id: string
@@ -125,13 +126,11 @@ export async function reviewPayment(input: {
       .maybeSingle()
 
     if (fullPayment?.course_enrollment_id) {
-      await supabaseAdmin
-        .from('course_enrollments')
-        .update({
-          status: input.decision === 'approved' ? 'admitted' : 'payment_rejected',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', fullPayment.course_enrollment_id)
+      if (input.decision === 'approved') {
+        await admitEnrollmentById(fullPayment.course_enrollment_id)
+      } else {
+        await rejectEnrollmentById(fullPayment.course_enrollment_id)
+      }
     }
 
     return { success: true }
