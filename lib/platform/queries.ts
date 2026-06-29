@@ -10,6 +10,11 @@ import type {
   Product,
   Service,
 } from '@/types/platform'
+import {
+  attachCourseCategories,
+  isCoursePublished,
+  normalizeCourseRow,
+} from '@/lib/platform/courses'
 
 function db() {
   if (!supabaseAdmin) return null
@@ -94,10 +99,8 @@ export async function getCategories(type: Category['type']): Promise<Category[]>
 export async function getPublishedCourses(categorySlug?: string): Promise<Course[]> {
   const client = db()
   if (!client) return []
-  let query = client
-    .from('courses')
-    .select('*, category:categories(*)')
-    .eq('status', 'published')
+
+  let query = client.from('courses').select('*')
   if (categorySlug) {
     const { data: cat } = await client
       .from('categories')
@@ -106,20 +109,36 @@ export async function getPublishedCourses(categorySlug?: string): Promise<Course
       .maybeSingle()
     if (cat) query = query.eq('category_id', cat.id)
   }
-  const { data } = await query.order('created_at', { ascending: false })
-  return data ?? []
+
+  const { data, error } = await query.order('created_at', { ascending: false })
+  if (error) {
+    console.error('getPublishedCourses:', error.message)
+    return []
+  }
+
+  const published = (data ?? [])
+    .map((row) => normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string }))
+    .filter(isCoursePublished)
+
+  return attachCourseCategories(client, published)
 }
 
 export async function getCourseById(id: string): Promise<Course | null> {
   const client = db()
   if (!client) return null
-  const { data } = await client
+  const { data, error } = await client
     .from('courses')
-    .select('*, category:categories(*)')
+    .select('*')
     .eq('id', id)
-    .eq('status', 'published')
     .maybeSingle()
-  return data
+
+  if (error || !data) return null
+
+  const course = normalizeCourseRow(data as Record<string, unknown> & { id: string; title: string })
+  if (!isCoursePublished(course)) return null
+
+  const [withCategory] = await attachCourseCategories(client, [course])
+  return withCategory ?? null
 }
 
 export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {

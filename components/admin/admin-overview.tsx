@@ -12,7 +12,7 @@ import type { AdminStats } from '@/app/actions/admin-context'
 export function AdminOverview({ stats }: { stats: AdminStats }) {
   const cards = [
     { label: 'Users', value: stats.users, icon: Users, hint: 'Registered accounts' },
-    { label: 'Courses', value: stats.courses, icon: BookOpen, hint: 'Learning programs' },
+    { label: 'Courses', value: stats.courses, icon: BookOpen, hint: `${stats.publishedCourses} published · visible on /learning` },
     { label: 'Applications', value: stats.applications, icon: ClipboardList, hint: 'Pending review' },
     { label: 'Products', value: stats.products, icon: ShoppingBag, hint: 'Shop catalog' },
     { label: 'Announcements', value: stats.announcements, icon: Megaphone, hint: 'Published content' },
