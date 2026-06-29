@@ -1,92 +1,87 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentUser, logoutUser } from '@/app/actions/auth-service';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Users, LogOut, Home } from 'lucide-react';
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  program: string;
-  is_published: boolean;
-}
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getCurrentUser, logoutUser } from '@/app/actions/auth-service'
+import { getLecturerAssignedCourses } from '@/app/actions/lecturer-courses'
+import type { Course } from '@/types/platform'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { BookOpen, Users, LogOut, Home } from 'lucide-react'
 
 export default function LecturerDashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter()
+  const [user, setUser] = useState<{ firstName?: string; lastName?: string; role: string } | null>(
+    null
+  )
+  const [courses, setCourses] = useState<Course[]>([])
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = await getCurrentUser();
-      
-      if (!currentUser || currentUser.role !== 'lecturer') {
-        router.push('/auth/login');
-        return;
+    const load = async () => {
+      const currentUser = await getCurrentUser()
+
+      if (
+        !currentUser ||
+        (currentUser.role !== 'lecturer' && currentUser.role !== 'instructor')
+      ) {
+        router.push('/auth/login?role=lecturer')
+        return
       }
 
-      setUser(currentUser);
+      setUser(currentUser)
 
-      // Fetch lecturer's courses
-      try {
-        const supabase = createClient();
-        
-        const { data } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('created_by', currentUser.id)
-          .order('created_at', { ascending: false });
-
-        setCourses(data || []);
-      } catch (error) {
-        console.error('Failed to fetch courses:', error);
-      } finally {
-        setIsLoading(false);
+      const result = await getLecturerAssignedCourses()
+      if (!result.success) {
+        setError(result.error)
+      } else {
+        setCourses(result.courses)
       }
-    };
+      setIsLoading(false)
+    }
 
-    checkAuth();
-  }, [router]);
+    load()
+  }, [router])
 
   const handleLogout = async () => {
-    await logoutUser();
-    router.push('/');
-  };
+    await logoutUser()
+    router.push('/')
+  }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-600">Loading…</p>
       </div>
-    );
+    )
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null
+
+  const publishedCount = courses.filter((c) => c.status === 'published').length
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
           <div>
-            <h1 className="text-2xl font-bold text-primary">Lecturer Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Welcome, {user.firstName} {user.lastName}</p>
+            <h1 className="text-2xl font-bold text-slate-900">Lecturer Dashboard</h1>
+            <p className="text-sm text-slate-600">
+              Welcome, {user.firstName} {user.lastName}
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => router.push('/')}>
+            <Button variant="ghost" className="text-slate-800" onClick={() => router.push('/')}>
               <Home className="w-4 h-4 mr-2" />
               Home
             </Button>
-            <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
+            <Button
+              variant="ghost"
+              className="text-red-700 hover:bg-red-50"
+              onClick={handleLogout}
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
@@ -94,77 +89,78 @@ export default function LecturerDashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Stats */}
+        {error ? (
+          <p className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3">
+            {error}
+          </p>
+        ) : null}
+
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card>
+          <Card className="border-slate-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-              <BookOpen className="w-4 h-4 text-primary" />
+              <CardTitle className="text-sm font-medium text-slate-900">Assigned programmes</CardTitle>
+              <BookOpen className="w-4 h-4 text-[var(--brand-navy)]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{courses.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Created courses</p>
+              <div className="text-2xl font-bold text-slate-900">{courses.length}</div>
+              <p className="text-xs text-slate-600 mt-1">Courses assigned by admin</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-slate-200">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Published</CardTitle>
-              <BookOpen className="w-4 h-4 text-secondary" />
+              <CardTitle className="text-sm font-medium text-slate-900">Published</CardTitle>
+              <BookOpen className="w-4 h-4 text-[var(--brand-navy)]" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{courses.filter(c => c.is_published).length}</div>
-              <p className="text-xs text-muted-foreground mt-1">Published courses</p>
+              <div className="text-2xl font-bold text-slate-900">{publishedCount}</div>
+              <p className="text-xs text-slate-600 mt-1">Live on the platform</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="courses" className="space-y-4">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="courses" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsList className="bg-white border border-slate-200">
+            <TabsTrigger value="courses" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               <BookOpen className="w-4 h-4 mr-2" />
-              My Courses
+              My programmes
             </TabsTrigger>
-            <TabsTrigger value="students" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="students" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               <Users className="w-4 h-4 mr-2" />
               Students
             </TabsTrigger>
           </TabsList>
 
-          {/* Courses Tab */}
           <TabsContent value="courses" className="space-y-4">
             {courses.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-muted-foreground mb-4">You haven&apos;t created any courses yet</p>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    Create New Course
-                  </Button>
+              <Card className="border-slate-200">
+                <CardContent className="pt-6 text-center text-slate-600">
+                  <p>No programmes assigned yet.</p>
+                  <p className="text-sm mt-2">
+                    An administrator assigns courses to your lecturer account when creating or editing
+                    a programme.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
                 {courses.map((course) => (
-                  <Card key={course.id} className="hover:shadow-lg transition">
+                  <Card key={course.id} className="border-slate-200 hover:shadow-md transition">
                     <CardHeader>
-                      <div className="space-y-2">
-                        <CardTitle>{course.title}</CardTitle>
-                        {course.is_published ? (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded w-fit">Published</span>
-                        ) : (
-                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded w-fit">Draft</span>
-                        )}
-                      </div>
+                      <CardTitle className="text-slate-900">{course.title}</CardTitle>
+                      {course.status === 'published' ? (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded w-fit">
+                          Published
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-amber-100 text-amber-900 px-2 py-1 rounded w-fit">
+                          Draft
+                        </span>
+                      )}
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-muted-foreground text-sm">{course.description}</p>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">Edit</Button>
-                        <Button size="sm" variant="outline">View</Button>
-                      </div>
+                    <CardContent>
+                      <p className="text-sm text-slate-600 line-clamp-3">{course.description}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -172,19 +168,18 @@ export default function LecturerDashboard() {
             )}
           </TabsContent>
 
-          {/* Students Tab */}
-          <TabsContent value="students" className="space-y-4">
-            <Card>
+          <TabsContent value="students">
+            <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle>Your Students</CardTitle>
+                <CardTitle className="text-slate-900">Your students</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Student list coming soon</p>
+                <p className="text-slate-600">Enrollment lists per assigned programme — coming soon.</p>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </main>
     </div>
-  );
+  )
 }

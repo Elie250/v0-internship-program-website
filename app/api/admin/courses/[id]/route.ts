@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
+import { validateInstructorId } from '@/lib/admin/instructor-assignment'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const status = row.status ?? (row.is_published ? 'published' : 'draft')
@@ -46,6 +47,12 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
     update.program_end_date = body.program_end_date || null
   }
   if (!partial || body.category_id !== undefined) update.category_id = body.category_id || null
+  if (!partial || body.instructor_id !== undefined) {
+    update.instructor_id =
+      body.instructor_id === 'none' || body.instructor_id === '' || body.instructor_id == null
+        ? null
+        : String(body.instructor_id)
+  }
 
   if (!partial || body.status !== undefined) {
     update.status = String(body.status)
@@ -66,6 +73,15 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
+
+    if (body.instructor_id !== undefined) {
+      const instructor = await validateInstructorId(body.instructor_id)
+      if (instructor.error) {
+        return NextResponse.json({ error: instructor.error }, { status: 400 })
+      }
+      body.instructor_id = instructor.id ?? 'none'
+    }
+
     const payload = toCoursePayload(body, true)
     const { data, error } = await supabaseAdmin
       .from('courses')

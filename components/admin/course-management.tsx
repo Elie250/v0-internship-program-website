@@ -41,6 +41,7 @@ type Course = {
   description: string | null
   program?: string
   program_type?: ProgramType
+  instructor_id?: string | null
   duration: string | null
   thumbnail: string | null
   pricing: number | null
@@ -65,10 +66,14 @@ const emptyForm = {
   location: '',
   meeting_link: '',
   program_end_date: '',
+  instructor_id: 'none',
 }
+
+type LecturerOption = { id: string; name: string; email: string }
 
 export default function CourseManagementTab() {
   const [courses, setCourses] = useState<Course[]>([])
+  const [lecturers, setLecturers] = useState<LecturerOption[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
@@ -100,6 +105,10 @@ export default function CourseManagementTab() {
 
   useEffect(() => {
     load()
+    fetch('/api/admin/lecturers', { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => setLecturers(Array.isArray(data) ? data : []))
+      .catch(() => setLecturers([]))
   }, [])
 
   const handleCreate = async () => {
@@ -122,6 +131,7 @@ export default function CourseManagementTab() {
           location: form.location || null,
           meeting_link: form.meeting_link || null,
           program_end_date: form.program_end_date || null,
+          instructor_id: form.instructor_id === 'none' ? null : form.instructor_id,
         }),
       })
       const data = await res.json()
@@ -176,6 +186,7 @@ export default function CourseManagementTab() {
       location: course.location || '',
       meeting_link: course.meeting_link || '',
       program_end_date: course.program_end_date ? course.program_end_date.slice(0, 16) : '',
+      instructor_id: course.instructor_id || 'none',
     })
   }
 
@@ -195,6 +206,7 @@ export default function CourseManagementTab() {
           location: editForm.location || null,
           meeting_link: editForm.meeting_link || null,
           program_end_date: editForm.program_end_date || null,
+          instructor_id: editForm.instructor_id === 'none' ? null : editForm.instructor_id,
         }),
       })
       const data = await res.json()
@@ -290,7 +302,7 @@ export default function CourseManagementTab() {
           <DialogHeader>
             <DialogTitle>Create program</DialogTitle>
           </DialogHeader>
-          <CourseForm form={form} setForm={setForm} />
+          <CourseForm form={form} setForm={setForm} lecturers={lecturers} />
           {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
@@ -346,9 +358,17 @@ export default function CourseManagementTab() {
                 <p className="text-sm text-slate-600 line-clamp-3">{course.description}</p>
                 {course.duration ? (
                   <p className="text-sm">
-                    <span className="font-semibold">Duration:</span> {course.duration}
+                    <span className="font-semibold text-slate-800">Duration:</span> {course.duration}
                   </p>
                 ) : null}
+                {course.instructor_id ? (
+                  <p className="text-xs text-slate-600">
+                    Lecturer:{' '}
+                    {lecturers.find((l) => l.id === course.instructor_id)?.name ?? 'Assigned'}
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-700">No lecturer assigned</p>
+                )}
                 <p className="text-sm font-medium text-[var(--brand-navy)]">
                   {Number(course.pricing ?? 0) > 0
                     ? `${Number(course.pricing).toLocaleString()} RWF`
@@ -376,7 +396,7 @@ export default function CourseManagementTab() {
           <DialogHeader>
             <DialogTitle>Edit program</DialogTitle>
           </DialogHeader>
-          <CourseForm form={editForm} setForm={setEditForm} />
+          <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
@@ -391,9 +411,11 @@ export default function CourseManagementTab() {
 function CourseForm({
   form,
   setForm,
+  lecturers,
 }: {
   form: typeof emptyForm
   setForm: (value: typeof emptyForm) => void
+  lecturers: LecturerOption[]
 }) {
   const programType = form.program_type
   const showSchedule = programTypeNeedsSchedule(programType)
@@ -471,6 +493,34 @@ function CourseForm({
             onChange={(e) => setForm({ ...form, duration: e.target.value })}
           />
         </div>
+      </div>
+      <div>
+        <Label>Assigned lecturer</Label>
+        <Select
+          value={form.instructor_id || 'none'}
+          onValueChange={(v) => setForm({ ...form, instructor_id: v })}
+        >
+          <SelectTrigger className="mt-1">
+            <SelectValue placeholder="Select approved lecturer" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Not assigned —</SelectItem>
+            {lecturers.map((lecturer) => (
+              <SelectItem key={lecturer.id} value={lecturer.id}>
+                {lecturer.name} ({lecturer.email})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-slate-500 mt-1">
+          Only admin-approved lecturer accounts appear here. Pending registrations must be approved
+          under User Management first.
+        </p>
+        {lecturers.length === 0 ? (
+          <p className="text-xs text-amber-700 mt-1">
+            No active lecturers yet — approve lecturer registrations in User Management.
+          </p>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
