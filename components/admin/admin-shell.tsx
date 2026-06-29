@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Home, LogOut } from 'lucide-react'
 import { logoutUser } from '@/app/actions/auth-service'
 import type { AdminSession } from '@/app/actions/admin-context'
+import { ADMIN_NAV_ICONS } from '@/components/admin/admin-nav-icons'
 import { ROLE_LABELS } from '@/types/platform'
 
 export function AdminShell({
@@ -59,7 +60,7 @@ export function AdminShell({
               <SidebarGroupContent>
                 <SidebarMenu>
                   {group.items.map((item) => {
-                    const Icon = item.icon
+                    const Icon = ADMIN_NAV_ICONS[item.icon]
                     const isActive =
                       pathname === item.href ||
                       (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
@@ -68,7 +69,7 @@ export function AdminShell({
                       <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                           <Link href={item.href}>
-                            <Icon />
+                            {Icon ? <Icon /> : null}
                             <span>{item.label}</span>
                           </Link>
                         </SidebarMenuButton>
