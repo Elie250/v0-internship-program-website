@@ -41,6 +41,11 @@ import Link from 'next/link'
 import { ROLE_LABELS } from '@/types/platform'
 
 const STATUS_OPTIONS = ['all', 'active', 'pending_approval', 'inactive', 'suspended'] as const
+type StatusFilter = (typeof STATUS_OPTIONS)[number]
+
+function parseStatusFilter(value: string | null): StatusFilter {
+  return STATUS_OPTIONS.includes(value as StatusFilter) ? (value as StatusFilter) : 'all'
+}
 
 export default function UserManagementPage() {
   return (
@@ -58,12 +63,9 @@ function UserManagementTab() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState(() => {
-    const status = searchParams.get('status')
-    return STATUS_OPTIONS.includes(status as (typeof STATUS_OPTIONS)[number])
-      ? (status as (typeof STATUS_OPTIONS)[number])
-      : 'all'
-  })
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() =>
+    parseStatusFilter(searchParams.get('status'))
+  )
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUserRecord | null>(null)
   const [resetUserId, setResetUserId] = useState<string | null>(null)
@@ -245,7 +247,7 @@ function UserManagementTab() {
             <select
               id="statusFilter"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(parseStatusFilter(e.target.value))}
               className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
             >
               {STATUS_OPTIONS.map((status) => (

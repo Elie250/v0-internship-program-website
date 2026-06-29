@@ -24,6 +24,10 @@ export type SupportSubscriptionPlan = {
   duration_days: number
   max_tickets: number | null
   response_sla_hours: number | null
+  plan_tier: 'free' | 'paid'
+  max_ai_messages: number | null
+  community_can_post: boolean
+  community_can_reply: boolean
   features: string[]
   sort_order: number
   status: SupportPlanStatus
@@ -37,6 +41,7 @@ export type SupportSubscription = {
   payment_id: string | null
   applicant_phone: string | null
   tickets_used: number
+  ai_messages_used: number
   starts_at: string | null
   ends_at: string | null
   admin_notes: string | null
@@ -48,7 +53,13 @@ export type SupportAccessSummary = {
   hasActiveSubscription: boolean
   subscription: SupportSubscription | null
   ticketsRemaining: number | null
+  aiMessagesRemaining: number | null
   canSubmitTicket: boolean
+  canUseAiAssistant: boolean
+  canPostCommunity: boolean
+  canReplyCommunity: boolean
+  canReadCommunity: boolean
+  planTier: 'free' | 'paid' | null
   blockReason: string | null
 }
 

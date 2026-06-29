@@ -33,6 +33,7 @@ export async function activateSupportSubscription(
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       tickets_used: 0,
+      ai_messages_used: 0,
       updated_at: startsAt.toISOString(),
     })
     .eq('id', subscriptionId)
