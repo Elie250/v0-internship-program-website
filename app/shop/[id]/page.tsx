@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
+import { Package } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Button } from '@/components/ui/button'
@@ -18,17 +19,32 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const finalPrice = product.discount ? product.price - product.discount : product.price
   const specs = Object.entries(product.specifications ?? {})
+  const images = product.images?.length ? product.images : []
 
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
       <section className="max-w-6xl mx-auto px-4 py-10 grid lg:grid-cols-2 gap-10">
-        <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-          {product.images?.[0] ? (
-            <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">No image</div>
-          )}
+        <div>
+          <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+            {images[0] ? (
+              <Image src={images[0]} alt={product.name} fill className="object-cover" unoptimized />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
+                <Package className="h-12 w-12 opacity-50" />
+                <span>No image available</span>
+              </div>
+            )}
+          </div>
+          {images.length > 1 ? (
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              {images.slice(0, 4).map((img, index) => (
+                <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                  <Image src={img} alt={`${product.name} ${index + 1}`} fill className="object-cover" unoptimized />
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <p className="text-sm text-muted-foreground mb-2">{product.category?.name}</p>
@@ -61,7 +77,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <h2 className="text-2xl font-bold mb-6">Related Products</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {related.map((item) => (
-              <Card key={item.id}>
+              <Card key={item.id} className="overflow-hidden">
+                {item.images?.[0] ? (
+                  <div className="relative h-32">
+                    <Image src={item.images[0]} alt={item.name} fill className="object-cover" unoptimized />
+                  </div>
+                ) : (
+                  <div className="h-32 bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                    No image
+                  </div>
+                )}
                 <CardHeader><CardTitle className="text-base">{item.name}</CardTitle></CardHeader>
                 <CardContent>
                   <Link href={`/shop/${item.id}`}><Button variant="outline" size="sm">View</Button></Link>

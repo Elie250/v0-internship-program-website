@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
@@ -27,12 +28,30 @@ const careerLinks = [
 ]
 
 export function SiteHeader() {
+  const [logoUrl, setLogoUrl] = useState(COMPANY.logoUrl)
+
+  useEffect(() => {
+    fetch('/api/public/logo')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.logoUrl) setLogoUrl(data.logoUrl)
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <nav className="sticky top-0 z-50 bg-[#1e3a5f] text-white border-b border-white/10 shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
         <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition">
-          <div className="bg-white/10 rounded-lg p-1.5">
-            <Image src="/logo.png" alt="Engineering Hub" width={36} height={36} className="rounded" />
+          <div className="bg-white rounded-lg p-1 shrink-0">
+            <Image
+              src={logoUrl}
+              alt={`${COMPANY.brandName} logo`}
+              width={48}
+              height={48}
+              className="rounded object-contain h-12 w-auto max-w-[120px]"
+              unoptimized
+            />
           </div>
           <div>
             <p className="font-bold text-lg leading-tight">{COMPANY.brandName}</p>

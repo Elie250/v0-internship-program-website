@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   publisher: COMPANY.legalName,
   robots: 'index, follow',
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: COMPANY.logoUrl,
+    apple: COMPANY.logoUrl,
   },
   openGraph: {
     type: 'website',

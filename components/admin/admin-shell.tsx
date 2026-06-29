@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Sidebar,
@@ -28,9 +29,11 @@ import { ROLE_LABELS } from '@/types/platform'
 
 export function AdminShell({
   session,
+  logoUrl,
   children,
 }: {
   session: AdminSession
+  logoUrl: string
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -47,9 +50,14 @@ export function AdminShell({
     <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b border-sidebar-border p-4">
-          <div className="flex flex-col gap-1">
-            <p className="font-bold text-sm leading-tight">Engineering Hub</p>
-            <p className="text-xs text-muted-foreground">Admin Console</p>
+          <div className="flex items-center gap-3">
+            <div className="relative h-10 w-10 shrink-0 rounded-md border bg-white overflow-hidden">
+              <Image src={logoUrl} alt="Company logo" fill className="object-contain p-0.5" unoptimized />
+            </div>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <p className="font-bold text-sm leading-tight truncate">Engineering Hub</p>
+              <p className="text-xs text-muted-foreground">Admin Console</p>
+            </div>
           </div>
         </SidebarHeader>
 

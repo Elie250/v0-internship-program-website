@@ -64,7 +64,10 @@ export async function getPublishedAnnouncements(limit = 6): Promise<Announcement
     .or('status.eq.published,is_featured.eq.true')
     .order('created_at', { ascending: false })
     .limit(limit)
-  return data ?? []
+  return (data ?? []).map((item) => ({
+    ...item,
+    message: item.message ?? item.content ?? '',
+  }))
 }
 
 export async function getPublishedEvents(past?: boolean): Promise<EventItem[]> {
@@ -123,11 +126,18 @@ export async function getPublishedProducts(categorySlug?: string, search?: strin
     if (cat) query = query.eq('category_id', cat.id)
   }
   const { data } = await query.order('created_at', { ascending: false })
-  let products = (data ?? []).map((p) => ({
-    ...p,
-    images: Array.isArray(p.images) ? p.images : [],
-    specifications: p.specifications ?? {},
-  }))
+  let products = (data ?? []).map((p) => {
+    const images = Array.isArray(p.images)
+      ? p.images
+      : p.image_url
+        ? [p.image_url]
+        : []
+    return {
+      ...p,
+      images,
+      specifications: p.specifications ?? {},
+    }
+  })
   if (search) {
     const q = search.toLowerCase()
     products = products.filter(
@@ -149,9 +159,14 @@ export async function getProductById(id: string): Promise<Product | null> {
     .eq('status', 'published')
     .maybeSingle()
   if (!data) return null
+  const images = Array.isArray(data.images)
+    ? data.images
+    : data.image_url
+      ? [data.image_url]
+      : []
   return {
     ...data,
-    images: Array.isArray(data.images) ? data.images : [],
+    images,
     specifications: data.specifications ?? {},
   }
 }
