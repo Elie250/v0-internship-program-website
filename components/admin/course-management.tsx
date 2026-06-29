@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { CourseContentPanel } from '@/components/admin/course-content-panel'
 import {
   Select,
   SelectContent,
@@ -319,6 +320,7 @@ export default function CourseManagementTab() {
             <DialogTitle>Edit course</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} />
+          {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={handleUpdate} disabled={saving} className="bg-[#1e3a5f]">Save changes</Button>

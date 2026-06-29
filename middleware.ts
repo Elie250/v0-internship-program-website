@@ -33,6 +33,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
+  if (pathname.startsWith('/student') && !user) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
   // Protect admin dashboard — accept either legacy admin_session or user_session with admin role
   if (pathname.startsWith('/admin/dashboard')) {
     const isAdmin = isAdminUser(user, adminSession)
@@ -53,5 +57,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/dashboard/:path*'],
+  matcher: ['/admin/:path*', '/dashboard/:path*', '/student/:path*'],
 }
