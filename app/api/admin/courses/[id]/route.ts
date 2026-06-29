@@ -3,15 +3,36 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
+import { normalizeCourseRow } from '@/lib/platform/courses'
 import { validateInstructorId } from '@/lib/admin/instructor-assignment'
 
 function normalizeCourse(row: Record<string, unknown>) {
-  const status = row.status ?? (row.is_published ? 'published' : 'draft')
+  const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
   return {
     ...row,
-    status,
+    ...normalized,
     program: row.program ?? row.difficulty ?? '',
+    program_type: normalized.program_type,
   }
+}
+
+function parseOptionalDate(value: unknown): string | null {
+  if (value == null || value === '') return null
+  const raw = String(value).trim()
+  if (!raw) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString().slice(0, 10)
+}
+
+function parseOptionalTimestamp(value: unknown): string | null {
+  if (value == null || value === '') return null
+  const raw = String(value).trim()
+  if (!raw) return null
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed.toISOString()
 }
 
 function toCoursePayload(body: Record<string, unknown>, partial = false) {
@@ -35,7 +56,7 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
     update.program_type = normalizeProgramType(body.program_type)
   }
   if (!partial || body.scheduled_at !== undefined) {
-    update.scheduled_at = body.scheduled_at || null
+    update.scheduled_at = parseOptionalTimestamp(body.scheduled_at)
   }
   if (!partial || body.location !== undefined) {
     update.location = body.location || null
@@ -44,7 +65,7 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
     update.meeting_link = body.meeting_link || null
   }
   if (!partial || body.program_end_date !== undefined) {
-    update.program_end_date = body.program_end_date || null
+    update.program_end_date = parseOptionalDate(body.program_end_date)
   }
   if (!partial || body.category_id !== undefined) update.category_id = body.category_id || null
   if (!partial || body.instructor_id !== undefined) {
@@ -59,6 +80,26 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
   }
 
   return update
+}
+
+async function updateCourseRecord(id: string, payload: Record<string, unknown>) {
+  if (!supabaseAdmin) {
+    return { data: null, error: { message: 'Database not configured' } }
+  }
+
+  let result = await supabaseAdmin.from('courses').update(payload).eq('id', id).select('*').single()
+
+  if (result.error?.message?.includes('program_end_date')) {
+    const { program_end_date: _removed, ...fallback } = payload
+    result = await supabaseAdmin.from('courses').update(fallback).eq('id', id).select('*').single()
+  }
+
+  if (result.error?.message?.includes('program_type')) {
+    const { program_type: _removed, program_end_date: _end, ...fallback } = payload
+    result = await supabaseAdmin.from('courses').update(fallback).eq('id', id).select('*').single()
+  }
+
+  return result
 }
 
 export async function PATCH(
@@ -79,19 +120,19 @@ export async function PATCH(
       if (instructor.error) {
         return NextResponse.json({ error: instructor.error }, { status: 400 })
       }
-      body.instructor_id = instructor.id ?? 'none'
+      body.instructor_id = instructor.id
     }
 
     const payload = toCoursePayload(body, true)
-    const { data, error } = await supabaseAdmin
-      .from('courses')
-      .update(payload)
-      .eq('id', id)
-      .select('*, category:categories(*)')
-      .single()
+
+    if (!Object.keys(payload).filter((key) => key !== 'updated_at').length) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+
+    const { data, error } = await updateCourseRecord(id, payload)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(normalizeCourse(data))
+    return NextResponse.json(normalizeCourse(data as Record<string, unknown>))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update course'
     return NextResponse.json({ error: message }, { status: 403 })
