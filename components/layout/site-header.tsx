@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { COMPANY } from '@/lib/company/constants'
 
 const learningLinks = [
   { href: '/learning?module=training', label: 'Training' },
@@ -35,7 +36,7 @@ export function SiteHeader() {
           </div>
           <div>
             <p className="font-bold text-lg leading-tight">{COMPANY.brandName}</p>
-            <p className="text-[11px] text-white/70">Nyanza, Rwanda · Engineering Training</p>
+            <p className="text-[11px] text-white/70">{COMPANY.address} · Engineering Training</p>
           </div>
         </Link>
 

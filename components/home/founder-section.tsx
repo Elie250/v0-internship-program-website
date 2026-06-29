@@ -1,21 +1,24 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { FOUNDER, COMPANY } from '@/lib/company/constants'
 
 export function FounderSection() {
   return (
     <section className="py-16 px-4 bg-muted/20">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-[240px_1fr] gap-10 items-start">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-[260px_1fr] gap-10 items-start">
         <div className="mx-auto md:mx-0">
-          <div className="w-48 h-48 rounded-2xl bg-[#1e3a5f]/10 border-2 border-dashed border-[#1e3a5f]/25 flex items-center justify-center text-center p-4">
-            <p className="text-sm text-muted-foreground">
-              Photo of<br />
-              <span className="font-semibold text-[#1e3a5f]">{FOUNDER.name}</span>
-              <br />
-              coming soon
-            </p>
+          <div className="relative w-52 h-64 rounded-2xl overflow-hidden border border-[#1e3a5f]/15 shadow-lg bg-white">
+            <Image
+              src={FOUNDER.photo}
+              alt={`${FOUNDER.name} — ${FOUNDER.title}`}
+              fill
+              className="object-cover object-top"
+              sizes="(max-width: 768px) 208px, 208px"
+              priority
+            />
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-3">{FOUNDER.name}</p>
         </div>
 
         <div>

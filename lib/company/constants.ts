@@ -17,6 +17,7 @@ export const FOUNDER = {
   name: 'Elie Bisamaza',
   title: 'Embedded Systems Engineer',
   role: 'Founder & Lead Trainer',
+  photo: '/team/elie-bisamaza.png',
   bio: `Elie Bisamaza is an Embedded Systems Engineer and the founder and lead trainer at Energy & Logics Ltd. He brings six years of experience in electrical technology and more than two years of delivering practical technical training.
 
 Elie has collaborated on training projects with the Rwanda TVET Board (RTB) and has worked with technology companies such as Easy Fab. His approach combines real industry experience with structured workshops—helping students, technicians, and graduates build skills they can apply immediately in the field.`,
