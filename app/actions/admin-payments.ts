@@ -21,6 +21,7 @@ export type PaymentRecord = {
   application_id: string | null
   student_id: string | null
   course_enrollment_id: string | null
+  support_subscription_id: string | null
   course_id: string | null
   created_at: string
 }
@@ -38,7 +39,7 @@ export async function listPendingPayments(): Promise<{
     const { data, error } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, course_id, created_at'
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
       )
       .in('status', ['pending_review', 'Pending', 'pending'])
       .order('created_at', { ascending: false })
@@ -65,7 +66,7 @@ export async function listAllPayments(): Promise<{
     const { data, error } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, course_id, created_at'
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
       )
       .order('created_at', { ascending: false })
       .limit(100)
@@ -121,7 +122,7 @@ export async function reviewPayment(input: {
 
     const { data: fullPayment } = await supabaseAdmin
       .from('payments')
-      .select('course_enrollment_id')
+      .select('course_enrollment_id, support_subscription_id')
       .eq('id', input.id)
       .maybeSingle()
 
@@ -130,6 +131,17 @@ export async function reviewPayment(input: {
         await admitEnrollmentById(fullPayment.course_enrollment_id)
       } else {
         await rejectEnrollmentById(fullPayment.course_enrollment_id)
+      }
+    }
+
+    if (fullPayment?.support_subscription_id) {
+      const { activateSupportSubscription, rejectSupportSubscription } = await import(
+        '@/lib/support/activate-subscription'
+      )
+      if (input.decision === 'approved') {
+        await activateSupportSubscription(fullPayment.support_subscription_id)
+      } else {
+        await rejectSupportSubscription(fullPayment.support_subscription_id)
       }
     }
 
@@ -175,6 +187,48 @@ export async function submitManualPayment(input: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to submit payment',
+    }
+  }
+}
+
+export async function refundPayment(input: {
+  id: string
+  adminNotes?: string
+  deleteReceipt?: boolean
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdminPermission(PERMISSIONS.PAYMENTS_APPROVE)
+    const session = await getAdminSession()
+    const { refundApprovedPayment } = await import('@/lib/admin/refund-payment')
+    return refundApprovedPayment(input.id, {
+      adminNotes: input.adminNotes,
+      deleteReceipt: input.deleteReceipt ?? true,
+      reviewedBy: session?.user.id ?? null,
+    })
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to refund payment',
+    }
+  }
+}
+
+export async function removePaymentReceipt(input: {
+  id: string
+  adminNotes?: string
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdminPermission(PERMISSIONS.PAYMENTS_APPROVE)
+    const session = await getAdminSession()
+    const { deletePaymentReceipt } = await import('@/lib/admin/refund-payment')
+    return deletePaymentReceipt(input.id, {
+      adminNotes: input.adminNotes,
+      reviewedBy: session?.user.id ?? null,
+    })
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete receipt',
     }
   }
 }

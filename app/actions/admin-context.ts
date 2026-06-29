@@ -26,6 +26,7 @@ export type AdminStats = {
   admittedEnrollments: number
   pendingEnrollments: number
   pendingPayments: number
+  pendingStaffApprovals: number
   approvedPaymentsTotal: number
 }
 
@@ -100,6 +101,16 @@ async function countStudents(): Promise<number> {
   return count ?? 0
 }
 
+async function countPendingStaffApprovals(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending_approval')
+  if (error) return 0
+  return count ?? 0
+}
+
 async function fetchAdminStats(): Promise<AdminStats> {
   const [
     users,
@@ -114,6 +125,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     admittedEnrollments,
     pendingEnrollments,
     pendingPayments,
+    pendingStaffApprovals,
     approvedPaymentsTotal,
   ] = await Promise.all([
     countTable('users'),
@@ -128,6 +140,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     countEnrollmentsByStatus('admitted'),
     countEnrollmentsByStatus('payment_pending_review'),
     countPendingPayments(),
+    countPendingStaffApprovals(),
     sumApprovedPayments(),
   ])
 
@@ -144,6 +157,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     admittedEnrollments,
     pendingEnrollments,
     pendingPayments,
+    pendingStaffApprovals,
     approvedPaymentsTotal,
   }
 }
@@ -206,6 +220,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       admittedEnrollments: 0,
       pendingEnrollments: 0,
       pendingPayments: 0,
+      pendingStaffApprovals: 0,
       approvedPaymentsTotal: 0,
     }
   }

@@ -118,7 +118,7 @@ export function AdminShell({
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-6" />
           <div className="flex flex-1 items-center justify-between gap-2">
-            <p className="text-sm font-medium text-muted-foreground hidden sm:block">
+            <p className="text-sm font-medium text-slate-700 hidden sm:block">
               Energy & Logics Platform Administration
             </p>
             <Button variant="ghost" size="sm" asChild>

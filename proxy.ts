@@ -23,12 +23,11 @@ function isAdminUser(
   return user.permissions?.includes('admin:access') ?? false
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const user = getUserSession(request)
   const adminSession = request.cookies.get('admin_session')
 
-  // Protect dashboard routes
   if (pathname.startsWith('/dashboard') && !user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
@@ -46,7 +45,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Protect admin dashboard — accept either legacy admin_session or user_session with admin role
   if (pathname.startsWith('/admin/dashboard')) {
     const isAdmin = isAdminUser(user, adminSession)
     if (!isAdmin) {
