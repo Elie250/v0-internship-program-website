@@ -127,10 +127,11 @@ export default function PaymentVerificationPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Payment Receipt Verification</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Shop payment receipts</h1>
         <p className="text-slate-600 mt-1">
-          Manual workflow — users pay offline and upload a receipt. Approve to grant access, or
-          refund approved payments to revoke student access and remove the receipt when needed.
+          Manual verification for shop and legacy application payments only. Programme enrollments are
+          under <strong>Applications → Programme enrollments</strong>. Engineer plans use{' '}
+          <strong>Engineer subscriptions</strong>.
         </p>
       </div>
 

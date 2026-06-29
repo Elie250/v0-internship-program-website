@@ -128,9 +128,58 @@ export async function reviewPayment(input: {
 
     if (fullPayment?.course_enrollment_id) {
       if (input.decision === 'approved') {
-        await admitEnrollmentById(fullPayment.course_enrollment_id)
+        const admitResult = await admitEnrollmentById(fullPayment.course_enrollment_id)
+        if (admitResult.success) {
+          const { data: enrolled } = await supabaseAdmin
+            .from('course_enrollments')
+            .select('applicant_name, applicant_email, amount_due, access_starts_at, course_id')
+            .eq('id', fullPayment.course_enrollment_id)
+            .maybeSingle()
+          let programTitle = 'your programme'
+          if (enrolled?.course_id) {
+            const { data: course } = await supabaseAdmin
+              .from('courses')
+              .select('title')
+              .eq('id', enrolled.course_id)
+              .maybeSingle()
+            if (course?.title) programTitle = course.title
+          }
+          if (enrolled?.applicant_email) {
+            const { sendEnrollmentApprovedEmail } = await import('@/lib/email/enrollment-notifications')
+            void sendEnrollmentApprovedEmail({
+              to: enrolled.applicant_email,
+              studentName: enrolled.applicant_name,
+              programTitle,
+              amountPaid: Number(enrolled.amount_due ?? 0),
+              accessStartsAt: enrolled.access_starts_at,
+            })
+          }
+        }
       } else {
-        await rejectEnrollmentById(fullPayment.course_enrollment_id)
+        await rejectEnrollmentById(fullPayment.course_enrollment_id, input.adminNotes)
+        const { data: enrolled } = await supabaseAdmin
+          .from('course_enrollments')
+          .select('applicant_name, applicant_email, course_id')
+          .eq('id', fullPayment.course_enrollment_id)
+          .maybeSingle()
+        let programTitle = 'your programme'
+        if (enrolled?.course_id) {
+          const { data: course } = await supabaseAdmin
+            .from('courses')
+            .select('title')
+            .eq('id', enrolled.course_id)
+            .maybeSingle()
+          if (course?.title) programTitle = course.title
+        }
+        if (enrolled?.applicant_email) {
+          const { sendEnrollmentRejectedEmail } = await import('@/lib/email/enrollment-notifications')
+          void sendEnrollmentRejectedEmail({
+            to: enrolled.applicant_email,
+            studentName: enrolled.applicant_name,
+            programTitle,
+            reason: input.adminNotes,
+          })
+        }
       }
     }
 
@@ -138,10 +187,45 @@ export async function reviewPayment(input: {
       const { activateSupportSubscription, rejectSupportSubscription } = await import(
         '@/lib/support/activate-subscription'
       )
+      const { data: sub } = await supabaseAdmin
+        .from('support_subscriptions')
+        .select('plan_id, applicant_phone, user:users(first_name, last_name, email)')
+        .eq('id', fullPayment.support_subscription_id)
+        .maybeSingle()
+      let planName = 'Engineering support'
+      if (sub?.plan_id) {
+        const { data: plan } = await supabaseAdmin
+          .from('support_subscription_plans')
+          .select('name')
+          .eq('id', sub.plan_id)
+          .maybeSingle()
+        if (plan?.name) planName = plan.name
+      }
+      const subUser = sub?.user as { first_name?: string; last_name?: string; email?: string } | null
+      const subEmail = subUser?.email ?? ''
+      const subName =
+        [subUser?.first_name, subUser?.last_name].filter(Boolean).join(' ').trim() || 'Engineer'
       if (input.decision === 'approved') {
         await activateSupportSubscription(fullPayment.support_subscription_id)
+        if (subEmail) {
+          const { sendSubscriptionApprovedEmail } = await import('@/lib/email/enrollment-notifications')
+          void sendSubscriptionApprovedEmail({
+            to: subEmail,
+            name: subName,
+            planName,
+          })
+        }
       } else {
         await rejectSupportSubscription(fullPayment.support_subscription_id)
+        if (subEmail) {
+          const { sendSubscriptionRejectedEmail } = await import('@/lib/email/enrollment-notifications')
+          void sendSubscriptionRejectedEmail({
+            to: subEmail,
+            name: subName,
+            planName,
+            reason: input.adminNotes,
+          })
+        }
       }
     }
 

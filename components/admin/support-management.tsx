@@ -85,8 +85,8 @@ export default function SupportManagement() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Engineering support</h1>
         <p className="text-slate-600 mt-1">
-          Review tickets from subscribed users. Approve MoMo receipts under Payment Receipts to activate
-          subscriptions.
+          Review tickets from subscribed engineers. Approve subscription payments under{' '}
+          <strong>Engineer subscriptions</strong>.
         </p>
       </div>
 

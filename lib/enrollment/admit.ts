@@ -48,7 +48,8 @@ export async function admitEnrollmentById(
 }
 
 export async function rejectEnrollmentById(
-  enrollmentId: string
+  enrollmentId: string,
+  reason?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
@@ -56,6 +57,7 @@ export async function rejectEnrollmentById(
     .from('course_enrollments')
     .update({
       status: 'payment_rejected',
+      rejection_reason: reason?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', enrollmentId)

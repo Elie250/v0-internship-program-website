@@ -24,6 +24,10 @@ export type PaymentRecord = {
 const PAYMENT_COLUMNS =
   'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
 
+export function isShopOrLegacyPayment(payment: PaymentRecord): boolean {
+  return !payment.course_enrollment_id && !payment.support_subscription_id
+}
+
 export async function queryPendingPayments(): Promise<{
   payments: PaymentRecord[]
   error?: string
@@ -37,7 +41,7 @@ export async function queryPendingPayments(): Promise<{
     .order('created_at', { ascending: false })
 
   if (error) return { payments: [], error: error.message }
-  return { payments: (data ?? []) as PaymentRecord[] }
+  return { payments: ((data ?? []) as PaymentRecord[]).filter(isShopOrLegacyPayment) }
 }
 
 export async function queryAllPayments(limit = 100): Promise<{
@@ -53,5 +57,5 @@ export async function queryAllPayments(limit = 100): Promise<{
     .limit(limit)
 
   if (error) return { payments: [], error: error.message }
-  return { payments: (data ?? []) as PaymentRecord[] }
+  return { payments: ((data ?? []) as PaymentRecord[]).filter(isShopOrLegacyPayment) }
 }

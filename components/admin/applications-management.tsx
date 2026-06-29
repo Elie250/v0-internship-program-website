@@ -6,8 +6,10 @@ import {
   declineAdminApplication,
 } from '@/app/actions/admin-applications'
 import type { AdminApplicationRow } from '@/lib/admin/data/applications'
+import { LearningApplicationsPanel } from '@/components/admin/learning-applications-panel'
 import DashboardTable from '@/app/admin/dashboard/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function ApplicationsManagement() {
   const [applications, setApplications] = useState<AdminApplicationRow[]>([])
@@ -42,20 +44,16 @@ export default function ApplicationsManagement() {
     load()
   }, [load])
 
-  if (loading) {
-    return <p className="text-muted-foreground">Loading applications…</p>
-  }
-
-  const total = applications.length + registrations.length
+  const legacyTotal = applications.length + registrations.length
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 app-form-surface">
       <div>
-        <h1 className="text-2xl font-bold">Applications</h1>
-        <p className="text-muted-foreground mt-1">
-          Review internship, training, and registration submissions. Overview counts{' '}
-          <strong>{applications.length}</strong> program application(s) in the database
-          {registrations.length ? ` plus ${registrations.length} registration(s)` : ''}.
+        <h1 className="text-2xl font-bold text-slate-900">All applications</h1>
+        <p className="text-slate-600 mt-1">
+          Programme enrollments with MoMo receipts are reviewed here first. After approval, students
+          move to <strong>Learning → Enrollments</strong>. Shop payments go to <strong>Orders</strong>;
+          engineer subscriptions use <strong>Engineer subscriptions</strong>.
         </p>
       </div>
 
@@ -65,51 +63,67 @@ export default function ApplicationsManagement() {
         </p>
       ) : null}
 
-      {!error && total === 0 ? (
-        <Card>
-          <CardContent className="pt-6 text-sm text-muted-foreground">
-            No submissions yet. New applications from the public site will appear here.
-          </CardContent>
-        </Card>
-      ) : null}
+      <Tabs defaultValue="learning">
+        <TabsList>
+          <TabsTrigger value="learning">Programme enrollments</TabsTrigger>
+          <TabsTrigger value="legacy">Legacy forms ({legacyTotal})</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Program applications ({applications.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {applications.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No program applications yet.</p>
-          ) : (
-            <DashboardTable
-              registrations={applications}
-              source="applications"
-              onAccept={acceptAdminApplication}
-              onDecline={declineAdminApplication}
-              onUpdated={load}
-            />
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="learning" className="mt-4">
+          <LearningApplicationsPanel />
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Registrations ({registrations.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {registrations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No registrations yet.</p>
+        <TabsContent value="legacy" className="mt-4 space-y-6">
+          {loading ? (
+            <p className="text-muted-foreground">Loading legacy applications…</p>
+          ) : legacyTotal === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                No legacy form submissions. Public internship/training forms appear here if used.
+              </CardContent>
+            </Card>
           ) : (
-            <DashboardTable
-              registrations={registrations}
-              source="registrations"
-              onAccept={acceptAdminApplication}
-              onDecline={declineAdminApplication}
-              onUpdated={load}
-            />
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Program applications ({applications.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {applications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">None</p>
+                  ) : (
+                    <DashboardTable
+                      registrations={applications}
+                      source="applications"
+                      onAccept={acceptAdminApplication}
+                      onDecline={declineAdminApplication}
+                      onUpdated={load}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Registrations ({registrations.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {registrations.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">None</p>
+                  ) : (
+                    <DashboardTable
+                      registrations={registrations}
+                      source="registrations"
+                      onAccept={acceptAdminApplication}
+                      onDecline={declineAdminApplication}
+                      onUpdated={load}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

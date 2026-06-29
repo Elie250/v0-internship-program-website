@@ -8,6 +8,8 @@ import type { Course } from '@/types/platform'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import { LecturerAssessmentsPanel } from '@/components/lecturer/lecturer-assessments-panel'
 import { BookOpen, Users, LogOut, Home } from 'lucide-react'
 
 export default function LecturerDashboard() {
@@ -16,6 +18,7 @@ export default function LecturerDashboard() {
     null
   )
   const [courses, setCourses] = useState<Course[]>([])
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -38,6 +41,7 @@ export default function LecturerDashboard() {
         setError(result.error)
       } else {
         setCourses(result.courses)
+        setSelectedCourseId(result.courses[0]?.id ?? null)
       }
       setIsLoading(false)
     }
@@ -61,6 +65,7 @@ export default function LecturerDashboard() {
   if (!user) return null
 
   const publishedCount = courses.filter((c) => c.status === 'published').length
+  const selectedCourse = courses.find((c) => c.id === selectedCourseId) ?? null
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -144,26 +149,36 @@ export default function LecturerDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {courses.map((course) => (
-                  <Card key={course.id} className="border-slate-200 hover:shadow-md transition">
-                    <CardHeader>
-                      <CardTitle className="text-slate-900">{course.title}</CardTitle>
-                      {course.status === 'published' ? (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded w-fit">
-                          Published
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-amber-100 text-amber-900 px-2 py-1 rounded w-fit">
-                          Draft
-                        </span>
-                      )}
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-slate-600 line-clamp-3">{course.description}</p>
-                    </CardContent>
-                  </Card>
-                ))}
+              <div className="grid lg:grid-cols-[280px_1fr] gap-6">
+                <div className="space-y-2">
+                  {courses.map((course) => (
+                    <button
+                      key={course.id}
+                      type="button"
+                      onClick={() => setSelectedCourseId(course.id)}
+                      className={`w-full text-left rounded-lg border px-3 py-2.5 transition ${
+                        selectedCourseId === course.id
+                          ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <p className="font-medium text-sm text-slate-900">{course.title}</p>
+                    </button>
+                  ))}
+                </div>
+                {selectedCourse ? (
+                  <div className="space-y-6">
+                    <Card className="border-slate-200">
+                      <CardHeader>
+                        <CardTitle className="text-slate-900">{selectedCourse.title}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <CourseLessonManager courseId={selectedCourse.id} mode="lecturer" />
+                      </CardContent>
+                    </Card>
+                    <LecturerAssessmentsPanel courseId={selectedCourse.id} />
+                  </div>
+                ) : null}
               </div>
             )}
           </TabsContent>
