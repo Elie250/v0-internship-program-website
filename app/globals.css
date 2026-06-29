@@ -30,8 +30,8 @@
   --secondary-foreground: oklch(1 0 0); /* White text */
   
   /* Muted: Light gray */
-  --muted: oklch(0.9 0 0);
-  --muted-foreground: oklch(0.5 0 0);
+  --muted: oklch(0.94 0 0);
+  --muted-foreground: oklch(0.38 0.01 253);
   
   /* Accent: Gold */
   --accent: oklch(0.75 0.2 80); /* #F2A900 equivalent */
@@ -39,7 +39,7 @@
   
   --destructive: oklch(0.577 0.245 27.325); /* Red for danger */
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.95 0 0);
+  --border: oklch(0.86 0.01 253);
   --input: oklch(1 0 0);
   --ring: oklch(0.37 0.15 254); /* Primary blue */
   
@@ -214,5 +214,67 @@
     color: var(--brand-navy);
     font-size: 1.875rem;
     font-weight: 700;
+  }
+
+  /* Forms, admin subpages, edit dialogs — readable labels & controls */
+  .app-form-surface {
+    color: #0f172a;
+  }
+
+  .app-form-surface [data-slot='label'] {
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  .app-form-surface [data-slot='input'],
+  .app-form-surface [data-slot='textarea'],
+  .app-form-surface [data-slot='select-trigger'] {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  .app-form-surface [data-slot='input']::placeholder,
+  .app-form-surface [data-slot='textarea']::placeholder,
+  .app-form-surface [data-slot='select-trigger'][data-placeholder] {
+    color: #64748b;
+  }
+
+  .app-form-surface [data-slot='select-trigger'] svg {
+    color: #475569;
+    opacity: 1;
+  }
+
+  .app-form-surface [data-slot='select-content'] {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  .app-form-surface [data-slot='select-item'] {
+    color: #0f172a;
+  }
+
+  .app-form-surface [data-slot='button'][data-variant='outline'],
+  .app-form-surface button.border {
+    color: #0f172a;
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+  }
+
+  .app-form-surface [data-slot='button'][data-variant='ghost'] {
+    color: #1e293b;
+  }
+
+  .app-form-surface .text-muted-foreground {
+    color: #475569;
+  }
+
+  .app-form-surface [data-slot='dialog-title'] {
+    color: #0f172a;
+  }
+
+  .app-form-surface [data-slot='dialog-description'] {
+    color: #475569;
   }
 }
