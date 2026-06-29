@@ -2,17 +2,19 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { getActiveHero } from '@/lib/platform/queries'
+import { COMPANY } from '@/lib/company/constants'
 import type { HeroContent } from '@/types/platform'
 
 const defaultHero: HeroContent = {
   id: 'default',
-  title: 'Engineering Hub',
-  subtitle: 'Engineering sustainable solutions through education, support, and innovation.',
+  title: `${COMPANY.brandName} — Engineering Training`,
+  subtitle:
+    'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Nyanza, Rwanda — training East African engineers for real industry work.',
   background_image: '/hero-laboratory.jpg',
-  cta_primary_label: 'Explore Learning',
+  cta_primary_label: 'View Programmes',
   cta_primary_url: '/learning',
-  cta_secondary_label: 'Create Account',
-  cta_secondary_url: '/auth/register',
+  cta_secondary_label: 'About Elie & our team',
+  cta_secondary_url: '/about',
   is_active: true,
 }
 

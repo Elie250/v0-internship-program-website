@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { COMPANY } from '@/lib/company/constants'
 import './globals.css'
 
 // Google fonts
@@ -8,12 +9,14 @@ const _geist = Geist({ subsets: ['latin'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Engineering Hub | Energy & Logics — Multi-Portal Engineering Ecosystem',
-  description: 'Engineering education, career development, technical support, internships, and marketplace. Dynamic platform powered by Energy & Logics.',
-  keywords: 'engineering internship, electrical systems, embedded systems, IoT, automation, PLC, electronics, training, Kigali, Rwanda',
-  authors: [{ name: 'Energy & Logics Ltd' }],
-  creator: 'Energy & Logics Ltd',
-  publisher: 'Energy & Logics Ltd',
+  title: `${COMPANY.brandName} | Engineering Training — Embedded Systems, PLC & Electrical`,
+  description:
+    'Energy & Logics Ltd delivers hands-on engineering training in embedded systems, industrial control, and advanced electrical technology from Nyanza, Rwanda. MTN MoMo payments. Led by founder Elie Bisamaza.',
+  keywords:
+    'Energy and Logics, engineering training Rwanda, embedded systems, PLC, industrial automation, electrical technology, RTB, Nyanza, East Africa, internship',
+  authors: [{ name: COMPANY.legalName }],
+  creator: COMPANY.legalName,
+  publisher: COMPANY.legalName,
   robots: 'index, follow',
   icons: {
     icon: '/logo.png',
@@ -21,13 +24,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'en_RW',
     url: 'https://energyandlogics.com',
-    title: 'Energy & Logics Engineering Academy',
-    description: 'Professional internship programs in engineering disciplines',
+    title: `${COMPANY.brandName} — Engineering Training Rwanda`,
+    description:
+      'Practical training in embedded systems, industrial control & electrical technology. Founded by Elie Bisamaza.',
     images: [
       {
-        url: '/hero-banner.jpg',
+        url: '/hero-laboratory.jpg',
         width: 1920,
         height: 600,
       },

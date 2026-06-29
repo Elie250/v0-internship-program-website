@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getCategories, getPublishedCourses } from '@/lib/platform/queries'
+import { COMPANY } from '@/lib/company/constants'
 
 export default async function LearningPage({
   searchParams,
@@ -28,7 +29,10 @@ export default async function LearningPage({
       <section className="bg-[#1e3a5f] text-white py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-4xl font-bold mb-2">Learning Portal</h1>
-          <p className="text-white/80">Dynamic engineering education — categories and courses managed by administrators.</p>
+          <p className="text-white/80">
+            Programmes in embedded systems, industrial control, and advanced electrical technology —
+            delivered by {COMPANY.brandName} in Rwanda.
+          </p>
         </div>
       </section>
 
@@ -52,8 +56,21 @@ export default async function LearningPage({
 
         {courses.length === 0 ? (
           <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              No published courses yet. Administrators can create courses and categories from the Admin Portal.
+            <CardContent className="py-10 text-center space-y-3">
+              <p className="text-muted-foreground">
+                New course schedules for Embedded Systems, Industrial Control, and Advanced Electrical
+                Technology are being published soon.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Contact us at{' '}
+                <a href={`mailto:${COMPANY.email}`} className="text-[#1e3a5f] underline">
+                  {COMPANY.email}
+                </a>{' '}
+                or call {COMPANY.phoneDisplay} to register interest.
+              </p>
+              <Link href="/payment-instructions">
+                <Button variant="outline" size="sm">Payment instructions (MTN MoMo)</Button>
+              </Link>
             </CardContent>
           </Card>
         ) : (

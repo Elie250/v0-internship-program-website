@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Mail, Phone, MapPin, Clock } from 'lucide-react'
+import Link from 'next/link'
+import { COMPANY, PAYMENT } from '@/lib/company/constants'
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -56,7 +58,7 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto">
           <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-lg text-white/90">
-            Have questions? We&apos;re here to help you every step of the way.
+            Reach {COMPANY.brandName} in {COMPANY.address}. We respond within one business day.
           </p>
         </div>
       </div>
@@ -74,11 +76,11 @@ export default function ContactPage() {
                 <CardTitle>Phone</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <a href="tel:+250783986252" className="text-lg font-semibold text-primary hover:underline">
-                  +250 783 986 252
+                <a href={`tel:${COMPANY.phone}`} className="text-lg font-semibold text-primary hover:underline">
+                  {COMPANY.phoneDisplay}
                 </a>
                 <p className="text-sm text-muted-foreground">
-                  Available Monday - Friday, 8:00 AM - 5:00 PM
+                  {COMPANY.timezone} · Mon–Fri 8:00–17:00
                 </p>
               </CardContent>
             </Card>
@@ -92,8 +94,8 @@ export default function ContactPage() {
                 <CardTitle>Email</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <a href="mailto:energylogicsltd@gmail.com" className="text-lg font-semibold text-primary hover:underline">
-                  energylogicsltd@gmail.com
+                <a href={`mailto:${COMPANY.email}`} className="text-lg font-semibold text-primary hover:underline">
+                  {COMPANY.email}
                 </a>
                 <p className="text-sm text-muted-foreground">
                   We'll respond within 24 hours
@@ -111,14 +113,29 @@ export default function ContactPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-lg font-semibold text-foreground">
-                  Nyamirambo, Kigali
+                  {COMPANY.address}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Rwanda
+                  {COMPANY.region}
                 </p>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="mb-8 border-[#1e3a5f]/20">
+            <CardHeader>
+              <CardTitle className="text-lg">Paying for a programme?</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-2">
+              <p>
+                MTN MoMo Pay Code: <strong className="text-foreground">{PAYMENT.momoPayCode}</strong> —{' '}
+                {PAYMENT.accountName}
+              </p>
+              <Link href="/payment-instructions" className="text-[#1e3a5f] font-medium hover:underline">
+                View full payment instructions →
+              </Link>
+            </CardContent>
+          </Card>
 
           {/* Contact Form */}
           <div className="max-w-2xl mx-auto">
