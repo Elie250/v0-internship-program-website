@@ -5,29 +5,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { resolvePermissions } from '@/lib/admin/permissions'
+import type { AdminUserRecord, AdminUserRole } from '@/lib/admin/user-roles'
 
-export type AdminUserRecord = {
-  id: string
-  email: string
-  first_name: string
-  last_name: string
-  role: string
-  status: string
-  permissions: string[]
-  created_at: string
-}
-
-const USER_ROLES = [
-  'student',
-  'lecturer',
-  'engineer',
-  'mentor',
-  'instructor',
-  'support_staff',
-  'admin',
-] as const
-
-export type AdminUserRole = (typeof USER_ROLES)[number]
+export type { AdminUserRecord, AdminUserRole }
 
 export async function listAdminUsers(filters?: {
   search?: string
@@ -238,5 +218,3 @@ export async function deleteAdminUser(
     }
   }
 }
-
-export { USER_ROLES }

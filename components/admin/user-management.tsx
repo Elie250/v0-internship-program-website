@@ -8,10 +8,12 @@ import {
   resetAdminUserPassword,
   updateAdminUser,
   updateAdminUserStatus,
+} from '@/app/actions/admin-users'
+import {
   USER_ROLES,
   type AdminUserRecord,
   type AdminUserRole,
-} from '@/app/actions/admin-users'
+} from '@/lib/admin/user-roles'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -118,12 +120,15 @@ export default function UserManagementTab() {
 
   const openEdit = (user: AdminUserRecord) => {
     setEditingUser(user)
+    const role = USER_ROLES.includes(user.role as AdminUserRole)
+      ? (user.role as AdminUserRole)
+      : 'student'
     setFormData({
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
+      email: user.email ?? '',
+      firstName: user.first_name ?? '',
+      lastName: user.last_name ?? '',
       password: '',
-      role: user.role as AdminUserRole,
+      role,
     })
   }
 
@@ -137,6 +142,7 @@ export default function UserManagementTab() {
     engineer: 'bg-purple-100 text-purple-700',
     support_staff: 'bg-purple-100 text-purple-700',
     student: 'bg-green-100 text-green-700',
+    registered: 'bg-green-100 text-green-700',
   }
 
   const statusColors: Record<string, string> = {
@@ -250,17 +256,17 @@ export default function UserManagementTab() {
                   users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
-                        {user.first_name} {user.last_name}
+                        {[user.first_name, user.last_name].filter(Boolean).join(' ') || '—'}
                       </TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.email ?? '—'}</TableCell>
                       <TableCell>
-                        <Badge className={badgeClass(user.role, roleColors)}>
-                          {ROLE_LABELS[user.role] ?? user.role}
+                        <Badge className={badgeClass(user.role ?? '', roleColors)}>
+                          {ROLE_LABELS[user.role] ?? user.role ?? 'Unknown'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge className={badgeClass(user.status, statusColors)}>
-                          {user.status}
+                        <Badge className={badgeClass(user.status ?? 'active', statusColors)}>
+                          {user.status ?? 'active'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
