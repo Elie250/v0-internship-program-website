@@ -64,6 +64,10 @@ function RegisterForm() {
       }
 
       if (result.success) {
+        if (result.pendingApproval) {
+          router.push(result.redirectTo ?? '/auth/login?message=staff_pending&role=lecturer')
+          return
+        }
         const dest =
           redirectTo && redirectTo.startsWith('/')
             ? redirectTo
@@ -125,14 +129,30 @@ function RegisterForm() {
                     key={value}
                     className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-muted cursor-pointer transition"
                   >
-                    <RadioGroupItem value={value} id={value} />
+                    <RadioGroupItem
+                      value={value}
+                      id={value}
+                      disabled={enrolling && value !== 'student'}
+                    />
                     <Label htmlFor={value} className="cursor-pointer flex-1 m-0">
-                      <p className="font-semibold">{title}</p>
-                      <p className="text-sm text-muted-foreground">{desc}</p>
+                      <p className="font-semibold text-slate-900">{title}</p>
+                      <p className="text-sm text-slate-600">
+                        {value === 'lecturer'
+                          ? 'Requires admin approval before you can sign in. Permissions are set by an administrator.'
+                          : value === 'engineer'
+                            ? 'Requires admin approval before you can sign in.'
+                            : desc}
+                      </p>
                     </Label>
                   </div>
                 ))}
               </RadioGroup>
+              {role === 'lecturer' || role === 'engineer' ? (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                  Staff accounts are reviewed by {COMPANY.brandName}. You will not be logged in
+                  automatically — an admin must approve your account and assign permissions.
+                </div>
+              ) : null}
             </div>
 
             {success ? (

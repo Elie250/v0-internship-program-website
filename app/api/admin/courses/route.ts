@@ -5,6 +5,7 @@ import { PERMISSIONS } from '@/lib/admin/permissions'
 import { TRAINING_PROGRAMS } from '@/lib/company/constants'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
+import { validateInstructorId } from '@/lib/admin/instructor-assignment'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
@@ -16,7 +17,7 @@ function normalizeCourse(row: Record<string, unknown>) {
   }
 }
 
-function toCoursePayload(body: Record<string, unknown>) {
+function toCoursePayload(body: Record<string, unknown>, instructorId?: string | null) {
   const status = String(body.status ?? 'published')
   const program = String(body.program || body.difficulty || '')
   const programType = normalizeProgramType(body.program_type)
@@ -35,6 +36,7 @@ function toCoursePayload(body: Record<string, unknown>) {
     location: body.location || null,
     meeting_link: body.meeting_link || null,
     program_end_date: body.program_end_date || null,
+    instructor_id: instructorId ?? null,
     updated_at: new Date().toISOString(),
   }
 }
@@ -95,7 +97,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Course title is required' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin.from('courses').insert([payload]).select().single()
+    const instructor = await validateInstructorId(body.instructor_id)
+    if (instructor.error) {
+      return NextResponse.json({ error: instructor.error }, { status: 400 })
+    }
+    const finalPayload = toCoursePayload(body, instructor.id)
+
+    const { data, error } = await supabaseAdmin.from('courses').insert([finalPayload]).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(normalizeCourse(data), { status: 201 })
   } catch (error) {

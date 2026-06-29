@@ -7,6 +7,7 @@ import {
   resetAdminUserPassword,
   updateAdminUser,
   updateAdminUserStatus,
+  approveStaffAccount,
 } from '@/app/actions/admin-users'
 import {
   USER_ROLES,
@@ -34,10 +35,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Trash2, Edit2, KeyRound, Ban, CheckCircle2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, KeyRound, Ban, CheckCircle2, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 import { ROLE_LABELS } from '@/types/platform'
 
-const STATUS_OPTIONS = ['all', 'active', 'inactive', 'suspended'] as const
+const STATUS_OPTIONS = ['all', 'active', 'pending_approval', 'inactive', 'suspended'] as const
 
 export default function UserManagementTab() {
   const [users, setUsers] = useState<AdminUserRecord[]>([])
@@ -163,6 +165,7 @@ export default function UserManagementTab() {
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-100 text-green-700',
+    pending_approval: 'bg-amber-100 text-amber-900',
     inactive: 'bg-yellow-100 text-yellow-700',
     suspended: 'bg-red-100 text-red-700',
   }
@@ -171,8 +174,13 @@ export default function UserManagementTab() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">User Management</h1>
-        <p className="text-muted-foreground mt-1">
-          Create, edit, activate, deactivate, and reset passwords.
+        <p className="text-slate-600 mt-1">
+          Create, edit, and approve accounts. Lecturer and engineer self-registrations stay{' '}
+          <strong>pending approval</strong> until you activate them. Adjust permissions under{' '}
+          <Link href="/admin/dashboard/roles" className="text-[var(--brand-navy)] underline">
+            Roles &amp; permissions
+          </Link>
+          .
         </p>
       </div>
 
@@ -220,7 +228,11 @@ export default function UserManagementTab() {
             >
               {STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>
-                  {status === 'all' ? 'All statuses' : status}
+                  {status === 'all'
+                    ? 'All statuses'
+                    : status === 'pending_approval'
+                      ? 'Pending approval'
+                      : status}
                 </option>
               ))}
             </select>
@@ -282,7 +294,7 @@ export default function UserManagementTab() {
                       </TableCell>
                       <TableCell>
                         <Badge className={badgeClass(user.status ?? 'active', statusColors)}>
-                          {user.status ?? 'active'}
+                          {user.status === 'pending_approval' ? 'Pending approval' : (user.status ?? 'active')}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -297,6 +309,22 @@ export default function UserManagementTab() {
                           >
                             <KeyRound className="w-4 h-4" />
                           </Button>
+                          {user.status === 'pending_approval' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-green-700"
+                              title="Approve account"
+                              onClick={() =>
+                                approveStaffAccount(user.id).then((res) => {
+                                  if (!res.success) setError(res.error || 'Approval failed')
+                                  else loadUsers()
+                                })
+                              }
+                            >
+                              <ShieldCheck className="w-4 h-4" />
+                            </Button>
+                          ) : null}
                           {user.status === 'active' ? (
                             <Button
                               size="sm"

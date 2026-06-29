@@ -37,6 +37,15 @@ function LoginForm() {
     if (searchParams.get('message') === 'registered') {
       setSuccess('Account created. You can log in with your email and password.');
     }
+    if (searchParams.get('message') === 'staff_pending') {
+      const pendingRole = searchParams.get('role')
+      if (pendingRole === 'lecturer' || pendingRole === 'engineer') {
+        setRole(pendingRole)
+      }
+      setSuccess(
+        'Registration received. Your account is awaiting admin approval — you can sign in after an administrator activates it and sets your permissions.'
+      )
+    }
     if (searchParams.get('redirect')?.includes('/enroll')) {
       setSuccess((prev) => prev || 'Log in with your student account to continue enrollment.');
     }

@@ -11,6 +11,11 @@ import {
 } from '@/lib/auth-debug'
 import { linkEnrollmentsToUser } from '@/lib/enrollment/link-user'
 import { hasPermission, resolvePermissions, type Permission } from '@/lib/admin/permissions'
+import {
+  isLoginAllowedStatus,
+  loginBlockedMessage,
+  requiresAdminApproval,
+} from '@/lib/auth/staff-registration'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
@@ -18,6 +23,7 @@ export type AuthResult = {
   success: boolean
   error?: string
   redirectTo?: string
+  pendingApproval?: boolean
   debug?: AuthDebugInfo
 }
 
@@ -144,6 +150,9 @@ export async function registerUser(
     }
 
     const passwordHash = await bcrypt.hash(password, 10)
+    const needsApproval = requiresAdminApproval(role)
+    const initialStatus = needsApproval ? 'pending_approval' : 'active'
+    const permissions = resolvePermissions(role, [])
 
     const { data: newUser, error } = await supabaseAdmin
       .from('users')
@@ -154,8 +163,9 @@ export async function registerUser(
           first_name: firstName.trim(),
           last_name: lastName.trim(),
           role,
-          status: 'active',
+          status: initialStatus,
           phone: phone?.trim() || null,
+          permissions: needsApproval ? [] : permissions,
         },
       ])
       .select('id, email, role, first_name, last_name, status, permissions')
@@ -169,6 +179,16 @@ export async function registerUser(
         success: false,
         error: `Registration failed: ${error?.message ?? 'Could not create user'}`,
         debug,
+      }
+    }
+
+    if (needsApproval) {
+      debug.step = 'registration_pending_approval'
+      return {
+        success: true,
+        pendingApproval: true,
+        redirectTo: `/auth/login?message=staff_pending&role=${role}`,
+        debug: undefined,
       }
     }
 
@@ -259,11 +279,11 @@ export async function loginUser(
     debug.passwordFieldPresent = Boolean(user.password_hash)
     debug.passwordHashType = classifyPasswordHash(user.password_hash)
 
-    if (user.status !== 'active') {
+    if (!isLoginAllowedStatus(user.status)) {
       debug.step = 'user_not_active'
       return {
         success: false,
-        error: `Account status is "${user.status}" (must be active)`,
+        error: loginBlockedMessage(String(user.status), user.role),
         debug,
       }
     }
