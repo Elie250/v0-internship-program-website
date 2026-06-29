@@ -51,17 +51,45 @@ const navDropdownItemClass =
 const headerNavButtonClass =
   'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/40'
 
+const mobileNavLinkClass =
+  'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
+
+function BrandMark({
+  logoUrl,
+  compact = false,
+}: {
+  logoUrl: string
+  compact?: boolean
+}) {
+  return (
+    <div className="bg-white rounded-lg p-1 shrink-0 shadow-sm border border-white/80">
+      <Image
+        src={logoUrl}
+        alt={`${COMPANY.brandName} logo`}
+        width={48}
+        height={48}
+        className={
+          compact
+            ? 'rounded object-contain h-8 w-8'
+            : 'rounded object-contain h-9 w-9 sm:h-12 sm:w-auto sm:max-w-[120px]'
+        }
+        unoptimized
+      />
+    </div>
+  )
+}
+
 function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <div className="flex flex-col gap-6 py-2">
+    <div className="mobile-nav-panel flex flex-col gap-6 py-2">
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Menu</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Menu</p>
         {topLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
-            className="block rounded-lg px-3 py-2.5 text-base font-medium text-slate-900 hover:bg-slate-100 no-underline hover:no-underline"
+            className={mobileNavLinkClass}
           >
             {link.label}
           </Link>
@@ -69,13 +97,13 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Learning</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Learning</p>
         {learningLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
-            className="block rounded-lg px-3 py-2.5 text-base text-slate-800 hover:bg-slate-100 no-underline hover:no-underline"
+            className={mobileNavLinkClass}
           >
             {link.label}
           </Link>
@@ -83,27 +111,30 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 px-1">Career</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Career</p>
         {careerLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
-            className="block rounded-lg px-3 py-2.5 text-base text-slate-800 hover:bg-slate-100 no-underline hover:no-underline"
+            className={mobileNavLinkClass}
           >
             {link.label}
           </Link>
         ))}
       </div>
 
-      <div className="border-t pt-4 flex flex-col gap-2">
+      <div className="border-t border-slate-200 pt-4 flex flex-col gap-2">
         <Link href="/auth/login" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button variant="outline" className="w-full border-slate-300 text-slate-900">
+          <Button
+            variant="outline"
+            className="w-full border-slate-400 bg-white text-slate-950 font-semibold hover:bg-slate-50"
+          >
             Login
           </Button>
         </Link>
         <Link href="/auth/register" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+          <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 font-semibold">
             Register
           </Button>
         </Link>
@@ -130,23 +161,14 @@ export function SiteHeader() {
       <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3">
         <Link
           href="/"
-          className="flex items-center gap-2 sm:gap-3 min-w-0 hover:opacity-90 transition no-underline hover:no-underline"
+          className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 hover:opacity-90 transition no-underline hover:no-underline"
         >
-          <div className="bg-white rounded-lg p-1 shrink-0">
-            <Image
-              src={logoUrl}
-              alt={`${COMPANY.brandName} logo`}
-              width={48}
-              height={48}
-              className="rounded object-contain h-9 w-9 sm:h-12 sm:w-auto sm:max-w-[120px]"
-              unoptimized
-            />
-          </div>
+          <BrandMark logoUrl={logoUrl} />
           <div className="min-w-0">
             <p className="font-bold text-sm sm:text-lg leading-tight text-white truncate">
               {COMPANY.brandName}
             </p>
-            <p className="text-[10px] sm:text-[11px] text-white/75 truncate hidden sm:block">
+            <p className="text-[10px] sm:text-[11px] text-white/90 truncate leading-snug">
               {COMPANY.slogan}
             </p>
           </div>
@@ -217,39 +239,74 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Desktop auth */}
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
           <Link
             href="/auth/login"
-            className="hidden sm:inline-flex text-sm font-semibold text-white hover:text-white px-2 py-1.5 no-underline hover:underline"
+            className="text-sm font-semibold text-white hover:text-white px-2 py-1.5 no-underline hover:underline"
           >
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">
             <Button
               size="sm"
-              className="bg-white text-[var(--brand-navy)] hover:bg-white/90 font-semibold h-8 px-2.5 sm:px-3 text-xs sm:text-sm shadow-sm"
+              className="bg-white text-[var(--brand-navy)] hover:bg-white/90 font-semibold h-9 px-3 shadow-sm"
             >
               Register
             </Button>
           </Link>
+        </div>
 
+        {/* Mobile action pod — mirrors the logo pod on the left */}
+        <div className="site-header-mobile-actions lg:hidden flex items-center shrink-0 bg-white rounded-lg p-1 gap-0.5 shadow-sm border border-white/90">
+          <Link
+            href="/auth/login"
+            className="inline-flex items-center justify-center h-9 px-2.5 text-xs font-semibold text-[var(--brand-navy)] rounded-md hover:bg-slate-100 no-underline hover:no-underline"
+          >
+            Login
+          </Link>
+          <Link href="/auth/register" className="no-underline hover:no-underline">
+            <Button
+              size="sm"
+              className="h-9 px-2.5 text-xs font-semibold bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 shadow-none"
+            >
+              Join
+            </Button>
+          </Link>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="icon"
-                className="lg:hidden h-9 w-9 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white shrink-0"
+                className="h-9 w-9 rounded-md bg-slate-100 text-[var(--brand-navy)] hover:bg-slate-200 hover:text-[var(--brand-navy)] shrink-0"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[min(100vw-2rem,20rem)] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle className="text-left text-[var(--brand-navy)]">{COMPANY.brandName}</SheetTitle>
+            <SheetContent
+              side="right"
+              className="mobile-nav-sheet w-[min(100vw-1.5rem,22rem)] overflow-y-auto bg-white p-0 [&>[data-slot=sheet-close]]:top-4 [&>[data-slot=sheet-close]]:right-4 [&>[data-slot=sheet-close]]:text-slate-700 [&>[data-slot=sheet-close]]:opacity-100 [&>[data-slot=sheet-close]]:hover:bg-slate-100 [&>[data-slot=sheet-close]]:rounded-md"
+            >
+              <SheetHeader className="border-b border-slate-200 bg-slate-50 px-4 py-4 pr-12">
+                <Link
+                  href="/"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 no-underline hover:no-underline"
+                >
+                  <BrandMark logoUrl={logoUrl} compact />
+                  <div className="min-w-0 text-left">
+                    <SheetTitle className="text-base font-bold text-[var(--brand-navy)] truncate">
+                      {COMPANY.brandName}
+                    </SheetTitle>
+                    <p className="text-xs text-slate-600 truncate mt-0.5">{COMPANY.slogan}</p>
+                  </div>
+                </Link>
               </SheetHeader>
-              <MobileNav onNavigate={() => setMobileOpen(false)} />
+              <div className="px-4 pb-6">
+                <MobileNav onNavigate={() => setMobileOpen(false)} />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
