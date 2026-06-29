@@ -2,19 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import {
-  createAdminUser,
-  deleteAdminUser,
-  resetAdminUserPassword,
-  updateAdminUser,
-  updateAdminUserStatus,
-  approveStaffAccount,
-} from '@/app/actions/admin-users'
-import {
-  USER_ROLES,
-  type AdminUserRecord,
-  type AdminUserRole,
-} from '@/lib/admin/user-roles'
+import type { AdminUserRecord, AdminUserRole } from '@/lib/admin/user-roles'
+import { USER_ROLES } from '@/lib/admin/user-roles'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -47,6 +36,54 @@ function parseStatusFilter(value: string | null): StatusFilter {
   return STATUS_OPTIONS.includes(value as StatusFilter) ? (value as StatusFilter) : 'all'
 }
 
+async function patchUser(
+  body: Record<string, unknown>
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  const res = await fetch('/api/admin/users', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    return { success: false, error: data.error || `Request failed (${res.status})` }
+  }
+  return { success: true, message: data.message }
+}
+
+async function postUser(
+  body: Record<string, unknown>
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    return { success: false, error: data.error || `Request failed (${res.status})` }
+  }
+  return { success: true, message: data.message }
+}
+
+async function putUser(
+  body: Record<string, unknown>
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  const res = await fetch('/api/admin/users', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    return { success: false, error: data.error || `Request failed (${res.status})` }
+  }
+  return { success: true, message: data.message }
+}
+
 export default function UserManagementPage() {
   return (
     <Suspense fallback={<div className="text-sm text-slate-600">Loading users…</div>}>
@@ -60,6 +97,8 @@ function UserManagementTab() {
   const [users, setUsers] = useState<AdminUserRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [busyUserId, setBusyUserId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -114,20 +153,48 @@ function UserManagementTab() {
     loadUsers()
   }, [loadUsers])
 
+  const runAction = async (
+    userId: string,
+    action: () => Promise<{ success: boolean; error?: string; message?: string }>,
+    successText?: string
+  ) => {
+    setBusyUserId(userId)
+    setError('')
+    setSuccess('')
+    try {
+      const result = await action()
+      if (!result.success) {
+        setError(result.error || 'Action failed')
+        return
+      }
+      setSuccess(result.message || successText || 'Done')
+      await loadUsers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Action failed')
+    } finally {
+      setBusyUserId(null)
+    }
+  }
+
   const handleCreate = async () => {
-    const result = await createAdminUser(formData)
+    setError('')
+    setSuccess('')
+    const result = await postUser(formData)
     if (!result.success) {
       setError(result.error || 'Create failed')
       return
     }
     setFormData({ email: '', firstName: '', lastName: '', password: '', role: 'student' })
     setIsCreateOpen(false)
+    setSuccess(result.message || 'User created')
     loadUsers()
   }
 
   const handleUpdate = async () => {
     if (!editingUser) return
-    const result = await updateAdminUser({
+    setError('')
+    setSuccess('')
+    const result = await putUser({
       id: editingUser.id,
       email: formData.email,
       firstName: formData.firstName,
@@ -139,18 +206,26 @@ function UserManagementTab() {
       return
     }
     setEditingUser(null)
+    setSuccess(result.message || 'User updated')
     loadUsers()
   }
 
   const handleResetPassword = async () => {
     if (!resetUserId) return
-    const result = await resetAdminUserPassword(resetUserId, newPassword)
+    setError('')
+    setSuccess('')
+    const result = await patchUser({
+      action: 'reset_password',
+      id: resetUserId,
+      newPassword,
+    })
     if (!result.success) {
       setError(result.error || 'Reset failed')
       return
     }
     setResetUserId(null)
     setNewPassword('')
+    setSuccess(result.message || 'Password reset')
   }
 
   const openEdit = (user: AdminUserRecord) => {
@@ -211,6 +286,12 @@ function UserManagementTab() {
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
           {error}
+        </p>
+      )}
+
+      {success && (
+        <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-3">
+          {success}
         </p>
       )}
 
@@ -322,61 +403,80 @@ function UserManagementTab() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex gap-1 justify-end flex-wrap">
-                          <Button size="sm" variant="ghost" onClick={() => openEdit(user)}>
+                        <div className="flex gap-1 justify-end flex-wrap items-center">
+                          {user.status === 'pending_approval' ? (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="bg-green-700 hover:bg-green-800 text-white h-8"
+                              disabled={busyUserId === user.id}
+                              onClick={() =>
+                                runAction(
+                                  user.id,
+                                  () => patchUser({ action: 'approve', id: user.id }),
+                                  `${[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email} approved`
+                                )
+                              }
+                            >
+                              <ShieldCheck className="w-4 h-4 mr-1" />
+                              {busyUserId === user.id ? 'Approving…' : 'Approve'}
+                            </Button>
+                          ) : null}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={busyUserId === user.id}
+                            onClick={() => openEdit(user)}
+                          >
                             <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
+                            disabled={busyUserId === user.id}
                             onClick={() => setResetUserId(user.id)}
                           >
                             <KeyRound className="w-4 h-4" />
                           </Button>
-                          {user.status === 'pending_approval' ? (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-green-700"
-                              title="Approve account"
-                              onClick={() =>
-                                approveStaffAccount(user.id).then((res) => {
-                                  if (!res.success) setError(res.error || 'Approval failed')
-                                  else loadUsers()
-                                })
-                              }
-                            >
-                              <ShieldCheck className="w-4 h-4" />
-                            </Button>
-                          ) : null}
                           {user.status === 'active' ? (
                             <Button
                               size="sm"
                               variant="ghost"
+                              title="Deactivate"
+                              disabled={busyUserId === user.id}
                               onClick={() =>
-                                updateAdminUserStatus(user.id, 'inactive').then(loadUsers)
+                                runAction(user.id, () =>
+                                  patchUser({ action: 'status', id: user.id, status: 'inactive' })
+                                )
                               }
                             >
                               <Ban className="w-4 h-4" />
                             </Button>
-                          ) : (
+                          ) : user.status !== 'pending_approval' ? (
                             <Button
                               size="sm"
                               variant="ghost"
+                              title="Activate"
+                              disabled={busyUserId === user.id}
                               onClick={() =>
-                                updateAdminUserStatus(user.id, 'active').then(loadUsers)
+                                runAction(user.id, () =>
+                                  patchUser({ action: 'status', id: user.id, status: 'active' })
+                                )
                               }
                             >
                               <CheckCircle2 className="w-4 h-4" />
                             </Button>
-                          )}
+                          ) : null}
                           <Button
                             size="sm"
                             variant="ghost"
                             className="text-destructive"
+                            disabled={busyUserId === user.id}
                             onClick={() => {
                               if (confirm('Delete this user?')) {
-                                deleteAdminUser(user.id).then(loadUsers)
+                                runAction(user.id, () =>
+                                  patchUser({ action: 'delete', id: user.id })
+                                )
                               }
                             }}
                           >
