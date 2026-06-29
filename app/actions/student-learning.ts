@@ -51,6 +51,21 @@ export type StudentPortalData = {
   }>
 }
 
+type JoinedCourse = {
+  id: string
+  title: string
+  description: string | null
+  thumbnail: string | null
+  duration: string | null
+  difficulty: string | null
+}
+
+function normalizeJoinedCourse(course: JoinedCourse | JoinedCourse[] | null | undefined): JoinedCourse | null {
+  if (!course) return null
+  if (Array.isArray(course)) return course[0] ?? null
+  return course
+}
+
 export async function getStudentPortalData(): Promise<
   { success: true; data: StudentPortalData } | { success: false; error: string }
 > {
@@ -96,14 +111,7 @@ export async function getStudentPortalData(): Promise<
 
   const admittedCourses: StudentCourse[] = admittedRows
     .map((row) => {
-      const course = row.course as {
-        id: string
-        title: string
-        description: string | null
-        thumbnail: string | null
-        duration: string | null
-        difficulty: string | null
-      } | null
+      const course = normalizeJoinedCourse(row.course as JoinedCourse | JoinedCourse[] | null)
       if (!course) return null
       return {
         enrollmentId: row.id,
@@ -146,7 +154,7 @@ export async function getStudentPortalData(): Promise<
       admittedCourses,
       pendingEnrollments: pendingRows.map((row) => ({
         id: row.id,
-        courseTitle: (row.course as { title?: string } | null)?.title ?? 'Course',
+        courseTitle: normalizeJoinedCourse(row.course as JoinedCourse | JoinedCourse[] | null)?.title ?? 'Course',
         status: row.status,
         amountDue: Number(row.amount_due ?? 0),
         createdAt: row.created_at,
