@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   Sidebar,
   SidebarContent,
@@ -37,13 +37,21 @@ export function AdminShell({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const router = useRouter()
   const { user, nav } = session
 
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
   const handleLogout = async () => {
-    await logoutUser()
-    router.push('/auth/login')
-    router.refresh()
+    setIsLoggingOut(true)
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+      await logoutUser()
+    } catch {
+      // Still redirect — GET logout clears cookies as fallback
+    } finally {
+      window.location.href = '/auth/login?logout=1'
+    }
   }
 
   return (
@@ -105,9 +113,10 @@ export function AdminShell({
             size="sm"
             className="mt-2 w-full"
             onClick={handleLogout}
+            disabled={isLoggingOut}
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            {isLoggingOut ? 'Signing out…' : 'Sign out'}
           </Button>
         </SidebarFooter>
         <SidebarRail />
@@ -121,12 +130,18 @@ export function AdminShell({
             <p className="text-sm font-medium text-slate-700 hidden sm:block">
               Energy & Logics Platform Administration
             </p>
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/">
-                <Home className="h-4 w-4 mr-2" />
-                Public site
-              </Link>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/">
+                  <Home className="h-4 w-4 mr-2" />
+                  Public site
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleLogout} disabled={isLoggingOut} className="text-slate-700">
+                <LogOut className="h-4 w-4 mr-2" />
+                {isLoggingOut ? '…' : 'Sign out'}
+              </Button>
+            </div>
           </div>
         </header>
         <div className="flex-1 p-4 md:p-6">{children}</div>
