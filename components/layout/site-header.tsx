@@ -327,10 +327,10 @@ export function SiteHeader() {
           </p>
         </Link>
 
-        <div className="site-header-mobile-auth flex flex-col items-end justify-center gap-1 shrink-0">
+        <div className="site-header-mobile-auth flex flex-row items-center justify-end gap-1.5 shrink-0">
           <Link
             href="/auth/login"
-            className="text-[10px] font-semibold text-white hover:text-white leading-none no-underline hover:underline"
+            className="inline-flex items-center h-8 px-1 text-[10px] font-semibold text-white hover:text-white leading-none no-underline hover:underline whitespace-nowrap"
           >
             Login
           </Link>
