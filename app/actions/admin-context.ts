@@ -1,8 +1,10 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { filterAdminNav, type AdminNavGroup } from '@/lib/admin/nav'
 import {
+  ALL_PERMISSIONS,
   PERMISSIONS,
   type Permission,
   canAccessAdminPanel,
@@ -68,25 +70,45 @@ async function fetchAdminStats(): Promise<AdminStats> {
   return { users, courses, publishedCourses, announcements, applications, products, supportTickets }
 }
 
-/** Single auth + nav resolution for admin layouts (uses session cookie permissions). */
+/** Single auth + nav resolution (user_session or legacy admin_session). */
 export async function getAdminSession(): Promise<AdminSession | null> {
   const user = await getCurrentUser()
-  if (!user?.id || !user?.role) return null
 
-  const permissions = resolvePermissions(user.role, user.permissions)
-  if (!canAccessAdminPanel(user.role, permissions)) return null
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      permissions,
-    },
-    nav: filterAdminNav(permissions),
+  if (user?.id && user?.role) {
+    const permissions = resolvePermissions(user.role, user.permissions)
+    if (canAccessAdminPanel(user.role, permissions)) {
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          permissions,
+        },
+        nav: filterAdminNav(permissions),
+      }
+    }
   }
+
+  const cookieStore = await cookies()
+  const adminSession = cookieStore.get('admin_session')
+  if (adminSession?.value === 'authenticated') {
+    const permissions = [...ALL_PERMISSIONS]
+    return {
+      user: {
+        id: 'legacy-admin',
+        email: 'admin@energyandlogics.com',
+        role: 'admin',
+        firstName: 'Admin',
+        lastName: '',
+        permissions,
+      },
+      nav: filterAdminNav(permissions),
+    }
+  }
+
+  return null
 }
 
 /** Batched stats — all table counts in one parallel batch. */
@@ -107,7 +129,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   return fetchAdminStats()
 }
 
-/** Overview payload: auth + nav + stats with minimal duplicate work. */
+/** Overview payload: auth + nav + stats (stats load even for legacy admin session). */
 export async function getAdminOverview() {
   const session = await getAdminSession()
   if (!session || !supabaseAdmin) return null
