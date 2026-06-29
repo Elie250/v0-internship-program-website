@@ -14,16 +14,17 @@ function normalizeCourse(row: Record<string, unknown>) {
 }
 
 function toCoursePayload(body: Record<string, unknown>) {
-  const status = String(body.status ?? (body.is_published ? 'published' : 'draft'))
+  const status = String(body.status ?? 'published')
+  const program = String(body.program || body.difficulty || '')
   return {
     title: body.title,
     description: body.description ?? null,
     duration: body.duration ?? null,
     thumbnail: body.thumbnail || body.image_url || null,
-    difficulty: body.program || body.difficulty || null,
+    difficulty: program || null,
+    program: program || null,
     pricing: body.pricing != null ? Number(body.pricing) : 0,
     status,
-    is_published: status === 'published',
     category_id: body.category_id || null,
     updated_at: new Date().toISOString(),
   }
@@ -69,9 +70,9 @@ export async function POST(request: Request) {
         description: program.summary,
         duration: 'Flexible schedule',
         difficulty: program.title,
+        program: program.title,
         pricing: 0,
         status: 'published',
-        is_published: true,
       }))
 
       const { data, error } = await supabaseAdmin.from('courses').insert(rows).select()
@@ -80,6 +81,10 @@ export async function POST(request: Request) {
     }
 
     const payload = toCoursePayload(body)
+    if (!payload.title || !String(payload.title).trim()) {
+      return NextResponse.json({ error: 'Course title is required' }, { status: 400 })
+    }
+
     const { data, error } = await supabaseAdmin.from('courses').insert([payload]).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(normalizeCourse(data), { status: 201 })

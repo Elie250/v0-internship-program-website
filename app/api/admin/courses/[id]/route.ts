@@ -22,17 +22,17 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
     update.thumbnail = body.thumbnail || body.image_url || null
   }
   if (!partial || body.program !== undefined || body.difficulty !== undefined) {
-    update.difficulty = body.program || body.difficulty || null
+    const program = String(body.program || body.difficulty || '')
+    update.difficulty = program || null
+    update.program = program || null
   }
   if (!partial || body.pricing !== undefined) {
     update.pricing = body.pricing != null ? Number(body.pricing) : 0
   }
   if (!partial || body.category_id !== undefined) update.category_id = body.category_id || null
 
-  if (!partial || body.status !== undefined || body.is_published !== undefined) {
-    const status = String(body.status ?? (body.is_published ? 'published' : 'draft'))
-    update.status = status
-    update.is_published = status === 'published'
+  if (!partial || body.status !== undefined) {
+    update.status = String(body.status)
   }
 
   return update

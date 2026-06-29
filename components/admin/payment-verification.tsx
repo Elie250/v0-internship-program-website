@@ -114,6 +114,7 @@ export default function PaymentVerificationPanel() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Method: {payment.payment_method || 'N/A'}
                       {payment.receipt_number ? ` · Ref: ${payment.receipt_number}` : ''}
+                      {payment.course_enrollment_id ? ' · Course enrollment' : ''}
                     </p>
                   </div>
                   {statusBadge(payment.status)}

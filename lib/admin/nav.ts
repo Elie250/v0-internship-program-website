@@ -7,8 +7,11 @@ export type AdminNavIconName =
   | 'clipboard-list'
   | 'receipt'
   | 'shopping-bag'
+  | 'package'
+  | 'warehouse'
   | 'folder-tree'
   | 'book-open'
+  | 'graduation-cap'
   | 'megaphone'
   | 'zap'
   | 'headphones'
@@ -90,6 +93,20 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: PERMISSIONS.SHOP_PRODUCTS,
       },
       {
+        id: 'stock',
+        label: 'Stock',
+        href: '/admin/dashboard/stock',
+        icon: 'warehouse',
+        permission: PERMISSIONS.SHOP_PRODUCTS,
+      },
+      {
+        id: 'orders',
+        label: 'Orders',
+        href: '/admin/dashboard/orders',
+        icon: 'package',
+        permission: PERMISSIONS.SHOP_ORDERS,
+      },
+      {
         id: 'categories',
         label: 'Categories',
         href: '/admin/dashboard/categories',
@@ -107,6 +124,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/courses',
         icon: 'book-open',
         permission: PERMISSIONS.LEARNING_PROGRAMS,
+      },
+      {
+        id: 'enrollments',
+        label: 'Enrollments',
+        href: '/admin/dashboard/enrollments',
+        icon: 'graduation-cap',
+        permission: PERMISSIONS.LEARNING_STUDENTS,
       },
     ],
   },

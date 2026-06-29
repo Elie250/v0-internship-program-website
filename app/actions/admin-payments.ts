@@ -19,6 +19,8 @@ export type PaymentRecord = {
   reviewed_at: string | null
   application_id: string | null
   student_id: string | null
+  course_enrollment_id: string | null
+  course_id: string | null
   created_at: string
 }
 
@@ -35,7 +37,7 @@ export async function listPendingPayments(): Promise<{
     const { data, error } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, created_at'
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, course_id, created_at'
       )
       .in('status', ['pending_review', 'Pending', 'pending'])
       .order('created_at', { ascending: false })
@@ -62,7 +64,7 @@ export async function listAllPayments(): Promise<{
     const { data, error } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, created_at'
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, course_id, created_at'
       )
       .order('created_at', { ascending: false })
       .limit(100)
@@ -114,6 +116,22 @@ export async function reviewPayment(input: {
         .from('applications')
         .update({ status: 'payment_verified', updated_at: new Date().toISOString() })
         .eq('id', payment.application_id)
+    }
+
+    const { data: fullPayment } = await supabaseAdmin
+      .from('payments')
+      .select('course_enrollment_id')
+      .eq('id', input.id)
+      .maybeSingle()
+
+    if (fullPayment?.course_enrollment_id) {
+      await supabaseAdmin
+        .from('course_enrollments')
+        .update({
+          status: input.decision === 'approved' ? 'admitted' : 'payment_rejected',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', fullPayment.course_enrollment_id)
     }
 
     return { success: true }
