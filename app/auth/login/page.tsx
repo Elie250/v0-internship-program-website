@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AuthDebugPanel } from '@/components/auth/auth-debug-panel';
 import type { AuthDebugInfo } from '@/lib/auth-debug';
+import { COMPANY } from '@/lib/company/constants';
 
 export default function UnifiedLoginPage() {
   return (
@@ -199,7 +200,7 @@ function LoginForm() {
 
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-muted-foreground space-y-1">
-          <p>Energy & Logics Engineering Academy © 2024</p>
+          <p>{COMPANY.brandName} Engineering Training © {new Date().getFullYear()}</p>
           <p>
             <Link href="/api/auth/health" target="_blank" className="underline">
               Open auth health check (share JSON if login fails)

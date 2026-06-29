@@ -34,8 +34,8 @@ export function SiteHeader() {
             <Image src="/logo.png" alt="Engineering Hub" width={36} height={36} className="rounded" />
           </div>
           <div>
-            <p className="font-bold text-lg leading-tight">Engineering Hub</p>
-            <p className="text-[11px] text-white/70">Energy & Logics</p>
+            <p className="font-bold text-lg leading-tight">{COMPANY.brandName}</p>
+            <p className="text-[11px] text-white/70">Nyanza, Rwanda · Engineering Training</p>
           </div>
         </Link>
 
