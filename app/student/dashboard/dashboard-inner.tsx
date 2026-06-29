@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
 import { AccessCountdown } from '@/components/student/access-countdown'
+import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
