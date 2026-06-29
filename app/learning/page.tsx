@@ -26,7 +26,7 @@ export default async function LearningPage({
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
-      <section className="bg-[#1e3a5f] text-white py-12 px-4">
+      <section className="text-on-dark bg-[var(--brand-navy)] py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-4xl font-bold mb-2">Learning Portal</h1>
           <p className="text-white/80">

@@ -14,7 +14,7 @@ export default async function CourseEnrollPage({ params }: { params: Promise<{ i
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
-      <section className="bg-[#1e3a5f] text-white py-10 px-4">
+      <section className="text-on-dark bg-[var(--brand-navy)] py-10 px-4">
         <div className="max-w-3xl mx-auto">
           <p className="text-white/70 text-sm mb-2">Course enrollment</p>
           <h1 className="text-3xl font-bold">{course.title}</h1>

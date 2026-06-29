@@ -35,7 +35,7 @@ export function StudentPortalShell({
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <aside className="hidden md:flex w-64 flex-col bg-[#1e3a5f] text-white shrink-0">
+      <aside className="text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0">
         <div className="p-5 border-b border-white/10">
           <p className="font-bold text-lg">{COMPANY.platformName}</p>
           <p className="text-xs text-white/70 mt-1">Student portal</p>
@@ -57,8 +57,8 @@ export function StudentPortalShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition',
-                  active ? 'bg-white/15 font-medium' : 'hover:bg-white/10 text-white/90'
+                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition no-underline hover:no-underline',
+                  active ? 'bg-white/15 font-medium text-white' : 'hover:bg-white/10 text-white/90'
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />

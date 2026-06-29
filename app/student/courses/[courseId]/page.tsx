@@ -79,7 +79,7 @@ export default function StudentCoursePage() {
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
         <aside className="bg-white rounded-xl border overflow-hidden h-fit lg:sticky lg:top-4">
-          <div className="p-4 border-b bg-[#1e3a5f] text-white">
+          <div className="text-on-dark p-4 border-b bg-[var(--brand-navy)]">
             <h1 className="font-bold leading-snug">{course.title}</h1>
             <p className="text-xs text-white/70 mt-1">{course.lessons.length} lessons</p>
           </div>

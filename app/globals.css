@@ -168,6 +168,27 @@
     text-decoration: underline;
   }
 
+  /* Header nav: keep auth links readable on navy */
+  .site-header .text-white {
+    color: white;
+  }
+
+  .nav-dropdown-panel {
+    z-index: 100;
+    background-color: white;
+    color: #0f172a;
+  }
+
+  .nav-dropdown-panel a {
+    color: #1e293b;
+    text-decoration: none;
+  }
+
+  .nav-dropdown-panel a:hover {
+    color: var(--brand-navy);
+    text-decoration: none;
+  }
+
   .section-eyebrow {
     color: var(--brand-navy);
     font-size: 0.875rem;
