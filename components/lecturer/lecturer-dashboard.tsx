@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import { LecturerAssessmentsPanel } from '@/components/lecturer/lecturer-assessments-panel'
 import {
   BookOpen,
   Users,
@@ -378,6 +379,10 @@ export function LecturerDashboardView() {
                     ) : null}
                   </CardContent>
                 </Card>
+
+                {selectedCourseId ? (
+                  <LecturerAssessmentsPanel courseId={selectedCourseId} />
+                ) : null}
               </div>
             ) : null}
           </div>

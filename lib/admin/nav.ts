@@ -76,7 +76,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'payments',
-        label: 'Payment Receipts',
+        label: 'Shop payments',
         href: '/admin/dashboard/payments',
         icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
@@ -169,6 +169,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: 'Tickets',
         href: '/admin/dashboard/support',
         icon: 'headphones',
+        permission: PERMISSIONS.SUPPORT_TICKETS,
+      },
+      {
+        id: 'engineer-subscriptions',
+        label: 'Engineer subscriptions',
+        href: '/admin/dashboard/engineer-subscriptions',
+        icon: 'users',
         permission: PERMISSIONS.SUPPORT_TICKETS,
       },
       {

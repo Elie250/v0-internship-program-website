@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getStudentCourse, type StudentCourse } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
-import { LessonViewer } from '@/components/student/lesson-viewer'
+import { CourseAssessmentPanel } from '@/components/student/course-assessment-panel'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, FileText, Link2, PlayCircle, Radio, Download } from 'lucide-react'
@@ -122,6 +122,9 @@ export default function StudentCoursePage() {
               <p>{course.description || 'Course overview'}</p>
             </div>
           )}
+          {course.accessState === 'active' ? (
+            <CourseAssessmentPanel enrollmentId={course.enrollmentId} courseTitle={course.title} />
+          ) : null}
         </div>
       </div>
     </StudentPortalShell>

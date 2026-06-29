@@ -173,6 +173,20 @@
     color: white;
   }
 
+  /* Header nav: keep controls visible on navy background (mobile + desktop) */
+  .site-header [data-slot='button'].border-white\/40,
+  .site-header button.border-white\/40 {
+    color: white;
+    border-color: rgb(255 255 255 / 0.45);
+    background-color: rgb(255 255 255 / 0.12);
+  }
+
+  .site-header [data-slot='button'].border-white\/40:hover,
+  .site-header button.border-white\/40:hover {
+    color: white;
+    background-color: rgb(255 255 255 / 0.22);
+  }
+
   .nav-dropdown-panel {
     z-index: 100;
     background-color: white;
