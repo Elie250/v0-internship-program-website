@@ -13,11 +13,11 @@ export default function HomePage() {
       <SiteHeader />
       <HomeHeroSection />
       <TrainingProgramsSection />
-      <FounderSection />
       <MembershipSection />
       <EventsSection />
       <AnnouncementsSection />
       <FeaturedServicesSection />
+      <FounderSection />
       <SiteFooter />
     </main>
   )

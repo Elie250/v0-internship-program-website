@@ -19,15 +19,20 @@ export const FOUNDER = {
   title: 'Embedded Systems Engineer',
   role: 'Founder & Lead Trainer',
   photo: '/team/elie-bisamaza.png',
-  bio: `Elie Bisamaza is an Embedded Systems Engineer and the founder and lead trainer at Energy & Logics Ltd. He brings six years of experience in electrical technology and more than two years of delivering practical technical training.
+  headline: 'Engineering education that works in the real world',
+  concept:
+    'Energy & Logics exists to close the gap between classroom theory and what technicians, graduates, and professionals actually do on site—programming PLCs, wiring control panels, building embedded prototypes, and troubleshooting under pressure.',
+  bio: `Elie Bisamaza founded ${COMPANY.brandName} after six years in electrical technology and two years delivering hands-on technical training across Rwanda. He has worked with industry partners including Easy Fab and collaborated with the Rwanda TVET Board (RTB) on practical skills programmes.
 
-Elie has collaborated on training projects with the Rwanda TVET Board (RTB) and has worked with technology companies such as Easy Fab. His approach combines real industry experience with structured workshops—helping students, technicians, and graduates build skills they can apply immediately in the field.`,
+His training philosophy is simple: learn by building, test on real equipment, and leave every session with something you can demonstrate to an employer or apply on your next project.`,
   experienceHighlights: [
-    '6+ years in electrical technology',
-    '2+ years in technical training delivery',
-    'Training collaboration with RTB (Rwanda TVET Board)',
-    'Industry experience with companies including Easy Fab',
+    '6+ years in electrical & embedded systems practice',
+    '2+ years delivering industry-aligned technical training',
+    'RTB (Rwanda TVET Board) training collaboration',
+    'Field experience with companies including Easy Fab',
   ],
+  quote:
+    'Our goal is not certificates for their own sake—it is competent engineers who can walk onto a site or into a lab and deliver results.',
 } as const
 
 export const TRAINING_PROGRAMS = [
