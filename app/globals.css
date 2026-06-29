@@ -52,6 +52,11 @@
   --sidebar-accent-foreground: oklch(0.37 0.15 254); /* Deep blue */
   --sidebar-border: oklch(0.52 0.15 254); /* Teal */
   --sidebar-ring: oklch(0.75 0.2 80); /* Gold */
+
+  /* Public site brand (Energy & Logics Engineering Hub) */
+  --brand-navy: #1e3a5f;
+  --brand-navy-deep: #152a45;
+  --brand-sky: #7eb8e8;
 }
 
 .dark {
@@ -135,5 +140,45 @@
   /* Gradient helper */
   .bg-linear-to-b {
     background: linear-gradient(to bottom, var(--background), var(--muted));
+  }
+}
+
+/* Dark bands: override base heading/link colors for readable text on navy */
+@layer utilities {
+  .text-on-dark {
+    color: white;
+  }
+
+  .text-on-dark h1,
+  .text-on-dark h2,
+  .text-on-dark h3,
+  .text-on-dark h4,
+  .text-on-dark h5,
+  .text-on-dark h6 {
+    color: inherit;
+  }
+
+  .text-on-dark a {
+    color: oklch(0.88 0.02 254);
+    text-decoration: none;
+  }
+
+  .text-on-dark a:hover {
+    color: white;
+    text-decoration: underline;
+  }
+
+  .section-eyebrow {
+    color: var(--brand-navy);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .section-title {
+    color: var(--brand-navy);
+    font-size: 1.875rem;
+    font-weight: 700;
   }
 }

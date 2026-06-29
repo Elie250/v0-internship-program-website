@@ -10,7 +10,7 @@ export async function MembershipSection() {
   const premiumPlan = plans.find((p) => p.plan_type === 'premium')
 
   return (
-    <section className="py-16 px-4 bg-muted/30">
+    <section className="py-16 px-4 bg-slate-50/80">
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
         <PlanCard
           title={freePlan?.name ?? 'Free Plan'}

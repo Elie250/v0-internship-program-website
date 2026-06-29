@@ -41,7 +41,7 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#1e3a5f] text-white border-b border-white/10 shadow-md">
+    <nav className="sticky top-0 z-50 bg-[var(--brand-navy)] text-white border-b border-white/10 shadow-md">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-3">
         <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition">
           <div className="bg-white rounded-lg p-1 shrink-0">
@@ -63,12 +63,6 @@ export function SiteHeader() {
         <div className="hidden lg:flex items-center gap-1">
           <Link href="/">
             <Button variant="ghost" className="text-white hover:bg-white/10">Home</Button>
-          </Link>
-
-          <Link href="/learning">
-            <Button variant="ghost" className="text-white hover:bg-white/10 hidden xl:inline-flex">
-              Courses
-            </Button>
           </Link>
 
           <DropdownMenu>

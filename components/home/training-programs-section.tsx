@@ -11,12 +11,8 @@ export function TrainingProgramsSection() {
     <section className="py-16 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10 max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-2">
-            Training programmes
-          </p>
-          <h2 className="text-3xl font-bold text-[#1e3a5f] mb-3">
-            Built for real engineering work
-          </h2>
+          <p className="section-eyebrow mb-2">Training programmes</p>
+          <h2 className="section-title mb-3">Built for real engineering work</h2>
           <p className="text-muted-foreground">
             In-person training in Rwanda with online options for regional learners. All programmes
             are led by practitioners—not generic online templates.
