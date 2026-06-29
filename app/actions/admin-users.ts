@@ -40,7 +40,7 @@ export async function listAdminUsers(filters?: {
 
     let query = supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, role, status, created_at')
+      .select('id, email, first_name, last_name, role, status, permissions, created_at')
       .order('created_at', { ascending: false })
 
     if (filters?.role && filters.role !== 'all') {
@@ -57,7 +57,27 @@ export async function listAdminUsers(filters?: {
     }
 
     const { data, error } = await query
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      if (error.message.includes('permissions')) {
+        const fallback = await supabaseAdmin
+          .from('users')
+          .select('id, email, first_name, last_name, role, status, created_at')
+          .order('created_at', { ascending: false })
+        if (fallback.error) return { success: false, error: fallback.error.message }
+        const users: AdminUserRecord[] = (fallback.data ?? []).map((user) => ({
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name ?? '',
+          last_name: user.last_name ?? '',
+          role: user.role,
+          status: user.status ?? 'active',
+          created_at: user.created_at,
+          permissions: resolvePermissions(user.role, null),
+        }))
+        return { success: true, users }
+      }
+      return { success: false, error: error.message }
+    }
 
     const users: AdminUserRecord[] = (data ?? []).map((user) => ({
       id: user.id,
@@ -67,7 +87,7 @@ export async function listAdminUsers(filters?: {
       role: user.role,
       status: user.status ?? 'active',
       created_at: user.created_at,
-      permissions: resolvePermissions(user.role, null),
+      permissions: resolvePermissions(user.role, user.permissions),
     }))
 
     return { success: true, users }
