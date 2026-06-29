@@ -40,7 +40,6 @@ export function AdminShell({
   const pathname = usePathname()
   const { user, nav } = session
 
-  const [isLoading, setIsLoading] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
