@@ -1,12 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import {
-  listAllPayments,
-  listPendingPayments,
-  reviewPayment,
-  type PaymentRecord,
-} from '@/app/actions/admin-payments'
+import { reviewPayment } from '@/app/actions/admin-payments'
+import type { PaymentRecord } from '@/lib/admin/data/payments'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,25 +20,24 @@ export default function PaymentVerificationPanel() {
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [pendingRes, allRes] = await Promise.all([
-      listPendingPayments(),
-      listAllPayments(),
-    ])
-
-    if (!pendingRes.success) {
-      setError(pendingRes.error || 'Failed to load pending payments')
-    } else {
-      setPending(pendingRes.payments ?? [])
+    try {
+      const res = await fetch('/api/admin/payments', { credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to load pending payments')
+        setPending([])
+        setHistory([])
+        return
+      }
+      setPending(Array.isArray(data.pending) ? data.pending : [])
+      setHistory(Array.isArray(data.history) ? data.history : [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load payments')
+      setPending([])
+      setHistory([])
+    } finally {
+      setLoading(false)
     }
-
-    if (allRes.success) {
-      const reviewed = (allRes.payments ?? []).filter(
-        (p) => p.status === 'approved' || p.status === 'rejected' || p.status === 'Paid'
-      )
-      setHistory(reviewed.slice(0, 20))
-    }
-
-    setLoading(false)
   }, [])
 
   useEffect(() => {

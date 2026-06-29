@@ -48,7 +48,7 @@ export default function EnrollmentManagement() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/enrollments')
+      const res = await fetch('/api/admin/enrollments', { credentials: 'same-origin' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load')
       setEnrollments(Array.isArray(data) ? data : [])
