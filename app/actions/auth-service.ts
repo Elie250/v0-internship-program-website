@@ -9,7 +9,7 @@ import {
   formatUnknownError,
   getSupabaseConfigStatus,
 } from '@/lib/auth-debug'
-import { resolvePermissions } from '@/lib/admin/permissions'
+import { hasPermission, resolvePermissions, type Permission } from '@/lib/admin/permissions'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
@@ -322,7 +322,7 @@ export async function getCurrentUser() {
   }
 }
 
-export async function checkUserPermission(userId: string, permission: string) {
+export async function checkUserPermission(userId: string, permission: Permission) {
   try {
     if (!supabaseAdmin) return false
 
@@ -337,7 +337,7 @@ export async function checkUserPermission(userId: string, permission: string) {
     }
 
     const permissions = resolvePermissions(user.role, user.permissions)
-    return permissions.includes(permission)
+    return hasPermission(permissions, permission)
   } catch (error) {
     console.error('[v0] Permission check error:', error)
     return false
