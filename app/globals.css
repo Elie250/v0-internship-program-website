@@ -197,6 +197,26 @@
     color: var(--brand-navy);
   }
 
+  .site-header-menu-btn,
+  .site-header-register-btn,
+  .site-header-mobile-auth .site-header-register-btn,
+  .site-header-mobile-auth [data-slot='button'] {
+    background-color: #ffffff;
+    color: var(--brand-navy);
+    border-color: rgb(255 255 255 / 0.95);
+  }
+
+  .site-header-menu-btn:hover,
+  .site-header-register-btn:hover,
+  .site-header-mobile-auth [data-slot='button']:hover {
+    background-color: #f1f5f9;
+    color: var(--brand-navy);
+  }
+
+  .site-header-mobile-auth a {
+    color: #ffffff;
+  }
+
   .mobile-nav-sheet {
     color: #0f172a;
   }
