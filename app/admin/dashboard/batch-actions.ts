@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendApplicationEmail } from '@/lib/email'
+import { requireAdminPermission } from '@/app/actions/admin-context'
+import { PERMISSIONS } from '@/lib/admin/permissions'
 
 interface BatchAcceptParams {
   ids: string[]
@@ -18,6 +20,7 @@ export async function batchAcceptApplications({
   sendEmail = true,
 }: BatchAcceptParams) {
   try {
+    await requireAdminPermission(PERMISSIONS.APPLICATIONS_APPROVE)
     if (!supabaseAdmin) {
       return { success: false, error: 'Database not configured', processed: 0 }
     }
@@ -83,6 +86,7 @@ export async function batchDeclineApplications({
   sendEmail = true,
 }: BatchDeclineParams) {
   try {
+    await requireAdminPermission(PERMISSIONS.APPLICATIONS_APPROVE)
     if (!supabaseAdmin) {
       return { success: false, error: 'Database not configured', processed: 0 }
     }
@@ -142,6 +146,7 @@ export async function batchDeclineApplications({
 
 export async function deleteApplications(ids: string[]) {
   try {
+    await requireAdminPermission(PERMISSIONS.APPLICATIONS_APPROVE)
     if (!supabaseAdmin) {
       return { success: false, error: 'Database not configured' }
     }

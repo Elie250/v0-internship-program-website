@@ -9,6 +9,7 @@ import {
   formatUnknownError,
   getSupabaseConfigStatus,
 } from '@/lib/auth-debug'
+import { resolvePermissions } from '@/lib/admin/permissions'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
@@ -72,9 +73,11 @@ type SessionUser = {
   role: string
   first_name?: string | null
   last_name?: string | null
+  permissions?: unknown
 }
 
 async function establishUserSession(user: SessionUser) {
+  const permissions = resolvePermissions(user.role, user.permissions)
   const cookieStore = await cookies()
   cookieStore.set(
     'user_session',
@@ -84,6 +87,7 @@ async function establishUserSession(user: SessionUser) {
       role: user.role,
       firstName: user.first_name,
       lastName: user.last_name,
+      permissions,
     }),
     {
       httpOnly: true,
@@ -148,7 +152,7 @@ export async function registerUser(
           status: 'active',
         },
       ])
-      .select('id, email, role, first_name, last_name, status')
+      .select('id, email, role, first_name, last_name, status, permissions')
       .single()
 
     if (error || !newUser) {
@@ -203,7 +207,7 @@ export async function loginUser(
 
     const { data: user, error } = await supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, email, role, first_name, last_name, status, password_hash, permissions')
       .ilike('email', trimmedEmail)
       .eq('role', role)
       .maybeSingle()
@@ -324,7 +328,7 @@ export async function checkUserPermission(userId: string, permission: string) {
 
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('permissions')
+      .select('role, permissions')
       .eq('id', userId)
       .single()
 
@@ -332,7 +336,8 @@ export async function checkUserPermission(userId: string, permission: string) {
       return false
     }
 
-    return user.permissions?.includes(permission) || false
+    const permissions = resolvePermissions(user.role, user.permissions)
+    return permissions.includes(permission)
   } catch (error) {
     console.error('[v0] Permission check error:', error)
     return false

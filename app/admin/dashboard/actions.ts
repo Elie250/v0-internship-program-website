@@ -2,14 +2,16 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendApplicationEmail } from '@/lib/email'
+import { requireAdminPermission } from '@/app/actions/admin-context'
+import { PERMISSIONS } from '@/lib/admin/permissions'
 
 export async function acceptApplication(id: string) {
   try {
+    await requireAdminPermission(PERMISSIONS.APPLICATIONS_APPROVE)
     if (!supabaseAdmin) {
       return { success: false, error: 'Database not configured' }
     }
 
-    // Get application details first
     const { data: application, error: fetchError } = await supabaseAdmin
       .from('applications')
       .select('*')
@@ -21,7 +23,6 @@ export async function acceptApplication(id: string) {
       return { success: false, error: 'Application not found' }
     }
 
-    // Update status to accepted
     const { error: updateError } = await supabaseAdmin
       .from('applications')
       .update({
@@ -35,7 +36,6 @@ export async function acceptApplication(id: string) {
       return { success: false, error: 'Failed to update status' }
     }
 
-    // Send acceptance email
     const emailResult = await sendApplicationEmail({
       to: application.email,
       full_name: application.full_name || 'Student',
@@ -57,11 +57,11 @@ export async function acceptApplication(id: string) {
 
 export async function declineApplication(id: string) {
   try {
+    await requireAdminPermission(PERMISSIONS.APPLICATIONS_APPROVE)
     if (!supabaseAdmin) {
       return { success: false, error: 'Database not configured' }
     }
 
-    // Get application details first
     const { data: application, error: fetchError } = await supabaseAdmin
       .from('applications')
       .select('*')
@@ -73,7 +73,6 @@ export async function declineApplication(id: string) {
       return { success: false, error: 'Application not found' }
     }
 
-    // Update status to declined
     const { error: updateError } = await supabaseAdmin
       .from('applications')
       .update({ status: 'declined' })
@@ -84,7 +83,6 @@ export async function declineApplication(id: string) {
       return { success: false, error: 'Failed to update status' }
     }
 
-    // Send decline email
     const emailResult = await sendApplicationEmail({
       to: application.email,
       full_name: application.full_name || 'Student',
