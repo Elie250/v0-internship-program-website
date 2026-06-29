@@ -14,6 +14,7 @@ import {
 import { COMPANY } from '@/lib/company/constants'
 
 const learningLinks = [
+  { href: '/learning', label: 'All courses & programmes' },
   { href: '/learning?module=training', label: 'Training' },
   { href: '/internship', label: 'Internship' },
   { href: '/engineering-support', label: 'Engineering Support' },
@@ -62,6 +63,12 @@ export function SiteHeader() {
         <div className="hidden lg:flex items-center gap-1">
           <Link href="/">
             <Button variant="ghost" className="text-white hover:bg-white/10">Home</Button>
+          </Link>
+
+          <Link href="/learning">
+            <Button variant="ghost" className="text-white hover:bg-white/10 hidden xl:inline-flex">
+              Courses
+            </Button>
           </Link>
 
           <DropdownMenu>
