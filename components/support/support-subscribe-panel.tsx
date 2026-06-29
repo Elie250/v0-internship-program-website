@@ -48,9 +48,13 @@ export function SupportPlanCards({
               </p>
               <p className="text-xs text-slate-500">
                 {plan.duration_days} days
-                {plan.max_tickets != null ? ` · ${plan.max_tickets} tickets` : ' · unlimited tickets'}
+                {plan.max_tickets != null ? ` · ${plan.max_tickets} tickets` : plan.plan_tier === 'paid' ? ' · unlimited tickets' : ''}
+                {plan.max_ai_messages != null ? ` · ${plan.max_ai_messages} AI chats` : plan.plan_tier === 'paid' ? ' · unlimited AI' : ''}
                 {plan.response_sla_hours ? ` · ${plan.response_sla_hours}h SLA` : ''}
               </p>
+              <Badge variant="outline" className="mt-1">
+                {plan.plan_tier === 'free' ? 'Free tier' : 'Paid tier'}
+              </Badge>
             </CardHeader>
             <CardContent className="space-y-3">
               {plan.description ? (

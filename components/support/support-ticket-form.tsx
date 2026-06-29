@@ -31,14 +31,21 @@ export function SupportAccessBanner({ access }: { access: SupportAccessSummary |
       <Card className="border-green-200 bg-green-50/60">
         <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="font-semibold text-slate-900">{plan.name} — Active</p>
+            <p className="font-semibold text-slate-900">
+              {plan.name} — {access.planTier === 'paid' ? 'Paid' : 'Free'}
+            </p>
             <p className="text-sm text-slate-600">
-              {sub.ends_at
-                ? `Valid until ${new Date(sub.ends_at).toLocaleDateString()}`
-                : 'Open-ended access'}
-              {access.ticketsRemaining != null
-                ? ` · ${access.ticketsRemaining} ticket${access.ticketsRemaining === 1 ? '' : 's'} remaining`
-                : ' · Unlimited tickets'}
+              {sub.ends_at ? `Valid until ${new Date(sub.ends_at).toLocaleDateString()}` : 'Active'}
+              {access.ticketsRemaining != null && access.ticketsRemaining > 0
+                ? ` · ${access.ticketsRemaining} ticket${access.ticketsRemaining === 1 ? '' : 's'} left`
+                : access.planTier === 'paid' && access.ticketsRemaining === 0
+                  ? ' · No tickets remaining'
+                  : ''}
+              {access.aiMessagesRemaining != null
+                ? ` · ${access.aiMessagesRemaining} AI messages left`
+                : access.canUseAiAssistant
+                  ? ' · Unlimited AI'
+                  : ''}
             </p>
           </div>
           <Badge className="bg-green-100 text-green-800">Subscribed</Badge>

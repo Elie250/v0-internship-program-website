@@ -1,16 +1,29 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { SupportAccessSummary, SupportSubscription, SupportSubscriptionPlan } from '@/lib/support/types'
+import {
+  aiMessagesRemaining,
+  canPostInCommunity,
+  canReplyInCommunity,
+  canUseAiAssistant,
+  normalizePlanCapabilities,
+} from '@/lib/support/plan-features'
 
 function normalizePlan(row: Record<string, unknown>): SupportSubscriptionPlan {
+  const price = Number(row.price ?? 0)
+  const planTier = String(row.plan_tier ?? (price <= 0 ? 'free' : 'paid')) as 'free' | 'paid'
   return {
     id: String(row.id),
     name: String(row.name),
     slug: String(row.slug),
     description: row.description != null ? String(row.description) : null,
-    price: Number(row.price ?? 0),
+    price,
     duration_days: Number(row.duration_days ?? 30),
     max_tickets: row.max_tickets != null ? Number(row.max_tickets) : null,
     response_sla_hours: row.response_sla_hours != null ? Number(row.response_sla_hours) : null,
+    plan_tier: planTier,
+    max_ai_messages: row.max_ai_messages != null ? Number(row.max_ai_messages) : planTier === 'free' ? 5 : null,
+    community_can_post: Boolean(row.community_can_post ?? planTier === 'paid'),
+    community_can_reply: Boolean(row.community_can_reply ?? planTier === 'paid'),
     features: Array.isArray(row.features) ? row.features.map(String) : [],
     sort_order: Number(row.sort_order ?? 0),
     status: String(row.status) as SupportSubscriptionPlan['status'],
@@ -29,6 +42,7 @@ function normalizeSubscription(
     payment_id: row.payment_id != null ? String(row.payment_id) : null,
     applicant_phone: row.applicant_phone != null ? String(row.applicant_phone) : null,
     tickets_used: Number(row.tickets_used ?? 0),
+    ai_messages_used: Number(row.ai_messages_used ?? 0),
     starts_at: row.starts_at != null ? String(row.starts_at) : null,
     ends_at: row.ends_at != null ? String(row.ends_at) : null,
     admin_notes: row.admin_notes != null ? String(row.admin_notes) : null,
@@ -44,28 +58,48 @@ export function isSubscriptionActive(sub: SupportSubscription): boolean {
 }
 
 export function ticketsRemaining(sub: SupportSubscription): number | null {
-  const max = sub.plan?.max_tickets
-  if (max == null) return null
-  return Math.max(0, max - sub.tickets_used)
+  const plan = sub.plan
+  if (!plan || plan.plan_tier === 'free' || plan.max_tickets === 0) return 0
+  if (plan.max_tickets == null) return null
+  return Math.max(0, plan.max_tickets - sub.tickets_used)
 }
 
 export function buildAccessSummary(sub: SupportSubscription | null): SupportAccessSummary {
-  if (!sub) {
-    return {
-      hasActiveSubscription: false,
-      subscription: null,
-      ticketsRemaining: null,
-      canSubmitTicket: false,
-      blockReason: 'Subscribe to an engineering support plan to submit help requests.',
-    }
+  const empty: SupportAccessSummary = {
+    hasActiveSubscription: false,
+    subscription: null,
+    ticketsRemaining: null,
+    aiMessagesRemaining: null,
+    canSubmitTicket: false,
+    canUseAiAssistant: false,
+    canPostCommunity: false,
+    canReplyCommunity: false,
+    canReadCommunity: false,
+    planTier: null,
+    blockReason: 'Subscribe to join the engineer community and access support tools.',
   }
+
+  if (!sub) return empty
+
+  const plan = sub.plan
+  if (!plan) {
+    return { ...empty, subscription: sub, blockReason: 'Subscription plan not found.' }
+  }
+
+  const caps = normalizePlanCapabilities(plan)
 
   if (sub.status === 'payment_pending_review') {
     return {
       hasActiveSubscription: false,
       subscription: sub,
       ticketsRemaining: null,
+      aiMessagesRemaining: null,
       canSubmitTicket: false,
+      canUseAiAssistant: false,
+      canPostCommunity: false,
+      canReplyCommunity: false,
+      canReadCommunity: false,
+      planTier: caps.tier,
       blockReason: 'Your subscription payment is awaiting admin receipt verification.',
     }
   }
@@ -75,28 +109,45 @@ export function buildAccessSummary(sub: SupportSubscription | null): SupportAcce
       hasActiveSubscription: false,
       subscription: sub,
       ticketsRemaining: 0,
+      aiMessagesRemaining: 0,
       canSubmitTicket: false,
-      blockReason: 'Your support subscription has expired. Renew to submit new tickets.',
+      canUseAiAssistant: false,
+      canPostCommunity: false,
+      canReplyCommunity: false,
+      canReadCommunity: false,
+      planTier: caps.tier,
+      blockReason: 'Your subscription has expired. Renew to continue.',
     }
   }
 
-  const remaining = ticketsRemaining(sub)
-  if (remaining !== null && remaining <= 0) {
-    return {
-      hasActiveSubscription: true,
-      subscription: sub,
-      ticketsRemaining: 0,
-      canSubmitTicket: false,
-      blockReason: 'You have used all tickets included in your current plan.',
+  const ticketRem = caps.canSubmitTicket ? ticketsRemaining(sub) : 0
+  const aiRem = aiMessagesRemaining(sub, plan)
+  const canTicket = caps.canSubmitTicket && (ticketRem === null || ticketRem > 0)
+  const canAi = canUseAiAssistant(sub, plan)
+
+  let blockReason: string | null = null
+  if (!canTicket && !canAi && !caps.communityCanPost) {
+    if (caps.tier === 'free') {
+      blockReason = 'Upgrade to a paid plan to post in the community, open support tickets, and get more AI messages.'
+    } else if (ticketRem === 0) {
+      blockReason = 'You have used all support tickets on your current plan.'
+    } else if (aiRem === 0) {
+      blockReason = 'You have used all AI assistant messages on your current plan.'
     }
   }
 
   return {
     hasActiveSubscription: true,
     subscription: sub,
-    ticketsRemaining: remaining,
-    canSubmitTicket: true,
-    blockReason: null,
+    ticketsRemaining: ticketRem,
+    aiMessagesRemaining: aiRem,
+    canSubmitTicket: canTicket,
+    canUseAiAssistant: canAi,
+    canPostCommunity: canPostInCommunity(plan),
+    canReplyCommunity: canReplyInCommunity(plan),
+    canReadCommunity: caps.communityCanRead,
+    planTier: caps.tier,
+    blockReason,
   }
 }
 

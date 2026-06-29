@@ -45,6 +45,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  if (pathname.startsWith('/engineer') && !user) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
   if (pathname.startsWith('/admin/dashboard')) {
     const isAdmin = isAdminUser(user, adminSession)
     if (!isAdmin) {
@@ -64,5 +70,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/dashboard/:path*', '/student/:path*', '/learning/:path*/enroll'],
+  matcher: ['/admin/:path*', '/dashboard/:path*', '/student/:path*', '/engineer/:path*', '/learning/:path*/enroll'],
 }

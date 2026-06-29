@@ -18,6 +18,10 @@ type PlanForm = {
   duration_days: number
   max_tickets: number | null
   response_sla_hours: number | null
+  plan_tier: 'free' | 'paid'
+  max_ai_messages: number | null
+  community_can_post: boolean
+  community_can_reply: boolean
   featuresText: string
   sort_order: number
   status: SupportSubscriptionPlan['status']
@@ -31,6 +35,10 @@ const emptyPlan = (): PlanForm => ({
   duration_days: 30,
   max_tickets: 5,
   response_sla_hours: 48,
+  plan_tier: 'paid',
+  max_ai_messages: 30,
+  community_can_post: true,
+  community_can_reply: true,
   featuresText: '',
   sort_order: 0,
   status: 'published',
@@ -80,6 +88,10 @@ export default function SupportPlanManagement() {
         duration_days: Number(form.duration_days),
         max_tickets: form.max_tickets === null ? null : Number(form.max_tickets),
         response_sla_hours: form.response_sla_hours != null ? Number(form.response_sla_hours) : null,
+        plan_tier: form.plan_tier,
+        max_ai_messages: form.max_ai_messages === null ? null : Number(form.max_ai_messages),
+        community_can_post: form.community_can_post,
+        community_can_reply: form.community_can_reply,
         features,
         sort_order: Number(form.sort_order ?? 0),
         status: form.status ?? 'published',
@@ -105,6 +117,10 @@ export default function SupportPlanManagement() {
       duration_days: plan.duration_days,
       max_tickets: plan.max_tickets,
       response_sla_hours: plan.response_sla_hours,
+      plan_tier: plan.plan_tier,
+      max_ai_messages: plan.max_ai_messages,
+      community_can_post: plan.community_can_post,
+      community_can_reply: plan.community_can_reply,
       featuresText: plan.features.join('\n'),
       sort_order: plan.sort_order,
       status: plan.status,
@@ -152,6 +168,49 @@ export default function SupportPlanManagement() {
           <div>
             <Label>Duration (days)</Label>
             <Input type="number" value={form.duration_days ?? 30} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className="mt-1" />
+          </div>
+          <div>
+            <Label>Plan tier</Label>
+            <select
+              className="mt-1 w-full px-3 py-2 border rounded-md"
+              value={form.plan_tier}
+              onChange={(e) => setForm({ ...form, plan_tier: e.target.value as 'free' | 'paid' })}
+            >
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+          <div>
+            <Label>Max AI messages (blank = unlimited)</Label>
+            <Input
+              type="number"
+              value={form.max_ai_messages ?? ''}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  max_ai_messages: e.target.value === '' ? null : Number(e.target.value),
+                })
+              }
+              className="mt-1"
+            />
+          </div>
+          <div className="flex items-center gap-4 md:col-span-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.community_can_post}
+                onChange={(e) => setForm({ ...form, community_can_post: e.target.checked })}
+              />
+              Community: can start discussions
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.community_can_reply}
+                onChange={(e) => setForm({ ...form, community_can_reply: e.target.checked })}
+              />
+              Community: can reply
+            </label>
           </div>
           <div>
             <Label>Max tickets (blank = unlimited)</Label>
@@ -217,7 +276,8 @@ export default function SupportPlanManagement() {
                   <CardTitle className="text-lg text-slate-900">{plan.name}</CardTitle>
                   <p className="text-sm text-slate-600">
                     {Number(plan.price).toLocaleString()} RWF · {plan.duration_days} days ·{' '}
-                    {plan.max_tickets ?? '∞'} tickets · {plan.response_sla_hours ?? '—'}h SLA
+                    {plan.max_tickets ?? '∞'} tickets · {plan.max_ai_messages ?? '∞'} AI msgs ·{' '}
+                    {plan.plan_tier} tier
                   </p>
                 </div>
                 <Badge variant="outline">{plan.status}</Badge>
