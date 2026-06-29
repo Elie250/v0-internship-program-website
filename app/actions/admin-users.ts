@@ -1,12 +1,17 @@
 'use server'
 
-import bcrypt from 'bcryptjs'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { queryAdminUsers } from '@/lib/admin/data/users'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-import { resolvePermissions } from '@/lib/admin/permissions'
 import type { AdminUserRecord, AdminUserRole } from '@/lib/admin/user-roles'
+import {
+  approveStaffAccountMutation,
+  createUserMutation,
+  deleteUserMutation,
+  resetUserPasswordMutation,
+  updateUserMutation,
+  updateUserStatusMutation,
+} from '@/lib/admin/user-mutations'
 
 export async function listAdminUsers(filters?: {
   search?: string
@@ -35,26 +40,7 @@ export async function createAdminUser(input: {
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_CREATE)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const email = input.email.trim()
-    const passwordHash = await bcrypt.hash(input.password, 10)
-    const permissions = resolvePermissions(input.role, [])
-
-    const { error } = await supabaseAdmin.from('users').insert([
-      {
-        email,
-        first_name: input.firstName.trim(),
-        last_name: input.lastName.trim(),
-        password_hash: passwordHash,
-        role: input.role,
-        status: 'active',
-        permissions,
-      },
-    ])
-
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    return createUserMutation(input)
   } catch (error) {
     return {
       success: false,
@@ -72,24 +58,7 @@ export async function updateAdminUser(input: {
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_EDIT)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const permissions = resolvePermissions(input.role, [])
-
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update({
-        email: input.email.trim(),
-        first_name: input.firstName.trim(),
-        last_name: input.lastName.trim(),
-        role: input.role,
-        permissions,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', input.id)
-
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    return updateUserMutation(input)
   } catch (error) {
     return {
       success: false,
@@ -104,15 +73,7 @@ export async function updateAdminUserStatus(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_ACTIVATE)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    return updateUserStatusMutation(id, status)
   } catch (error) {
     return {
       success: false,
@@ -127,19 +88,7 @@ export async function resetAdminUserPassword(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_EDIT)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-    if (newPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' }
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-      .eq('id', id)
-
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    return resetUserPasswordMutation(id, newPassword)
   } catch (error) {
     return {
       success: false,
@@ -153,47 +102,7 @@ export async function approveStaffAccount(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_ACTIVATE)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, role, status')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (fetchError || !user) {
-      return { success: false, error: fetchError?.message ?? 'User not found' }
-    }
-
-    if (user.status === 'active') {
-      return { success: true }
-    }
-
-    const permissions = resolvePermissions(user.role, [])
-
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update({
-        status: 'active',
-        permissions,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-
-    if (error) return { success: false, error: error.message }
-
-    if (user.email) {
-      const { sendStaffApprovedEmail } = await import('@/lib/email/notifications')
-      const fullName =
-        [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email
-      void sendStaffApprovedEmail({
-        to: user.email,
-        fullName,
-        role: String(user.role),
-      })
-    }
-
-    return { success: true }
+    return approveStaffAccountMutation(id)
   } catch (error) {
     return {
       success: false,
@@ -207,11 +116,7 @@ export async function deleteAdminUser(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await requireAdminPermission(PERMISSIONS.USERS_DELETE)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const { error } = await supabaseAdmin.from('users').delete().eq('id', id)
-    if (error) return { success: false, error: error.message }
-    return { success: true }
+    return deleteUserMutation(id)
   } catch (error) {
     return {
       success: false,
