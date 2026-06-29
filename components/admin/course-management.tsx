@@ -80,9 +80,25 @@ export default function CourseManagementTab() {
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [editError, setEditError] = useState('')
   const [createError, setCreateError] = useState('')
   const [success, setSuccess] = useState('')
   const [saving, setSaving] = useState(false)
+
+  const loadLecturers = async () => {
+    try {
+      const res = await fetch('/api/admin/lecturers', { credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('Failed to load lecturers:', data.error)
+        setLecturers([])
+        return
+      }
+      setLecturers(Array.isArray(data) ? data : [])
+    } catch {
+      setLecturers([])
+    }
+  }
 
   const load = async () => {
     try {
@@ -105,10 +121,7 @@ export default function CourseManagementTab() {
 
   useEffect(() => {
     load()
-    fetch('/api/admin/lecturers', { credentials: 'same-origin' })
-      .then((res) => res.json())
-      .then((data) => setLecturers(Array.isArray(data) ? data : []))
-      .catch(() => setLecturers([]))
+    loadLecturers()
   }, [])
 
   const handleCreate = async () => {
@@ -173,6 +186,9 @@ export default function CourseManagementTab() {
 
   const openEdit = (course: Course) => {
     setEditing(course)
+    setEditError('')
+    void loadLecturers()
+    const instructorId = course.instructor_id || 'none'
     setEditForm({
       title: course.title,
       description: course.description || '',
@@ -186,21 +202,33 @@ export default function CourseManagementTab() {
       location: course.location || '',
       meeting_link: course.meeting_link || '',
       program_end_date: course.program_end_date ? course.program_end_date.slice(0, 16) : '',
-      instructor_id: course.instructor_id || 'none',
+      instructor_id: instructorId,
     })
   }
 
   const handleUpdate = async () => {
     if (!editing) return
+    if (!editForm.title.trim()) {
+      setEditError('Course title is required')
+      return
+    }
     setSaving(true)
+    setEditError('')
     setError('')
+    setSuccess('')
     try {
       const res = await fetch(`/api/admin/courses/${editing.id}`, {
         method: 'PATCH',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editForm,
+          title: editForm.title.trim(),
+          description: editForm.description,
+          program: editForm.program,
+          program_type: editForm.program_type,
+          duration: editForm.duration,
           pricing: Number(editForm.pricing),
+          status: editForm.status,
           thumbnail: editForm.thumbnail || null,
           scheduled_at: editForm.scheduled_at || null,
           location: editForm.location || null,
@@ -213,9 +241,10 @@ export default function CourseManagementTab() {
       if (!res.ok) throw new Error(data.error || 'Update failed')
 
       setEditing(null)
+      setSuccess(`"${editForm.title}" saved${editForm.instructor_id !== 'none' ? ' — lecturer assigned' : ''}`)
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Update failed')
+      setEditError(err instanceof Error ? err.message : 'Update failed')
     } finally {
       setSaving(false)
     }
@@ -397,6 +426,7 @@ export default function CourseManagementTab() {
             <DialogTitle>Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
+          {editError ? <p className="text-sm text-destructive">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
@@ -497,7 +527,11 @@ function CourseForm({
       <div>
         <Label>Assigned lecturer</Label>
         <Select
-          value={form.instructor_id || 'none'}
+          value={
+            lecturers.some((l) => l.id === form.instructor_id) || form.instructor_id === 'none'
+              ? form.instructor_id || 'none'
+              : 'none'
+          }
           onValueChange={(v) => setForm({ ...form, instructor_id: v })}
         >
           <SelectTrigger className="mt-1">
