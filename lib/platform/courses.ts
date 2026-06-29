@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContentStatus, Course, Category } from '@/types/platform'
+import { normalizeProgramType } from '@/lib/enrollment/program-types'
 
 type CourseRow = Record<string, unknown> & {
   id: string
@@ -32,6 +33,16 @@ export function normalizeCourseRow(row: CourseRow): Course {
     duration: (row.duration as string | null) ?? null,
     pricing: row.pricing != null ? Number(row.pricing) : null,
     status,
+    program: (row.program as string | null) ?? (row.difficulty as string | null) ?? null,
+    program_type: normalizeProgramType(row.program_type),
+    scheduled_at: (row.scheduled_at as string | null) ?? null,
+    location: (row.location as string | null) ?? null,
+    meeting_link: (row.meeting_link as string | null) ?? null,
+    program_start_date: (row.program_start_date as string | null) ?? null,
+    program_end_date: (row.program_end_date as string | null) ?? null,
+    default_access_days:
+      row.default_access_days != null ? Number(row.default_access_days) : null,
+    max_seats: row.max_seats != null ? Number(row.max_seats) : null,
   }
 }
 

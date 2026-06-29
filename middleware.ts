@@ -34,13 +34,15 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith('/student') && !user) {
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
-  const enrollMatch = pathname.match(/^\/learning\/[^/]+\/enroll\/?$/)
-  if (enrollMatch && !user) {
     const loginUrl = new URL('/auth/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  const enrollMatch = pathname.match(/^\/learning\/([^/]+)\/enroll\/?$/)
+  if (enrollMatch && !user) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('redirect', `/student/courses/${enrollMatch[1]}/enroll`)
     return NextResponse.redirect(loginUrl)
   }
 

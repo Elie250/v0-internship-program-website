@@ -3,19 +3,33 @@
 import { cn } from '@/lib/utils'
 import { Check } from 'lucide-react'
 
-const STEPS = [
+const PAID_STEPS = [
   { id: 1, label: 'Your details' },
   { id: 2, label: 'Payment info' },
   { id: 3, label: 'Upload receipt' },
   { id: 4, label: 'Submit' },
 ] as const
 
-export function EnrollmentSteps({ currentStep }: { currentStep: number }) {
+const FREE_STEPS = [
+  { id: 1, label: 'Your details' },
+  { id: 2, label: 'Confirm' },
+] as const
+
+export function EnrollmentSteps({
+  currentStep,
+  isFree = false,
+}: {
+  currentStep: number
+  isFree?: boolean
+}) {
+  const steps = isFree ? FREE_STEPS : PAID_STEPS
+  const displayStep = isFree && currentStep >= 4 ? 2 : isFree && currentStep > 1 ? 2 : currentStep
+
   return (
     <ol className="flex flex-wrap gap-2 mb-8">
-      {STEPS.map((step) => {
-        const done = step.id < currentStep
-        const active = step.id === currentStep
+      {steps.map((step) => {
+        const done = step.id < displayStep
+        const active = step.id === displayStep
         return (
           <li
             key={step.id}
@@ -23,7 +37,7 @@ export function EnrollmentSteps({ currentStep }: { currentStep: number }) {
               'flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors',
               done && 'bg-green-50 border-green-200 text-green-800',
               active && 'bg-[var(--brand-navy)] border-[var(--brand-navy)] text-white',
-              !done && !active && 'bg-white border-slate-200 text-muted-foreground'
+              !done && !active && 'bg-white border-slate-200 text-slate-600'
             )}
           >
             <span

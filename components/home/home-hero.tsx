@@ -41,9 +41,9 @@ export async function HomeHeroSection() {
           )}
           <div className="flex flex-wrap gap-3">
             {hero.cta_primary_url && (
-              <Link href={hero.cta_primary_url}>
-                <Button size="lg" className="bg-white text-[#1e3a5f] hover:bg-white/90">
-                  {hero.cta_primary_label ?? 'Get Started'}
+              <Link href="#browse-courses">
+                <Button size="lg" className="bg-white text-[var(--brand-navy)] hover:bg-white/90">
+                  {hero.cta_primary_label ?? 'Browse programmes'}
                 </Button>
               </Link>
             )}

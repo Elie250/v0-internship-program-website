@@ -14,6 +14,19 @@ import {
   PENDING_ENROLLMENT_STATUSES,
   type AccessState,
 } from '@/lib/enrollment/constants'
+import { getEnrollEligibility, type EnrollEligibility } from '@/lib/enrollment/eligibility'
+import {
+  CAREER_PROGRAM_TYPES,
+  isFreeProgram,
+  PROGRAM_TYPE_LABELS,
+  STUDENT_TRACKS,
+  type ProgramType,
+  type StudentTrackId,
+} from '@/lib/enrollment/program-types'
+import { getPublishedCourses } from '@/lib/platform/queries'
+import type { Course } from '@/types/platform'
+
+export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
 
 export type StudentLesson = {
   id: string
@@ -41,6 +54,7 @@ export type StudentCourse = {
 
 export type StudentEnrollmentItem = {
   id: string
+  courseId: string
   courseTitle: string
   status: string
   statusLabel: string
@@ -52,6 +66,27 @@ export type StudentEnrollmentItem = {
   accessEndsAt: string | null
 }
 
+export type CatalogCourseItem = {
+  id: string
+  title: string
+  description: string | null
+  thumbnail: string | null
+  difficulty: string | null
+  duration: string | null
+  pricing: number | null
+  categoryName: string | null
+  programType: ProgramType
+  programTypeLabel: string
+  isFree: boolean
+  scheduledAt: string | null
+  location: string | null
+  meetingLink: string | null
+  action: 'enroll' | 'open' | 'pending' | 'disabled' | 'retry'
+  actionLabel: string
+  actionHref: string | null
+  statusNote: string | null
+}
+
 export type StudentPortalData = {
   user: { firstName?: string; lastName?: string; email: string; phone?: string | null }
   activeCourses: StudentCourse[]
@@ -59,6 +94,8 @@ export type StudentPortalData = {
   expiredCourses: StudentCourse[]
   pendingEnrollments: StudentEnrollmentItem[]
   rejectedEnrollments: StudentEnrollmentItem[]
+  catalogCourses: CatalogCourseItem[]
+  enrollEligibility: EnrollEligibility
   webinars: Array<{
     id: string
     title: string
@@ -134,7 +171,126 @@ function buildStudentCourse(
   }
 }
 
-export async function getStudentPortalData(): Promise<
+function buildCatalogCourse(
+  course: Course,
+  enrollmentRows: Array<{
+    course_id: string
+    status: string
+    access_starts_at?: string | null
+    access_ends_at?: string | null
+  }>,
+  globalEligibility: EnrollEligibility
+): CatalogCourseItem {
+  const row = enrollmentRows.find(
+    (r) => r.course_id === course.id && !['cancelled'].includes(String(r.status))
+  )
+  const courseEligibility = getEnrollEligibility(
+    enrollmentRows.map((r) => ({
+      id: '',
+      course_id: r.course_id,
+      status: r.status,
+      access_starts_at: r.access_starts_at,
+      access_ends_at: r.access_ends_at,
+    })),
+    course.id
+  )
+
+  const price = Number(course.pricing ?? 0)
+  const free = isFreeProgram(course.pricing)
+  const programType = course.program_type ?? 'training'
+
+  const meta = {
+    programType,
+    programTypeLabel: PROGRAM_TYPE_LABELS[programType],
+    isFree: free,
+    scheduledAt: course.scheduled_at ?? null,
+    location: course.location ?? null,
+    meetingLink: course.meeting_link ?? null,
+  }
+
+  const base = {
+    id: course.id,
+    title: course.title,
+    description: course.description,
+    thumbnail: course.thumbnail,
+    difficulty: course.difficulty,
+    duration: course.duration,
+    pricing: course.pricing,
+    categoryName: course.category?.name ?? null,
+    ...meta,
+  }
+
+  if (row) {
+    const status = String(row.status)
+    if (PENDING_ENROLLMENT_STATUSES.includes(status as (typeof PENDING_ENROLLMENT_STATUSES)[number])) {
+      return {
+        ...base,
+        action: 'pending',
+        actionLabel: free ? 'Enrollment pending' : 'Payment under review',
+        actionHref: null,
+        statusNote: free
+          ? 'Your enrollment is being processed.'
+          : 'Waiting for admin to verify your MoMo receipt.',
+      }
+    }
+    if (status === 'payment_rejected') {
+      return {
+        ...base,
+        action: courseEligibility.canEnroll ? 'retry' : 'disabled',
+        actionLabel: courseEligibility.canEnroll ? (free ? 'Try again' : 'Resubmit payment') : 'Unavailable',
+        actionHref: courseEligibility.canEnroll ? `/student/courses/${course.id}/enroll` : null,
+        statusNote: courseEligibility.canEnroll
+          ? free
+            ? 'Previous enrollment could not be completed — you can try again.'
+            : 'Previous payment was not verified — you can submit again.'
+          : globalEligibility.reason,
+      }
+    }
+    if (status === 'admitted') {
+      const accessState = getEnrollmentAccessState({
+        status,
+        access_starts_at: row.access_starts_at,
+        access_ends_at: row.access_ends_at,
+      })
+      if (accessState === 'active') {
+        return {
+          ...base,
+          action: 'open',
+          actionLabel: programType === 'webinar' && course.meeting_link ? 'Join program' : 'Open course',
+          actionHref: `/student/courses/${course.id}`,
+          statusNote: accessLabelFor(accessState, row.access_starts_at, row.access_ends_at),
+        }
+      }
+      if (accessState === 'upcoming') {
+        return {
+          ...base,
+          action: 'disabled',
+          actionLabel: 'Starts soon',
+          actionHref: null,
+          statusNote: accessLabelFor(accessState, row.access_starts_at, row.access_ends_at),
+        }
+      }
+    }
+  }
+
+  const canEnroll = courseEligibility.canEnroll
+  return {
+    ...base,
+    action: canEnroll ? 'enroll' : 'disabled',
+    actionLabel: canEnroll ? (free ? 'Enroll free' : 'Enroll & pay') : 'Unavailable',
+    actionHref: canEnroll ? `/student/courses/${course.id}/enroll` : null,
+    statusNote: canEnroll
+      ? free
+        ? 'Free programme — instant access after you enroll.'
+        : null
+      : (courseEligibility.reason ?? globalEligibility.reason),
+  }
+}
+
+export async function getStudentPortalData(options?: {
+  catalogTrack?: StudentTrackId
+  catalogProgramType?: ProgramType
+}): Promise<
   { success: true; data: StudentPortalData } | { success: false; error: string }
 > {
   const user = await getCurrentUser()
@@ -214,7 +370,8 @@ export async function getStudentPortalData(): Promise<
   const expiredCourses = allCourses.filter((c) => c.accessState === 'expired')
 
   let webinars: StudentPortalData['webinars'] = []
-  if (activeCourses.length) {
+  const hasAnyAdmitted = activeCourses.length > 0 || upcomingCourses.length > 0
+  if (hasAnyAdmitted) {
     const { data } = await supabaseAdmin
       .from('webinars')
       .select('id, title, description, scheduled_at, meeting_link, recording_url')
@@ -230,10 +387,6 @@ export async function getStudentPortalData(): Promise<
     .order('created_at', { ascending: false })
     .limit(8)
 
-  let phone: string | null = null
-  const { data: userRow } = await supabaseAdmin.from('users').select('phone').eq('id', userId).maybeSingle()
-  phone = userRow?.phone ?? null
-
   const mapEnrollmentItem = (row: (typeof rows)[0]): StudentEnrollmentItem => {
     const accessRow: EnrollmentAccessRow = {
       status: row.status,
@@ -243,6 +396,7 @@ export async function getStudentPortalData(): Promise<
     const accessState = getEnrollmentAccessState(accessRow)
     return {
       id: row.id,
+      courseId: row.course_id,
       courseTitle: normalizeJoinedCourse(row.course as JoinedCourse | JoinedCourse[] | null)?.title ?? 'Course',
       status: row.status,
       statusLabel: ENROLLMENT_STATUS_LABELS[row.status] ?? row.status,
@@ -254,6 +408,27 @@ export async function getStudentPortalData(): Promise<
       accessEndsAt: row.access_ends_at ?? null,
     }
   }
+
+  let phone: string | null = null
+  const { data: userRow } = await supabaseAdmin.from('users').select('phone').eq('id', userId).maybeSingle()
+  phone = userRow?.phone ?? null
+
+  const enrollmentRows = rows.map((r) => ({
+    id: r.id,
+    course_id: r.course_id,
+    status: String(r.status),
+    access_starts_at: r.access_starts_at,
+    access_ends_at: r.access_ends_at,
+  }))
+  const enrollEligibility = getEnrollEligibility(enrollmentRows)
+  const published = await getPublishedCourses(undefined, {
+    programTypes: options?.catalogProgramType
+      ? [options.catalogProgramType]
+      : options?.catalogTrack
+        ? STUDENT_TRACKS.find((t) => t.id === options.catalogTrack)?.types
+        : undefined,
+  })
+  const catalogCourses = published.map((c) => buildCatalogCourse(c, enrollmentRows, enrollEligibility))
 
   return {
     success: true,
@@ -269,6 +444,8 @@ export async function getStudentPortalData(): Promise<
       expiredCourses,
       pendingEnrollments: pendingRows.map(mapEnrollmentItem),
       rejectedEnrollments: rejectedRows.map(mapEnrollmentItem),
+      catalogCourses,
+      enrollEligibility,
       webinars,
       announcements: (announcements ?? []).map((a) => ({
         id: a.id,

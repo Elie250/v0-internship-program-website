@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getCategories, getPublishedCourses } from '@/lib/platform/queries'
+import { getCurrentUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
 
 export default async function LearningPage({
@@ -15,7 +16,9 @@ export default async function LearningPage({
   const params = await searchParams
   const module = params.module ?? 'training'
   const categories = await getCategories('learning')
-  const courses = await getPublishedCourses(params.category)
+  const courses = await getPublishedCourses(params.category, { programType: 'training' })
+  const user = await getCurrentUser()
+  const isStudent = user?.role === 'student' || user?.role === 'registered'
 
   const moduleTitles: Record<string, string> = {
     training: 'Training Programs',
@@ -39,7 +42,7 @@ export default async function LearningPage({
       <section className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-wrap gap-2 mb-8">
           <Link href="/learning?module=training"><Button variant={module === 'training' ? 'default' : 'outline'}>Training</Button></Link>
-          <Link href="/internship"><Button variant="outline">Internship</Button></Link>
+          <Link href="/internship"><Button variant="outline">Internship programmes</Button></Link>
           <Link href="/engineering-support"><Button variant="outline">Engineering Support</Button></Link>
         </div>
 
@@ -52,9 +55,19 @@ export default async function LearningPage({
           ))}
         </div>
 
-        <h2 className="text-2xl font-bold text-[#1e3a5f] mb-6">{moduleTitles[module] ?? 'Courses'}</h2>
-        <p className="text-sm text-muted-foreground mb-6 -mt-4">
-          Published courses appear here. Select a programme to apply, pay via MTN MoMo, and upload your receipt for admission.
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">{moduleTitles[module] ?? 'Courses'}</h2>
+        <p className="text-sm text-slate-600 mb-6 -mt-4">
+          {isStudent ? (
+            <>
+              You are logged in — enroll from your{' '}
+              <Link href="/student/courses?track=training" className="text-[var(--brand-navy)] font-medium underline">
+                student portal
+              </Link>
+              . Choose training, internship, or career programmes there.
+            </>
+          ) : (
+            <>Log in to enroll. Browse training programmes here; internship and career programmes are in the student portal after login.</>
+          )}
         </p>
 
         {courses.length === 0 ? (
@@ -78,7 +91,12 @@ export default async function LearningPage({
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course) => (
+            {courses.map((course) => {
+              const studentEnroll = `/student/courses/${course.id}/enroll`
+              const enrollHref = isStudent
+                ? studentEnroll
+                : `/auth/login?redirect=${encodeURIComponent(studentEnroll)}`
+              return (
               <Card key={course.id} className="overflow-hidden">
                 {course.thumbnail ? (
                   <div className="relative h-44">
@@ -99,7 +117,7 @@ export default async function LearningPage({
                     <span>{course.difficulty ?? 'All levels'}</span>
                     <span>{course.duration ?? 'Flexible'}</span>
                   </div>
-                  <p className="text-sm font-semibold text-[#1e3a5f] mb-4">
+                  <p className="text-sm font-semibold text-[var(--brand-navy)] mb-4">
                     {Number(course.pricing ?? 0) > 0
                       ? `${Number(course.pricing).toLocaleString()} RWF`
                       : 'Pricing on request'}
@@ -108,13 +126,15 @@ export default async function LearningPage({
                     <Link href={`/learning/${course.id}`}>
                       <Button size="sm" variant="outline" className="w-full">Details</Button>
                     </Link>
-                    <Link href={`/learning/${course.id}/enroll`}>
-                      <Button size="sm" className="w-full bg-[#1e3a5f]">Apply</Button>
+                    <Link href={enrollHref}>
+                      <Button size="sm" className="w-full bg-[var(--brand-navy)] text-white">
+                        {isStudent ? 'Enroll' : 'Log in to enroll'}
+                      </Button>
                     </Link>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            )})}
           </div>
         )}
       </section>

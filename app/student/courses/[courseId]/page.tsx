@@ -71,7 +71,7 @@ export default function StudentCoursePage() {
   return (
     <StudentPortalShell userName={userName}>
       <Link href="/student/dashboard">
-        <Button variant="ghost" size="sm" className="mb-4 -ml-2">
+        <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-800 hover:text-slate-950">
           <ChevronLeft className="h-4 w-4 mr-1" />
           My courses
         </Button>
@@ -80,8 +80,8 @@ export default function StudentCoursePage() {
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
         <aside className="bg-white rounded-xl border overflow-hidden h-fit lg:sticky lg:top-4">
           <div className="text-on-dark p-4 border-b bg-[var(--brand-navy)]">
-            <h1 className="font-bold leading-snug">{course.title}</h1>
-            <p className="text-xs text-white/70 mt-1">{course.lessons.length} lessons</p>
+            <h1 className="font-bold leading-snug text-white">{course.title}</h1>
+            <p className="text-xs text-white/80 mt-1">{course.lessons.length} lessons</p>
           </div>
           <ul className="divide-y max-h-[60vh] overflow-y-auto">
             {course.lessons.length === 0 ? (
@@ -97,13 +97,13 @@ export default function StudentCoursePage() {
                       type="button"
                       onClick={() => setActiveLessonId(lesson.id)}
                       className={cn(
-                        'w-full text-left px-4 py-3 flex items-start gap-3 text-sm hover:bg-muted/50 transition',
-                        activeLessonId === lesson.id && 'bg-[#1e3a5f]/5 border-l-2 border-l-[#1e3a5f]'
+                        'w-full text-left px-4 py-3 flex items-start gap-3 text-sm text-slate-800 hover:bg-slate-50 transition',
+                        activeLessonId === lesson.id && 'bg-slate-100 border-l-2 border-l-[var(--brand-navy)]'
                       )}
                     >
-                      <span className="text-muted-foreground text-xs mt-0.5 w-4">{index + 1}</span>
-                      <Icon className="h-4 w-4 shrink-0 text-[#1e3a5f] mt-0.5" />
-                      <span>{lesson.title}</span>
+                      <span className="text-slate-500 text-xs mt-0.5 w-4">{index + 1}</span>
+                      <Icon className="h-4 w-4 shrink-0 text-[var(--brand-navy)] mt-0.5" />
+                      <span className="text-slate-900">{lesson.title}</span>
                     </button>
                   </li>
                 )

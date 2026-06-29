@@ -6,12 +6,20 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCourseById } from '@/lib/platform/queries'
+import { getCurrentUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const course = await getCourseById(id)
   if (!course) notFound()
+
+  const user = await getCurrentUser()
+  const studentEnroll = `/student/courses/${course.id}/enroll`
+  const enrollHref =
+    user?.role === 'student' || user?.role === 'registered'
+      ? studentEnroll
+      : `/auth/login?redirect=${encodeURIComponent(studentEnroll)}`
 
   const price = Number(course.pricing ?? 0)
 
@@ -32,9 +40,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         </div>
         <div>
           <p className="text-sm text-muted-foreground mb-2">{course.category?.name ?? 'Training programme'}</p>
-          <h1 className="text-3xl font-bold text-[#1e3a5f] mb-4">{course.title}</h1>
-          <p className="text-muted-foreground mb-6">{course.description}</p>
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">{course.title}</h1>
+          <p className="text-slate-600 mb-6">{course.description}</p>
+          <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-6">
             <span>{course.difficulty ?? 'All levels'}</span>
             <span>{course.duration ?? 'Flexible schedule'}</span>
           </div>
@@ -42,12 +50,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             {price > 0 ? `${price.toLocaleString()} RWF` : 'Pricing on request'}
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/learning/${course.id}/enroll`}>
-              <Button size="lg" className="bg-[var(--brand-navy)]">Enroll now</Button>
+            <Link href={enrollHref}>
+              <Button size="lg" className="bg-[var(--brand-navy)] text-white">
+                {user ? 'Enroll in student portal' : 'Log in to enroll'}
+              </Button>
             </Link>
-            <Link href="/auth/login">
-              <Button size="lg" variant="outline">Log in</Button>
-            </Link>
+            {!user ? (
+              <Link href={`/auth/register?redirect=${encodeURIComponent(studentEnroll)}`}>
+                <Button size="lg" variant="outline">Create account</Button>
+              </Link>
+            ) : null}
             <Link href="/learning">
               <Button size="lg" variant="ghost">All courses</Button>
             </Link>
