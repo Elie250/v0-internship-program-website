@@ -3,6 +3,7 @@ export const COMPANY = {
   legalName: 'Energy and Logics Ltd',
   brandName: 'Energy & Logics',
   platformName: 'Engineering Hub',
+  slogan: 'Engineering sustainable solutions',
   tagline: 'Hands-on engineering training and technical support in Rwanda.',
   email: 'admin@energyandlogics.com',
   phone: '+250783986252',

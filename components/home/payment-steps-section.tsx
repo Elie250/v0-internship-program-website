@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
 
 export function PaymentStepsSection() {
@@ -21,22 +21,10 @@ export function PaymentStepsSection() {
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-[var(--brand-navy)]" />
-              <CardTitle className="text-xl text-slate-900">{PAYMENT.method}</CardTitle>
-            </div>
+            <CardTitle className="text-xl text-slate-900">{PAYMENT.method}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">MoMo Pay Code</p>
-                <p className="text-2xl font-bold text-[var(--brand-navy)] mt-1">{PAYMENT.momoPayCode}</p>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Account name</p>
-                <p className="text-lg font-semibold text-slate-900 mt-1">{PAYMENT.accountName}</p>
-              </div>
-            </div>
+            <MomoPayCard />
 
             <ol className="space-y-3 text-sm text-slate-700 list-decimal list-inside">
               {PAYMENT.steps.map((step) => (

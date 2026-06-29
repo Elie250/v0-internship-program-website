@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2 } from 'lucide-react'
 import type { SupportSubscriptionPlan } from '@/lib/support/types'
@@ -188,15 +189,10 @@ export function SupportSubscribePanel({
       </CardHeader>
       <CardContent className="space-y-4">
         {!isFree ? (
-          <div className="rounded-lg bg-muted p-4 text-sm space-y-1">
-            <p className="font-medium text-slate-900">{PAYMENT.method}</p>
-            <p>
-              Pay Code: <strong>{PAYMENT.momoPayCode}</strong> ({PAYMENT.accountName})
-            </p>
-            <p className="text-slate-600">
-              Amount: <strong>{Number(plan.price).toLocaleString()} RWF</strong>
-            </p>
-          </div>
+          <MomoPayCard
+            compact
+            amountLabel={`Amount: ${Number(plan.price).toLocaleString()} RWF`}
+          />
         ) : null}
 
         <div>

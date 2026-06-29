@@ -4,6 +4,11 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
+import {
+  isPendingPaymentStatus,
+  paymentStatusForApproval,
+  safeReviewedById,
+} from '@/lib/payments/status'
 
 export type PaymentRecord = {
   id: string
@@ -91,57 +96,90 @@ export async function reviewPayment(input: {
     if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
     const session = await getAdminSession()
-    const status = input.decision === 'approved' ? 'approved' : 'rejected'
+    const status = paymentStatusForApproval(input.decision)
+    const reviewedBy = safeReviewedById(session?.user.id)
+    const now = new Date().toISOString()
 
-    const { error } = await supabaseAdmin
+    const { data: existing, error: fetchError } = await supabaseAdmin
       .from('payments')
-      .update({
-        status,
-        admin_notes: input.adminNotes?.trim() || null,
-        reviewed_by: session?.user.id ?? null,
-        reviewed_at: new Date().toISOString(),
-        payment_date: input.decision === 'approved' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', input.id)
-
-    if (error) return { success: false, error: error.message }
-
-    const { data: payment } = await supabaseAdmin
-      .from('payments')
-      .select('application_id')
+      .select(
+        'id, status, course_enrollment_id, support_subscription_id, application_id'
+      )
       .eq('id', input.id)
       .maybeSingle()
 
-    if (payment?.application_id && input.decision === 'approved') {
-      await supabaseAdmin
-        .from('applications')
-        .update({ status: 'payment_verified', updated_at: new Date().toISOString() })
-        .eq('id', payment.application_id)
+    if (fetchError || !existing) {
+      return { success: false, error: fetchError?.message ?? 'Payment not found' }
     }
 
-    const { data: fullPayment } = await supabaseAdmin
-      .from('payments')
-      .select('course_enrollment_id, support_subscription_id')
-      .eq('id', input.id)
-      .maybeSingle()
-
-    if (fullPayment?.course_enrollment_id) {
-      if (input.decision === 'approved') {
-        await admitEnrollmentById(fullPayment.course_enrollment_id)
-      } else {
-        await rejectEnrollmentById(fullPayment.course_enrollment_id)
+    if (!isPendingPaymentStatus(String(existing.status))) {
+      if (input.decision === 'approved' && String(existing.status) === 'approved') {
+        if (existing.course_enrollment_id) {
+          await admitEnrollmentById(existing.course_enrollment_id as string)
+        }
+        return { success: true }
+      }
+      return {
+        success: false,
+        error: `Payment is already ${existing.status}. Refresh the page.`,
       }
     }
 
-    if (fullPayment?.support_subscription_id) {
+    const updatePayload: Record<string, unknown> = {
+      status,
+      admin_notes: input.adminNotes?.trim() || null,
+      reviewed_at: now,
+      payment_date: input.decision === 'approved' ? now : null,
+      updated_at: now,
+    }
+    if (reviewedBy) {
+      updatePayload.reviewed_by = reviewedBy
+    }
+
+    let { error } = await supabaseAdmin.from('payments').update(updatePayload).eq('id', input.id)
+
+    if (error?.message?.includes('reviewed_by')) {
+      const { reviewed_by: _removed, ...withoutReviewer } = updatePayload
+      const retry = await supabaseAdmin.from('payments').update(withoutReviewer).eq('id', input.id)
+      error = retry.error
+    }
+
+    if (error) return { success: false, error: error.message }
+
+    if (existing.application_id && input.decision === 'approved') {
+      await supabaseAdmin
+        .from('applications')
+        .update({ status: 'payment_verified', updated_at: now })
+        .eq('id', existing.application_id)
+    }
+
+    if (existing.course_enrollment_id) {
+      if (input.decision === 'approved') {
+        const admitted = await admitEnrollmentById(existing.course_enrollment_id as string)
+        if (!admitted.success) {
+          return { success: false, error: admitted.error ?? 'Payment saved but enrollment activation failed' }
+        }
+      } else {
+        await rejectEnrollmentById(existing.course_enrollment_id as string)
+      }
+    }
+
+    if (existing.support_subscription_id) {
       const { activateSupportSubscription, rejectSupportSubscription } = await import(
         '@/lib/support/activate-subscription'
       )
       if (input.decision === 'approved') {
-        await activateSupportSubscription(fullPayment.support_subscription_id)
+        const activated = await activateSupportSubscription(
+          existing.support_subscription_id as string
+        )
+        if (!activated.success) {
+          return {
+            success: false,
+            error: activated.error ?? 'Payment saved but subscription activation failed',
+          }
+        }
       } else {
-        await rejectSupportSubscription(fullPayment.support_subscription_id)
+        await rejectSupportSubscription(existing.support_subscription_id as string)
       }
     }
 

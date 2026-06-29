@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { EnrollmentSteps } from '@/components/learning/enrollment-steps'
+import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
 import {
@@ -222,22 +223,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
             <CardDescription>{PAYMENT.workflow}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-xl bg-[var(--brand-navy)]/5 border border-[var(--brand-navy)]/10 p-5">
-              <p className="text-sm text-muted-foreground">Amount due — {course.title}</p>
-              <p className="text-3xl font-bold text-[var(--brand-navy)] mt-1">
-                {price > 0 ? `${price.toLocaleString()} RWF` : 'Contact us'}
-              </p>
-              <div className="mt-4 grid sm:grid-cols-2 gap-3 text-sm">
-                <div className="bg-white rounded-lg border p-3">
-                  <p className="text-muted-foreground text-xs">MoMo Pay Code</p>
-                  <p className="font-bold text-lg">{PAYMENT.momoPayCode}</p>
-                </div>
-                <div className="bg-white rounded-lg border p-3">
-                  <p className="text-muted-foreground text-xs">Account name</p>
-                  <p className="font-semibold">{PAYMENT.accountName}</p>
-                </div>
-              </div>
-            </div>
+            <MomoPayCard amountLabel={`Amount due — ${course.title}: ${price.toLocaleString()} RWF`} />
             <ol className="text-sm space-y-2 text-muted-foreground list-decimal list-inside">
               {PAYMENT.steps.map((s) => (
                 <li key={s}>{s}</li>
