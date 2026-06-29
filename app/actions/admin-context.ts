@@ -1,7 +1,7 @@
 'use server'
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { filterAdminNav } from '@/lib/admin/nav'
+import { filterAdminNav, type AdminNavGroup } from '@/lib/admin/nav'
 import {
   PERMISSIONS,
   type Permission,
@@ -29,7 +29,7 @@ export type AdminSession = {
     lastName?: string
     permissions: string[]
   }
-  nav: ReturnType<typeof filterAdminNav>
+  nav: AdminNavGroup[]
 }
 
 async function countTable(table: string): Promise<number> {

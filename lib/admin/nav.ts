@@ -1,26 +1,25 @@
-import type { LucideIcon } from 'lucide-react'
-import {
-  BarChart3,
-  BookOpen,
-  ClipboardList,
-  FolderTree,
-  Headphones,
-  LayoutDashboard,
-  Megaphone,
-  Receipt,
-  Settings,
-  Shield,
-  ShoppingBag,
-  Users,
-  Zap,
-} from 'lucide-react'
 import { PERMISSIONS, type Permission, hasPermission } from '@/lib/admin/permissions'
+
+export type AdminNavIconName =
+  | 'layout-dashboard'
+  | 'users'
+  | 'shield'
+  | 'clipboard-list'
+  | 'receipt'
+  | 'shopping-bag'
+  | 'folder-tree'
+  | 'book-open'
+  | 'megaphone'
+  | 'zap'
+  | 'headphones'
+  | 'bar-chart'
+  | 'settings'
 
 export type AdminNavItem = {
   id: string
   label: string
   href: string
-  icon: LucideIcon
+  icon: AdminNavIconName
   permission: Permission
 }
 
@@ -37,7 +36,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'overview',
         label: 'Overview',
         href: '/admin/dashboard',
-        icon: LayoutDashboard,
+        icon: 'layout-dashboard',
         permission: PERMISSIONS.REPORTS_VIEW,
       },
     ],
@@ -49,14 +48,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'users',
         label: 'All Users',
         href: '/admin/dashboard/users',
-        icon: Users,
+        icon: 'users',
         permission: PERMISSIONS.USERS_VIEW,
       },
       {
         id: 'roles',
         label: 'Roles & Permissions',
         href: '/admin/dashboard/roles',
-        icon: Shield,
+        icon: 'shield',
         permission: PERMISSIONS.USERS_ASSIGN_ROLE,
       },
     ],
@@ -68,14 +67,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'applications',
         label: 'All Applications',
         href: '/admin/dashboard/applications',
-        icon: ClipboardList,
+        icon: 'clipboard-list',
         permission: PERMISSIONS.APPLICATIONS_VIEW,
       },
       {
         id: 'payments',
         label: 'Payment Receipts',
         href: '/admin/dashboard/payments',
-        icon: Receipt,
+        icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
       },
     ],
@@ -87,14 +86,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'products',
         label: 'Products',
         href: '/admin/dashboard/products',
-        icon: ShoppingBag,
+        icon: 'shopping-bag',
         permission: PERMISSIONS.SHOP_PRODUCTS,
       },
       {
         id: 'categories',
         label: 'Categories',
         href: '/admin/dashboard/categories',
-        icon: FolderTree,
+        icon: 'folder-tree',
         permission: PERMISSIONS.SHOP_CATEGORIES,
       },
     ],
@@ -106,7 +105,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'courses',
         label: 'Programs / Courses',
         href: '/admin/dashboard/courses',
-        icon: BookOpen,
+        icon: 'book-open',
         permission: PERMISSIONS.LEARNING_PROGRAMS,
       },
     ],
@@ -118,14 +117,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'announcements',
         label: 'Announcements',
         href: '/admin/dashboard/announcements',
-        icon: Megaphone,
+        icon: 'megaphone',
         permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
       },
       {
         id: 'services',
         label: 'Services',
         href: '/admin/dashboard/services',
-        icon: Zap,
+        icon: 'zap',
         permission: PERMISSIONS.CONTENT_SERVICES,
       },
     ],
@@ -137,7 +136,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'support',
         label: 'Tickets',
         href: '/admin/dashboard/support',
-        icon: Headphones,
+        icon: 'headphones',
         permission: PERMISSIONS.SUPPORT_TICKETS,
       },
     ],
@@ -149,14 +148,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'reports',
         label: 'Reports',
         href: '/admin/dashboard/reports',
-        icon: BarChart3,
+        icon: 'bar-chart',
         permission: PERMISSIONS.REPORTS_VIEW,
       },
       {
         id: 'settings',
         label: 'Settings',
         href: '/admin/dashboard/settings',
-        icon: Settings,
+        icon: 'settings',
         permission: PERMISSIONS.SETTINGS_MANAGE,
       },
     ],
