@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getAdminSession } from '@/app/actions/admin-context'
 import { AdminShell } from '@/components/admin/admin-shell'
+import { getCompanyLogoUrl } from '@/lib/platform/branding'
 
 export default async function AdminDashboardLayout({
   children,
@@ -12,5 +13,11 @@ export default async function AdminDashboardLayout({
     redirect('/auth/login')
   }
 
-  return <AdminShell session={session}>{children}</AdminShell>
+  const logoUrl = await getCompanyLogoUrl()
+
+  return (
+    <AdminShell session={session} logoUrl={logoUrl}>
+      {children}
+    </AdminShell>
+  )
 }

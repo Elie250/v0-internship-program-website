@@ -77,9 +77,13 @@ export default async function LearningPage({
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
               <Card key={course.id} className="overflow-hidden">
-                {course.thumbnail && (
+                {course.thumbnail ? (
                   <div className="relative h-44">
-                    <Image src={course.thumbnail} alt={course.title} fill className="object-cover" />
+                    <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
+                  </div>
+                ) : (
+                  <div className="h-44 bg-[#1e3a5f]/5 flex items-center justify-center text-sm text-muted-foreground px-4 text-center">
+                    {course.title}
                   </div>
                 )}
                 <CardHeader>

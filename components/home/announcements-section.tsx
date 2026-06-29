@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getPublishedAnnouncements, getPublishedServices } from '@/lib/platform/queries'
 import { COMPANY } from '@/lib/company/constants'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,7 +21,18 @@ export async function AnnouncementsSection() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {announcements.map((item) => (
-              <Card key={item.id}>
+              <Card key={item.id} className="overflow-hidden">
+                {item.image_url ? (
+                  <div className="relative h-40 w-full">
+                    <Image
+                      src={item.image_url}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ) : null}
                 <CardHeader>
                   <p className="text-xs uppercase text-muted-foreground">{item.type ?? 'news'}</p>
                   <CardTitle>{item.title}</CardTitle>
@@ -50,7 +62,22 @@ export async function FeaturedServicesSection() {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
-            <Card key={service.id}>
+            <Card key={service.id} className="overflow-hidden">
+              {service.image_url ? (
+                <div className="relative h-44 w-full">
+                  <Image
+                    src={service.image_url}
+                    alt={service.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              ) : (
+                <div className="h-32 bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                  No image
+                </div>
+              )}
               <CardHeader>
                 <CardTitle>{service.title}</CardTitle>
                 <p className="text-xs text-muted-foreground">{service.category}</p>

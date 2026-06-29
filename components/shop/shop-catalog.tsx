@@ -4,11 +4,28 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Package, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import type { Category, Product } from '@/types/platform'
+
+function ProductImage({ src, alt }: { src?: string; alt: string }) {
+  if (src) {
+    return (
+      <div className="relative h-44 w-full bg-muted">
+        <Image src={src} alt={alt} fill className="object-cover" unoptimized />
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-44 w-full bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
+      <Package className="h-8 w-8 opacity-50" />
+      <span className="text-xs">No image</span>
+    </div>
+  )
+}
 
 export function ShopCatalog({
   categories,
@@ -70,12 +87,8 @@ export function ShopCatalog({
               ? product.price - product.discount
               : product.price
             return (
-              <Card key={product.id} className="overflow-hidden">
-                {image && (
-                  <div className="relative h-44 bg-muted">
-                    <Image src={image} alt={product.name} fill className="object-cover" />
-                  </div>
-                )}
+              <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <ProductImage src={image} alt={product.name} />
                 <CardHeader>
                   <p className="text-xs text-muted-foreground">{product.category?.name ?? 'General'}</p>
                   <CardTitle className="text-lg">{product.name}</CardTitle>
@@ -86,7 +99,7 @@ export function ShopCatalog({
                     <span className="font-bold text-[#1e3a5f]">{finalPrice.toLocaleString()} RWF</span>
                     <span className="text-xs text-muted-foreground">Stock: {product.stock}</span>
                   </div>
-                  <Link href={`/shop/${product.id}`}><Button size="sm" className="w-full">View Details</Button></Link>
+                  <Link href={`/shop/${product.id}`}><Button size="sm" className="w-full bg-[#1e3a5f]">View Details</Button></Link>
                 </CardContent>
               </Card>
             )
