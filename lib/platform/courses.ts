@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContentStatus, Course, Category } from '@/types/platform'
 
 type CourseRow = Record<string, unknown> & {
@@ -39,7 +40,7 @@ export function isCoursePublished(row: CourseRow | Course): boolean {
 }
 
 export async function attachCourseCategories(
-  client: NonNullable<ReturnType<typeof import('@/lib/supabaseAdmin').supabaseAdmin>>,
+  client: SupabaseClient,
   courses: Course[]
 ): Promise<Course[]> {
   const categoryIds = [...new Set(courses.map((c) => c.category_id).filter(Boolean))] as string[]
