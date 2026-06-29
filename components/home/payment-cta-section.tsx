@@ -1,13 +1,20 @@
 import Link from 'next/link'
-import { ArrowRight, Smartphone } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function PaymentCtaSection() {
   return (
     <section className="py-12 px-4 bg-white border-t border-slate-100">
       <div className="max-w-3xl mx-auto text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--brand-navy)]/10 mb-4">
-          <Smartphone className="h-6 w-6 text-[var(--brand-navy)]" />
+        <div className="relative mx-auto mb-4 h-24 w-full max-w-sm rounded-xl overflow-hidden bg-[#FFCC00]">
+          <Image
+            src="/images/mtn-momo.png"
+            alt="MTN Mobile Money — Just MoMo it"
+            fill
+            className="object-contain p-2"
+            sizes="384px"
+          />
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Pay with MTN MoMo</h2>
         <p className="text-slate-600 mb-6 max-w-lg mx-auto">

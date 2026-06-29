@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { revokeEnrollmentAccess } from '@/lib/enrollment/revoke-access'
 import { deletePlatformMediaFile } from '@/lib/storage/platform-media'
+import { safeReviewedById } from '@/lib/payments/status'
 
 export async function refundApprovedPayment(
   paymentId: string,
@@ -56,7 +57,7 @@ export async function refundApprovedPayment(
       status: 'refunded',
       receipt_url: options.deleteReceipt ? null : payment.receipt_url,
       admin_notes: mergedNotes || null,
-      reviewed_by: options.reviewedBy ?? null,
+      reviewed_by: safeReviewedById(options.reviewedBy) ?? null,
       reviewed_at: now,
       updated_at: now,
     })
@@ -151,7 +152,7 @@ export async function deletePaymentReceipt(
     .update({
       receipt_url: null,
       admin_notes: mergedNotes || null,
-      reviewed_by: options?.reviewedBy ?? null,
+      reviewed_by: safeReviewedById(options?.reviewedBy) ?? null,
       reviewed_at: now,
       updated_at: now,
     })

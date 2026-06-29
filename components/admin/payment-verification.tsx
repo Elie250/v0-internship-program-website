@@ -32,6 +32,8 @@ export default function PaymentVerificationPanel() {
   const [history, setHistory] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [refundTarget, setRefundTarget] = useState<RefundTarget | null>(null)
   const [refundNotes, setRefundNotes] = useState('')
@@ -66,15 +68,24 @@ export default function PaymentVerificationPanel() {
   }, [load])
 
   const handleReview = async (id: string, decision: 'approved' | 'rejected') => {
+    setReviewingId(id)
+    setError('')
+    setSuccess('')
     const result = await reviewPayment({
       id,
       decision,
       adminNotes: notes[id],
     })
+    setReviewingId(null)
     if (!result.success) {
       setError(result.error || 'Review failed')
       return
     }
+    setSuccess(
+      decision === 'approved'
+        ? 'Payment approved — student access activated'
+        : 'Payment rejected'
+    )
     load()
   }
 
@@ -137,6 +148,12 @@ export default function PaymentVerificationPanel() {
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
           {error}
+        </p>
+      )}
+
+      {success && (
+        <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-3">
+          {success}
         </p>
       )}
 
@@ -213,14 +230,16 @@ export default function PaymentVerificationPanel() {
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
+                    disabled={reviewingId === payment.id}
                     onClick={() => handleReview(payment.id, 'approved')}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-1" />
-                    Approve payment
+                    {reviewingId === payment.id ? 'Approving…' : 'Approve payment'}
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
+                    disabled={reviewingId === payment.id}
                     onClick={() => handleReview(payment.id, 'rejected')}
                   >
                     <XCircle className="w-4 h-4 mr-1" />

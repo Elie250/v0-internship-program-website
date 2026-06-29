@@ -12,6 +12,7 @@ import {
   resolvePermissions,
 } from '@/lib/admin/permissions'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { repairEnrollmentsWithApprovedPayments } from '@/lib/enrollment/repair-approved-payments'
 
 export type AdminStats = {
   users: number
@@ -71,6 +72,33 @@ async function countEnrollmentsByStatus(status?: string): Promise<number> {
   return count ?? 0
 }
 
+async function countPendingEnrollments(): Promise<number> {
+  if (!supabaseAdmin) return 0
+
+  const { data: rows, error } = await supabaseAdmin
+    .from('course_enrollments')
+    .select('id, payment_id')
+    .eq('status', 'payment_pending_review')
+
+  if (error || !rows?.length) return 0
+
+  const paymentIds = rows.map((r) => r.payment_id).filter(Boolean) as string[]
+  if (!paymentIds.length) return rows.length
+
+  const { data: payments } = await supabaseAdmin
+    .from('payments')
+    .select('id, status')
+    .in('id', paymentIds)
+
+  const approvedIds = new Set(
+    (payments ?? [])
+      .filter((p) => p.status === 'approved' || p.status === 'Paid')
+      .map((p) => p.id)
+  )
+
+  return rows.filter((row) => !row.payment_id || !approvedIds.has(row.payment_id as string)).length
+}
+
 async function countPendingPayments(): Promise<number> {
   if (!supabaseAdmin) return 0
   const { count, error } = await supabaseAdmin
@@ -86,7 +114,7 @@ async function sumApprovedPayments(): Promise<number> {
   const { data, error } = await supabaseAdmin
     .from('payments')
     .select('amount')
-    .eq('status', 'approved')
+    .in('status', ['approved', 'Paid'])
   if (error || !data) return 0
   return data.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
 }
@@ -112,6 +140,8 @@ async function countPendingStaffApprovals(): Promise<number> {
 }
 
 async function fetchAdminStats(): Promise<AdminStats> {
+  await repairEnrollmentsWithApprovedPayments()
+
   const [
     users,
     students,
@@ -138,7 +168,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     countTable('support_tickets'),
     countEnrollmentsByStatus(),
     countEnrollmentsByStatus('admitted'),
-    countEnrollmentsByStatus('payment_pending_review'),
+    countPendingEnrollments(),
     countPendingPayments(),
     countPendingStaffApprovals(),
     sumApprovedPayments(),

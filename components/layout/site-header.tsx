@@ -62,7 +62,7 @@ export function SiteHeader() {
           </div>
           <div>
             <p className="font-bold text-lg leading-tight text-white">{COMPANY.brandName}</p>
-            <p className="text-[11px] text-white/70">{COMPANY.address} · Engineering Training</p>
+            <p className="text-[11px] text-white/70">{COMPANY.slogan}</p>
           </div>
         </Link>
 

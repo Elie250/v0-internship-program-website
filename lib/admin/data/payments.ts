@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { isPendingPaymentStatus } from '@/lib/payments/status'
 
 export type PaymentRecord = {
   id: string
@@ -37,7 +38,10 @@ export async function queryPendingPayments(): Promise<{
     .order('created_at', { ascending: false })
 
   if (error) return { payments: [], error: error.message }
-  return { payments: (data ?? []) as PaymentRecord[] }
+
+  const pending = (data ?? []).filter((row) => isPendingPaymentStatus(String(row.status)))
+
+  return { payments: pending as PaymentRecord[] }
 }
 
 export async function queryAllPayments(limit = 100): Promise<{

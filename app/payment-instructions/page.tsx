@@ -3,8 +3,9 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
-import { CheckCircle2, Smartphone } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 export default function PaymentInstructionsPage() {
   return (
@@ -23,20 +24,10 @@ export default function PaymentInstructionsPage() {
       <section className="max-w-3xl mx-auto px-4 py-10 space-y-6">
         <Card className="border-[#1e3a5f]/20">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <Smartphone className="h-6 w-6 text-[#1e3a5f]" />
-              <CardTitle>{PAYMENT.method}</CardTitle>
-            </div>
+            <CardTitle>{PAYMENT.method}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 space-y-2">
-              <p className="text-sm text-muted-foreground">MoMo Pay Code</p>
-              <p className="text-3xl font-bold tracking-wide text-[#1e3a5f]">{PAYMENT.momoPayCode}</p>
-              <p className="text-sm">
-                Account name: <strong>{PAYMENT.accountName}</strong>
-              </p>
-            </div>
-            <p className="text-sm text-muted-foreground">{PAYMENT.workflow}</p>
+          <CardContent>
+            <MomoPayCard />
           </CardContent>
         </Card>
 
