@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { generateCertificate } from '@/lib/certificate-generator'
+import { printApplicationCertificate } from '@/lib/certificate-client'
 
 type ApplicationRow = {
   id: string
@@ -124,6 +124,7 @@ export default function DashboardTable({
               filtered.map((r) => {
                 const name = r.full_name || r.name || 'N/A'
                 const status = r.status || 'pending'
+                const canCertify = ['accepted', 'approved'].includes(status.toLowerCase())
 
                 return (
                   <tr key={r.id} className="hover:bg-gray-50 transition-colors">
@@ -153,8 +154,8 @@ export default function DashboardTable({
                           Decline
                         </button>
                         <button
-                          disabled={status !== 'accepted'}
-                          onClick={() => generateCertificate(r)}
+                          disabled={!canCertify}
+                          onClick={() => printApplicationCertificate(r)}
                           className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 py-1 rounded transition-colors text-sm font-medium"
                         >
                           Certificate
