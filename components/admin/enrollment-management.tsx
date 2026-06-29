@@ -1,9 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { revokeStudentEnrollmentAccess } from '@/app/actions/admin-enrollments'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -11,7 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Mail, Phone } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Mail, Phone, RotateCcw } from 'lucide-react'
 
 type Enrollment = {
   id: string
@@ -35,12 +49,15 @@ const STATUS_OPTIONS = [
   'payment_rejected',
   'waitlisted',
   'cancelled',
+  'refunded',
 ]
 
 function statusBadge(status: string) {
   if (status === 'admitted') return <Badge className="bg-green-100 text-green-700">Admitted</Badge>
+  if (status === 'refunded') return <Badge className="bg-slate-200 text-slate-800">Refunded</Badge>
   if (status === 'payment_rejected') return <Badge className="bg-red-100 text-red-700">Payment rejected</Badge>
   if (status === 'waitlisted') return <Badge className="bg-blue-100 text-blue-700">Waitlisted</Badge>
+  if (status === 'cancelled') return <Badge className="bg-slate-100 text-slate-700">Cancelled</Badge>
   return <Badge className="bg-yellow-100 text-yellow-800">Pending review</Badge>
 }
 
@@ -48,6 +65,10 @@ export default function EnrollmentManagement() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [revokeTarget, setRevokeTarget] = useState<Enrollment | null>(null)
+  const [revokeNotes, setRevokeNotes] = useState('')
+  const [deleteReceiptOnRevoke, setDeleteReceiptOnRevoke] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const load = async () => {
     setLoading(true)
@@ -68,11 +89,41 @@ export default function EnrollmentManagement() {
   }, [])
 
   const updateStatus = async (id: string, status: string) => {
-    await fetch('/api/admin/enrollments', {
+    setError('')
+    const res = await fetch('/api/admin/enrollments', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, status }),
     })
+    const data = await res.json()
+    if (!res.ok) {
+      setError(data.error || 'Update failed')
+      return
+    }
+    load()
+  }
+
+  const handleRevokeConfirm = async () => {
+    if (!revokeTarget) return
+    setActionLoading(true)
+    setError('')
+
+    const result = await revokeStudentEnrollmentAccess({
+      enrollmentId: revokeTarget.id,
+      adminNotes: revokeNotes,
+      deleteReceipt: deleteReceiptOnRevoke,
+    })
+
+    setActionLoading(false)
+
+    if (!result.success) {
+      setError(result.error || 'Failed to revoke access')
+      return
+    }
+
+    setRevokeTarget(null)
+    setRevokeNotes('')
+    setDeleteReceiptOnRevoke(true)
     load()
   }
 
@@ -81,13 +132,19 @@ export default function EnrollmentManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Course enrollments</h1>
-        <p className="text-muted-foreground mt-1">
-          Applications from the Learning portal. Approve payments under Payment Receipts to admit students automatically.
+        <h1 className="text-2xl font-bold text-slate-900">Course enrollments</h1>
+        <p className="text-slate-600 mt-1">
+          Approve payments under Payment Receipts to admit students. Use{' '}
+          <strong>Refund &amp; revoke access</strong> when issuing a MoMo refund — this removes
+          course access and marks the linked payment as refunded.
         </p>
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
+          {error}
+        </p>
+      ) : null}
 
       {enrollments.length === 0 ? (
         <Card>
@@ -106,14 +163,34 @@ export default function EnrollmentManagement() {
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap justify-between gap-3">
                   <div>
-                    <CardTitle className="text-lg">{row.course?.title ?? 'Course'}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <CardTitle className="text-lg text-slate-900">{row.course?.title ?? 'Course'}</CardTitle>
+                    <p className="text-sm text-slate-600 mt-1">
                       {new Date(row.created_at).toLocaleString()} · {Number(row.amount_due).toLocaleString()} RWF
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {statusBadge(row.status)}
-                    <Select value={row.status} onValueChange={(v) => updateStatus(row.id, v)}>
+                    {row.status === 'admitted' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-300 text-amber-900 hover:bg-amber-50"
+                        onClick={() => setRevokeTarget(row)}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Refund &amp; revoke access
+                      </Button>
+                    ) : null}
+                    <Select
+                      value={row.status}
+                      onValueChange={(v) => {
+                        if (v === 'refunded') {
+                          setRevokeTarget(row)
+                          return
+                        }
+                        updateStatus(row.id, v)
+                      }}
+                    >
                       <SelectTrigger className="w-44">
                         <SelectValue />
                       </SelectTrigger>
@@ -129,18 +206,18 @@ export default function EnrollmentManagement() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <p className="font-medium">{row.applicant_name}</p>
-                <p className="flex items-center gap-2 text-muted-foreground">
+                <p className="font-medium text-slate-900">{row.applicant_name}</p>
+                <p className="flex items-center gap-2 text-slate-600">
                   <Mail className="h-4 w-4" />
                   <a href={`mailto:${row.applicant_email}`} className="hover:underline">{row.applicant_email}</a>
                 </p>
-                <p className="flex items-center gap-2 text-muted-foreground">
+                <p className="flex items-center gap-2 text-slate-600">
                   <Phone className="h-4 w-4" />
                   <a href={`tel:${row.applicant_phone}`} className="hover:underline">{row.applicant_phone}</a>
                 </p>
-                {row.motivation ? <p className="text-muted-foreground">{row.motivation}</p> : null}
+                {row.motivation ? <p className="text-slate-600">{row.motivation}</p> : null}
                 {row.access_starts_at || row.access_ends_at ? (
-                  <p className="text-xs text-muted-foreground pt-1">
+                  <p className="text-xs text-slate-500 pt-1">
                     Access:{' '}
                     {row.access_starts_at
                       ? new Date(row.access_starts_at).toLocaleDateString()
@@ -161,6 +238,65 @@ export default function EnrollmentManagement() {
           ))}
         </div>
       )}
+
+      <AlertDialog
+        open={revokeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRevokeTarget(null)
+            setRevokeNotes('')
+            setDeleteReceiptOnRevoke(true)
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Refund and revoke course access?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  <strong>{revokeTarget?.applicant_name}</strong> will lose access to{' '}
+                  <strong>{revokeTarget?.course?.title ?? 'this course'}</strong>. Any linked
+                  approved payment is marked refunded so they can enroll again after a new payment.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="delete-receipt-enroll"
+                    checked={deleteReceiptOnRevoke}
+                    onCheckedChange={(checked) => setDeleteReceiptOnRevoke(checked === true)}
+                  />
+                  <Label htmlFor="delete-receipt-enroll" className="font-normal cursor-pointer">
+                    Delete receipt file from storage
+                  </Label>
+                </div>
+                <div>
+                  <Label htmlFor="revoke-notes">Reason / admin notes</Label>
+                  <Input
+                    id="revoke-notes"
+                    placeholder="e.g. Full MoMo refund processed"
+                    value={revokeNotes}
+                    onChange={(e) => setRevokeNotes(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionLoading}
+              onClick={(e) => {
+                e.preventDefault()
+                handleRevokeConfirm()
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {actionLoading ? 'Processing…' : 'Confirm refund & revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

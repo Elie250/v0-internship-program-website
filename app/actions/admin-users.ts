@@ -8,8 +8,6 @@ import { PERMISSIONS } from '@/lib/admin/permissions'
 import { resolvePermissions } from '@/lib/admin/permissions'
 import type { AdminUserRecord, AdminUserRole } from '@/lib/admin/user-roles'
 
-export type { AdminUserRecord, AdminUserRole }
-
 export async function listAdminUsers(filters?: {
   search?: string
   role?: string
@@ -188,40 +186,6 @@ export async function approveStaffAccount(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to approve account',
-    }
-  }
-}
-
-export async function listAssignableLecturers(): Promise<{
-  success: boolean
-  lecturers?: Array<{ id: string; name: string; email: string }>
-  error?: string
-}> {
-  try {
-    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
-    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, role, status')
-      .in('role', ['lecturer', 'instructor'])
-      .eq('status', 'active')
-      .order('first_name')
-
-    if (error) return { success: false, error: error.message }
-
-    return {
-      success: true,
-      lecturers: (data ?? []).map((u) => ({
-        id: u.id,
-        email: u.email,
-        name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email,
-      })),
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to load lecturers',
     }
   }
 }

@@ -9,7 +9,7 @@ export type EnrollmentRow = {
   access_ends_at?: string | null
 }
 
-const TERMINAL_STATUSES = new Set(['cancelled', 'payment_rejected'])
+const TERMINAL_STATUSES = new Set(['cancelled', 'payment_rejected', 'refunded'])
 
 export function isBlockingEnrollment(row: EnrollmentRow): boolean {
   const status = String(row.status)

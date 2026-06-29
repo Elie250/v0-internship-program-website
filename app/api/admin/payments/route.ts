@@ -16,7 +16,11 @@ export async function GET() {
     }
 
     const history = (allRes.payments ?? []).filter(
-      (p) => p.status === 'approved' || p.status === 'rejected' || p.status === 'Paid'
+      (p) =>
+        p.status === 'approved' ||
+        p.status === 'rejected' ||
+        p.status === 'Paid' ||
+        p.status === 'refunded'
     )
 
     return NextResponse.json({

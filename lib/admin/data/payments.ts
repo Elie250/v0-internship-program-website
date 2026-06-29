@@ -16,12 +16,13 @@ export type PaymentRecord = {
   application_id: string | null
   student_id: string | null
   course_enrollment_id: string | null
+  support_subscription_id: string | null
   course_id: string | null
   created_at: string
 }
 
 const PAYMENT_COLUMNS =
-  'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, course_id, created_at'
+  'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
 
 export async function queryPendingPayments(): Promise<{
   payments: PaymentRecord[]

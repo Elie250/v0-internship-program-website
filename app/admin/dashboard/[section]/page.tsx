@@ -20,6 +20,7 @@ const SECTIONS: Record<string, ComponentType> = {
   orders: dynamic(() => import('@/components/admin/order-management')),
   categories: dynamic(() => import('@/components/admin/category-management')),
   support: dynamic(() => import('@/components/admin/support-management')),
+  'support-plans': dynamic(() => import('@/components/admin/support-plan-management')),
   reports: dynamic(() => import('@/components/admin/reports-tab')),
   settings: dynamic(() => import('@/components/admin/settings-panel')),
 }

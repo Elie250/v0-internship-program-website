@@ -1,13 +1,16 @@
-'use client';
+'use client'
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getCurrentUser, logoutUser } from '@/app/actions/auth-service';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, BookOpen, LogOut, Home } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { FileText, BookOpen, LogOut, Home, Headphones } from 'lucide-react';
+import type { SupportAccessSummary } from '@/lib/support/types';
 
 interface Project {
   id: string;
@@ -20,6 +23,7 @@ export default function EngineerDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [supportAccess, setSupportAccess] = useState<SupportAccessSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -33,10 +37,8 @@ export default function EngineerDashboard() {
 
       setUser(currentUser);
 
-      // Fetch projects and technical resources
       try {
         const supabase = createClient();
-        
         const { data } = await supabase
           .from('projects')
           .select('*')
@@ -44,8 +46,13 @@ export default function EngineerDashboard() {
           .order('created_at', { ascending: false });
 
         setProjects(data || []);
+
+        const accessRes = await fetch('/api/support/subscribe', { credentials: 'same-origin' });
+        if (accessRes.ok) {
+          setSupportAccess(await accessRes.json());
+        }
       } catch (error) {
-        console.error('Failed to fetch projects:', error);
+        console.error('Failed to fetch dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +80,6 @@ export default function EngineerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
           <div>
@@ -93,17 +99,58 @@ export default function EngineerDashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Card */}
         <Card className="mb-8 bg-gradient-to-r from-primary/10 to-secondary/10">
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold text-primary mb-2">Technical Resources Portal</h2>
-            <p className="text-muted-foreground">Access engineering projects, documentation, and resources</p>
+          <CardContent className="pt-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold text-primary mb-2">Technical Resources Portal</h2>
+              <p className="text-muted-foreground">Projects, documentation, and engineering support</p>
+            </div>
+            <Button asChild className="bg-primary">
+              <Link href="/engineering-support">
+                <Headphones className="w-4 h-4 mr-2" />
+                Engineering support
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
-        {/* Tabs */}
+        <Card className="mb-8 border-slate-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Support subscription</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
+            {supportAccess?.hasActiveSubscription ? (
+              <>
+                <p className="text-sm text-slate-700">
+                  <strong>{supportAccess.subscription?.plan?.name}</strong> active
+                  {supportAccess.subscription?.ends_at
+                    ? ` until ${new Date(supportAccess.subscription.ends_at).toLocaleDateString()}`
+                    : ''}
+                  {supportAccess.ticketsRemaining != null
+                    ? ` · ${supportAccess.ticketsRemaining} tickets left`
+                    : ''}
+                </p>
+                <Badge className="bg-green-100 text-green-800">Active</Badge>
+              </>
+            ) : supportAccess?.subscription?.status === 'payment_pending_review' ? (
+              <>
+                <p className="text-sm text-amber-800">Receipt submitted — awaiting admin verification.</p>
+                <Badge className="bg-amber-100 text-amber-900">Pending</Badge>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-600">
+                  Subscribe to submit engineering help requests (PLC, electrical, embedded, etc.).
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href="/engineering-support">View plans</Link>
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="projects" className="space-y-4">
           <TabsList className="bg-card border border-border">
             <TabsTrigger value="projects" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -116,7 +163,6 @@ export default function EngineerDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Projects Tab */}
           <TabsContent value="projects" className="space-y-4">
             {projects.length === 0 ? (
               <Card>
@@ -150,7 +196,6 @@ export default function EngineerDashboard() {
             )}
           </TabsContent>
 
-          {/* Resources Tab */}
           <TabsContent value="resources" className="space-y-4">
             <Card>
               <CardHeader>

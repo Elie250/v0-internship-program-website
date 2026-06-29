@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
+import { revokeEnrollmentWithPayment } from '@/lib/admin/refund-payment'
 
 export async function GET() {
   try {
@@ -67,6 +68,14 @@ export async function PATCH(request: Request) {
       }
     } else if (status === 'payment_rejected') {
       const result = await rejectEnrollmentById(id)
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 500 })
+      }
+    } else if (status === 'refunded') {
+      const result = await revokeEnrollmentWithPayment(id, {
+        adminNotes: adminNotes?.trim(),
+        deleteReceipt: body.deleteReceipt !== false,
+      })
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 })
       }

@@ -171,6 +171,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: 'headphones',
         permission: PERMISSIONS.SUPPORT_TICKETS,
       },
+      {
+        id: 'support-plans',
+        label: 'Support plans',
+        href: '/admin/dashboard/support-plans',
+        icon: 'zap',
+        permission: PERMISSIONS.SUPPORT_TICKETS,
+      },
     ],
   },
   {

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   createAdminUser,
   deleteAdminUser,
@@ -41,14 +42,28 @@ import { ROLE_LABELS } from '@/types/platform'
 
 const STATUS_OPTIONS = ['all', 'active', 'pending_approval', 'inactive', 'suspended'] as const
 
-export default function UserManagementTab() {
+export default function UserManagementPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-600">Loading users…</div>}>
+      <UserManagementTab />
+    </Suspense>
+  )
+}
+
+function UserManagementTab() {
+  const searchParams = useSearchParams()
   const [users, setUsers] = useState<AdminUserRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const status = searchParams.get('status')
+    return STATUS_OPTIONS.includes(status as (typeof STATUS_OPTIONS)[number])
+      ? (status as (typeof STATUS_OPTIONS)[number])
+      : 'all'
+  })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUserRecord | null>(null)
   const [resetUserId, setResetUserId] = useState<string | null>(null)
@@ -183,6 +198,13 @@ export default function UserManagementTab() {
           .
         </p>
       </div>
+
+      {statusFilter === 'pending_approval' && users.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-800">
+          <strong>{users.length}</strong> account{users.length === 1 ? '' : 's'} waiting for approval.
+          Use <strong>Approve &amp; activate</strong> to grant sign-in access and default role permissions.
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">

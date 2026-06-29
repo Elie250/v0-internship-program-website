@@ -52,6 +52,7 @@ export function getEnrollmentAccessState(enrollment: EnrollmentAccessRow): Acces
   if (status === 'payment_rejected') return 'rejected'
   if (status === 'waitlisted') return 'waitlisted'
   if (status === 'cancelled') return 'cancelled'
+  if (status === 'refunded') return 'refunded'
   if (status === 'expired') return 'expired'
   if (status !== 'admitted') return 'pending'
 

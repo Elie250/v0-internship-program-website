@@ -4,6 +4,7 @@ export const ENROLLMENT_STATUS = {
   PAYMENT_REJECTED: 'payment_rejected',
   WAITLISTED: 'waitlisted',
   CANCELLED: 'cancelled',
+  REFUNDED: 'refunded',
   EXPIRED: 'expired',
 } as const
 
@@ -17,6 +18,7 @@ export const ENROLLMENT_STATUS_LABELS: Record<string, string> = {
   payment_rejected: 'Payment not verified',
   waitlisted: 'Waitlisted',
   cancelled: 'Cancelled',
+  refunded: 'Refunded — access revoked',
   expired: 'Access expired',
 }
 
@@ -25,6 +27,7 @@ export const ACCESS_STATE_LABELS = {
   rejected: 'Payment not verified',
   waitlisted: 'On waitlist',
   cancelled: 'Cancelled',
+  refunded: 'Refunded',
   upcoming: 'Access starts soon',
   active: 'Active',
   expired: 'Access expired',
