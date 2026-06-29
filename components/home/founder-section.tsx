@@ -6,7 +6,7 @@ import { Quote } from 'lucide-react'
 
 export function FounderSection() {
   return (
-    <section className="border-t bg-[#1e3a5f] text-white">
+    <section className="border-t border-white/10 bg-[var(--brand-navy)] text-on-dark">
       <div className="max-w-6xl mx-auto px-4 py-16">
         <div className="grid lg:grid-cols-[240px_1fr] gap-10 items-start">
           <div className="mx-auto lg:mx-0 lg:sticky lg:top-8">
@@ -24,7 +24,7 @@ export function FounderSection() {
           </div>
 
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-[#7eb8e8] mb-2">
+            <p className="text-sm font-semibold uppercase tracking-wider text-[var(--brand-sky)] mb-2">
               {FOUNDER.role}
             </p>
             <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
@@ -34,7 +34,7 @@ export function FounderSection() {
             <p className="text-white/80 leading-relaxed mb-6">{FOUNDER.bio}</p>
 
             <blockquote className="flex gap-3 rounded-xl bg-white/10 border border-white/15 p-4 mb-6">
-              <Quote className="h-5 w-5 shrink-0 text-[#7eb8e8] mt-0.5" />
+              <Quote className="h-5 w-5 shrink-0 text-[var(--brand-sky)] mt-0.5" />
               <p className="text-sm italic text-white/90">{FOUNDER.quote}</p>
             </blockquote>
 

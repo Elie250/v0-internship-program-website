@@ -9,9 +9,9 @@ export async function EventsSection() {
     return (
       <section className="py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-[#1e3a5f] text-white rounded-lg px-6 py-8 text-center">
+          <div className="text-on-dark bg-[var(--brand-navy)] rounded-lg px-6 py-8 text-center">
             <h2 className="text-2xl font-bold">Past Events & Activities</h2>
-            <p className="text-white/80 mt-2">Events will appear here once published by an administrator.</p>
+            <p className="text-slate-200 mt-2">Events will appear here once published by an administrator.</p>
           </div>
         </div>
       </section>
@@ -21,7 +21,7 @@ export async function EventsSection() {
   return (
     <section className="py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <div className="bg-[#1e3a5f] text-white rounded-t-lg px-6 py-4">
+        <div className="text-on-dark bg-[var(--brand-navy)] rounded-t-lg px-6 py-4">
           <h2 className="text-2xl font-bold">Past Events & Activities</h2>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
