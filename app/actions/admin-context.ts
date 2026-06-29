@@ -14,6 +14,7 @@ import { getCurrentUser } from '@/app/actions/auth-service'
 export type AdminStats = {
   users: number
   courses: number
+  publishedCourses: number
   announcements: number
   applications: number
   products: number
@@ -41,18 +42,30 @@ async function countTable(table: string): Promise<number> {
   return count ?? 0
 }
 
+async function countPublishedCourses(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { data, error } = await supabaseAdmin.from('courses').select('status, is_published')
+  if (error || !data) return 0
+  return data.filter((row) => {
+    if (row.status === 'published') return true
+    if (row.status == null && row.is_published === true) return true
+    return false
+  }).length
+}
+
 async function fetchAdminStats(): Promise<AdminStats> {
-  const [users, courses, announcements, applications, products, supportTickets] =
+  const [users, courses, publishedCourses, announcements, applications, products, supportTickets] =
     await Promise.all([
       countTable('users'),
       countTable('courses'),
+      countPublishedCourses(),
       countTable('announcements'),
       countTable('applications'),
       countTable('products'),
       countTable('support_tickets'),
     ])
 
-  return { users, courses, announcements, applications, products, supportTickets }
+  return { users, courses, publishedCourses, announcements, applications, products, supportTickets }
 }
 
 /** Single auth + nav resolution for admin layouts (uses session cookie permissions). */
@@ -83,6 +96,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     return {
       users: 0,
       courses: 0,
+      publishedCourses: 0,
       announcements: 0,
       applications: 0,
       products: 0,

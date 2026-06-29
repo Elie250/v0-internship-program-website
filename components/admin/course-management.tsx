@@ -65,9 +65,16 @@ export default function CourseManagementTab() {
     try {
       const res = await fetch('/api/admin/courses')
       const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Failed to load courses')
+        setCourses([])
+        return
+      }
       setCourses(Array.isArray(data) ? data : [])
+      setError('')
     } catch (err) {
       console.error('Failed to fetch courses:', err)
+      setError('Failed to load courses. Try refreshing the page.')
     } finally {
       setIsLoading(false)
     }
@@ -197,6 +204,8 @@ export default function CourseManagementTab() {
     load()
   }
 
+  const publishedCount = courses.filter((c) => c.status === 'published').length
+
   if (isLoading) {
     return <p className="text-muted-foreground">Loading courses...</p>
   }
@@ -229,6 +238,17 @@ export default function CourseManagementTab() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {success ? <p className="text-sm text-green-700">{success}</p> : null}
+
+      {courses.length > 0 && publishedCount === 0 ? (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-4 text-sm text-amber-900">
+            You have {courses.length} course(s) in the database, but none are <strong>Published</strong>.
+            Draft courses are hidden from the public{' '}
+            <a href="/learning" target="_blank" rel="noopener noreferrer" className="underline">/learning</a> page.
+            Click <strong>Publish</strong> on each course card below.
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Dialog
         open={isCreateOpen}

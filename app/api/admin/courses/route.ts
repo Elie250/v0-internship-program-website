@@ -3,12 +3,13 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { TRAINING_PROGRAMS } from '@/lib/company/constants'
+import { normalizeCourseRow } from '@/lib/platform/courses'
 
 function normalizeCourse(row: Record<string, unknown>) {
-  const status = row.status ?? (row.is_published ? 'published' : 'draft')
+  const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
   return {
     ...row,
-    status,
+    ...normalized,
     program: row.program ?? row.difficulty ?? '',
   }
 }
@@ -39,7 +40,7 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
       .from('courses')
-      .select('*, category:categories(*)')
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
