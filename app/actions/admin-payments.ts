@@ -1,0 +1,163 @@
+'use server'
+
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
+import { PERMISSIONS } from '@/lib/admin/permissions'
+
+export type PaymentRecord = {
+  id: string
+  amount: number
+  status: string
+  payment_method: string | null
+  receipt_number: string | null
+  receipt_url: string | null
+  payer_name: string | null
+  payer_email: string | null
+  payer_phone: string | null
+  admin_notes: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  application_id: string | null
+  student_id: string | null
+  created_at: string
+}
+
+/** Manual payment workflow — no gateway. Admin reviews receipt visually. */
+export async function listPendingPayments(): Promise<{
+  success: boolean
+  payments?: PaymentRecord[]
+  error?: string
+}> {
+  try {
+    await requireAdminPermission(PERMISSIONS.PAYMENTS_VIEW)
+    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+    const { data, error } = await supabaseAdmin
+      .from('payments')
+      .select(
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, created_at'
+      )
+      .in('status', ['pending_review', 'Pending', 'pending'])
+      .order('created_at', { ascending: false })
+
+    if (error) return { success: false, error: error.message }
+    return { success: true, payments: data ?? [] }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load payments',
+    }
+  }
+}
+
+export async function listAllPayments(): Promise<{
+  success: boolean
+  payments?: PaymentRecord[]
+  error?: string
+}> {
+  try {
+    await requireAdminPermission(PERMISSIONS.PAYMENTS_VIEW)
+    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+    const { data, error } = await supabaseAdmin
+      .from('payments')
+      .select(
+        'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) return { success: false, error: error.message }
+    return { success: true, payments: data ?? [] }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load payments',
+    }
+  }
+}
+
+export async function reviewPayment(input: {
+  id: string
+  decision: 'approved' | 'rejected'
+  adminNotes?: string
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdminPermission(PERMISSIONS.PAYMENTS_APPROVE)
+    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+    const session = await getAdminSession()
+    const status = input.decision === 'approved' ? 'approved' : 'rejected'
+
+    const { error } = await supabaseAdmin
+      .from('payments')
+      .update({
+        status,
+        admin_notes: input.adminNotes?.trim() || null,
+        reviewed_by: session?.user.id ?? null,
+        reviewed_at: new Date().toISOString(),
+        payment_date: input.decision === 'approved' ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.id)
+
+    if (error) return { success: false, error: error.message }
+
+    const { data: payment } = await supabaseAdmin
+      .from('payments')
+      .select('application_id')
+      .eq('id', input.id)
+      .maybeSingle()
+
+    if (payment?.application_id && input.decision === 'approved') {
+      await supabaseAdmin
+        .from('applications')
+        .update({ status: 'payment_verified', updated_at: new Date().toISOString() })
+        .eq('id', payment.application_id)
+    }
+
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to review payment',
+    }
+  }
+}
+
+export async function submitManualPayment(input: {
+  amount: number
+  payerName: string
+  payerEmail: string
+  payerPhone?: string
+  paymentMethod: string
+  receiptUrl: string
+  receiptNumber?: string
+  applicationId?: string
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+    const { error } = await supabaseAdmin.from('payments').insert([
+      {
+        amount: input.amount,
+        payer_name: input.payerName.trim(),
+        payer_email: input.payerEmail.trim(),
+        payer_phone: input.payerPhone?.trim() || null,
+        payment_method: input.paymentMethod.trim(),
+        receipt_url: input.receiptUrl.trim(),
+        receipt_number: input.receiptNumber?.trim() || null,
+        application_id: input.applicationId || null,
+        status: 'pending_review',
+      },
+    ])
+
+    if (error) return { success: false, error: error.message }
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to submit payment',
+    }
+  }
+}

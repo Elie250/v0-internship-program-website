@@ -6,7 +6,7 @@ export default function SettingsPanel() {
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">
-          General, email, payment, and system configuration (Phase 2 — coming next).
+          Site configuration and operational settings. Payments use manual receipt verification — no online gateway.
         </p>
       </div>
 
@@ -17,8 +17,8 @@ export default function SettingsPanel() {
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>• General site settings</p>
           <p>• SMTP / email templates</p>
-          <p>• Payment gateway configuration</p>
-          <p>• Subscription plans</p>
+          <p>• Manual payment instructions (bank / mobile money details for users)</p>
+          <p>• Subscription plan labels (admin verifies receipts manually)</p>
           <p>• Maintenance mode & backups</p>
         </CardContent>
       </Card>

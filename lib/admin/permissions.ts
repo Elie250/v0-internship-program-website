@@ -11,6 +11,8 @@ export const PERMISSIONS = {
   APPLICATIONS_VIEW: 'applications:view',
   APPLICATIONS_APPROVE: 'applications:approve',
   APPLICATIONS_MANAGE: 'applications:manage',
+  PAYMENTS_VIEW: 'payments:view',
+  PAYMENTS_APPROVE: 'payments:approve',
   SHOP_PRODUCTS: 'shop:products',
   SHOP_ORDERS: 'shop:orders',
   SHOP_CATEGORIES: 'shop:categories',

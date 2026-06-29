@@ -1,250 +1,416 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react'
+import {
+  createAdminUser,
+  deleteAdminUser,
+  listAdminUsers,
+  resetAdminUserPassword,
+  updateAdminUser,
+  updateAdminUserStatus,
+  USER_ROLES,
+  type AdminUserRecord,
+  type AdminUserRole,
+} from '@/app/actions/admin-users'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Trash2, Edit2, KeyRound, Ban, CheckCircle2 } from 'lucide-react'
+import { ROLE_LABELS } from '@/types/platform'
 
-interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: 'student' | 'lecturer' | 'engineer' | 'admin';
-  status: 'active' | 'inactive' | 'suspended';
-  created_at: string;
-}
+const STATUS_OPTIONS = ['all', 'active', 'inactive', 'suspended'] as const
 
 export default function UserManagementTab() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [users, setUsers] = useState<AdminUserRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<AdminUserRecord | null>(null)
+  const [resetUserId, setResetUserId] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
     lastName: '',
     password: '',
-    role: 'student',
-  });
+    role: 'student' as AdminUserRole,
+  })
+
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true)
+    setError('')
+    const result = await listAdminUsers({
+      search,
+      role: roleFilter,
+      status: statusFilter,
+    })
+    if (result.success && result.users) {
+      setUsers(result.users)
+    } else {
+      setError(result.error || 'Failed to load users')
+    }
+    setIsLoading(false)
+  }, [search, roleFilter, statusFilter])
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    loadUsers()
+  }, [loadUsers])
 
-  const fetchUsers = async () => {
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-    } finally {
-      setIsLoading(false);
+  const handleCreate = async () => {
+    const result = await createAdminUser(formData)
+    if (!result.success) {
+      setError(result.error || 'Create failed')
+      return
     }
-  };
+    setFormData({ email: '', firstName: '', lastName: '', password: '', role: 'student' })
+    setIsCreateOpen(false)
+    loadUsers()
+  }
 
-  const handleCreateUser = async () => {
-    try {
-      const supabase = createClient();
-      // In a real app, you'd hash the password on the server
-      const { data, error } = await supabase.from('users').insert([{
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        password_hash: formData.password, // This should be hashed on the server
-        role: formData.role,
-        status: 'active',
-      }]).select();
-
-      if (error) throw error;
-      
-      setUsers([...users, data[0]]);
-      setFormData({ email: '', firstName: '', lastName: '', password: '', role: 'student' });
-      setIsDialogOpen(false);
-    } catch (error) {
-      console.error('Failed to create user:', error);
+  const handleUpdate = async () => {
+    if (!editingUser) return
+    const result = await updateAdminUser({
+      id: editingUser.id,
+      email: formData.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      role: formData.role,
+    })
+    if (!result.success) {
+      setError(result.error || 'Update failed')
+      return
     }
-  };
+    setEditingUser(null)
+    loadUsers()
+  }
 
-  const handleDeleteUser = async (id: string) => {
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.from('users').delete().eq('id', id);
-      
-      if (error) throw error;
-      setUsers(users.filter(u => u.id !== id));
-    } catch (error) {
-      console.error('Failed to delete user:', error);
+  const handleResetPassword = async () => {
+    if (!resetUserId) return
+    const result = await resetAdminUserPassword(resetUserId, newPassword)
+    if (!result.success) {
+      setError(result.error || 'Reset failed')
+      return
     }
-  };
+    setResetUserId(null)
+    setNewPassword('')
+  }
 
-  const getRoleColor = (role: string) => {
-    const colors: Record<string, string> = {
-      admin: 'bg-red-100 text-red-700',
-      lecturer: 'bg-blue-100 text-blue-700',
-      engineer: 'bg-purple-100 text-purple-700',
-      student: 'bg-green-100 text-green-700',
-    };
-    return colors[role] || 'bg-gray-100 text-gray-700';
-  };
+  const openEdit = (user: AdminUserRecord) => {
+    setEditingUser(user)
+    setFormData({
+      email: user.email,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      password: '',
+      role: user.role as AdminUserRole,
+    })
+  }
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: 'bg-green-100 text-green-700',
-      inactive: 'bg-yellow-100 text-yellow-700',
-      suspended: 'bg-red-100 text-red-700',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-700';
-  };
+  const badgeClass = (value: string, map: Record<string, string>) =>
+    map[value] || 'bg-muted text-muted-foreground'
 
-  if (isLoading) {
-    return <p className="text-muted-foreground">Loading users...</p>;
+  const roleColors: Record<string, string> = {
+    admin: 'bg-red-100 text-red-700',
+    lecturer: 'bg-blue-100 text-blue-700',
+    instructor: 'bg-blue-100 text-blue-700',
+    engineer: 'bg-purple-100 text-purple-700',
+    support_staff: 'bg-purple-100 text-purple-700',
+    student: 'bg-green-100 text-green-700',
+  }
+
+  const statusColors: Record<string, string> = {
+    active: 'bg-green-100 text-green-700',
+    inactive: 'bg-yellow-100 text-yellow-700',
+    suspended: 'bg-red-100 text-red-700',
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Manage Users</h3>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <div>
+        <h1 className="text-2xl font-bold">User Management</h1>
+        <p className="text-muted-foreground mt-1">
+          Create, edit, activate, deactivate, and reset passwords.
+        </p>
+      </div>
+
+      {error && (
+        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
+          {error}
+        </p>
+      )}
+
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-end lg:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="flex-1">
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              placeholder="Name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="roleFilter">Role</Label>
+            <select
+              id="roleFilter"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
+            >
+              <option value="all">All roles</option>
+              {USER_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role] ?? role}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="statusFilter">Status</Label>
+            <select
+              id="statusFilter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status === 'all' ? 'All statuses' : status}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button>
               <Plus className="w-4 h-4 mr-2" />
               Add User
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>Add a new user to the system</DialogDescription>
+              <DialogTitle>Create user</DialogTitle>
+              <DialogDescription>Add a new platform user with hashed password.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="user@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="mt-2"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="mt-2"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <select
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full mt-2 px-3 py-2 border border-border rounded-md"
-                >
-                  <option value="student">Student</option>
-                  <option value="lecturer">Lecturer</option>
-                  <option value="engineer">Engineer</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-              <Button onClick={handleCreateUser} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-                Create User
-              </Button>
-            </div>
+            <UserForm formData={formData} setFormData={setFormData} showPassword />
+            <Button onClick={handleCreate} className="w-full">Create</Button>
           </DialogContent>
         </Dialog>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.first_name} {user.last_name}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge className={getRoleColor(user.role)}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(user.status)}>
-                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="ghost">
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {isLoading ? (
+            <p className="text-muted-foreground">Loading users…</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge className={badgeClass(user.role, roleColors)}>
+                          {ROLE_LABELS[user.role] ?? user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={badgeClass(user.status, statusColors)}>
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end flex-wrap">
+                          <Button size="sm" variant="ghost" onClick={() => openEdit(user)}>
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setResetUserId(user.id)}
+                          >
+                            <KeyRound className="w-4 h-4" />
+                          </Button>
+                          {user.status === 'active' ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                updateAdminUserStatus(user.id, 'inactive').then(loadUsers)
+                              }
+                            >
+                              <Ban className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                updateAdminUserStatus(user.id, 'active').then(loadUsers)
+                              }
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => {
+                              if (confirm('Delete this user?')) {
+                                deleteAdminUser(user.id).then(loadUsers)
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(editingUser)} onOpenChange={() => setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit user</DialogTitle>
+          </DialogHeader>
+          <UserForm formData={formData} setFormData={setFormData} />
+          <Button onClick={handleUpdate} className="w-full">Save changes</Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(resetUserId)} onOpenChange={() => setResetUserId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset password</DialogTitle>
+          </DialogHeader>
+          <Input
+            type="password"
+            placeholder="New password (min 6 chars)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          <Button onClick={handleResetPassword} className="w-full">Reset password</Button>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+  )
+}
+
+function UserForm({
+  formData,
+  setFormData,
+  showPassword = false,
+}: {
+  formData: {
+    email: string
+    firstName: string
+    lastName: string
+    password: string
+    role: AdminUserRole
+  }
+  setFormData: (value: typeof formData) => void
+  showPassword?: boolean
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Email</Label>
+        <Input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          className="mt-1"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>First name</Label>
+          <Input
+            value={formData.firstName}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label>Last name</Label>
+          <Input
+            value={formData.lastName}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+            className="mt-1"
+          />
+        </div>
+      </div>
+      {showPassword && (
+        <div>
+          <Label>Password</Label>
+          <Input
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            className="mt-1"
+          />
+        </div>
+      )}
+      <div>
+        <Label>Role</Label>
+        <select
+          value={formData.role}
+          onChange={(e) =>
+            setFormData({ ...formData, role: e.target.value as AdminUserRole })
+          }
+          className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
+        >
+          {USER_ROLES.map((role) => (
+            <option key={role} value={role}>
+              {ROLE_LABELS[role] ?? role}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  )
 }

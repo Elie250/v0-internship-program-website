@@ -50,6 +50,8 @@ INSERT INTO permissions (key, module, action, description) VALUES
   ('content:announcements', 'content', 'announcements', 'Manage announcements'),
   ('content:services', 'content', 'services', 'Manage services'),
   ('support:tickets', 'support', 'tickets', 'Manage support tickets'),
+  ('payments:view', 'payments', 'view', 'View submitted payment receipts'),
+  ('payments:approve', 'payments', 'approve', 'Approve or reject manual payments'),
   ('settings:manage', 'settings', 'manage', 'Manage system settings')
 ON CONFLICT (key) DO NOTHING;
 
