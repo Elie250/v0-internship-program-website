@@ -187,6 +187,30 @@
     background-color: rgb(255 255 255 / 0.22);
   }
 
+  /* Mobile header: white action pod (Login / Join / Menu) — high contrast on navy */
+  .site-header-mobile-actions a,
+  .site-header-mobile-actions button {
+    color: var(--brand-navy);
+  }
+
+  .site-header-mobile-actions [data-slot='button'] {
+    color: var(--brand-navy);
+  }
+
+  .mobile-nav-sheet {
+    color: #0f172a;
+  }
+
+  .mobile-nav-panel [data-slot='button'][data-variant='outline'] {
+    color: #0f172a;
+    border-color: #94a3b8;
+    background-color: #ffffff;
+  }
+
+  .mobile-nav-panel [data-slot='button']:not([data-variant='outline']) {
+    color: #ffffff;
+  }
+
   .nav-dropdown-panel {
     z-index: 100;
     background-color: white;
