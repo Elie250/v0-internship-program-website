@@ -4,10 +4,23 @@ function getUserSession(request: NextRequest) {
   const session = request.cookies.get('user_session')
   if (!session?.value) return null
   try {
-    return JSON.parse(session.value) as { role: string }
+    return JSON.parse(session.value) as {
+      role: string
+      permissions?: string[]
+    }
   } catch {
     return null
   }
+}
+
+function isAdminUser(
+  user: ReturnType<typeof getUserSession>,
+  adminSession: ReturnType<NextRequest['cookies']['get']>
+) {
+  if (adminSession?.value === 'authenticated') return true
+  if (!user) return false
+  if (user.role === 'admin') return true
+  return user.permissions?.includes('admin:access') ?? false
 }
 
 export function middleware(request: NextRequest) {
@@ -22,14 +35,14 @@ export function middleware(request: NextRequest) {
 
   // Protect admin dashboard — accept either legacy admin_session or user_session with admin role
   if (pathname.startsWith('/admin/dashboard')) {
-    const isAdmin = adminSession?.value === 'authenticated' || user?.role === 'admin'
+    const isAdmin = isAdminUser(user, adminSession)
     if (!isAdmin) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
   }
 
   if (pathname === '/admin' || pathname === '/admin/') {
-    const isAdmin = adminSession?.value === 'authenticated' || user?.role === 'admin'
+    const isAdmin = isAdminUser(user, adminSession)
     if (!isAdmin) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
     }
