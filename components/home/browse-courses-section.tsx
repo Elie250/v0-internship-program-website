@@ -38,7 +38,7 @@ export async function BrowseCoursesSection() {
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4 mb-10">
-          {PORTALS.map(({ href, label, icon: Icon, track }) => (
+          {PORTALS.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="no-underline hover:no-underline">
               <Card className="h-full border-slate-200 hover:border-[var(--brand-navy)]/30 hover:shadow-md transition-shadow">
                 <CardContent className="pt-6 flex items-center gap-3">
