@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { TRAINING_PROGRAMS } from '@/lib/company/constants'
+import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 
 function normalizeCourse(row: Record<string, unknown>) {
@@ -11,12 +12,14 @@ function normalizeCourse(row: Record<string, unknown>) {
     ...row,
     ...normalized,
     program: row.program ?? row.difficulty ?? '',
+    program_type: normalized.program_type,
   }
 }
 
 function toCoursePayload(body: Record<string, unknown>) {
   const status = String(body.status ?? 'published')
   const program = String(body.program || body.difficulty || '')
+  const programType = normalizeProgramType(body.program_type)
   return {
     title: body.title,
     description: body.description ?? null,
@@ -24,9 +27,14 @@ function toCoursePayload(body: Record<string, unknown>) {
     thumbnail: body.thumbnail || body.image_url || null,
     difficulty: program || null,
     program: program || null,
+    program_type: programType,
     pricing: body.pricing != null ? Number(body.pricing) : 0,
     status,
     category_id: body.category_id || null,
+    scheduled_at: body.scheduled_at || null,
+    location: body.location || null,
+    meeting_link: body.meeting_link || null,
+    program_end_date: body.program_end_date || null,
     updated_at: new Date().toISOString(),
   }
 }
@@ -72,6 +80,7 @@ export async function POST(request: Request) {
         duration: 'Flexible schedule',
         difficulty: program.title,
         program: program.title,
+        program_type: 'training',
         pricing: 0,
         status: 'published',
       }))

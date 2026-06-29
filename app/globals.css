@@ -189,6 +189,19 @@
     text-decoration: none;
   }
 
+  .student-portal-sidebar h1,
+  .student-portal-sidebar h2,
+  .student-portal-sidebar h3,
+  .student-portal-sidebar h4,
+  .student-portal-sidebar p,
+  .student-portal-sidebar span {
+    color: inherit;
+  }
+
+  .student-portal-sidebar button {
+    color: inherit;
+  }
+
   .section-eyebrow {
     color: var(--brand-navy);
     font-size: 0.875rem;

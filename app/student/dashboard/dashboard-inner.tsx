@@ -19,6 +19,7 @@ import {
   Video,
 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
+import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
@@ -95,11 +96,19 @@ export default function StudentDashboardInner() {
             <p className="font-medium text-red-900">Payment not verified</p>
             {portal.rejectedEnrollments.map((p) => (
               <p key={p.id} className="text-sm text-red-800">
-                {p.courseTitle} — please resubmit your receipt from the course page.
+                {p.courseTitle} —{' '}
+                <Link
+                  href={`/student/courses/${p.courseId}/enroll`}
+                  className="font-medium text-red-900 underline underline-offset-2"
+                >
+                  Resubmit payment
+                </Link>
               </p>
             ))}
-            <Link href="/learning">
-              <Button size="sm" variant="outline">Browse courses</Button>
+            <Link href="/student/courses?track=training">
+              <Button size="sm" variant="outline" className="mt-1 border-red-300 text-red-900">
+                Browse programmes
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -121,7 +130,12 @@ export default function StudentDashboardInner() {
         </Card>
       ) : null}
 
-      {tab === 'webinars' ? (
+      {tab === 'browse' ? (
+        <StudentBrowseCourses
+          courses={portal.catalogCourses}
+          enrollEligibility={portal.enrollEligibility}
+        />
+      ) : tab === 'webinars' ? (
         <WebinarsTab webinars={portal.webinars} locked={portal.activeCourses.length === 0} />
       ) : tab === 'announcements' ? (
         <AnnouncementsTab announcements={portal.announcements} />
@@ -157,8 +171,10 @@ function CoursesTab({
           Browse programmes, enroll with your account, pay via MTN MoMo, and upload your receipt. Once{' '}
           {COMPANY.brandName} approves payment, your courses appear here.
         </p>
-        <Link href="/learning">
-          <Button className="bg-[var(--brand-navy)]">Browse courses & enroll</Button>
+        <Link href="/student/courses?track=training">
+          <Button className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+            Browse programmes & enroll
+          </Button>
         </Link>
       </div>
     )
@@ -166,28 +182,39 @@ function CoursesTab({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-slate-900">My courses</h2>
+        <Link href="/student/courses?track=training">
+          <Button size="sm" variant="outline" className="text-slate-800">
+            Browse more programmes
+          </Button>
+        </Link>
+      </div>
+
       <div className="grid sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className="border-slate-200">
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Enrolled courses</p>
-            <p className="text-3xl font-bold text-[#1e3a5f]">{courses.length}</p>
+            <p className="text-sm text-slate-600">Active courses</p>
+            <p className="text-3xl font-bold text-[var(--brand-navy)]">{courses.length}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-slate-200">
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Lessons available</p>
-            <p className="text-3xl font-bold text-[#1e3a5f]">{totalLessons}</p>
+            <p className="text-sm text-slate-600">Lessons available</p>
+            <p className="text-3xl font-bold text-[var(--brand-navy)]">{totalLessons}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-slate-200">
           <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Webinars</p>
-            <p className="text-3xl font-bold text-[#1e3a5f]">Unlocked</p>
+            <p className="text-sm text-slate-600">Webinars</p>
+            <p className="text-3xl font-bold text-[var(--brand-navy)]">
+              {courses.length ? 'Unlocked' : 'Locked'}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <h2 className="text-xl font-bold text-[#1e3a5f]">Continue learning</h2>
+      <h3 className="text-lg font-semibold text-slate-900">Continue learning</h3>
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
         {courses.map((course) => (
           <Card key={course.id} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -202,14 +229,14 @@ function CoursesTab({
             )}
             <CardHeader className="pb-2">
               <Badge className="w-fit mb-2 bg-green-100 text-green-800">Active</Badge>
-              <CardTitle className="text-lg leading-snug">{course.title}</CardTitle>
-              <p className="text-xs text-muted-foreground">{course.accessLabel}</p>
+              <CardTitle className="text-lg leading-snug text-slate-900">{course.title}</CardTitle>
+              <p className="text-xs text-slate-600">{course.accessLabel}</p>
               {course.difficulty ? (
-                <p className="text-xs text-muted-foreground">{course.difficulty}</p>
+                <p className="text-xs text-slate-500">{course.difficulty}</p>
               ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
+              <p className="text-sm text-slate-600 line-clamp-2">{course.description}</p>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{course.lessons.length} lessons</span>
@@ -223,7 +250,7 @@ function CoursesTab({
                 <Progress value={course.lessons.length ? 100 : 0} className="h-1.5" />
               </div>
               <Link href={`/student/courses/${course.id}`}>
-                <Button className="w-full bg-[#1e3a5f]">
+                <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
                   <PlayCircle className="h-4 w-4 mr-2" />
                   {course.lessons.length ? 'Open course' : 'View course'}
                 </Button>
@@ -274,7 +301,7 @@ function WebinarsTab({
           <p className="text-sm text-muted-foreground">
             Webinars and live sessions unlock after your course payment is approved.
           </p>
-          <Link href="/learning"><Button variant="outline">Apply for a course</Button></Link>
+          <Link href="/student/courses?track=training"><Button variant="outline">Browse programmes</Button></Link>
         </CardContent>
       </Card>
     )
@@ -282,7 +309,7 @@ function WebinarsTab({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-[#1e3a5f]">Webinars & live sessions</h2>
+      <h2 className="text-xl font-bold text-slate-900">Webinars & live sessions</h2>
       {webinars.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">No webinars scheduled yet.</CardContent></Card>
       ) : (
@@ -300,7 +327,7 @@ function WebinarsTab({
               <p className="text-sm text-muted-foreground">{w.description}</p>
               <div className="flex flex-wrap gap-2">
                 {w.meeting_link ? (
-                  <Button asChild size="sm" className="bg-[#1e3a5f]">
+                  <Button asChild size="sm" className="bg-[var(--brand-navy)] text-white">
                     <a href={w.meeting_link} target="_blank" rel="noopener noreferrer">
                       Join live <ExternalLink className="h-3 w-3 ml-1" />
                     </a>
@@ -325,7 +352,7 @@ function WebinarsTab({
 function AnnouncementsTab({ announcements }: { announcements: StudentPortalData['announcements'] }) {
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-[#1e3a5f]">Announcements</h2>
+      <h2 className="text-xl font-bold text-slate-900">Announcements</h2>
       {announcements.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">No announcements.</CardContent></Card>
       ) : (
@@ -335,7 +362,7 @@ function AnnouncementsTab({ announcements }: { announcements: StudentPortalData[
               <CardTitle className="text-base">{a.title}</CardTitle>
               <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
             </CardHeader>
-            <CardContent><p className="text-sm">{a.message}</p></CardContent>
+            <CardContent><p className="text-sm text-slate-700">{a.message}</p></CardContent>
           </Card>
         ))
       )}

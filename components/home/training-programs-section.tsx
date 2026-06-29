@@ -13,7 +13,7 @@ export function TrainingProgramsSection() {
         <div className="text-center mb-10 max-w-2xl mx-auto">
           <p className="section-eyebrow mb-2">Training programmes</p>
           <h2 className="section-title mb-3">Built for real engineering work</h2>
-          <p className="text-muted-foreground">
+          <p className="text-slate-600">
             In-person training in Rwanda with online options for regional learners. All programmes
             are led by practitioners—not generic online templates.
           </p>
@@ -23,24 +23,24 @@ export function TrainingProgramsSection() {
           {TRAINING_PROGRAMS.map((program, index) => {
             const Icon = icons[index] ?? Cpu
             return (
-              <Card key={program.id} className="flex flex-col h-full border-[#1e3a5f]/10">
+              <Card key={program.id} className="flex flex-col h-full border-slate-200">
                 <CardHeader>
-                  <div className="w-11 h-11 rounded-lg bg-[#1e3a5f]/10 flex items-center justify-center mb-3">
-                    <Icon className="h-5 w-5 text-[#1e3a5f]" />
+                  <div className="w-11 h-11 rounded-lg bg-[var(--brand-navy)]/10 flex items-center justify-center mb-3">
+                    <Icon className="h-5 w-5 text-[var(--brand-navy)]" />
                   </div>
-                  <CardTitle className="text-xl text-[#1e3a5f]">{program.title}</CardTitle>
+                  <CardTitle className="text-xl text-slate-900">{program.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col flex-1 gap-4">
-                  <p className="text-sm text-muted-foreground">{program.summary}</p>
+                  <p className="text-sm text-slate-600">{program.summary}</p>
                   <ul className="text-sm space-y-1.5 flex-1">
                     {program.topics.map((topic) => (
-                      <li key={topic} className="text-foreground/80">
+                      <li key={topic} className="text-slate-700">
                         · {topic}
                       </li>
                     ))}
                   </ul>
                   <Link href={program.href}>
-                    <Button variant="outline" className="w-full group">
+                    <Button variant="outline" className="w-full group text-slate-800 border-slate-300">
                       View programme
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                     </Button>
@@ -51,16 +51,11 @@ export function TrainingProgramsSection() {
           })}
         </div>
 
-        <div className="text-center mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/learning">
-            <Button className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90">
+        <div className="text-center mt-8">
+          <Link href="#browse-courses">
+            <Button className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
               Browse all courses
               <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/payment-instructions">
-            <Button variant="link" className="text-[#1e3a5f]">
-              How to pay with MTN MoMo →
             </Button>
           </Link>
         </div>

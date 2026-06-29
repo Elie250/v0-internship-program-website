@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { normalizeProgramType } from '@/lib/enrollment/program-types'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const status = row.status ?? (row.is_published ? 'published' : 'draft')
@@ -28,6 +29,21 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
   }
   if (!partial || body.pricing !== undefined) {
     update.pricing = body.pricing != null ? Number(body.pricing) : 0
+  }
+  if (!partial || body.program_type !== undefined) {
+    update.program_type = normalizeProgramType(body.program_type)
+  }
+  if (!partial || body.scheduled_at !== undefined) {
+    update.scheduled_at = body.scheduled_at || null
+  }
+  if (!partial || body.location !== undefined) {
+    update.location = body.location || null
+  }
+  if (!partial || body.meeting_link !== undefined) {
+    update.meeting_link = body.meeting_link || null
+  }
+  if (!partial || body.program_end_date !== undefined) {
+    update.program_end_date = body.program_end_date || null
   }
   if (!partial || body.category_id !== undefined) update.category_id = body.category_id || null
 

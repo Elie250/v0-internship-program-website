@@ -25,6 +25,14 @@ import {
 } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { TRAINING_PROGRAMS } from '@/lib/company/constants'
+import {
+  PROGRAM_TYPE_LABELS,
+  PROGRAM_TYPES,
+  programTypeNeedsLocation,
+  programTypeNeedsMeetingLink,
+  programTypeNeedsSchedule,
+  type ProgramType,
+} from '@/lib/enrollment/program-types'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
 
 type Course = {
@@ -32,10 +40,15 @@ type Course = {
   title: string
   description: string | null
   program?: string
+  program_type?: ProgramType
   duration: string | null
   thumbnail: string | null
   pricing: number | null
   status: string
+  scheduled_at?: string | null
+  location?: string | null
+  meeting_link?: string | null
+  program_end_date?: string | null
   created_at: string
 }
 
@@ -43,10 +56,15 @@ const emptyForm = {
   title: '',
   description: '',
   program: '',
+  program_type: 'training' as ProgramType,
   duration: '',
   thumbnail: '',
   pricing: '0',
   status: 'published',
+  scheduled_at: '',
+  location: '',
+  meeting_link: '',
+  program_end_date: '',
 }
 
 export default function CourseManagementTab() {
@@ -100,6 +118,10 @@ export default function CourseManagementTab() {
           ...form,
           pricing: Number(form.pricing),
           thumbnail: form.thumbnail || null,
+          scheduled_at: form.scheduled_at || null,
+          location: form.location || null,
+          meeting_link: form.meeting_link || null,
+          program_end_date: form.program_end_date || null,
         }),
       })
       const data = await res.json()
@@ -109,8 +131,8 @@ export default function CourseManagementTab() {
       setIsCreateOpen(false)
       setSuccess(
         form.status === 'published'
-          ? `Course "${data.title}" created and visible on /learning`
-          : `Course "${data.title}" saved as draft — publish it to show on /learning`
+          ? `Program "${data.title}" created and visible to students`
+          : `Program "${data.title}" saved as draft`
       )
       await load()
     } catch (err) {
@@ -145,10 +167,15 @@ export default function CourseManagementTab() {
       title: course.title,
       description: course.description || '',
       program: course.program || '',
+      program_type: course.program_type || 'training',
       duration: course.duration || '',
       thumbnail: course.thumbnail || '',
       pricing: String(course.pricing ?? 0),
       status: course.status || 'draft',
+      scheduled_at: course.scheduled_at ? course.scheduled_at.slice(0, 16) : '',
+      location: course.location || '',
+      meeting_link: course.meeting_link || '',
+      program_end_date: course.program_end_date ? course.program_end_date.slice(0, 16) : '',
     })
   }
 
@@ -164,6 +191,10 @@ export default function CourseManagementTab() {
           ...editForm,
           pricing: Number(editForm.pricing),
           thumbnail: editForm.thumbnail || null,
+          scheduled_at: editForm.scheduled_at || null,
+          location: editForm.location || null,
+          meeting_link: editForm.meeting_link || null,
+          program_end_date: editForm.program_end_date || null,
         }),
       })
       const data = await res.json()
@@ -214,13 +245,11 @@ export default function CourseManagementTab() {
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between items-start gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Programs / Courses</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage learning programmes. <strong>Published</strong> courses appear on the public{' '}
-            <a href="/learning" target="_blank" rel="noopener noreferrer" className="text-[#1e3a5f] underline">
-              Learning portal
-            </a>
-            .
+          <h1 className="text-2xl font-bold text-slate-900">Programs</h1>
+          <p className="text-slate-600 mt-1">
+            Create training, internship, mentorship, career guidance, workshops, webinars, and events.
+            Set price to <strong>0</strong> for free programmes (instant student access). Paid programmes
+            require MoMo verification.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -229,9 +258,9 @@ export default function CourseManagementTab() {
               Seed 3 default programmes
             </Button>
           ) : null}
-          <Button onClick={() => setIsCreateOpen(true)} className="bg-[#1e3a5f]">
+          <Button onClick={() => setIsCreateOpen(true)} className="bg-[var(--brand-navy)] text-white">
             <Plus className="w-4 h-4 mr-2" />
-            Create course
+            Create program
           </Button>
         </div>
       </div>
@@ -259,13 +288,13 @@ export default function CourseManagementTab() {
       >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create course</DialogTitle>
+            <DialogTitle>Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} />
           {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={saving} className="bg-[#1e3a5f]">Create</Button>
+            <Button onClick={handleCreate} disabled={saving} className="bg-[var(--brand-navy)] text-white">Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -295,9 +324,17 @@ export default function CourseManagementTab() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg">{course.title}</CardTitle>
+                    <CardTitle className="text-lg text-slate-900">{course.title}</CardTitle>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Badge variant="outline" className="text-slate-700">
+                        {PROGRAM_TYPE_LABELS[course.program_type ?? 'training']}
+                      </Badge>
+                      {Number(course.pricing ?? 0) <= 0 ? (
+                        <Badge className="bg-green-100 text-green-800">Free</Badge>
+                      ) : null}
+                    </div>
                     {course.program ? (
-                      <p className="text-sm text-muted-foreground mt-1">{course.program}</p>
+                      <p className="text-sm text-slate-600 mt-1">{course.program}</p>
                     ) : null}
                   </div>
                   <Badge className={course.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
@@ -306,16 +343,16 @@ export default function CourseManagementTab() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-3">{course.description}</p>
+                <p className="text-sm text-slate-600 line-clamp-3">{course.description}</p>
                 {course.duration ? (
                   <p className="text-sm">
                     <span className="font-semibold">Duration:</span> {course.duration}
                   </p>
                 ) : null}
-                <p className="text-sm font-medium text-[#1e3a5f]">
+                <p className="text-sm font-medium text-[var(--brand-navy)]">
                   {Number(course.pricing ?? 0) > 0
                     ? `${Number(course.pricing).toLocaleString()} RWF`
-                    : 'Free / pricing TBD'}
+                    : 'Free — instant access'}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => togglePublish(course)}>
@@ -337,13 +374,13 @@ export default function CourseManagementTab() {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit course</DialogTitle>
+            <DialogTitle>Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} />
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button onClick={handleUpdate} disabled={saving} className="bg-[#1e3a5f]">Save changes</Button>
+            <Button onClick={handleUpdate} disabled={saving} className="bg-[var(--brand-navy)] text-white">Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -358,13 +395,36 @@ function CourseForm({
   form: typeof emptyForm
   setForm: (value: typeof emptyForm) => void
 }) {
+  const programType = form.program_type
+  const showSchedule = programTypeNeedsSchedule(programType)
+  const showLocation = programTypeNeedsLocation(programType)
+  const showMeeting = programTypeNeedsMeetingLink(programType)
+
   return (
     <div className="space-y-4">
       <div>
-        <Label>Course title</Label>
+        <Label>Program type</Label>
+        <Select
+          value={programType}
+          onValueChange={(v) => setForm({ ...form, program_type: v as ProgramType })}
+        >
+          <SelectTrigger className="mt-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PROGRAM_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {PROGRAM_TYPE_LABELS[type]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label>Title</Label>
         <Input
           className="mt-1"
-          placeholder="e.g., Advanced Electrical Systems"
+          placeholder="Program title"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
         />
@@ -414,13 +474,15 @@ function CourseForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Price (RWF)</Label>
+          <Label>Price (RWF) — 0 = free</Label>
           <Input
             className="mt-1"
             type="number"
+            min={0}
             value={form.pricing}
             onChange={(e) => setForm({ ...form, pricing: e.target.value })}
           />
+          <p className="text-xs text-slate-500 mt-1">Free programmes skip payment approval.</p>
         </div>
         <div>
           <Label>Status</Label>
@@ -435,8 +497,52 @@ function CourseForm({
           </Select>
         </div>
       </div>
+      {showSchedule ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Start date & time</Label>
+            <Input
+              type="datetime-local"
+              className="mt-1"
+              value={form.scheduled_at}
+              onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+            />
+          </div>
+          {programType === 'event' ? (
+            <div>
+              <Label>End date & time</Label>
+              <Input
+                type="datetime-local"
+                className="mt-1"
+                value={form.program_end_date}
+                onChange={(e) => setForm({ ...form, program_end_date: e.target.value })}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {showLocation ? (
+        <div>
+          <Label>Location</Label>
+          <Input
+            className="mt-1"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+          />
+        </div>
+      ) : null}
+      {showMeeting ? (
+        <div>
+          <Label>Meeting / join link</Label>
+          <Input
+            className="mt-1"
+            value={form.meeting_link}
+            onChange={(e) => setForm({ ...form, meeting_link: e.target.value })}
+          />
+        </div>
+      ) : null}
       <ImageUploadField
-        label="Course thumbnail"
+        label="Thumbnail"
         folder="courses"
         value={form.thumbnail}
         onChange={(url) => setForm({ ...form, thumbnail: url })}

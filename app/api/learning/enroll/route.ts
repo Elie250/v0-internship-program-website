@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PENDING_ENROLLMENT_STATUSES } from '@/lib/enrollment/constants'
+import { getEnrollEligibility } from '@/lib/enrollment/eligibility'
+import { admitEnrollmentById } from '@/lib/enrollment/admit'
+import { isFreeProgram } from '@/lib/enrollment/program-types'
 
 type SessionUser = {
   id: string
@@ -65,12 +68,6 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-    if (!receiptUrl) {
-      return NextResponse.json(
-        { error: 'Upload your MoMo payment receipt before submitting' },
-        { status: 400 }
-      )
-    }
 
     const { data: course, error: courseError } = await supabaseAdmin
       .from('courses')
@@ -81,6 +78,29 @@ export async function POST(request: Request) {
 
     if (courseError || !course) {
       return NextResponse.json({ error: 'Course not found or not open for enrollment' }, { status: 404 })
+    }
+
+    const amountDue = Number(course.pricing ?? 0)
+    const isFree = isFreeProgram(amountDue)
+
+    if (!isFree && !receiptUrl) {
+      return NextResponse.json(
+        { error: 'Upload your MoMo payment receipt before submitting' },
+        { status: 400 }
+      )
+    }
+
+    const { data: allEnrollmentRows } = await supabaseAdmin
+      .from('course_enrollments')
+      .select('id, course_id, status, access_starts_at, access_ends_at')
+      .eq('user_id', sessionUser.id)
+
+    const eligibility = getEnrollEligibility(allEnrollmentRows ?? [], courseId)
+    if (!eligibility.canEnroll) {
+      return NextResponse.json(
+        { error: eligibility.reason ?? 'You cannot enroll in this course right now.', code: 'ENROLLMENT_BLOCKED' },
+        { status: 409 }
+      )
     }
 
     const { data: existingRows } = await supabaseAdmin
@@ -124,7 +144,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const amountDue = Number(course.pricing ?? 0)
+    const amountDueFinal = Number(course.pricing ?? 0)
 
     const { data: enrollment, error: enrollmentError } = await supabaseAdmin
       .from('course_enrollments')
@@ -136,8 +156,8 @@ export async function POST(request: Request) {
           applicant_email: applicantEmail,
           applicant_phone: applicantPhone,
           motivation: motivation || null,
-          amount_due: amountDue,
-          status: 'payment_pending_review',
+          amount_due: amountDueFinal,
+          status: isFree ? 'admitted' : 'payment_pending_review',
         },
       ])
       .select()
@@ -150,11 +170,42 @@ export async function POST(request: Request) {
       )
     }
 
+    if (isFree) {
+      const admitted = await admitEnrollmentById(enrollment.id)
+      if (!admitted.success) {
+        await supabaseAdmin.from('course_enrollments').delete().eq('id', enrollment.id)
+        return NextResponse.json(
+          { error: admitted.error || 'Failed to activate free enrollment' },
+          { status: 500 }
+        )
+      }
+
+      if (applicantPhone) {
+        await supabaseAdmin
+          .from('users')
+          .update({ phone: applicantPhone, updated_at: new Date().toISOString() })
+          .eq('id', sessionUser.id)
+      }
+
+      return NextResponse.json(
+        {
+          success: true,
+          enrollmentId: enrollment.id,
+          courseTitle: course.title,
+          amountDue: amountDueFinal,
+          instantAccess: true,
+          message:
+            'You are enrolled! This free programme is now available on your student dashboard.',
+        },
+        { status: 201 }
+      )
+    }
+
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
       .insert([
         {
-          amount: amountDue,
+          amount: amountDueFinal,
           payer_name: applicantName || applicantEmail,
           payer_email: applicantEmail,
           payer_phone: applicantPhone,
@@ -194,7 +245,7 @@ export async function POST(request: Request) {
         success: true,
         enrollmentId: enrollment.id,
         courseTitle: course.title,
-        amountDue,
+        amountDue: amountDueFinal,
         message:
           'Enrollment submitted! We will verify your MoMo receipt within one business day. Track progress on your student dashboard.',
       },

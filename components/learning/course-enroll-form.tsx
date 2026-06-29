@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { EnrollmentSteps } from '@/components/learning/enrollment-steps'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
+import { isFreeProgram } from '@/lib/enrollment/program-types'
 import {
   CheckCircle2,
   Clock,
@@ -43,6 +44,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
   const [success, setSuccess] = useState('')
 
   const price = Number(course.pricing ?? 0)
+  const isFree = isFreeProgram(price)
 
   const handleReceiptUpload = async (file: File) => {
     setUploading(true)
@@ -100,18 +102,27 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
           </div>
           <div className="rounded-lg bg-slate-50 border text-left p-4 max-w-md mx-auto space-y-2 text-sm">
             <p className="font-medium text-[var(--brand-navy)]">What happens next?</p>
-            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-              <li>Our team verifies your MoMo receipt (within 1 business day)</li>
-              <li>You receive confirmation by email or WhatsApp</li>
-              <li>Course materials unlock on your student dashboard</li>
+            <ol className="list-decimal list-inside space-y-1 text-slate-600">
+              {isFree ? (
+                <>
+                  <li>Your programme is now on your student dashboard</li>
+                  <li>Open it to view materials or join links</li>
+                </>
+              ) : (
+                <>
+                  <li>Our team verifies your MoMo receipt (within 1 business day)</li>
+                  <li>You receive confirmation by email or WhatsApp</li>
+                  <li>Course materials unlock on your student dashboard</li>
+                </>
+              )}
             </ol>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/student/dashboard">
-              <Button className="bg-[var(--brand-navy)]">Go to my dashboard</Button>
+              <Button className="bg-[var(--brand-navy)] text-white">Go to my dashboard</Button>
             </Link>
-            <Link href="/learning">
-              <Button variant="outline">Browse more courses</Button>
+            <Link href="/student/courses">
+              <Button variant="outline">Browse programmes</Button>
             </Link>
           </div>
         </CardContent>
@@ -121,12 +132,23 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
 
   return (
     <div className="space-y-6">
-      <EnrollmentSteps currentStep={step} />
+      <EnrollmentSteps currentStep={step} isFree={isFree} />
 
       {error ? (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
+      ) : null}
+
+      {isFree ? (
+        <Card className="border-green-200 bg-green-50/50 shadow-sm">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-green-900 font-medium">Free programme — no payment required</p>
+            <p className="text-xs text-green-800 mt-1">
+              Confirm your details below to get instant access after enrollment.
+            </p>
+          </CardContent>
+        </Card>
       ) : null}
 
       {step === 1 ? (
@@ -174,17 +196,23 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
               </div>
             </div>
             <Button
-              className="w-full bg-[var(--brand-navy)]"
-              disabled={!form.applicantPhone.trim()}
-              onClick={() => setStep(2)}
+              className="w-full bg-[var(--brand-navy)] text-white"
+              disabled={!form.applicantPhone.trim() || submitting}
+              onClick={() => {
+                if (isFree) {
+                  handleSubmit()
+                } else {
+                  setStep(2)
+                }
+              }}
             >
-              Continue to payment
+              {isFree ? (submitting ? 'Enrolling…' : 'Confirm & enroll free') : 'Continue to payment'}
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
-      {step === 2 ? (
+      {step === 2 && !isFree ? (
         <Card className="shadow-sm border-[var(--brand-navy)]/15">
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -228,7 +256,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
         </Card>
       ) : null}
 
-      {step === 3 ? (
+      {step === 3 && !isFree ? (
         <Card className="shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">

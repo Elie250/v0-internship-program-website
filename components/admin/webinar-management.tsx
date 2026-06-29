@@ -85,9 +85,9 @@ export default function WebinarManagement() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Webinars</h1>
-        <p className="text-muted-foreground mt-1">
-          Published webinars appear for students after course payment is approved.
+        <h1 className="text-2xl font-bold text-slate-900">Webinars</h1>
+        <p className="text-slate-600 mt-1">
+          Schedule public webinars. Students enrolled in any programme can access published sessions.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ export default function WebinarManagement() {
             <Label>Recording URL</Label>
             <Input className="mt-1" value={form.recording_url} onChange={(e) => setForm({ ...form, recording_url: e.target.value })} />
           </div>
-          <Button onClick={handleCreate} className="md:col-span-2 bg-[#1e3a5f]">
+          <Button onClick={handleCreate} className="md:col-span-2 bg-[var(--brand-navy)] text-white">
             <Plus className="h-4 w-4 mr-2" />
             Create webinar
           </Button>

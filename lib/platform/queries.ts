@@ -15,6 +15,7 @@ import {
   isCoursePublished,
   normalizeCourseRow,
 } from '@/lib/platform/courses'
+import type { ProgramType } from '@/lib/enrollment/program-types'
 
 function db() {
   if (!supabaseAdmin) return null
@@ -96,7 +97,10 @@ export async function getCategories(type: Category['type']): Promise<Category[]>
   return data ?? []
 }
 
-export async function getPublishedCourses(categorySlug?: string): Promise<Course[]> {
+export async function getPublishedCourses(
+  categorySlug?: string,
+  options?: { programType?: ProgramType; programTypes?: ProgramType[] }
+): Promise<Course[]> {
   const client = db()
   if (!client) return []
 
@@ -108,6 +112,12 @@ export async function getPublishedCourses(categorySlug?: string): Promise<Course
       .eq('slug', categorySlug)
       .maybeSingle()
     if (cat) query = query.eq('category_id', cat.id)
+  }
+
+  if (options?.programType) {
+    query = query.eq('program_type', options.programType)
+  } else if (options?.programTypes?.length) {
+    query = query.in('program_type', options.programTypes)
   }
 
   const { data, error } = await query.order('created_at', { ascending: false })

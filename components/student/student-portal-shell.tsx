@@ -10,10 +10,10 @@ import { useRouter } from 'next/navigation'
 import { COMPANY } from '@/lib/company/constants'
 
 const nav = [
-  { href: '/student/dashboard', label: 'My learning', icon: GraduationCap },
-  { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video },
-  { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone },
-  { href: '/learning', label: 'Browse courses', icon: BookOpen, external: true },
+  { href: '/student/dashboard', label: 'My learning', icon: GraduationCap, tab: 'courses' },
+  { href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
+  { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
+  { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone, tab: 'announcements' },
 ]
 
 export function StudentPortalShell({
@@ -33,32 +33,49 @@ export function StudentPortalShell({
     router.push('/')
   }
 
+  const isActive = (item: (typeof nav)[0]) => {
+    if (item.href.startsWith('/student/courses')) {
+      return pathname.startsWith('/student/courses')
+    }
+    if (item.tab && item.href.startsWith('/student/dashboard')) {
+      if (pathname.startsWith('/student/courses/') && !pathname.endsWith('/enroll')) {
+        return false
+      }
+      if (pathname.startsWith('/student/courses')) {
+        return false
+      }
+      return pathname === '/student/dashboard' && tab === item.tab
+    }
+    if (item.href === '/student/dashboard') {
+      return (
+        (pathname === '/student/dashboard' && tab === 'courses') ||
+        pathname.startsWith('/student/courses/') ||
+        (pathname.startsWith('/student/courses') && pathname.includes('/enroll'))
+      )
+    }
+    return pathname === item.href
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <aside className="text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0">
+      <aside className="student-portal-sidebar text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0">
         <div className="p-5 border-b border-white/10">
-          <p className="font-bold text-lg">{COMPANY.platformName}</p>
-          <p className="text-xs text-white/70 mt-1">Student portal</p>
+          <p className="font-bold text-lg text-white">{COMPANY.platformName}</p>
+          <p className="text-xs text-white/75 mt-1">Student portal</p>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {nav.map((item) => {
             const Icon = item.icon
-            const itemTab = item.href.includes('tab=')
-              ? new URL(item.href, 'http://local').searchParams.get('tab')
-              : null
-            const active =
-              pathname.startsWith('/student/courses') && item.href === '/student/dashboard'
-                ? true
-                : itemTab
-                  ? pathname === '/student/dashboard' && tab === itemTab
-                  : pathname === '/student/dashboard' && tab === 'courses' && item.href === '/student/dashboard'
+            const active = isActive(item)
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition no-underline hover:no-underline',
-                  active ? 'bg-white/15 font-medium text-white' : 'hover:bg-white/10 text-white/90'
+                  active
+                    ? 'bg-white/15 font-medium text-white'
+                    : 'hover:bg-white/10 text-white/90 hover:text-white'
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
@@ -68,8 +85,12 @@ export function StudentPortalShell({
           })}
         </nav>
         <div className="p-3 border-t border-white/10 space-y-2">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="w-full justify-start text-white hover:bg-white/10">
+          <Link href="/" className="no-underline hover:no-underline">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-white hover:text-white hover:bg-white/10"
+            >
               <Home className="h-4 w-4 mr-2" />
               Public site
             </Button>
@@ -77,7 +98,7 @@ export function StudentPortalShell({
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-white/90 hover:bg-white/10"
+            className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10"
             onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 mr-2" />
@@ -87,15 +108,29 @@ export function StudentPortalShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b px-4 py-3 flex items-center justify-between gap-3 md:hidden">
-          <p className="font-semibold text-[#1e3a5f]">My learning</p>
-          <Button size="sm" variant="outline" onClick={handleLogout}>Logout</Button>
-        </header>
-        <header className="hidden md:flex bg-white border-b px-6 py-4 items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Welcome back</p>
-            <p className="font-semibold text-[#1e3a5f]">{userName}</p>
+        <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between gap-2">
+          <p className="font-semibold text-slate-900 text-sm truncate">Student portal</p>
+          <div className="flex gap-1 shrink-0">
+            <Link href="/student/courses">
+              <Button size="sm" variant="outline" className="text-xs px-2">
+                Enroll
+              </Button>
+            </Link>
+            <Button size="sm" variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
           </div>
+        </header>
+        <header className="hidden md:flex bg-white border-b border-slate-200 px-6 py-4 items-center justify-between">
+          <div>
+            <p className="text-sm text-slate-600">Welcome back</p>
+            <p className="font-semibold text-slate-900">{userName}</p>
+          </div>
+          <Link href="/student/courses">
+            <Button size="sm" className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+              Browse programmes
+            </Button>
+          </Link>
         </header>
         <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
       </div>

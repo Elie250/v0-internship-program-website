@@ -112,6 +112,11 @@ export interface Course {
   duration: string | null
   pricing: number | null
   status: ContentStatus
+  program?: string | null
+  program_type?: import('@/lib/enrollment/program-types').ProgramType
+  scheduled_at?: string | null
+  location?: string | null
+  meeting_link?: string | null
   program_start_date?: string | null
   program_end_date?: string | null
   default_access_days?: number | null
