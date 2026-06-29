@@ -54,6 +54,9 @@ const headerNavButtonClass =
 const mobileNavLinkClass =
   'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
 
+const mobileRegisterButtonClass =
+  'site-header-register-btn h-8 px-2 text-[10px] sm:text-xs font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
+
 function BrandMark({
   logoUrl,
   compact = false,
@@ -70,12 +73,63 @@ function BrandMark({
         height={48}
         className={
           compact
-            ? 'rounded object-contain h-8 w-8'
+            ? 'rounded object-contain h-7 w-7 sm:h-8 sm:w-8'
             : 'rounded object-contain h-9 w-9 sm:h-12 sm:w-auto sm:max-w-[120px]'
         }
         unoptimized
       />
     </div>
+  )
+}
+
+function MobileNavSheet({
+  logoUrl,
+  open,
+  onOpenChange,
+}: {
+  logoUrl: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const close = () => onOpenChange(false)
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="site-header-menu-btn h-9 w-9 rounded-lg bg-white text-[var(--brand-navy)] hover:bg-slate-100 hover:text-[var(--brand-navy)] shadow-sm border border-white/90 shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        side="left"
+        className="mobile-nav-sheet w-[min(100vw-1.5rem,22rem)] overflow-y-auto bg-white p-0 [&>[data-slot=sheet-close]]:top-4 [&>[data-slot=sheet-close]]:right-4 [&>[data-slot=sheet-close]]:text-slate-700 [&>[data-slot=sheet-close]]:opacity-100 [&>[data-slot=sheet-close]]:hover:bg-slate-100 [&>[data-slot=sheet-close]]:rounded-md"
+      >
+        <SheetHeader className="border-b border-slate-200 bg-slate-50 px-4 py-4 pr-12">
+          <Link
+            href="/"
+            onClick={close}
+            className="flex items-center gap-3 no-underline hover:no-underline"
+          >
+            <BrandMark logoUrl={logoUrl} compact />
+            <div className="min-w-0 text-left">
+              <SheetTitle className="text-base font-bold text-[var(--brand-navy)] truncate">
+                {COMPANY.brandName}
+              </SheetTitle>
+              <p className="text-xs text-slate-600 truncate mt-0.5">{COMPANY.slogan}</p>
+            </div>
+          </Link>
+        </SheetHeader>
+        <div className="px-4 pb-6">
+          <MobileNav onNavigate={close} />
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -158,23 +212,20 @@ export function SiteHeader() {
 
   return (
     <nav className="site-header text-on-dark sticky top-0 z-50 bg-[var(--brand-navy)] border-b border-white/10 shadow-md">
-      <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3">
+      {/* Desktop header */}
+      <div className="hidden lg:flex max-w-7xl mx-auto justify-between items-center gap-2 px-4 py-3">
         <Link
           href="/"
-          className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 hover:opacity-90 transition no-underline hover:no-underline"
+          className="flex items-center gap-3 min-w-0 hover:opacity-90 transition no-underline hover:no-underline"
         >
           <BrandMark logoUrl={logoUrl} />
           <div className="min-w-0">
-            <p className="font-bold text-sm sm:text-lg leading-tight text-white truncate">
-              {COMPANY.brandName}
-            </p>
-            <p className="text-[10px] sm:text-[11px] text-white/90 truncate leading-snug">
-              {COMPANY.slogan}
-            </p>
+            <p className="font-bold text-lg leading-tight text-white truncate">{COMPANY.brandName}</p>
+            <p className="text-[11px] text-white/90 truncate leading-snug">{COMPANY.slogan}</p>
           </div>
         </Link>
 
-        <div className="hidden lg:flex items-center gap-1">
+        <div className="flex items-center gap-1">
           <Link href="/">
             <Button variant="ghost" className={headerNavButtonClass}>
               Home
@@ -239,8 +290,7 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        {/* Desktop auth */}
-        <div className="hidden lg:flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <Link
             href="/auth/login"
             className="text-sm font-semibold text-white hover:text-white px-2 py-1.5 no-underline hover:underline"
@@ -250,65 +300,45 @@ export function SiteHeader() {
           <Link href="/auth/register" className="no-underline hover:no-underline">
             <Button
               size="sm"
-              className="bg-white text-[var(--brand-navy)] hover:bg-white/90 font-semibold h-9 px-3 shadow-sm"
+              className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-3 shadow-sm border border-white"
             >
               Register
             </Button>
           </Link>
         </div>
+      </div>
 
-        {/* Mobile action pod — mirrors the logo pod on the left */}
-        <div className="site-header-mobile-actions lg:hidden flex items-center shrink-0 bg-white rounded-lg p-1 gap-0.5 shadow-sm border border-white/90">
+      {/* Mobile header: menu left · brand center · auth right */}
+      <div className="lg:hidden grid grid-cols-[2.75rem_1fr_auto] items-center gap-2 px-3 py-2.5 max-w-7xl mx-auto">
+        <div className="flex justify-start">
+          <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
+        </div>
+
+        <Link
+          href="/"
+          className="flex flex-col items-center justify-center min-w-0 text-center gap-0.5 hover:opacity-90 transition no-underline hover:no-underline"
+        >
+          <BrandMark logoUrl={logoUrl} compact />
+          <p className="font-bold text-[11px] leading-tight text-white truncate max-w-full px-1">
+            {COMPANY.brandName}
+          </p>
+          <p className="text-[9px] leading-snug text-white/90 line-clamp-2 max-w-[11rem] px-1">
+            {COMPANY.slogan}
+          </p>
+        </Link>
+
+        <div className="site-header-mobile-auth flex flex-col items-end justify-center gap-1 shrink-0">
           <Link
             href="/auth/login"
-            className="inline-flex items-center justify-center h-9 px-2.5 text-xs font-semibold text-[var(--brand-navy)] rounded-md hover:bg-slate-100 no-underline hover:no-underline"
+            className="text-[10px] font-semibold text-white hover:text-white leading-none no-underline hover:underline"
           >
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">
-            <Button
-              size="sm"
-              className="h-9 px-2.5 text-xs font-semibold bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 shadow-none"
-            >
-              Join
+            <Button size="sm" className={mobileRegisterButtonClass}>
+              Register
             </Button>
           </Link>
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-md bg-slate-100 text-[var(--brand-navy)] hover:bg-slate-200 hover:text-[var(--brand-navy)] shrink-0"
-                aria-label="Open menu"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="right"
-              className="mobile-nav-sheet w-[min(100vw-1.5rem,22rem)] overflow-y-auto bg-white p-0 [&>[data-slot=sheet-close]]:top-4 [&>[data-slot=sheet-close]]:right-4 [&>[data-slot=sheet-close]]:text-slate-700 [&>[data-slot=sheet-close]]:opacity-100 [&>[data-slot=sheet-close]]:hover:bg-slate-100 [&>[data-slot=sheet-close]]:rounded-md"
-            >
-              <SheetHeader className="border-b border-slate-200 bg-slate-50 px-4 py-4 pr-12">
-                <Link
-                  href="/"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 no-underline hover:no-underline"
-                >
-                  <BrandMark logoUrl={logoUrl} compact />
-                  <div className="min-w-0 text-left">
-                    <SheetTitle className="text-base font-bold text-[var(--brand-navy)] truncate">
-                      {COMPANY.brandName}
-                    </SheetTitle>
-                    <p className="text-xs text-slate-600 truncate mt-0.5">{COMPANY.slogan}</p>
-                  </div>
-                </Link>
-              </SheetHeader>
-              <div className="px-4 pb-6">
-                <MobileNav onNavigate={() => setMobileOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
     </nav>
