@@ -25,7 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { AdminAssessmentsPanel } from '@/components/admin/admin-assessments-panel'
 import { Mail, Phone, RotateCcw } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 type Enrollment = {
   id: string
@@ -63,6 +65,7 @@ function statusBadge(status: string) {
 
 export default function EnrollmentManagement() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
+  const [filter, setFilter] = useState<'admitted' | 'pending' | 'rejected' | 'all'>('admitted')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [revokeTarget, setRevokeTarget] = useState<Enrollment | null>(null)
@@ -129,14 +132,22 @@ export default function EnrollmentManagement() {
 
   if (loading) return <p className="text-muted-foreground">Loading enrollments...</p>
 
+  const filtered = enrollments.filter((row) => {
+    if (filter === 'all') return true
+    if (filter === 'admitted') return row.status === 'admitted'
+    if (filter === 'pending') return row.status === 'payment_pending_review'
+    if (filter === 'rejected') return row.status === 'payment_rejected'
+    return true
+  })
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 app-form-surface">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Course enrollments</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Active enrollments</h1>
         <p className="text-slate-600 mt-1">
-          Approve payments under Payment Receipts to admit students. Use{' '}
-          <strong>Refund &amp; revoke access</strong> when issuing a MoMo refund — this removes
-          course access and marks the linked payment as refunded.
+          Students appear here after you approve their payment under{' '}
+          <strong>Applications → Programme enrollments</strong>. Pending payments stay in Applications
+          until reviewed.
         </p>
       </div>
 
@@ -146,7 +157,21 @@ export default function EnrollmentManagement() {
         </p>
       ) : null}
 
-      {enrollments.length === 0 ? (
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+        <TabsList>
+          <TabsTrigger value="admitted">
+            Admitted ({enrollments.filter((e) => e.status === 'admitted').length})
+          </TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending ({enrollments.filter((e) => e.status === 'payment_pending_review').length})
+          </TabsTrigger>
+          <TabsTrigger value="rejected">
+            Rejected ({enrollments.filter((e) => e.status === 'payment_rejected').length})
+          </TabsTrigger>
+          <TabsTrigger value="all">All ({enrollments.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value={filter} className="mt-4">
+      {filtered.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
             No enrollments yet. Published courses appear on{' '}
@@ -158,7 +183,7 @@ export default function EnrollmentManagement() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {enrollments.map((row) => (
+          {filtered.map((row) => (
             <Card key={row.id}>
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap justify-between gap-3">
@@ -233,11 +258,16 @@ export default function EnrollmentManagement() {
                 ) : (
                   <p className="text-xs text-amber-700">No linked account (legacy enrollment)</p>
                 )}
+                {row.status === 'admitted' && row.course?.id ? (
+                  <AdminAssessmentsPanel courseId={row.course.id} />
+                ) : null}
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog
         open={revokeTarget !== null}
