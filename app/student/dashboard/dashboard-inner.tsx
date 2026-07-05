@@ -48,7 +48,7 @@ export default function StudentDashboardInner() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-muted-foreground">Loading your courses…</p>
+        <p className="text-slate-600">Loading your courses…</p>
       </div>
     )
   }
@@ -68,6 +68,7 @@ export default function StudentDashboardInner() {
 
   const userName = [portal.user.firstName, portal.user.lastName].filter(Boolean).join(' ') || portal.user.email
   const totalLessons = portal.activeCourses.reduce((n, c) => n + c.lessons.length, 0)
+  const completedLessons = portal.activeCourses.reduce((n, c) => n + c.progress.completedCount, 0)
 
   return (
     <StudentPortalShell userName={userName}>
@@ -153,6 +154,7 @@ export default function StudentDashboardInner() {
           upcoming={portal.upcomingCourses}
           expired={portal.expiredCourses}
           totalLessons={totalLessons}
+          completedLessons={completedLessons}
         />
       )}
     </StudentPortalShell>
@@ -164,18 +166,20 @@ function CoursesTab({
   upcoming,
   expired,
   totalLessons,
+  completedLessons,
 }: {
   courses: StudentPortalData['activeCourses']
   upcoming: StudentPortalData['upcomingCourses']
   expired: StudentPortalData['expiredCourses']
   totalLessons: number
+  completedLessons: number
 }) {
   if (courses.length === 0 && upcoming.length === 0) {
     return (
       <div className="max-w-2xl mx-auto text-center space-y-4 py-12">
-        <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50" />
+        <BookOpen className="h-12 w-12 mx-auto text-slate-400" />
         <h1 className="text-2xl font-bold text-[var(--brand-navy)]">Your learning library</h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-600">
           Browse programmes, enroll with your account, pay via MTN MoMo, and upload your receipt. Once{' '}
           {COMPANY.brandName} approves payment, your courses appear here.
         </p>
@@ -208,8 +212,11 @@ function CoursesTab({
         </Card>
         <Card className="border-slate-200">
           <CardContent className="pt-4">
-            <p className="text-sm text-slate-600">Lessons available</p>
-            <p className="text-3xl font-bold text-[var(--brand-navy)]">{totalLessons}</p>
+            <p className="text-sm text-slate-600">Lessons completed</p>
+            <p className="text-3xl font-bold text-[var(--brand-navy)]">
+              {completedLessons}
+              <span className="text-lg text-slate-500 font-normal"> / {totalLessons}</span>
+            </p>
           </CardContent>
         </Card>
         <Card className="border-slate-200">
@@ -246,8 +253,10 @@ function CoursesTab({
             <CardContent className="space-y-4">
               <p className="text-sm text-slate-600 line-clamp-2">{course.description}</p>
               <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{course.lessons.length} lessons</span>
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>
+                    {course.progress.completedCount}/{course.progress.totalLessons} lessons
+                  </span>
                   {course.duration ? (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -255,12 +264,16 @@ function CoursesTab({
                     </span>
                   ) : null}
                 </div>
-                <Progress value={course.lessons.length ? 100 : 0} className="h-1.5" />
+                <Progress value={course.progress.percent} className="h-1.5" />
               </div>
               <Link href={`/student/courses/${course.id}`}>
                 <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
                   <PlayCircle className="h-4 w-4 mr-2" />
-                  {course.lessons.length ? 'Open course' : 'View course'}
+                  {course.progress.percent > 0 && course.progress.percent < 100
+                    ? 'Continue learning'
+                    : course.lessons.length
+                      ? 'Open course'
+                      : 'View course'}
                 </Button>
               </Link>
             </CardContent>
@@ -270,14 +283,14 @@ function CoursesTab({
 
       {expired.length > 0 ? (
         <div className="mt-10 space-y-3">
-          <h2 className="text-lg font-bold text-muted-foreground">Past courses</h2>
+          <h2 className="text-lg font-bold text-slate-700">Past courses</h2>
           <div className="grid md:grid-cols-2 gap-4">
             {expired.map((course) => (
               <Card key={course.enrollmentId} className="opacity-75">
                 <CardHeader className="pb-2">
                   <Badge variant="outline" className="w-fit mb-2">Expired</Badge>
                   <CardTitle className="text-base">{course.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground">{course.accessLabel}</p>
+                  <p className="text-xs text-slate-600">{course.accessLabel}</p>
                 </CardHeader>
                 <CardContent>
                   <Link href="/contact">
@@ -304,9 +317,9 @@ function WebinarsTab({
     return (
       <Card className="max-w-xl mx-auto mt-8">
         <CardContent className="pt-8 text-center space-y-3">
-          <Video className="h-10 w-10 mx-auto text-muted-foreground" />
-          <p className="font-medium">Webinars locked</p>
-          <p className="text-sm text-muted-foreground">
+          <Video className="h-10 w-10 mx-auto text-slate-500" />
+          <p className="font-medium text-slate-900">Webinars locked</p>
+          <p className="text-sm text-slate-600">
             Webinars and live sessions unlock after your course payment is approved.
           </p>
           <Link href="/student/courses?track=training"><Button variant="outline">Browse programmes</Button></Link>
@@ -319,20 +332,20 @@ function WebinarsTab({
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-slate-900">Webinars & live sessions</h2>
       {webinars.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No webinars scheduled yet.</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-slate-600">No webinars scheduled yet.</CardContent></Card>
       ) : (
         webinars.map((w) => (
           <Card key={w.id}>
             <CardHeader>
               <CardTitle className="text-lg">{w.title}</CardTitle>
               {w.scheduled_at ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-slate-600">
                   {new Date(w.scheduled_at).toLocaleString()}
                 </p>
               ) : null}
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">{w.description}</p>
+              <p className="text-sm text-slate-600">{w.description}</p>
               <div className="flex flex-wrap gap-2">
                 {w.meeting_link ? (
                   <Button asChild size="sm" className="bg-[var(--brand-navy)] text-white">
@@ -362,13 +375,13 @@ function AnnouncementsTab({ announcements }: { announcements: StudentPortalData[
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-slate-900">Announcements</h2>
       {announcements.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No announcements.</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-slate-600">No announcements.</CardContent></Card>
       ) : (
         announcements.map((a) => (
           <Card key={a.id}>
             <CardHeader>
               <CardTitle className="text-base">{a.title}</CardTitle>
-              <p className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</p>
+              <p className="text-xs text-slate-600">{new Date(a.created_at).toLocaleDateString()}</p>
             </CardHeader>
             <CardContent><p className="text-sm text-slate-700">{a.message}</p></CardContent>
           </Card>
