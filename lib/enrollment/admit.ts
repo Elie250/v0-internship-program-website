@@ -53,14 +53,29 @@ export async function rejectEnrollmentById(
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
-  const { error } = await supabaseAdmin
+  const now = new Date().toISOString()
+  const trimmedReason = reason?.trim() || null
+  const basePayload = {
+    status: 'payment_rejected',
+    updated_at: now,
+  }
+
+  let { error } = await supabaseAdmin
     .from('course_enrollments')
-    .update({
-      status: 'payment_rejected',
-      rejection_reason: reason?.trim() || null,
-      updated_at: new Date().toISOString(),
-    })
+    .update(
+      trimmedReason
+        ? { ...basePayload, rejection_reason: trimmedReason }
+        : basePayload
+    )
     .eq('id', enrollmentId)
+
+  if (error?.message?.includes('rejection_reason')) {
+    const retry = await supabaseAdmin
+      .from('course_enrollments')
+      .update(basePayload)
+      .eq('id', enrollmentId)
+    error = retry.error
+  }
 
   if (error) return { success: false, error: error.message }
   return { success: true }
