@@ -309,7 +309,7 @@ export async function getStudentPortalData(options?: {
   const { data: byUserId, error: byUserError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, rejection_reason, course:courses(id, title, description, thumbnail, duration, difficulty)'
+      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty)'
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -317,7 +317,7 @@ export async function getStudentPortalData(options?: {
   const { data: byEmailOnly, error: byEmailError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, rejection_reason, course:courses(id, title, description, thumbnail, duration, difficulty)'
+      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty)'
     )
     .ilike('applicant_email', email)
     .is('user_id', null)
