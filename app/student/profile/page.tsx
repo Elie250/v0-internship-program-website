@@ -1,147 +1,134 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, User } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { getStudentPortalData } from '@/app/actions/student-learning'
+import { StudentPortalShell } from '@/components/student/student-portal-shell'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { User, Mail, Phone, BookOpen } from 'lucide-react'
+import { COMPANY } from '@/lib/company/constants'
 
-interface StudentProfile {
-  name: string;
-  email: string;
-  phone: string;
-  program: string;
-  dateOfBirth?: string;
-  province?: string;
-  district?: string;
-  school?: string;
-  fieldOfStudy?: string;
-}
-
-export default function StudentProfile() {
-  const [profile, setProfile] = useState<StudentProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function StudentProfilePage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState('')
+  const [profile, setProfile] = useState<{
+    firstName?: string
+    lastName?: string
+    email: string
+    phone?: string | null
+  } | null>(null)
+  const [activePrograms, setActivePrograms] = useState<string[]>([])
 
   useEffect(() => {
-    const studentEmail = localStorage.getItem('student_email');
-    if (!studentEmail) {
-      window.location.href = '/student/login';
-      return;
-    }
-
-    // Mock profile data - in production this would come from your API
-    setProfile({
-      name: 'Student Name',
-      email: studentEmail,
-      phone: '+250 7XX XXX XXX',
-      program: 'Electrical Technology',
-      dateOfBirth: 'January 1, 2000',
-      province: 'Kigali City',
-      district: 'Nyamirambo',
-      school: 'Your School',
-      fieldOfStudy: 'Electronics'
-    });
-    setLoading(false);
-  }, []);
+    getStudentPortalData().then((result) => {
+      if (!result.success) {
+        router.push('/auth/login?redirect=/student/profile')
+        return
+      }
+      const { user, activeCourses, upcomingCourses } = result.data
+      setProfile(user)
+      setUserName(
+        [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+      )
+      setActivePrograms([
+        ...activeCourses.map((c) => c.title),
+        ...upcomingCourses.map((c) => c.title),
+      ])
+      setLoading(false)
+    })
+  }, [router])
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-600">Loading profile…</p>
       </div>
-    );
+    )
   }
 
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Link href="/student/login">
-          <Button>Go to Login</Button>
-        </Link>
-      </div>
-    );
-  }
+  if (!profile) return null
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-bold">Your Profile</h1>
-        <Link href="/student/dashboard">
-          <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
+    <StudentPortalShell userName={userName}>
+      <div className="max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Your profile</h1>
+          <p className="text-sm text-slate-600 mt-1">{COMPANY.platformName} student account</p>
+        </div>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <User className="h-5 w-5 text-[var(--brand-navy)]" />
+              Account details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Name</p>
+                <p className="font-semibold text-slate-900 mt-1">
+                  {[profile.firstName, profile.lastName].filter(Boolean).join(' ') || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Email</p>
+                <p className="font-semibold text-slate-900 mt-1 flex items-center gap-1.5">
+                  <Mail className="h-4 w-4 text-slate-500" />
+                  {profile.email}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Phone (MoMo)</p>
+                <p className="font-semibold text-slate-900 mt-1 flex items-center gap-1.5">
+                  <Phone className="h-4 w-4 text-slate-500" />
+                  {profile.phone || 'Not set — update when enrolling'}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              To change your password, sign out and use forgot password on the login page, or contact{' '}
+              <a href={`mailto:${COMPANY.email}`} className="text-[var(--brand-navy)] underline">
+                {COMPANY.email}
+              </a>
+              .
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <BookOpen className="h-5 w-5 text-[var(--brand-navy)]" />
+              Your programmes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activePrograms.length === 0 ? (
+              <p className="text-sm text-slate-600">No active enrollments yet.</p>
+            ) : (
+              <ul className="space-y-2">
+                {activePrograms.map((title) => (
+                  <li key={title}>
+                    <Badge variant="outline" className="text-slate-800 border-slate-300">
+                      {title}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Link href="/student/courses?track=training" className="inline-block mt-4">
+              <Button size="sm" variant="outline" className="text-slate-900 border-slate-300">
+                Browse programmes
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Profile Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Personal Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-muted-foreground">Full Name</p>
-              <p className="font-semibold">{profile.name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-semibold">{profile.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-semibold">{profile.phone}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Date of Birth</p>
-              <p className="font-semibold">{profile.dateOfBirth || 'Not provided'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Province</p>
-              <p className="font-semibold">{profile.province || 'Not provided'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">District</p>
-              <p className="font-semibold">{profile.district || 'Not provided'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Program Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Program Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-muted-foreground">Selected Program</p>
-              <p className="font-semibold">{profile.program}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">School/University</p>
-              <p className="font-semibold">{profile.school || 'Not provided'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Field of Study</p>
-              <p className="font-semibold">{profile.fieldOfStudy || 'Not provided'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <div className="flex gap-4">
-        <Button variant="outline">Edit Profile</Button>
-        <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10">
-          Change Password
-        </Button>
-      </div>
-    </div>
-  );
+    </StudentPortalShell>
+  )
 }

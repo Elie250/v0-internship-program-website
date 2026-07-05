@@ -28,6 +28,13 @@ import {
 import { AdminAssessmentsPanel } from '@/components/admin/admin-assessments-panel'
 import { Mail, Phone, RotateCcw } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
+
+type LearningProgress = {
+  percent: number
+  completed: number
+  total: number
+} | null
 
 type Enrollment = {
   id: string
@@ -42,6 +49,7 @@ type Enrollment = {
   access_starts_at?: string | null
   access_ends_at?: string | null
   admitted_at?: string | null
+  learningProgress?: LearningProgress
   course?: { id: string; title: string; pricing?: number }
 }
 
@@ -130,7 +138,7 @@ export default function EnrollmentManagement() {
     load()
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading enrollments...</p>
+  if (loading) return <p className="text-slate-600">Loading enrollments...</p>
 
   const filtered = enrollments.filter((row) => {
     if (filter === 'all') return true
@@ -173,7 +181,7 @@ export default function EnrollmentManagement() {
         <TabsContent value={filter} className="mt-4">
       {filtered.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
+          <CardContent className="py-10 text-center text-slate-600">
             No enrollments yet. Published courses appear on{' '}
             <a href="/learning" className="text-[#1e3a5f] underline" target="_blank" rel="noopener noreferrer">
               /learning
@@ -258,6 +266,18 @@ export default function EnrollmentManagement() {
                 ) : (
                   <p className="text-xs text-amber-700">No linked account (legacy enrollment)</p>
                 )}
+                {row.status === 'admitted' && row.learningProgress && row.learningProgress.total > 0 ? (
+                  <div className="pt-2 space-y-1">
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Course progress</span>
+                      <span className="font-medium text-slate-900">
+                        {row.learningProgress.completed}/{row.learningProgress.total} lessons (
+                        {row.learningProgress.percent}%)
+                      </span>
+                    </div>
+                    <Progress value={row.learningProgress.percent} className="h-2" />
+                  </div>
+                ) : null}
                 {row.status === 'admitted' && row.course?.id ? (
                   <AdminAssessmentsPanel courseId={row.course.id} />
                 ) : null}

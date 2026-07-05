@@ -4,6 +4,36 @@ import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
 import { revokeEnrollmentWithPayment } from '@/lib/admin/refund-payment'
+import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
+
+async function attachLearningProgress(
+  rows: Array<{ course_id?: string | null; user_id?: string | null; status?: string }>
+) {
+  const admitted = rows.filter((r) => r.status === 'admitted' && r.course_id && r.user_id)
+  const byCourse = new Map<string, string[]>()
+  for (const row of admitted) {
+    const courseId = String(row.course_id)
+    const userId = String(row.user_id)
+    if (!byCourse.has(courseId)) byCourse.set(courseId, [])
+    byCourse.get(courseId)!.push(userId)
+  }
+
+  const progressByUserCourse = new Map<string, { percent: number; completed: number; total: number }>()
+  for (const [courseId, userIds] of byCourse) {
+    const map = await queryCourseProgressForStudents(courseId, [...new Set(userIds)])
+    for (const [userId, progress] of map) {
+      progressByUserCourse.set(`${courseId}:${userId}`, progress)
+    }
+  }
+
+  return rows.map((row) => {
+    if (row.status !== 'admitted' || !row.course_id || !row.user_id) {
+      return { ...row, learningProgress: null }
+    }
+    const key = `${row.course_id}:${row.user_id}`
+    return { ...row, learningProgress: progressByUserCourse.get(key) ?? null }
+  })
+}
 
 export async function GET() {
   try {
@@ -35,7 +65,9 @@ export async function GET() {
       course: row.course_id ? coursesById.get(row.course_id) ?? null : null,
     }))
 
-    return NextResponse.json(rows)
+    const withProgress = await attachLearningProgress(rows)
+
+    return NextResponse.json(withProgress)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load enrollments'
     return NextResponse.json({ error: message }, { status: 403 })

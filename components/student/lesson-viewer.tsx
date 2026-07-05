@@ -1,6 +1,6 @@
 'use client'
 
-import { FileText, Link2, PlayCircle, Download, Radio } from 'lucide-react'
+import { CheckCircle2, Circle, FileText, Link2, PlayCircle, Download, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { StudentLesson } from '@/app/actions/student-learning'
@@ -11,7 +11,23 @@ import {
   isWebinarJoinUrl,
 } from '@/lib/learning/media-embed'
 
-export function LessonViewer({ lesson }: { lesson: StudentLesson }) {
+type LessonViewerProps = {
+  lesson: StudentLesson
+  courseId: string
+  enrollmentId: string
+  completed?: boolean
+  onProgress?: (completed: boolean) => void
+  progressSaving?: boolean
+}
+
+export function LessonViewer({
+  lesson,
+  courseId,
+  enrollmentId,
+  completed = false,
+  onProgress,
+  progressSaving = false,
+}: LessonViewerProps) {
   const icon =
     lesson.content_type === 'video'
       ? PlayCircle
@@ -28,16 +44,16 @@ export function LessonViewer({ lesson }: { lesson: StudentLesson }) {
 
   const renderContent = () => {
     if (!url) {
-      return <p className="text-muted-foreground text-sm">Content link not set yet.</p>
+      return <p className="text-sm text-slate-600">Content link not set yet.</p>
     }
 
     if (lesson.content_type === 'webinar' || isWebinarJoinUrl(url)) {
       return (
-        <div className="rounded-lg border bg-muted/40 p-6 text-center space-y-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center space-y-4">
+          <p className="text-sm text-slate-700">
             Live webinar or online meeting — join when your instructor starts the session.
           </p>
-          <Button asChild size="lg" className="bg-[#1e3a5f]">
+          <Button asChild size="lg" className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
             <a href={url} target="_blank" rel="noopener noreferrer">
               Join webinar
             </a>
@@ -75,12 +91,12 @@ export function LessonViewer({ lesson }: { lesson: StudentLesson }) {
     if (isPdfUrl(url, lesson.content_type)) {
       return (
         <div className="space-y-3">
-          <div className="aspect-[4/3] rounded-lg overflow-hidden border bg-white">
+          <div className="aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 bg-white">
             <iframe src={url} title={lesson.title} className="w-full h-full" />
           </div>
-          <Button asChild variant="outline" size="sm">
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              Open PDF in new tab
+          <Button asChild variant="outline" size="sm" className="text-slate-900 border-slate-300">
+            <a href={url} target="_blank" rel="noopener noreferrer" download>
+              Download / open PDF
             </a>
           </Button>
         </div>
@@ -88,17 +104,17 @@ export function LessonViewer({ lesson }: { lesson: StudentLesson }) {
     }
 
     return (
-      <div className="rounded-lg border bg-muted/40 p-6 text-center space-y-3">
-        <p className="text-sm text-muted-foreground">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center space-y-3">
+        <p className="text-sm text-slate-700">
           {lesson.content_type === 'document'
             ? 'Document / slides'
             : lesson.content_type === 'download'
               ? 'Downloadable file'
               : 'Learning resource'}
         </p>
-        <Button asChild className="bg-[#1e3a5f]">
-          <a href={url} target="_blank" rel="noopener noreferrer">
-            Open {lesson.content_type === 'download' ? 'download' : 'material'}
+        <Button asChild className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+          <a href={url} target="_blank" rel="noopener noreferrer" download={lesson.content_type === 'download'}>
+            {lesson.content_type === 'download' ? 'Download material' : 'Open material'}
           </a>
         </Button>
       </div>
@@ -106,14 +122,45 @@ export function LessonViewer({ lesson }: { lesson: StudentLesson }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Icon className="h-5 w-5 text-[#1e3a5f]" />
-          {lesson.title}
-        </CardTitle>
+    <Card className="border-slate-200 shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-white">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
+            <Icon className="h-5 w-5 text-[var(--brand-navy)] shrink-0" />
+            {lesson.title}
+          </CardTitle>
+          {onProgress ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={completed ? 'outline' : 'default'}
+              disabled={progressSaving}
+              className={
+                completed
+                  ? 'border-green-600 text-green-800 hover:bg-green-50'
+                  : 'bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90'
+              }
+              onClick={() => onProgress(!completed)}
+            >
+              {completed ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  Completed
+                </>
+              ) : (
+                <>
+                  <Circle className="h-4 w-4 mr-1.5" />
+                  Mark complete
+                </>
+              )}
+            </Button>
+          ) : null}
+        </div>
+        <p className="text-xs text-slate-500 sr-only">
+          Course {courseId}, enrollment {enrollmentId}
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">{renderContent()}</CardContent>
+      <CardContent className="space-y-4 pt-4">{renderContent()}</CardContent>
     </Card>
   )
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { BookOpen, GraduationCap, Home, LogOut, Megaphone, Video } from 'lucide-react'
+import { BookOpen, GraduationCap, Home, LogOut, Megaphone, User, Award, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/actions/auth-service'
@@ -14,6 +14,8 @@ const nav = [
   { href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
   { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
   { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone, tab: 'announcements' },
+  { href: '/student/certificates', label: 'Certificates', icon: Award },
+  { href: '/student/profile', label: 'Profile', icon: User },
 ]
 
 export function StudentPortalShell({
@@ -36,6 +38,12 @@ export function StudentPortalShell({
   const isActive = (item: (typeof nav)[0]) => {
     if (item.href.startsWith('/student/courses')) {
       return pathname.startsWith('/student/courses')
+    }
+    if (item.href === '/student/certificates') {
+      return pathname.startsWith('/student/certificates')
+    }
+    if (item.href === '/student/profile') {
+      return pathname.startsWith('/student/profile')
     }
     if (item.tab && item.href.startsWith('/student/dashboard')) {
       if (pathname.startsWith('/student/courses/') && !pathname.endsWith('/enroll')) {
@@ -108,15 +116,20 @@ export function StudentPortalShell({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between gap-2">
-          <p className="font-semibold text-slate-900 text-sm truncate">Student portal</p>
+        <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2">
+          <p className="font-semibold text-slate-900 text-sm truncate">{COMPANY.platformName}</p>
           <div className="flex gap-1 shrink-0">
+            <Link href="/student/profile">
+              <Button size="sm" variant="outline" className="text-xs px-2 text-slate-900 border-slate-300">
+                Profile
+              </Button>
+            </Link>
             <Link href="/student/courses">
-              <Button size="sm" variant="outline" className="text-xs px-2">
+              <Button size="sm" variant="outline" className="text-xs px-2 text-slate-900 border-slate-300">
                 Enroll
               </Button>
             </Link>
-            <Button size="sm" variant="outline" onClick={handleLogout}>
+            <Button size="sm" variant="outline" className="text-slate-900 border-slate-300" onClick={handleLogout}>
               Logout
             </Button>
           </div>

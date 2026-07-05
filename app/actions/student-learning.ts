@@ -25,8 +25,14 @@ import {
 } from '@/lib/enrollment/program-types'
 import { getPublishedCourses } from '@/lib/platform/queries'
 import type { Course } from '@/types/platform'
+import {
+  queryLessonProgress,
+  summarizeCourseProgress,
+  type CourseProgressSummary,
+} from '@/lib/learning/lesson-progress'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
+export type { CourseProgressSummary } from '@/lib/learning/lesson-progress'
 
 export type StudentLesson = {
   id: string
@@ -35,6 +41,7 @@ export type StudentLesson = {
   content_type: string
   content_url: string | null
   sort_order: number
+  completed?: boolean
 }
 
 export type StudentCourse = {
@@ -50,6 +57,7 @@ export type StudentCourse = {
   accessEndsAt: string | null
   accessLabel: string
   lessons: StudentLesson[]
+  progress: CourseProgressSummary
 }
 
 export type StudentEnrollmentItem = {
@@ -144,7 +152,8 @@ function buildStudentCourse(
     status: string
     course: JoinedCourse | JoinedCourse[] | null
   },
-  lessons: StudentLesson[]
+  lessons: StudentLesson[],
+  progressRecords: { contentId: string; courseId: string; completed: boolean; completedAt: string | null; lastOpenedAt: string }[]
 ): StudentCourse | null {
   const course = normalizeJoinedCourse(row.course)
   if (!course) return null
@@ -155,6 +164,22 @@ function buildStudentCourse(
     access_ends_at: row.access_ends_at,
   }
   const accessState = getEnrollmentAccessState(accessRow)
+  const courseLessons = isContentUnlocked(accessRow)
+    ? lessons.filter((l) => l.course_id === course.id)
+    : []
+
+  const courseProgressRecords = progressRecords.filter((p) => p.courseId === course.id)
+  const completedSet = new Set(
+    courseProgressRecords.filter((p) => p.completed).map((p) => p.contentId)
+  )
+  const lessonsWithProgress = courseLessons.map((lesson) => ({
+    ...lesson,
+    completed: completedSet.has(lesson.id),
+  }))
+  const progress = summarizeCourseProgress(
+    lessonsWithProgress.map((l) => l.id),
+    courseProgressRecords
+  )
 
   return {
     enrollmentId: row.id,
@@ -168,7 +193,8 @@ function buildStudentCourse(
     accessStartsAt: row.access_starts_at ?? null,
     accessEndsAt: row.access_ends_at ?? null,
     accessLabel: accessLabelFor(accessState, row.access_starts_at, row.access_ends_at),
-    lessons: isContentUnlocked(accessRow) ? lessons.filter((l) => l.course_id === course.id) : [],
+    lessons: lessonsWithProgress,
+    progress,
   }
 }
 
@@ -362,8 +388,20 @@ export async function getStudentPortalData(options?: {
     lessons = (content ?? []) as StudentLesson[]
   }
 
+  let progressRecords: Awaited<ReturnType<typeof queryLessonProgress>>['records'] = []
+  if (activeAdmittedIds.length) {
+    try {
+      const progressResult = await queryLessonProgress(userId, activeAdmittedIds)
+      progressRecords = progressResult.records
+    } catch {
+      progressRecords = []
+    }
+  }
+
   const allCourses = admittedRows
-    .map((row) => buildStudentCourse(row as Parameters<typeof buildStudentCourse>[0], lessons))
+    .map((row) =>
+      buildStudentCourse(row as Parameters<typeof buildStudentCourse>[0], lessons, progressRecords)
+    )
     .filter((c): c is StudentCourse => c !== null)
 
   const activeCourses = allCourses.filter((c) => c.accessState === 'active')
