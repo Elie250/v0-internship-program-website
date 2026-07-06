@@ -306,7 +306,7 @@ export default function CourseManagementTab() {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{error}</p> : null}
       {success ? <p className="text-sm text-green-700">{success}</p> : null}
 
       {courses.length > 0 && publishedCount === 0 ? (
@@ -332,7 +332,7 @@ export default function CourseManagementTab() {
             <DialogTitle className="text-slate-900">Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} lecturers={lecturers} />
-          {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
+          {createError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{createError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={saving} className="bg-[var(--brand-navy)] text-white">Create</Button>
@@ -410,7 +410,7 @@ export default function CourseManagementTab() {
                   <Button size="sm" variant="ghost" onClick={() => openEdit(course)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(course.id)}>
+                  <Button size="sm" variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(course.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -426,7 +426,7 @@ export default function CourseManagementTab() {
             <DialogTitle className="text-slate-900">Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
-          {editError ? <p className="text-sm text-destructive">{editError}</p> : null}
+          {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
