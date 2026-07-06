@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { CalendarClock, ExternalLink, Megaphone, Trash2 } from 'lucide-react'
+import { CalendarClock, ExternalLink, Megaphone, Trash2, Users } from 'lucide-react'
 
 type Announcement = {
   id: string
@@ -46,6 +46,7 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
     notes: '',
   })
   const [sessionSaving, setSessionSaving] = useState(false)
+  const [attendanceSessionId, setAttendanceSessionId] = useState<string | null>(null)
 
   const base = `/api/lecturer/courses/${courseId}/classroom`
 
@@ -360,7 +361,16 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
                       Upcoming
                     </p>
                     {upcoming.map((s) => (
-                      <SessionRow key={s.id} session={s} onDelete={() => remove('session', s.id)} />
+                      <SessionRow
+                        key={s.id}
+                        courseId={courseId}
+                        session={s}
+                        onDelete={() => remove('session', s.id)}
+                        onAttendance={() =>
+                          setAttendanceSessionId((prev) => (prev === s.id ? null : s.id))
+                        }
+                        attendanceOpen={attendanceSessionId === s.id}
+                      />
                     ))}
                   </div>
                 ) : null}
@@ -372,9 +382,14 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
                     {past.slice(0, 10).map((s) => (
                       <SessionRow
                         key={s.id}
+                        courseId={courseId}
                         session={s}
                         past
                         onDelete={() => remove('session', s.id)}
+                        onAttendance={() =>
+                          setAttendanceSessionId((prev) => (prev === s.id ? null : s.id))
+                        }
+                        attendanceOpen={attendanceSessionId === s.id}
                       />
                     ))}
                   </div>
@@ -388,22 +403,163 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
   )
 }
 
+function SessionAttendanceEditor({
+  courseId,
+  sessionId,
+}: {
+  courseId: string
+  sessionId: string
+}) {
+  type Student = { enrollmentId: string; userId: string | null; name: string; email: string }
+  type AttendanceRow = { enrollment_id: string; status: string; self_checked_in?: boolean }
+
+  const [students, setStudents] = useState<Student[]>([])
+  const [statusByEnrollment, setStatusByEnrollment] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setMsg('')
+      try {
+        const [progressRes, attendanceRes] = await Promise.all([
+          fetch(`/api/lecturer/courses/${courseId}/progress`, { credentials: 'same-origin' }),
+          fetch(
+            `/api/lecturer/courses/${courseId}/attendance?sessionId=${encodeURIComponent(sessionId)}`,
+            { credentials: 'same-origin' }
+          ),
+        ])
+        const progressData = await progressRes.json()
+        const attendanceData = await attendanceRes.json()
+        if (!progressRes.ok) throw new Error(progressData.error || 'Failed to load students')
+
+        const roster: Student[] = (progressData.students ?? []).map(
+          (s: { enrollmentId: string; userId: string | null; name: string; email: string }) => ({
+            enrollmentId: s.enrollmentId,
+            userId: s.userId,
+            name: s.name,
+            email: s.email,
+          })
+        )
+        setStudents(roster)
+
+        const initial: Record<string, string> = {}
+        for (const row of (Array.isArray(attendanceData) ? attendanceData : []) as AttendanceRow[]) {
+          initial[row.enrollment_id] = row.status || 'present'
+        }
+        for (const s of roster) {
+          if (!initial[s.enrollmentId]) initial[s.enrollmentId] = 'absent'
+        }
+        setStatusByEnrollment(initial)
+      } catch (err) {
+        setMsg(err instanceof Error ? err.message : 'Failed to load attendance')
+      } finally {
+        setLoading(false)
+      }
+    }
+    void load()
+  }, [courseId, sessionId])
+
+  const save = async () => {
+    setSaving(true)
+    setMsg('')
+    try {
+      const records = students.map((s) => ({
+        enrollmentId: s.enrollmentId,
+        userId: s.userId,
+        status: statusByEnrollment[s.enrollmentId] || 'absent',
+      }))
+      const res = await fetch(`/api/lecturer/courses/${courseId}/attendance`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, records }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save attendance')
+      setMsg('Attendance saved.')
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : 'Failed to save attendance')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="text-xs text-slate-500 mt-2">Loading roster…</p>
+
+  return (
+    <div className="mt-3 border-t border-slate-200 pt-3 space-y-2">
+      <p className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+        <Users className="h-3.5 w-3.5" /> Mark attendance
+      </p>
+      {students.length === 0 ? (
+        <p className="text-xs text-slate-500">No admitted students yet.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {students.map((s) => (
+            <li key={s.enrollmentId} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-800">
+                {s.name} <span className="text-slate-500">({s.email})</span>
+              </span>
+              <select
+                className="border border-slate-300 rounded px-2 py-1 text-slate-900 bg-white"
+                value={statusByEnrollment[s.enrollmentId] ?? 'absent'}
+                onChange={(e) =>
+                  setStatusByEnrollment((prev) => ({
+                    ...prev,
+                    [s.enrollmentId]: e.target.value,
+                  }))
+                }
+              >
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="excused">Excused</option>
+              </select>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          className="bg-[var(--brand-navy)] text-white h-7 text-xs"
+          disabled={saving || students.length === 0}
+          onClick={() => void save()}
+        >
+          {saving ? 'Saving…' : 'Save attendance'}
+        </Button>
+        {msg ? <span className="text-xs text-slate-600">{msg}</span> : null}
+      </div>
+    </div>
+  )
+}
+
 function SessionRow({
+  courseId,
   session,
   past = false,
   onDelete,
+  onAttendance,
+  attendanceOpen = false,
 }: {
+  courseId: string
   session: ClassSession
   past?: boolean
   onDelete: () => void
+  onAttendance?: () => void
+  attendanceOpen?: boolean
 }) {
   return (
     <div
-      className={`border rounded-lg p-3 flex items-start justify-between gap-2 ${
+      className={`border rounded-lg p-3 ${
         past ? 'opacity-70' : ''
       }`}
     >
-      <div className="min-w-0 space-y-1">
+      <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0 space-y-1 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="font-medium text-slate-900 text-sm">{session.topic}</p>
           {!past ? <Badge className="bg-blue-100 text-blue-800">Upcoming</Badge> : null}
@@ -435,11 +591,25 @@ function SessionRow({
               Recording <ExternalLink className="h-3 w-3" />
             </a>
           ) : null}
+          {onAttendance ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-[var(--brand-navy)] font-medium underline"
+              onClick={onAttendance}
+            >
+              <Users className="h-3 w-3" />
+              {attendanceOpen ? 'Hide attendance' : 'Mark attendance'}
+            </button>
+          ) : null}
         </div>
       </div>
       <Button type="button" variant="ghost" size="sm" onClick={onDelete}>
         <Trash2 className="h-4 w-4 text-destructive" />
       </Button>
+      </div>
+      {attendanceOpen ? (
+        <SessionAttendanceEditor courseId={courseId} sessionId={session.id} />
+      ) : null}
     </div>
   )
 }

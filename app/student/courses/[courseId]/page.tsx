@@ -7,6 +7,9 @@ import { getStudentCourse, type StudentCourse } from '@/app/actions/student-lear
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { CourseClassroomFeed } from '@/components/student/course-classroom-feed'
 import { CourseQuizPanel } from '@/components/student/course-quiz-panel'
+import { CourseLabPanel } from '@/components/student/course-lab-panel'
+import { CourseQAPanel } from '@/components/student/course-qa-panel'
+import { CertificateStatusBanner } from '@/components/student/certificate-status-banner'
 import { LessonViewer } from '@/components/student/lesson-viewer'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -216,6 +219,8 @@ export default function StudentCoursePage() {
         </Button>
       </Link>
 
+      <CertificateStatusBanner courseId={course.id} />
+
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h1 className="font-bold text-slate-900">{course.title}</h1>
@@ -273,7 +278,11 @@ export default function StudentCoursePage() {
 
         <div className="space-y-4">
           {course.accessState === 'active' ? (
-            <CourseClassroomFeed courseId={course.id} />
+            <>
+              <CourseClassroomFeed courseId={course.id} />
+              <CourseLabPanel courseId={course.id} />
+              <CourseQAPanel courseId={course.id} />
+            </>
           ) : null}
           {activeLesson ? (
             <>
@@ -319,9 +328,7 @@ export default function StudentCoursePage() {
               <p>{course.description || 'Course overview'}</p>
             </div>
           )}
-          {course.accessState === 'active' ? (
-            <CourseQuizPanel courseId={course.id} />
-          ) : null}
+          {course.accessState === 'active' ? <CourseQuizPanel courseId={course.id} /> : null}
         </div>
       </div>
     </StudentPortalShell>

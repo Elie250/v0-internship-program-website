@@ -41,7 +41,9 @@ export async function queryCourseQuizzes(
 
   let query = supabaseAdmin
     .from('course_assessments')
-    .select('id, course_id, title, description, passing_score, sort_order, is_published')
+    .select(
+      'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers'
+    )
     .eq('course_id', courseId)
     .order('sort_order', { ascending: true })
 

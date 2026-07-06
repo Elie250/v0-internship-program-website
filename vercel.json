@@ -1,5 +1,11 @@
 {
   "git": {
     "lfs": true
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/session-reminders",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
