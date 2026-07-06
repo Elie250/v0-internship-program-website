@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
-import { BookOpen, Users, LogOut, Home, LayoutDashboard } from 'lucide-react'
+import { BookOpen, Users, LogOut, Home } from 'lucide-react'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -69,8 +69,6 @@ export function LecturerDashboardView() {
   }, [router, loadCourses])
 
   const totalStudents = courses.reduce((sum, c) => sum + c.enrollment_stats.admitted, 0)
-  const canOpenAdmin =
-    user?.role === 'admin' || user?.permissions?.includes('admin:access')
 
   const handleLogout = async () => {
     await logoutUser()
@@ -98,14 +96,6 @@ export function LecturerDashboardView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {canOpenAdmin ? (
-              <Link href="/admin/dashboard/courses">
-                <Button variant="outline" size="sm" className="text-slate-900 border-slate-300">
-                  <LayoutDashboard className="w-4 h-4 mr-2" />
-                  Admin panel
-                </Button>
-              </Link>
-            ) : null}
             <Button variant="ghost" className="text-slate-800" onClick={() => router.push('/')}>
               <Home className="w-4 h-4 mr-2" />
               Home

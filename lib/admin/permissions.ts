@@ -140,15 +140,15 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
     slug: 'lecturer',
     label: 'Lecturer',
-    description: 'Instructor access — courses, enrollments, announcements, and applicant review.',
-    canAccessAdmin: true,
+    description: 'Delivers assigned programmes — classroom portal at /lecturer only (no admin console).',
+    canAccessAdmin: false,
     isSystem: true,
   },
   {
     slug: 'instructor',
     label: 'Instructor',
-    description: 'Same learning-focused access as lecturer for programme delivery.',
-    canAccessAdmin: true,
+    description: 'Same classroom-only access as lecturer for programme delivery.',
+    canAccessAdmin: false,
     isSystem: true,
   },
   {
@@ -199,24 +199,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.CONTENT_SERVICES,
     PERMISSIONS.USERS_VIEW,
   ],
-  lecturer: [
-    PERMISSIONS.ADMIN_ACCESS,
-    PERMISSIONS.REPORTS_VIEW,
-    PERMISSIONS.LEARNING_PROGRAMS,
-    PERMISSIONS.LEARNING_STUDENTS,
-    PERMISSIONS.APPLICATIONS_VIEW,
-    PERMISSIONS.APPLICATIONS_APPROVE,
-    PERMISSIONS.PAYMENTS_VIEW,
-    PERMISSIONS.CONTENT_ANNOUNCEMENTS,
-  ],
-  instructor: [
-    PERMISSIONS.ADMIN_ACCESS,
-    PERMISSIONS.REPORTS_VIEW,
-    PERMISSIONS.LEARNING_PROGRAMS,
-    PERMISSIONS.LEARNING_STUDENTS,
-    PERMISSIONS.APPLICATIONS_VIEW,
-    PERMISSIONS.CONTENT_ANNOUNCEMENTS,
-  ],
+  lecturer: [],
+  instructor: [],
   mentor: [
     PERMISSIONS.ADMIN_ACCESS,
     PERMISSIONS.REPORTS_VIEW,
@@ -245,12 +229,16 @@ export function parseStoredPermissions(value: unknown): string[] {
 }
 
 export function resolvePermissions(role: string, stored: unknown): Permission[] {
-  const rolePerms = getPermissionsForRole(role)
-  const custom = parseStoredPermissions(stored)
-
   if (role === 'admin') {
     return ALL_PERMISSIONS
   }
+
+  if (role === 'lecturer' || role === 'instructor') {
+    return []
+  }
+
+  const rolePerms = getPermissionsForRole(role)
+  const custom = parseStoredPermissions(stored)
 
   const merged = new Set<string>([...rolePerms, ...custom])
   if (merged.has(PERMISSIONS.ADMIN_ACCESS) || rolePerms.length > 0) {
@@ -272,6 +260,7 @@ export function hasPermission(
 
 export function canAccessAdminPanel(role: string, permissions?: string[]): boolean {
   if (role === 'admin') return true
+  if (role === 'lecturer' || role === 'instructor') return false
   return hasPermission(permissions, PERMISSIONS.ADMIN_ACCESS)
 }
 

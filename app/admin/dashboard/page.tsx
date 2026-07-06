@@ -8,5 +8,5 @@ export default async function AdminDashboardPage() {
     redirect('/auth/login')
   }
 
-  return <AdminOverview stats={overview.stats} />
+  return <AdminOverview stats={overview.stats} permissions={overview.user.permissions} />
 }

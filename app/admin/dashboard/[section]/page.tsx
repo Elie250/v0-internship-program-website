@@ -1,7 +1,9 @@
+import { redirect, notFound } from 'next/navigation'
 import type { ComponentType } from 'react'
-import { notFound, redirect } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { getAdminSession } from '@/app/actions/admin-context'
+import { getCurrentUser } from '@/app/actions/auth-service'
+import { isDeliveryRole } from '@/lib/admin/access-control'
 import { findNavItem } from '@/lib/admin/nav'
 import { hasPermission } from '@/lib/admin/permissions'
 
@@ -34,6 +36,10 @@ export default async function AdminSectionPage({
   const { section } = await params
   const session = await getAdminSession()
   if (!session) {
+    const user = await getCurrentUser()
+    if (user && isDeliveryRole(user.role)) {
+      redirect('/lecturer/dashboard')
+    }
     redirect('/auth/login')
   }
 

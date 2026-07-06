@@ -17,7 +17,7 @@ import { SiteHeader } from '@/components/layout/site-header'
 type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin'
 
 const STAFF_ROLES: { value: LoginRole; label: string; hint: string }[] = [
-  { value: 'lecturer', label: 'Lecturer', hint: 'Course delivery & admin panel' },
+  { value: 'lecturer', label: 'Lecturer', hint: 'Assigned programmes & classroom' },
   { value: 'engineer', label: 'Engineer', hint: 'Community & technical support' },
   { value: 'admin', label: 'Administrator', hint: 'Platform management' },
 ]

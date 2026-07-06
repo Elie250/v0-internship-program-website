@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { requirePlatformAdmin } from '@/lib/admin/access-control'
 import { TRAINING_PROGRAMS } from '@/lib/company/constants'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
@@ -63,7 +64,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
+    await requirePlatformAdmin()
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
