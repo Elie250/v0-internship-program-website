@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
     const { data: course, error: courseError } = await supabaseAdmin
       .from('courses')
-      .select('id, title, pricing, status, max_seats')
+      .select('id, title, pricing, status, max_seats, program_type')
       .eq('id', courseId)
       .eq('status', 'published')
       .maybeSingle()
@@ -96,10 +96,25 @@ export async function POST(request: Request) {
 
     const { data: allEnrollmentRows } = await supabaseAdmin
       .from('course_enrollments')
-      .select('id, course_id, status, access_starts_at, access_ends_at')
+      .select('id, course_id, status, access_starts_at, access_ends_at, courses(program_type)')
       .eq('user_id', sessionUser.id)
 
-    const eligibility = getEnrollEligibility(allEnrollmentRows ?? [], courseId)
+    const eligibilityRows = (allEnrollmentRows ?? []).map((r: Record<string, unknown>) => {
+      const courseRel = r.courses as { program_type?: string | null } | { program_type?: string | null }[] | null
+      const programType = Array.isArray(courseRel)
+        ? courseRel[0]?.program_type ?? null
+        : courseRel?.program_type ?? null
+      return {
+        id: String(r.id ?? ''),
+        course_id: String(r.course_id ?? ''),
+        status: String(r.status ?? ''),
+        access_starts_at: (r.access_starts_at as string | null) ?? null,
+        access_ends_at: (r.access_ends_at as string | null) ?? null,
+        program_type: programType,
+      }
+    })
+
+    const eligibility = getEnrollEligibility(eligibilityRows, courseId, course.program_type)
     if (!eligibility.canEnroll) {
       return NextResponse.json(
         { error: eligibility.reason ?? 'You cannot enroll in this course right now.', code: 'ENROLLMENT_BLOCKED' },

@@ -253,34 +253,25 @@ export function createCertificateHTML({
           text-align: center;
           width: 95mm;
           position: relative;
-          min-height: 38mm;
+          min-height: 46mm;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
+          padding-top: 14mm;
         }
 
-        .sig-stamp-wrap {
-          position: relative;
-          width: 100%;
-          min-height: 40mm;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 0;
-        }
-
+        /* Stamp centered over the whole signature block */
         .sig-stamp {
           position: absolute;
-          width: 58mm;
+          width: 62mm;
           height: auto;
           opacity: 0.90;
-          transform: rotate(-12deg);
-          z-index: 1;
-          top: 50%;
+          transform: translate(-50%, -50%) rotate(-10deg);
           left: 50%;
-          margin-left: -29mm;
-          margin-top: -26mm;
+          top: 50%;
+          z-index: 1;
+          pointer-events: none;
           mix-blend-mode: multiply;
           filter: contrast(1.15) saturate(1.1);
         }
@@ -294,7 +285,6 @@ export function createCertificateHTML({
           color: #1e3a5f;
           letter-spacing: 3px;
           line-height: 1.2;
-          margin-top: 10mm;
           text-transform: uppercase;
           text-shadow: 0 0 10px rgba(255,255,255,0.9);
         }
@@ -407,10 +397,8 @@ export function createCertificateHTML({
 
           <div class="bottom-row">
             <div class="sig-block">
-              <div class="sig-stamp-wrap">
-                <img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">
-                <div class="sig-name">Elie BISAMAZA</div>
-              </div>
+              <img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">
+              <div class="sig-name">Elie BISAMAZA</div>
               <div class="sig-rule"></div>
               <div class="sig-title">Elie BISAMAZA</div>
               <div class="sig-org">Managing Director, Energy and Logics Ltd</div>
