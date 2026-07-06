@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getCurrentUser, logoutUser } from '@/app/actions/auth-service'
+import { getCurrentUser } from '@/app/actions/auth-service'
+import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,8 +23,6 @@ import {
   BookOpen,
   CalendarClock,
   ExternalLink,
-  Home,
-  LogOut,
   Users,
   Video,
   FileBarChart,
@@ -83,7 +82,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const initialTab = searchParams.get('tab') ?? 'overview'
   const validTabs = ['overview', 'lessons', 'classroom', 'students', 'assessments', 'reports']
   const defaultTab = validTabs.includes(initialTab) ? initialTab : 'overview'
-  const [user, setUser] = useState<{ firstName?: string; lastName?: string } | null>(null)
+  const [userName, setUserName] = useState('')
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([])
@@ -137,7 +136,11 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
         router.push('/auth/login?role=lecturer')
         return
       }
-      setUser(currentUser)
+      setUserName(
+        [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') ||
+          currentUser.email ||
+          'Lecturer'
+      )
       await load()
     }
     void init()
@@ -152,11 +155,6 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
       setError(message.text)
       setSuccess('')
     }
-  }
-
-  const handleLogout = async () => {
-    await logoutUser()
-    router.push('/')
   }
 
   if (loading) {
@@ -189,36 +187,20 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
       : 0
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3 px-4 py-4">
-          <div className="min-w-0">
-            <Link
-              href="/lecturer/dashboard"
-              className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-1 no-underline"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              All programmes
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{course.title}</h1>
-            <p className="text-sm text-slate-600">
-              {user?.firstName} {user?.lastName} · Lecturer classroom
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" className="text-slate-800" onClick={() => router.push('/')}>
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <Button variant="ghost" className="text-red-700 hover:bg-red-50" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+    <LecturerPortalShell userName={userName}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="min-w-0">
+          <Link
+            href="/lecturer/dashboard"
+            className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-1 no-underline"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            All programmes
+          </Link>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{course.title}</h1>
+          <p className="text-sm text-slate-600">Classroom workspace</p>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6 app-form-surface">
         {error ? (
           <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
         ) : null}
@@ -436,7 +418,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
             <LecturerReportsPanel courseId={courseId} />
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </LecturerPortalShell>
   )
 }
