@@ -242,6 +242,30 @@ export function createCertificateHTML({
         }
         .score-line strong { color: #1e3a5f; font-weight: 700; }
 
+        .free-upgrade-notice {
+          margin: 4mm auto 0;
+          max-width: 165mm;
+          padding: 3mm 4mm;
+          border: 1.5px solid #b8941f;
+          border-radius: 2mm;
+          background: rgba(184, 148, 31, 0.08);
+          font-family: 'Montserrat', sans-serif;
+          font-size: 10px;
+          font-weight: 600;
+          line-height: 1.55;
+          color: #1e3a5f;
+          letter-spacing: 0.2px;
+        }
+        .free-upgrade-notice strong {
+          display: block;
+          font-size: 11px;
+          font-weight: 700;
+          color: #9a7b1a;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          margin-bottom: 1mm;
+        }
+
         .bottom-row {
           margin-top: auto;
           width: 100%;
@@ -394,17 +418,6 @@ export function createCertificateHTML({
           z-index: 3;
         }
         .footer .cert-id { font-weight: 600; color: #4a5568; }
-
-        .free-upgrade-note {
-          display: block;
-          margin-top: 1.5mm;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 8px;
-          font-weight: 600;
-          color: #b8941f;
-          letter-spacing: 0.6px;
-          text-transform: uppercase;
-        }
       </style>
     </head>
     <body>
@@ -444,6 +457,14 @@ export function createCertificateHTML({
                 ? `<div class="score-line">achieving a final average score of <strong>${finalScore}%</strong></div>`
                 : ''
             }
+            ${
+              freeCourse
+                ? `<div class="free-upgrade-notice">
+                    <strong>Complimentary certificate — watermark applied</strong>
+                    Upgrade to the paid version of this programme to receive an official certificate without watermark.
+                  </div>`
+                : ''
+            }
           </div>
 
           <div class="bottom-row">
@@ -477,7 +498,6 @@ export function createCertificateHTML({
         <div class="footer">
           <span class="cert-id">Certificate ID: ${certificateId}</span>
           ${verifyUrl ? ` &nbsp;·&nbsp; Verify at ${verifyUrl}` : ''}
-          ${freeCourse ? `<span class="free-upgrade-note">Upgrade plan to remove watermark</span>` : ''}
         </div>
       </div>
 
