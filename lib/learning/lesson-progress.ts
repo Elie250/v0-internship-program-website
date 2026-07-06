@@ -134,11 +134,18 @@ export async function upsertLessonProgress(input: {
   return { success: true, tableReady: true }
 }
 
+export type StudentCourseProgress = {
+  completed: number
+  total: number
+  percent: number
+  lastActivityAt: string | null
+}
+
 export async function queryCourseProgressForStudents(
   courseId: string,
   userIds: string[]
-): Promise<Map<string, { completed: number; total: number; percent: number }>> {
-  const result = new Map<string, { completed: number; total: number; percent: number }>()
+): Promise<Map<string, StudentCourseProgress>> {
+  const result = new Map<string, StudentCourseProgress>()
   if (!supabaseAdmin || userIds.length === 0) return result
 
   const { data: lessons } = await supabaseAdmin
@@ -149,14 +156,14 @@ export async function queryCourseProgressForStudents(
   const total = lessons?.length ?? 0
   if (total === 0) {
     for (const uid of userIds) {
-      result.set(uid, { completed: 0, total: 0, percent: 0 })
+      result.set(uid, { completed: 0, total: 0, percent: 0, lastActivityAt: null })
     }
     return result
   }
 
   const { data, error } = await supabaseAdmin
     .from('lesson_progress')
-    .select('user_id, content_id, completed_at')
+    .select('user_id, content_id, completed_at, last_opened_at')
     .eq('course_id', courseId)
     .in('user_id', userIds)
 
@@ -165,9 +172,17 @@ export async function queryCourseProgressForStudents(
   }
 
   const completedByUser = new Map<string, Set<string>>()
+  const lastActivityByUser = new Map<string, string>()
   for (const row of data ?? []) {
-    if (!row.completed_at) continue
     const uid = String(row.user_id)
+    const opened = (row.last_opened_at as string | null) ?? null
+    if (opened) {
+      const prev = lastActivityByUser.get(uid)
+      if (!prev || new Date(opened) > new Date(prev)) {
+        lastActivityByUser.set(uid, opened)
+      }
+    }
+    if (!row.completed_at) continue
     if (!completedByUser.has(uid)) completedByUser.set(uid, new Set())
     completedByUser.get(uid)!.add(String(row.content_id))
   }
@@ -178,6 +193,7 @@ export async function queryCourseProgressForStudents(
       completed,
       total,
       percent: Math.round((completed / total) * 100),
+      lastActivityAt: lastActivityByUser.get(uid) ?? null,
     })
   }
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getStudentCourse, type StudentCourse } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
+import { CourseClassroomFeed } from '@/components/student/course-classroom-feed'
 import { CourseQuizPanel } from '@/components/student/course-quiz-panel'
 import { LessonViewer } from '@/components/student/lesson-viewer'
 import { Button } from '@/components/ui/button'
@@ -271,6 +272,9 @@ export default function StudentCoursePage() {
         </aside>
 
         <div className="space-y-4">
+          {course.accessState === 'active' ? (
+            <CourseClassroomFeed courseId={course.id} />
+          ) : null}
           {activeLesson ? (
             <>
               <LessonViewer

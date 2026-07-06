@@ -28,18 +28,32 @@ export async function GET(
     const userIds = admitted.map((e) => e.user_id).filter(Boolean) as string[]
     const progressMap = await queryCourseProgressForStudents(courseId, userIds)
 
+    const now = Date.now()
+    const INACTIVE_DAYS = 7
+
     const rows = admitted.map((e) => {
       const uid = e.user_id as string | null
       const progress = uid ? progressMap.get(uid) : undefined
+      const lastActivityAt = progress?.lastActivityAt ?? null
+      const daysSinceActivity = lastActivityAt
+        ? Math.floor((now - new Date(lastActivityAt).getTime()) / 86_400_000)
+        : null
+      const percent = progress?.percent ?? 0
+      const atRisk =
+        percent < 100 &&
+        (lastActivityAt === null || (daysSinceActivity ?? 0) >= INACTIVE_DAYS)
       return {
         enrollmentId: e.id,
         userId: uid,
         name: e.applicant_name,
         email: e.applicant_email,
         status: e.status,
-        progressPercent: progress?.percent ?? 0,
+        progressPercent: percent,
         completedLessons: progress?.completed ?? 0,
         totalLessons: progress?.total ?? 0,
+        lastActivityAt,
+        daysSinceActivity,
+        atRisk,
       }
     })
 

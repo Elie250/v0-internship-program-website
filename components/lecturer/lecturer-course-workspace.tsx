@@ -10,14 +10,17 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import { LecturerClassroomPanel } from '@/components/lecturer/lecturer-classroom-panel'
 import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
 import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
 import { LecturerReportsPanel } from '@/components/lecturer/lecturer-reports-panel'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
+  CalendarClock,
   ExternalLink,
   Home,
   LogOut,
@@ -59,6 +62,9 @@ type StudentProgress = {
   progressPercent: number
   completedLessons: number
   totalLessons: number
+  lastActivityAt?: string | null
+  daysSinceActivity?: number | null
+  atRisk?: boolean
 }
 
 function statusBadge(status: string) {
@@ -75,7 +81,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') ?? 'overview'
-  const validTabs = ['overview', 'lessons', 'students', 'assessments', 'reports']
+  const validTabs = ['overview', 'lessons', 'classroom', 'students', 'assessments', 'reports']
   const defaultTab = validTabs.includes(initialTab) ? initialTab : 'overview'
   const [user, setUser] = useState<{ firstName?: string; lastName?: string } | null>(null)
   const [course, setCourse] = useState<CourseDetail | null>(null)
@@ -256,6 +262,10 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
               <BookOpen className="h-4 w-4 mr-1.5 hidden sm:inline" />
               Lessons
             </TabsTrigger>
+            <TabsTrigger value="classroom" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
+              <CalendarClock className="h-4 w-4 mr-1.5 hidden sm:inline" />
+              Classroom
+            </TabsTrigger>
             <TabsTrigger value="students" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               <Users className="h-4 w-4 mr-1.5 hidden sm:inline" />
               Students
@@ -329,10 +339,21 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
             </Card>
           </TabsContent>
 
+          <TabsContent value="classroom">
+            <LecturerClassroomPanel courseId={courseId} />
+          </TabsContent>
+
           <TabsContent value="students">
             <Card className="border-slate-200">
               <CardHeader>
                 <CardTitle className="text-base text-slate-900">Student roster & progress</CardTitle>
+                {studentProgress.some((s) => s.atRisk) ? (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 inline-flex items-center gap-1.5 w-fit">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {studentProgress.filter((s) => s.atRisk).length} student(s) inactive for 7+ days
+                    with unfinished lessons — consider a follow-up.
+                  </p>
+                ) : null}
               </CardHeader>
               <CardContent>
                 {enrollments.length === 0 ? (
@@ -346,6 +367,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
                           <th className="py-2 pr-3 font-semibold">Email</th>
                           <th className="py-2 pr-3 font-semibold">Status</th>
                           <th className="py-2 pr-3 font-semibold min-w-[140px]">Progress</th>
+                          <th className="py-2 pr-3 font-semibold">Last activity</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -368,6 +390,28 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
                                     </div>
                                     <Progress value={percent} className="h-1.5" />
                                   </div>
+                                ) : (
+                                  <span className="text-slate-500 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="py-3 pr-3">
+                                {row.status === 'admitted' && prog ? (
+                                  prog.atRisk ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-900 bg-amber-100 rounded px-1.5 py-0.5">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      {prog.lastActivityAt
+                                        ? `${prog.daysSinceActivity}d ago`
+                                        : 'Never opened'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-slate-600">
+                                      {prog.lastActivityAt
+                                        ? prog.daysSinceActivity === 0
+                                          ? 'Today'
+                                          : `${prog.daysSinceActivity}d ago`
+                                        : '—'}
+                                    </span>
+                                  )
                                 ) : (
                                   <span className="text-slate-500 text-xs">—</span>
                                 )}
