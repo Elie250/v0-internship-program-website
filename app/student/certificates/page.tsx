@@ -9,6 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Award, Download } from 'lucide-react'
 import { createCertificateHTML } from '@/lib/certificate-template'
+import {
+  getCertificateQrImageUrl,
+  getCertificateVerifyUrl,
+} from '@/lib/certificate/verify'
 
 type CertificateRow = {
   id: string
@@ -46,6 +50,7 @@ export default function StudentCertificates() {
 
   const printCert = (cert: CertificateRow) => {
     const origin = window.location.origin
+    const verifyUrl = getCertificateVerifyUrl(cert.certificate_code)
     const html = createCertificateHTML({
       fullName: cert.student_name,
       program: cert.program_title,
@@ -54,7 +59,8 @@ export default function StudentCertificates() {
       finalScore: cert.final_score ?? null,
       freeCourse: cert.is_free === true,
       assetBaseUrl: origin,
-      verifyUrl: `${origin}/verify/${cert.certificate_code}`,
+      verifyUrl,
+      qrImageUrl: getCertificateQrImageUrl(cert.certificate_code),
     })
     const win = window.open('', '_blank')
     if (!win) return

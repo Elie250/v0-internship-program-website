@@ -26,6 +26,10 @@ import {
 import { getPublishedCourses } from '@/lib/platform/queries'
 import type { Course } from '@/types/platform'
 import {
+  buildStudentAnnouncementFeed,
+  type StudentAnnouncementFeed,
+} from '@/lib/learning/student-announcement-feed'
+import {
   queryLessonProgress,
   summarizeCourseProgress,
   type CourseProgressSummary,
@@ -117,11 +121,14 @@ export type StudentPortalData = {
     host_name: string | null
     host_role: string | null
   }>
+  announcementFeed: StudentAnnouncementFeed
+  /** @deprecated Use announcementFeed.all */
   announcements: Array<{
     id: string
     title: string
     message: string
     created_at: string
+    creatorLabel?: string
   }>
 }
 
@@ -438,12 +445,20 @@ export async function getStudentPortalData(options?: {
     }))
   }
 
-  const { data: announcements } = await supabaseAdmin
-    .from('announcements')
-    .select('id, title, message, content, created_at')
-    .or('status.eq.published,is_featured.eq.true')
-    .order('created_at', { ascending: false })
-    .limit(8)
+  const admittedCourseIds = [
+    ...new Set(admittedRows.map((r) => r.course_id).filter(Boolean) as string[]),
+  ]
+  const courseTitleById = new Map<string, string>()
+  for (const row of admittedRows) {
+    const title = normalizeJoinedCourse(row.course as JoinedCourse | JoinedCourse[] | null)?.title
+    if (row.course_id && title) courseTitleById.set(row.course_id, title)
+  }
+
+  const announcementFeed = await buildStudentAnnouncementFeed({
+    admittedCourseIds,
+    courseTitleById,
+    includeWebinars: hasAnyAdmitted,
+  })
 
   const mapEnrollmentItem = (row: (typeof rows)[0]): StudentEnrollmentItem => {
     const accessRow: EnrollmentAccessRow = {
@@ -508,11 +523,13 @@ export async function getStudentPortalData(options?: {
       catalogCourses,
       enrollEligibility,
       webinars,
-      announcements: (announcements ?? []).map((a) => ({
+      announcementFeed,
+      announcements: announcementFeed.all.map((a) => ({
         id: a.id,
         title: a.title,
-        message: a.message ?? a.content ?? '',
+        message: a.message,
         created_at: a.created_at,
+        creatorLabel: a.creatorLabel,
       })),
     },
   }

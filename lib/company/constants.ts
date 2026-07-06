@@ -13,6 +13,8 @@ export const COMPANY = {
   logoUrl: '/images/energy-logics-logo.png',
   region: 'East Africa',
   timezone: 'Central Africa Time (CAT, UTC+2)',
+  /** Canonical public site URL used on certificates and QR codes */
+  publicSiteUrl: 'https://www.energyandlogics.com',
 } as const
 
 export const FOUNDER = {

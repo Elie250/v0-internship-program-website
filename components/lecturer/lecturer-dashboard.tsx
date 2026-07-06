@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import { BookOpen, Users, FileBarChart, Calculator, AlertTriangle } from 'lucide-react'
+import { LecturerBroadcastPanel } from '@/components/lecturer/lecturer-broadcast-panel'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -116,6 +117,11 @@ export function LecturerDashboardView() {
             </CardContent>
           </Card>
         ) : null}
+
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">Broadcast to students</h2>
+          <LecturerBroadcastPanel />
+        </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-slate-200">
