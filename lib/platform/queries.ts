@@ -85,6 +85,42 @@ export async function getPublishedEvents(past?: boolean): Promise<EventItem[]> {
   return data ?? []
 }
 
+export type PublicWebinar = {
+  id: string
+  title: string
+  description: string | null
+  scheduled_at: string | null
+  meeting_link: string | null
+  recording_url: string | null
+  is_paid: boolean
+  price: number | null
+  host_name: string | null
+  host_role: string | null
+}
+
+export async function getPublishedWebinars(limit = 6): Promise<PublicWebinar[]> {
+  const client = db()
+  if (!client) return []
+  const { data } = await client
+    .from('webinars')
+    .select('id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role')
+    .eq('status', 'published')
+    .order('scheduled_at', { ascending: true })
+    .limit(limit)
+  return (data ?? []).map((w: Record<string, unknown>) => ({
+    id: String(w.id),
+    title: String(w.title ?? ''),
+    description: (w.description as string | null) ?? null,
+    scheduled_at: (w.scheduled_at as string | null) ?? null,
+    meeting_link: (w.meeting_link as string | null) ?? null,
+    recording_url: (w.recording_url as string | null) ?? null,
+    is_paid: Boolean(w.is_paid),
+    price: w.price != null ? Number(w.price) : null,
+    host_name: (w.host_name as string | null) ?? null,
+    host_role: (w.host_role as string | null) ?? null,
+  }))
+}
+
 export async function getCategories(type: Category['type']): Promise<Category[]> {
   const client = db()
   if (!client) return []

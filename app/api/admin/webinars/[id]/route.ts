@@ -14,10 +14,38 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json()
+    const body = await request.json() as Record<string, unknown>
+    const update: Record<string, unknown> = { ...body, updated_at: new Date().toISOString() }
+
+    if ('is_paid' in body) {
+      const isPaid = Boolean(body.is_paid)
+      update.is_paid = isPaid
+      update.price = isPaid ? Math.max(0, Number(body.price ?? 0)) : 0
+    }
+
+    if ('host_user_id' in body) {
+      const hostUserId = body.host_user_id ? String(body.host_user_id) : null
+      if (hostUserId) {
+        const { data: hostRow } = await supabaseAdmin
+          .from('users')
+          .select('id, first_name, last_name, email, role')
+          .eq('id', hostUserId)
+          .maybeSingle()
+        update.host_user_id = hostRow?.id ?? null
+        update.host_name = hostRow
+          ? [hostRow.first_name, hostRow.last_name].filter(Boolean).join(' ') || hostRow.email
+          : null
+        update.host_role = hostRow ? String(hostRow.role) : null
+      } else {
+        update.host_user_id = null
+        update.host_name = null
+        update.host_role = null
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('webinars')
-      .update(body)
+      .update(update)
       .eq('id', id)
       .select()
       .single()

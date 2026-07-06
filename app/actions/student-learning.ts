@@ -112,6 +112,10 @@ export type StudentPortalData = {
     scheduled_at: string | null
     meeting_link: string | null
     recording_url: string | null
+    is_paid: boolean
+    price: number | null
+    host_name: string | null
+    host_role: string | null
   }>
   announcements: Array<{
     id: string
@@ -128,6 +132,7 @@ type JoinedCourse = {
   thumbnail: string | null
   duration: string | null
   difficulty: string | null
+  program_type?: string | null
 }
 
 function normalizeJoinedCourse(course: JoinedCourse | JoinedCourse[] | null | undefined): JoinedCourse | null {
@@ -205,12 +210,14 @@ function buildCatalogCourse(
     status: string
     access_starts_at?: string | null
     access_ends_at?: string | null
+    program_type?: string | null
   }>,
   globalEligibility: EnrollEligibility
 ): CatalogCourseItem {
   const row = enrollmentRows.find(
     (r) => r.course_id === course.id && !['cancelled'].includes(String(r.status))
   )
+  const programType = course.program_type ?? 'training'
   const courseEligibility = getEnrollEligibility(
     enrollmentRows.map((r) => ({
       id: '',
@@ -218,13 +225,14 @@ function buildCatalogCourse(
       status: r.status,
       access_starts_at: r.access_starts_at,
       access_ends_at: r.access_ends_at,
+      program_type: r.program_type ?? null,
     })),
-    course.id
+    course.id,
+    programType
   )
 
   const price = Number(course.pricing ?? 0)
   const free = isFreeProgram(course.pricing)
-  const programType = course.program_type ?? 'training'
 
   const meta = {
     programType,
@@ -335,7 +343,7 @@ export async function getStudentPortalData(options?: {
   const { data: byUserId, error: byUserError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty)'
+      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -343,7 +351,7 @@ export async function getStudentPortalData(options?: {
   const { data: byEmailOnly, error: byEmailError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty)'
+      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
     )
     .ilike('applicant_email', email)
     .is('user_id', null)
@@ -413,10 +421,21 @@ export async function getStudentPortalData(options?: {
   if (hasAnyAdmitted) {
     const { data } = await supabaseAdmin
       .from('webinars')
-      .select('id, title, description, scheduled_at, meeting_link, recording_url')
+      .select('id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role')
       .eq('status', 'published')
       .order('scheduled_at', { ascending: true })
-    webinars = data ?? []
+    webinars = (data ?? []).map((w: Record<string, unknown>) => ({
+      id: String(w.id),
+      title: String(w.title ?? ''),
+      description: (w.description as string | null) ?? null,
+      scheduled_at: (w.scheduled_at as string | null) ?? null,
+      meeting_link: (w.meeting_link as string | null) ?? null,
+      recording_url: (w.recording_url as string | null) ?? null,
+      is_paid: Boolean(w.is_paid),
+      price: w.price != null ? Number(w.price) : null,
+      host_name: (w.host_name as string | null) ?? null,
+      host_role: (w.host_role as string | null) ?? null,
+    }))
   }
 
   const { data: announcements } = await supabaseAdmin
@@ -459,6 +478,8 @@ export async function getStudentPortalData(options?: {
     status: String(r.status),
     access_starts_at: r.access_starts_at,
     access_ends_at: r.access_ends_at,
+    program_type:
+      normalizeJoinedCourse(r.course as JoinedCourse | JoinedCourse[] | null)?.program_type ?? null,
   }))
   const enrollEligibility = getEnrollEligibility(enrollmentRows)
   const published = await getPublishedCourses(undefined, {

@@ -337,6 +337,14 @@ function WebinarsTab({
         webinars.map((w) => (
           <Card key={w.id}>
             <CardHeader>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${w.is_paid ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                  {w.is_paid ? `Paid · ${Number(w.price ?? 0).toLocaleString()} RWF` : 'Free'}
+                </span>
+                {w.host_name ? (
+                  <span className="text-xs text-slate-600">Host: {w.host_name}</span>
+                ) : null}
+              </div>
               <CardTitle className="text-lg">{w.title}</CardTitle>
               {w.scheduled_at ? (
                 <p className="text-sm text-slate-600">

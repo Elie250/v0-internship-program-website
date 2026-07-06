@@ -23,6 +23,23 @@ export async function GET() {
   }
 }
 
+async function resolveHost(hostUserId: string | null) {
+  if (!hostUserId || !supabaseAdmin) {
+    return { host_user_id: null, host_name: null, host_role: null }
+  }
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('id, first_name, last_name, email, role')
+    .eq('id', hostUserId)
+    .maybeSingle()
+  if (!data) return { host_user_id: null, host_name: null, host_role: null }
+  return {
+    host_user_id: data.id,
+    host_name: [data.first_name, data.last_name].filter(Boolean).join(' ') || data.email,
+    host_role: String(data.role),
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
@@ -31,6 +48,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const isPaid = Boolean(body.is_paid)
+    const price = isPaid ? Math.max(0, Number(body.price ?? 0)) : 0
+    const host = await resolveHost(body.host_user_id ? String(body.host_user_id) : null)
+
     const { data, error } = await supabaseAdmin
       .from('webinars')
       .insert([
@@ -41,6 +62,9 @@ export async function POST(request: Request) {
           meeting_link: body.meeting_link || null,
           recording_url: body.recording_url || null,
           status: body.status ?? 'draft',
+          is_paid: isPaid,
+          price,
+          ...host,
         },
       ])
       .select()

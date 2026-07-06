@@ -7,6 +7,7 @@ import { BrowseCoursesSection } from '@/components/home/browse-courses-section'
 import { MembershipSection } from '@/components/home/membership-section'
 import { PaymentCtaSection } from '@/components/home/payment-cta-section'
 import { EventsSection } from '@/components/home/events-section'
+import { WebinarsSection } from '@/components/home/webinars-section'
 import { AnnouncementsSection, FeaturedServicesSection } from '@/components/home/announcements-section'
 
 export default function HomePage() {
@@ -18,6 +19,7 @@ export default function HomePage() {
       <BrowseCoursesSection />
       <MembershipSection />
       <PaymentCtaSection />
+      <WebinarsSection />
       <EventsSection />
       <AnnouncementsSection />
       <FeaturedServicesSection />
