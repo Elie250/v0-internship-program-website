@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "upload-hero-videos": "node scripts/upload-hero-videos.mjs",
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
