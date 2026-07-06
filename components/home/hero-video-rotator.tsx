@@ -3,21 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import type { HeroVideoSlide } from '@/lib/media/hero-videos'
+import { HERO_CLIP_SECONDS } from '@/lib/media/hero-videos'
 
 const FALLBACK_POSTER = '/hero-laboratory.jpg'
 
-function shuffleSlides(slides: HeroVideoSlide[]): HeroVideoSlide[] {
-  if (slides.length <= 1) return slides
-  const shuffled = [...slides]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
-
 export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
-  const [slides] = useState(() => shuffleSlides(playlist.length > 0 ? playlist : []))
+  const slides = playlist.length > 0 ? playlist : []
   const [index, setIndex] = useState(0)
   const [activeLayer, setActiveLayer] = useState<0 | 1>(0)
   const [showPoster, setShowPoster] = useState(true)
@@ -34,9 +25,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   const inactiveLayer = (layer: 0 | 1): 0 | 1 => (layer === 0 ? 1 : 0)
 
   const pauseLayer = useCallback((layer: 0 | 1) => {
-    const video = videoRefs[layer].current
-    if (!video) return
-    video.pause()
+    videoRefs[layer].current?.pause()
   }, [])
 
   const assignSlideToLayer = useCallback(
@@ -57,6 +46,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   const playLayer = useCallback((layer: 0 | 1) => {
     const video = videoRefs[layer].current
     if (!video) return
+    video.currentTime = 0
     void video.play().catch(() => {})
   }, [])
 
@@ -83,22 +73,32 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
 
     assignSlideToLayer(nextLayer, nextIndex)
 
-    const advanceTimer = window.setTimeout(() => {
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.setTimeout(() => {
+        advancing.current = false
+      }, 700)
+    }
+
+    const failTimer = window.setTimeout(() => {
+      if (settled) return
+      settled = true
       advancing.current = false
-      goToNext()
-    }, 8000)
+      setIndex(nextIndex)
+      setActiveLayer(nextLayer)
+      setShowPoster(false)
+    }, 12000)
 
     whenLayerCanPlay(nextLayer, () => {
-      window.clearTimeout(advanceTimer)
+      window.clearTimeout(failTimer)
       pauseLayer(currentLayer)
       playLayer(nextLayer)
       setActiveLayer(nextLayer)
       setIndex(nextIndex)
       setShowPoster(false)
-
-      window.setTimeout(() => {
-        advancing.current = false
-      }, 700)
+      finish()
     })
   }, [assignSlideToLayer, pauseLayer, playLayer, slides.length, whenLayerCanPlay])
 
@@ -120,19 +120,28 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     const video = videoRefs[layer].current
     if (!video) return
 
-    const onEnded = () => goToNext()
+    let clipAdvanced = false
+    const advanceOnce = () => {
+      if (clipAdvanced) return
+      clipAdvanced = true
+      goToNext()
+    }
+
+    const clipTimer = window.setTimeout(advanceOnce, HERO_CLIP_SECONDS * 1000)
+    const onEnded = () => advanceOnce()
     const onError = () => {
-      window.setTimeout(goToNext, 2000)
+      window.setTimeout(advanceOnce, 1500)
     }
 
     video.addEventListener('ended', onEnded)
     video.addEventListener('error', onError)
 
     return () => {
+      window.clearTimeout(clipTimer)
       video.removeEventListener('ended', onEnded)
       video.removeEventListener('error', onError)
     }
-  }, [activeLayer, goToNext, slides.length])
+  }, [activeLayer, index, goToNext, slides.length])
 
   useEffect(() => {
     if (slides.length <= 1) return
@@ -160,6 +169,8 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     )
   }
 
+  const currentSlide = slides[index]
+
   return (
     <>
       {showPoster ? (
@@ -181,7 +192,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
           playsInline
           preload="auto"
           aria-hidden={layer !== activeLayer}
-          aria-label={layer === activeLayer ? `Hero background: ${slides[index]?.label}` : undefined}
+          aria-label={layer === activeLayer ? `Hero background: ${currentSlide?.label}` : undefined}
           className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
             layer === activeLayer && !showPoster ? 'opacity-100' : 'opacity-0'
           }`}
@@ -191,13 +202,13 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       {slides.length > 1 ? (
         <div className="absolute bottom-20 sm:bottom-4 right-4 z-[2] flex items-center gap-2" aria-hidden>
           {slides.map((slide, slideIndex) => (
-            <span
-              key={slide.src}
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                slideIndex === index ? 'w-8 bg-white' : 'w-1.5 bg-white/40'
-              }`}
-            />
-          ))}
+              <span
+                key={slide.src}
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  slideIndex === index ? 'w-8 bg-white' : 'w-1.5 bg-white/40'
+                }`}
+              />
+            ))}
         </div>
       ) : null}
     </>
