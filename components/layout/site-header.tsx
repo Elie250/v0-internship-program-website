@@ -48,7 +48,7 @@ const mobileNavLinkClass =
   'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
 
 const mobileRegisterButtonClass =
-  'site-header-register-btn h-8 px-2.5 text-xs font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
+  'site-header-register-btn h-9 px-3 text-sm font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
 
 function BrandMark({
   logoUrl,
@@ -92,11 +92,11 @@ function MobileNavSheet({
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="site-header-menu-btn h-9 w-9 rounded-lg bg-white text-[var(--brand-navy)] hover:bg-slate-100 hover:text-[var(--brand-navy)] shadow-sm border border-white/90 shrink-0"
+          className="site-header-menu-btn h-9 rounded-lg bg-white text-[var(--brand-navy)] hover:bg-slate-100 hover:text-[var(--brand-navy)] shadow-sm border border-white/90 shrink-0 px-3 gap-2 font-semibold text-sm"
           aria-label="Open menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-4 w-4" />
+          Menu
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -177,7 +177,7 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-export function SiteHeader() {
+export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
   const [logoUrl, setLogoUrl] = useState(COMPANY.logoUrl)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -191,9 +191,15 @@ export function SiteHeader() {
   }, [])
 
   return (
-    <nav className="site-header text-on-dark sticky top-0 z-50 bg-[var(--brand-navy)] border-b border-white/10 shadow-md">
-      {/* Desktop */}
-      <div className="hidden lg:flex max-w-7xl mx-auto justify-between items-center gap-3 px-4 py-2.5">
+    <nav
+      className={`site-header text-on-dark z-50 w-full border-b border-white/10 shadow-md ${
+        overlay
+          ? 'absolute top-0 left-0 right-0 bg-[var(--brand-navy)]/90 backdrop-blur-sm'
+          : 'sticky top-0 bg-[var(--brand-navy)]'
+      }`}
+    >
+      {/* Desktop — edge-to-edge */}
+      <div className="hidden lg:flex w-full justify-between items-center gap-4 px-5 xl:px-8 py-2.5">
         <Link
           href="/"
           className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition no-underline hover:no-underline shrink-0"
@@ -276,17 +282,12 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Mobile: menu + logo left, auth right — no center brand block */}
-      <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
-          <Link href="/" className="hover:opacity-90 transition no-underline hover:no-underline shrink-0" aria-label={`${COMPANY.brandName} home`}>
-            <BrandMark logoUrl={logoUrl} compact />
-          </Link>
-        </div>
+      {/* Mobile: Menu · Login · Register only */}
+      <div className="lg:hidden flex w-full items-center justify-between gap-3 px-4 py-2">
+        <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
 
-        <div className="site-header-mobile-auth flex items-center gap-1.5 shrink-0">
-          <Link href="/auth/login" className="inline-flex items-center h-8 px-1.5 text-xs font-semibold text-white hover:text-white no-underline hover:underline whitespace-nowrap">
+        <div className="site-header-mobile-auth flex items-center gap-2 shrink-0">
+          <Link href="/auth/login" className="inline-flex items-center h-9 px-2 text-sm font-semibold text-white hover:text-white no-underline hover:underline whitespace-nowrap">
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">

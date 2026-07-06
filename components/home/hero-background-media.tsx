@@ -18,7 +18,7 @@ export function HeroBackgroundMedia({
         playsInline
         preload="metadata"
         aria-hidden
-        className="absolute inset-0 h-full w-full object-cover object-center scale-105"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
     )
   }
@@ -28,7 +28,7 @@ export function HeroBackgroundMedia({
       src={src}
       alt={alt}
       fill
-      className="object-cover object-center scale-105"
+      className="object-cover object-center"
       priority
     />
   )

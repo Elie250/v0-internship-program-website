@@ -27,19 +27,23 @@ function useHeroVideoPlaylist(background: string | null | undefined): boolean {
   return false
 }
 
-export async function HomeHeroSection() {
+export async function HomeHeroSection({ fullViewport = false }: { fullViewport?: boolean }) {
   const hero = (await getActiveHero()) ?? defaultHero
   const showPlaylist = useHeroVideoPlaylist(hero.background_image)
 
   return (
-    <section className="hero-viewport relative flex items-center overflow-hidden bg-black">
+    <section
+      className={`relative flex items-end sm:items-center overflow-hidden bg-black ${
+        fullViewport ? 'hero-viewport-full' : 'hero-viewport'
+      }`}
+    >
       {showPlaylist ? (
         <HeroVideoRotator />
       ) : hero.background_image ? (
         <HeroBackgroundMedia src={hero.background_image} alt={hero.title} />
       ) : null}
-      <div className="absolute inset-0 z-[1] bg-black/45" aria-hidden />
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
+      <div className="absolute inset-0 z-[1] bg-black/40" aria-hidden />
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 xl:px-10 pb-10 sm:pb-12 pt-24 sm:pt-28 lg:pt-32">
         <div className="max-w-2xl text-on-dark">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 leading-tight">{hero.title}</h1>
           {hero.subtitle && (

@@ -170,7 +170,7 @@
 
   /* Site header height for full-viewport hero */
   .site-header {
-    --site-header-h: 3.25rem;
+    --site-header-h: 3rem;
   }
 
   @media (min-width: 1024px) {
@@ -182,6 +182,11 @@
   .hero-viewport {
     min-height: calc(100svh - var(--site-header-h));
     min-height: calc(100dvh - var(--site-header-h));
+  }
+
+  .hero-viewport-full {
+    min-height: 100svh;
+    min-height: 100dvh;
   }
 
   /* Header nav: keep auth links readable on navy */
