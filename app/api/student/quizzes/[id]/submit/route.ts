@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { gradeQuizSubmission } from '@/lib/learning/quiz'
+import { submitAssessmentAttempt } from '@/lib/learning/assessment-integrity'
 
 async function sessionUser() {
   const cookieStore = await cookies()
@@ -22,7 +22,12 @@ export async function POST(
 
   const { id: assessmentId } = await params
   const body = await request.json()
+  const attemptId = String(body.attemptId ?? '')
   const rawAnswers = body.answers
+
+  if (!attemptId) {
+    return NextResponse.json({ error: 'A valid attempt session is required' }, { status: 400 })
+  }
 
   if (!rawAnswers || typeof rawAnswers !== 'object') {
     return NextResponse.json({ error: 'Answers required' }, { status: 400 })
@@ -34,12 +39,23 @@ export async function POST(
     if (Number.isInteger(idx) && idx >= 0) answers[questionId] = idx
   }
 
-  const result = await gradeQuizSubmission({
-    assessmentId,
+  const result = await submitAssessmentAttempt({
+    attemptId,
     userId: user.id,
     answers,
   })
 
-  if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 })
-  return NextResponse.json(result)
+  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })
+
+  return NextResponse.json({
+    assessmentId,
+    score: result.score,
+    passed: result.passed,
+    correctCount: result.correctCount,
+    totalQuestions: result.totalQuestions,
+    attemptCount: result.attemptCount,
+    revealAnswers: result.revealAnswers,
+    results: result.results,
+    integrityFlags: result.integrityFlags,
+  })
 }
