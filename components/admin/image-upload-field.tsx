@@ -67,7 +67,7 @@ export function ImageUploadField({ label = 'Image', value, onChange, folder }: P
         </Button>
       ) : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      {uploading ? <p className="text-xs text-muted-foreground">Uploading…</p> : null}
+      {uploading ? <p className="text-xs text-slate-600">Uploading…</p> : null}
     </div>
   )
 }

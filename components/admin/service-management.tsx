@@ -146,7 +146,7 @@ export default function ServiceManagement() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Services</h1>
-        <p className="text-muted-foreground mt-1">Manage engineering services with images and publish status.</p>
+        <p className="text-slate-600 mt-1">Manage engineering services with images and publish status.</p>
       </div>
 
       <Card>
@@ -213,7 +213,7 @@ export default function ServiceManagement() {
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
             {services.length === 0 ? (
-              <p className="text-muted-foreground col-span-full">No services created yet.</p>
+              <p className="text-slate-600 col-span-full">No services created yet.</p>
             ) : (
               services.map((service) => (
                 <div key={service.id} className="border border-border rounded-lg overflow-hidden">
@@ -228,7 +228,7 @@ export default function ServiceManagement() {
                       />
                     </div>
                   ) : (
-                    <div className="h-36 bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                    <div className="h-36 bg-muted flex items-center justify-center text-sm text-slate-600">
                       No image
                     </div>
                   )}
@@ -236,8 +236,8 @@ export default function ServiceManagement() {
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold">{service.title}</h3>
-                        <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-slate-600 line-clamp-2">{service.description}</p>
+                        <p className="text-xs text-slate-600 mt-1">
                           Category: {service.category || 'N/A'} ·{' '}
                           {service.is_published ? 'Published' : 'Draft'}
                         </p>

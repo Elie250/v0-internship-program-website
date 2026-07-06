@@ -10,7 +10,7 @@ export default async function SettingsPanel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-slate-600 mt-1">
           Site configuration for {COMPANY.brandName}. Payments use manual receipt verification — no online gateway.
         </p>
       </div>
@@ -21,7 +21,7 @@ export default async function SettingsPanel() {
         <CardHeader>
           <CardTitle>Planned modules</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
+        <CardContent className="text-sm text-slate-600 space-y-2">
           <p>• SMTP / email templates</p>
           <p>• Manual payment instructions (bank / mobile money details for users)</p>
           <p>• Subscription plan labels (admin verifies receipts manually)</p>

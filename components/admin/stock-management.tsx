@@ -93,7 +93,7 @@ export default function StockManagement() {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading inventory...</p>
+    return <p className="text-slate-600">Loading inventory...</p>
   }
 
   return (
@@ -101,7 +101,7 @@ export default function StockManagement() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Stock management</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-slate-600 mt-1">
             Update inventory levels. Stock decreases automatically when customers submit shop orders.
           </p>
         </div>
@@ -114,19 +114,19 @@ export default function StockManagement() {
       <div className="grid sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Products tracked</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Products tracked</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold">{rows.length}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Low stock</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Low stock</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold text-amber-600">{lowStockCount}</CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Out of stock</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">Out of stock</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-bold text-destructive">{outOfStockCount}</CardContent>
         </Card>
@@ -159,7 +159,7 @@ export default function StockManagement() {
                   return (
                     <tr key={row.id} className="border-b last:border-0">
                       <td className="p-3 font-medium">{row.name}</td>
-                      <td className="p-3 text-muted-foreground">{row.sku ?? '—'}</td>
+                      <td className="p-3 text-slate-600">{row.sku ?? '—'}</td>
                       <td className="p-3">{row.status}</td>
                       <td className="p-3">
                         <Input

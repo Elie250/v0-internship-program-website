@@ -165,7 +165,7 @@ export async function POST(request: Request) {
         message:
           fulfillmentType === 'delivery'
             ? 'Order submitted. We will contact you to confirm delivery details.'
-            : 'Order submitted. We will contact you when your order is ready for pickup in Nyanza.',
+            : 'Order submitted. We will contact you when your order is ready for pickup in Kigali.',
       },
       { status: 201 }
     )

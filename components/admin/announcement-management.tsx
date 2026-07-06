@@ -149,7 +149,7 @@ export default function AnnouncementManagementTab() {
   }
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading announcements...</p>
+    return <p className="text-slate-600">Loading announcements...</p>
   }
 
   return (
@@ -157,7 +157,7 @@ export default function AnnouncementManagementTab() {
       <div className="flex justify-between items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold">Announcements</h1>
-          <p className="text-muted-foreground mt-1">Share news and updates with images on the homepage.</p>
+          <p className="text-slate-600 mt-1">Share news and updates with images on the homepage.</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} className="bg-[#1e3a5f]">
           <Plus className="w-4 h-4 mr-2" />
@@ -168,7 +168,7 @@ export default function AnnouncementManagementTab() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create announcement</DialogTitle>
+            <DialogTitle className="text-slate-900">Create announcement</DialogTitle>
           </DialogHeader>
           <AnnouncementForm form={form} setForm={setForm} />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -182,7 +182,7 @@ export default function AnnouncementManagementTab() {
       {announcements.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No announcements yet</p>
+            <p className="text-slate-600">No announcements yet</p>
           </CardContent>
         </Card>
       ) : (
@@ -200,7 +200,7 @@ export default function AnnouncementManagementTab() {
                   />
                 </div>
               ) : (
-                <div className="h-32 bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                <div className="h-32 bg-muted flex items-center justify-center text-sm text-slate-600">
                   No image
                 </div>
               )}
@@ -211,7 +211,7 @@ export default function AnnouncementManagementTab() {
                       <h4 className="font-semibold">{announcement.title}</h4>
                       {announcement.is_featured ? <Star className="w-4 h-4 text-amber-500 fill-amber-500" /> : null}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-slate-600 mt-1">
                       {new Date(announcement.created_at).toLocaleDateString()} · {announcement.status}
                     </p>
                   </div>
@@ -219,7 +219,7 @@ export default function AnnouncementManagementTab() {
                     <Badge className="bg-amber-100 text-amber-800 border-amber-200">Featured</Badge>
                   ) : null}
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{announcement.message}</p>
+                <p className="text-sm text-slate-600 line-clamp-3 mb-4">{announcement.message}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => toggleFeatured(announcement)}>
                     {announcement.is_featured ? 'Unfeature' : 'Feature'}
@@ -245,7 +245,7 @@ export default function AnnouncementManagementTab() {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit announcement</DialogTitle>
+            <DialogTitle className="text-slate-900">Edit announcement</DialogTitle>
           </DialogHeader>
           <AnnouncementForm form={editForm} setForm={setEditForm} />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

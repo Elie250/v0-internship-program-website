@@ -9,7 +9,7 @@ const defaultHero: HeroContent = {
   id: 'default',
   title: `${COMPANY.brandName} — Engineering Training`,
   subtitle:
-    'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Nyanza, Rwanda — training East African engineers for real industry work.',
+    'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Kigali, Rwanda — training East African engineers for real industry work.',
   background_image: '/hero-laboratory.jpg',
   cta_primary_label: 'View Programmes',
   cta_primary_url: '/learning',

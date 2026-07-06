@@ -117,7 +117,7 @@ export default function RolesPermissionsPanel() {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading roles & permissions…</p>
+    return <p className="text-slate-600">Loading roles & permissions…</p>
   }
 
   return (
@@ -127,7 +127,7 @@ export default function RolesPermissionsPanel() {
           <Shield className="h-6 w-6 text-[#1e3a5f]" />
           Roles & Permissions
         </h1>
-        <p className="text-muted-foreground mt-1 max-w-3xl">
+        <p className="text-slate-600 mt-1 max-w-3xl">
           Control who can access each part of the admin panel. Role defaults apply to every user with
           that role; add custom permissions below for individual staff accounts.
         </p>
@@ -176,7 +176,7 @@ export default function RolesPermissionsPanel() {
                       <tr className="bg-muted/40">
                         <td
                           colSpan={adminRoles.length + 1}
-                          className="py-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                          className="py-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
                         >
                           {group.label}
                         </td>
@@ -185,7 +185,7 @@ export default function RolesPermissionsPanel() {
                         <tr key={perm.key} className="border-b border-border/50">
                           <td className="py-2 pr-4 sticky left-0 bg-background">
                             <p className="font-medium">{perm.label}</p>
-                            <p className="text-xs text-muted-foreground">{perm.description}</p>
+                            <p className="text-xs text-slate-600">{perm.description}</p>
                           </td>
                           {adminRoles.map((role) => {
                             const has = role.permissions.includes(perm.key)
@@ -194,7 +194,7 @@ export default function RolesPermissionsPanel() {
                                 {has ? (
                                   <Check className="h-4 w-4 text-green-600 mx-auto" />
                                 ) : (
-                                  <X className="h-4 w-4 text-muted-foreground/40 mx-auto" />
+                                  <X className="h-4 w-4 text-slate-600/40 mx-auto" />
                                 )}
                               </td>
                             )
@@ -231,7 +231,7 @@ export default function RolesPermissionsPanel() {
                   <CardTitle className="text-lg">{activeRole.label}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{activeRole.description}</p>
+                  <p className="text-sm text-slate-600">{activeRole.description}</p>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant={activeRole.canAccessAdmin ? 'default' : 'secondary'}>
                       {activeRole.canAccessAdmin ? 'Admin panel access' : 'No admin access'}
@@ -257,7 +257,7 @@ export default function RolesPermissionsPanel() {
                 </CardHeader>
                 <CardContent>
                   {activeRole.navSections.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No admin sections visible for this role.</p>
+                    <p className="text-sm text-slate-600">No admin sections visible for this role.</p>
                   ) : (
                     <ul className="grid sm:grid-cols-2 gap-2">
                       {activeRole.navSections.map((section) => (
@@ -283,7 +283,7 @@ export default function RolesPermissionsPanel() {
             </CardHeader>
             <CardContent className="space-y-4">
               {staffUsers.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No staff accounts with admin access found.</p>
+                <p className="text-sm text-slate-600">No staff accounts with admin access found.</p>
               ) : (
                 <>
                   <div>
@@ -318,7 +318,7 @@ export default function RolesPermissionsPanel() {
                         </p>
                       </div>
 
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-600">
                         Custom permissions are <strong>added</strong> to the role defaults. Check extras
                         below for this user only.
                       </p>
@@ -326,7 +326,7 @@ export default function RolesPermissionsPanel() {
                       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {groups.map((group) => (
                           <div key={group.id} className="rounded-lg border p-3">
-                            <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+                            <p className="text-xs font-semibold uppercase text-slate-600 mb-2">
                               {group.label}
                             </p>
                             <ul className="space-y-2">
@@ -345,7 +345,7 @@ export default function RolesPermissionsPanel() {
                                       htmlFor={`${selectedStaff.id}-${perm.key}`}
                                       className={cn(
                                         'text-xs leading-snug cursor-pointer',
-                                        inRole && 'text-muted-foreground'
+                                        inRole && 'text-slate-600'
                                       )}
                                     >
                                       {perm.label}

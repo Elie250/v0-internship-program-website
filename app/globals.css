@@ -260,6 +260,25 @@
     color: inherit;
   }
 
+  /* Admin console — navy sidebar like student portal */
+  .admin-portal-sidebar {
+    background: var(--brand-navy) !important;
+    color: #ffffff;
+  }
+
+  .admin-portal-sidebar [data-sidebar='sidebar'] {
+    background: var(--brand-navy);
+  }
+
+  .admin-portal-sidebar h1,
+  .admin-portal-sidebar h2,
+  .admin-portal-sidebar h3,
+  .admin-portal-sidebar p,
+  .admin-portal-sidebar span,
+  .admin-portal-sidebar button {
+    color: inherit;
+  }
+
   .section-eyebrow {
     color: var(--brand-navy);
     font-size: 0.875rem;
@@ -334,5 +353,15 @@
 
   .app-form-surface [data-slot='dialog-description'] {
     color: #475569;
+  }
+
+  .app-form-surface [data-slot='dialog-content'] {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  .app-form-surface [data-slot='tabs-trigger'][data-state='active'] {
+    color: #ffffff;
   }
 }

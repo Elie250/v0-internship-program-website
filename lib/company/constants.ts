@@ -9,7 +9,7 @@ export const COMPANY = {
   phone: '+250783986252',
   phoneDisplay: '+250 783 986 252',
   whatsapp: '250783986252',
-  address: 'Nyanza, Rwanda',
+  address: 'Kigali, Rwanda',
   logoUrl: '/images/energy-logics-logo.png',
   region: 'East Africa',
   timezone: 'Central Africa Time (CAT, UTC+2)',
