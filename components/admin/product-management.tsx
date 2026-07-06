@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +24,13 @@ import {
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { Pencil, Trash2 } from 'lucide-react'
 
+type Category = {
+  id: string
+  name: string
+  slug: string
+  type: string
+}
+
 type Product = {
   id: string
   name: string
@@ -33,6 +40,8 @@ type Product = {
   stock: number
   sku?: string
   status: string
+  category_id?: string | null
+  category?: Category | null
   images?: string[]
 }
 
@@ -43,29 +52,54 @@ const emptyForm = {
   costPrice: '',
   stock: '0',
   sku: '',
+  categoryId: '',
   status: 'published',
   imageUrl: '',
 }
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [form, setForm] = useState(emptyForm)
   const [editing, setEditing] = useState<Product | null>(null)
   const [editForm, setEditForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const shopCategories = useMemo(
+    () => categories.filter((c) => c.type === 'shop'),
+    [categories]
+  )
+
   const load = async () => {
-    const res = await fetch('/api/products?status=all')
-    const data = await res.json()
-    setProducts(Array.isArray(data) ? data : [])
+    const [productsRes, categoriesRes] = await Promise.all([
+      fetch('/api/products?status=all'),
+      fetch('/api/categories?type=shop'),
+    ])
+    const productsData = await productsRes.json()
+    const categoriesData = await categoriesRes.json()
+    setProducts(Array.isArray(productsData) ? productsData : [])
+    setCategories(Array.isArray(categoriesData) ? categoriesData : [])
   }
 
   useEffect(() => {
     load()
   }, [])
 
+  const filteredProducts = useMemo(() => {
+    if (categoryFilter === 'all') return products
+    if (categoryFilter === 'uncategorized') {
+      return products.filter((p) => !p.category_id)
+    }
+    return products.filter((p) => p.category_id === categoryFilter)
+  }, [products, categoryFilter])
+
   const handleCreate = async () => {
+    if (!form.categoryId) {
+      setError('Please select a category for this product.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -79,6 +113,7 @@ export default function ProductManagement() {
           cost_price: Number(form.costPrice) || 0,
           stock: Number(form.stock),
           sku: form.sku,
+          category_id: form.categoryId,
           status: form.status,
           images: form.imageUrl ? [form.imageUrl] : [],
           specifications: {},
@@ -105,6 +140,7 @@ export default function ProductManagement() {
       costPrice: String(product.cost_price ?? 0),
       stock: String(product.stock ?? 0),
       sku: product.sku || '',
+      categoryId: product.category_id || product.category?.id || '',
       status: product.status || 'published',
       imageUrl: product.images?.[0] || '',
     })
@@ -112,6 +148,10 @@ export default function ProductManagement() {
 
   const handleUpdate = async () => {
     if (!editing) return
+    if (!editForm.categoryId) {
+      setError('Please select a category for this product.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -125,6 +165,7 @@ export default function ProductManagement() {
           cost_price: Number(editForm.costPrice) || 0,
           stock: Number(editForm.stock),
           sku: editForm.sku,
+          category_id: editForm.categoryId,
           status: editForm.status,
           images: editForm.imageUrl ? [editForm.imageUrl] : [],
         }),
@@ -133,6 +174,7 @@ export default function ProductManagement() {
       if (!res.ok) throw new Error(data.error || 'Update failed')
 
       setEditing(null)
+      setError('')
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed')
@@ -149,16 +191,60 @@ export default function ProductManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Products</h1>
-        <p className="text-slate-600 mt-1">Add, edit, and manage product catalog with cost tracking for profit reports.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
+          <p className="text-slate-600 mt-1">
+            Assign each product to a category so customers can filter the catalog.
+          </p>
+        </div>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            <SelectItem value="uncategorized">Uncategorized</SelectItem>
+            {shopCategories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {shopCategories.length === 0 ? (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="py-4 text-sm text-amber-900">
+            No product categories yet. Create categories under Admin → Categories (type: shop) before adding products.
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
           <CardTitle>Add product</CardTitle>
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <Label>Category *</Label>
+            <Select
+              value={form.categoryId}
+              onValueChange={(v) => setForm({ ...form, categoryId: v })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {shopCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Product name</Label>
             <Input
@@ -237,14 +323,18 @@ export default function ProductManagement() {
             />
           </div>
           {error ? <p className="md:col-span-2 text-sm text-destructive">{error}</p> : null}
-          <Button onClick={handleCreate} disabled={saving} className="md:col-span-2 bg-[#1e3a5f]">
+          <Button
+            onClick={handleCreate}
+            disabled={saving || !form.categoryId || shopCategories.length === 0}
+            className="md:col-span-2 bg-[#1e3a5f]"
+          >
             Create product
           </Button>
         </CardContent>
       </Card>
 
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {products.map((p) => (
+        {filteredProducts.map((p) => (
           <Card key={p.id}>
             {p.images?.[0] ? (
               <div className="relative h-40 w-full border-b">
@@ -256,6 +346,9 @@ export default function ProductManagement() {
               </div>
             )}
             <CardHeader className="pb-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {p.category?.name ?? 'Uncategorized'}
+              </p>
               <CardTitle className="text-base">{p.name}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -283,6 +376,24 @@ export default function ProductManagement() {
             <DialogTitle>Edit product</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
+            <div>
+              <Label>Category *</Label>
+              <Select
+                value={editForm.categoryId}
+                onValueChange={(v) => setEditForm({ ...editForm, categoryId: v })}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {shopCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Name</Label>
               <Input
@@ -359,7 +470,7 @@ export default function ProductManagement() {
             <Button variant="outline" onClick={() => setEditing(null)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdate} disabled={saving} className="bg-[#1e3a5f]">
+            <Button onClick={handleUpdate} disabled={saving || !editForm.categoryId} className="bg-[#1e3a5f]">
               Save changes
             </Button>
           </DialogFooter>

@@ -84,3 +84,43 @@ export async function PATCH(
     return NextResponse.json({ error: message }, { status: 403 })
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdminPermission(PERMISSIONS.SHOP_ORDERS)
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+    }
+
+    const { id } = await params
+
+    const { data: existing } = await supabaseAdmin
+      .from('orders')
+      .select('id, status, payment_status')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
+    const previousStatus = String(existing.status ?? '').toLowerCase()
+    if (!CANCELLED_STATUSES.has(previousStatus)) {
+      await restoreStock(id)
+    }
+
+    await supabaseAdmin.from('payments').delete().eq('order_id', id)
+    await supabaseAdmin.from('order_items').delete().eq('order_id', id)
+
+    const { error } = await supabaseAdmin.from('orders').delete().eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete order'
+    return NextResponse.json({ error: message }, { status: 403 })
+  }
+}

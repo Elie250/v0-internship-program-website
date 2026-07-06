@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Phone, Mail, MapPin, Package } from 'lucide-react'
+import { Phone, Mail, MapPin, Package, Trash2 } from 'lucide-react'
 
 type OrderItem = {
   id: string
@@ -58,6 +58,7 @@ export default function OrderManagement() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -85,6 +86,30 @@ export default function OrderManagement() {
       body: JSON.stringify({ status }),
     })
     if (res.ok) load()
+  }
+
+  const deleteOrder = async (orderId: string, orderNumber?: string) => {
+    const label = orderNumber ?? orderId.slice(0, 8)
+    if (
+      !confirm(
+        `Delete order ${label}? This removes the order and restores stock if it was not already cancelled.`
+      )
+    ) {
+      return
+    }
+
+    setDeletingId(orderId)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to delete order')
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete order')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const filtered = orders.filter((order) => {
@@ -162,6 +187,16 @@ export default function OrderManagement() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-700 border-red-200 hover:bg-red-50"
+                      disabled={deletingId === order.id}
+                      onClick={() => deleteOrder(order.id, order.order_number)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      {deletingId === order.id ? 'Deleting…' : 'Delete'}
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
