@@ -53,9 +53,9 @@ export async function GET() {
             'id, amount, status, payment_method, receipt_url, receipt_number, admin_notes, created_at'
           )
           .in('id', paymentIds)
-        payments = fallback.data
+        payments = (fallback.data ?? []) as Array<Record<string, unknown>>
       } else {
-        payments = withOrder.data
+        payments = (withOrder.data ?? []) as Array<Record<string, unknown>>
       }
 
       for (const p of payments ?? []) {
@@ -72,16 +72,20 @@ export async function GET() {
         )
         .in('order_id', orderIds)
 
-      const orderPayments = orderPaymentQuery.error?.message?.includes('order_id')
-        ? []
-        : orderPaymentQuery.data ?? []
+      const orderPayments = (
+        orderPaymentQuery.error?.message?.includes('order_id')
+          ? []
+          : orderPaymentQuery.data ?? []
+      ) as Array<Record<string, unknown>>
 
       for (const p of orderPayments) {
-        if (p.order_id && !paymentsByOrderId.has(p.order_id)) {
-          paymentsByOrderId.set(p.order_id, p as OrderPayment)
+        const orderId = p.order_id as string | undefined
+        const paymentId = String(p.id)
+        if (orderId && !paymentsByOrderId.has(orderId)) {
+          paymentsByOrderId.set(orderId, p as OrderPayment)
         }
-        if (!paymentsById.has(p.id)) {
-          paymentsById.set(p.id, p as OrderPayment)
+        if (!paymentsById.has(paymentId)) {
+          paymentsById.set(paymentId, p as OrderPayment)
         }
       }
     }

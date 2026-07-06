@@ -29,15 +29,18 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
     'id, status, course_enrollment_id, support_subscription_id, application_id, order_id'
   const base = 'id, status, course_enrollment_id, support_subscription_id, application_id'
 
-  let { data, error } = await supabaseAdmin
+  const primary = await supabaseAdmin
     .from('payments')
     .select(withOrder)
     .eq('id', paymentId)
     .maybeSingle()
 
+  let data = primary.data as Record<string, unknown> | null
+  let error = primary.error
+
   if (error?.message?.includes('order_id')) {
     const retry = await supabaseAdmin.from('payments').select(base).eq('id', paymentId).maybeSingle()
-    data = retry.data
+    data = retry.data as Record<string, unknown> | null
     error = retry.error
   }
 
@@ -45,7 +48,7 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
     return { payment: null, error: error?.message ?? 'Payment not found' }
   }
 
-  let orderId = (data as PaymentReviewRow).order_id ?? null
+  let orderId = (data.order_id as string | null | undefined) ?? null
   if (!orderId) {
     const { data: order } = await supabaseAdmin
       .from('orders')
@@ -57,7 +60,11 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
 
   return {
     payment: {
-      ...(data as PaymentReviewRow),
+      id: String(data.id),
+      status: String(data.status),
+      course_enrollment_id: (data.course_enrollment_id as string | null) ?? null,
+      support_subscription_id: (data.support_subscription_id as string | null) ?? null,
+      application_id: (data.application_id as string | null) ?? null,
       order_id: orderId,
     },
   }
