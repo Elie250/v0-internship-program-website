@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, logoutUser } from '@/app/actions/auth-service'
+import { getCurrentUser } from '@/app/actions/auth-service'
+import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
-import { BookOpen, Users, LogOut, Home, FileBarChart } from 'lucide-react'
+import { BookOpen, Users, FileBarChart, Calculator, AlertTriangle } from 'lucide-react'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -29,13 +30,9 @@ type LecturerCourse = {
 
 export function LecturerDashboardView() {
   const router = useRouter()
-  const [user, setUser] = useState<{
-    firstName?: string
-    lastName?: string
-    role: string
-    permissions?: string[]
-  } | null>(null)
+  const [userName, setUserName] = useState('')
   const [courses, setCourses] = useState<LecturerCourse[]>([])
+  const [atRiskCount, setAtRiskCount] = useState(0)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
@@ -56,24 +53,28 @@ export function LecturerDashboardView() {
         router.push('/auth/login?role=lecturer')
         return
       }
-      setUser(currentUser)
+      setUserName(
+        [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') ||
+          currentUser.email ||
+          'Lecturer'
+      )
       try {
         await loadCourses()
+        const studentsRes = await fetch('/api/lecturer/students', { credentials: 'same-origin' })
+        if (studentsRes.ok) {
+          const studentsData = await studentsRes.json()
+          setAtRiskCount(studentsData.summary?.atRisk ?? 0)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard')
       } finally {
         setIsLoading(false)
       }
     }
-    init()
+    void init()
   }, [router, loadCourses])
 
   const totalStudents = courses.reduce((sum, c) => sum + c.enrollment_stats.admitted, 0)
-
-  const handleLogout = async () => {
-    await logoutUser()
-    router.push('/')
-  }
 
   if (isLoading) {
     return (
@@ -83,41 +84,44 @@ export function LecturerDashboardView() {
     )
   }
 
-  if (!user) return null
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3 px-4 py-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Lecturer Dashboard</h1>
-            <p className="text-sm text-slate-600">
-              Welcome, {user.firstName} {user.lastName}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" className="text-slate-800" onClick={() => router.push('/')}>
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <Button variant="ghost" className="text-red-700 hover:bg-red-50" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+    <LecturerPortalShell userName={userName}>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My programmes</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Open a classroom to manage lessons, students, assessments, and reports.
+          </p>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6 app-form-surface">
         {error ? (
           <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
         ) : null}
 
-        <div className="grid md:grid-cols-3 gap-4">
+        {atRiskCount > 0 ? (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="pt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-amber-900 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>
+                  <strong>{atRiskCount}</strong> student(s) inactive for 7+ days across your
+                  programmes.
+                </span>
+              </p>
+              <Link href="/lecturer/students">
+                <Button size="sm" variant="outline" className="border-amber-400 text-amber-900">
+                  View all students
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-slate-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900">
-                <BookOpen className="w-4 h-4" /> Assigned programmes
+                <BookOpen className="w-4 h-4" /> Programmes
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -136,7 +140,7 @@ export function LecturerDashboardView() {
           </Card>
           <Card className="border-slate-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-900">Published programmes</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-900">Published</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-slate-900">
@@ -144,6 +148,19 @@ export function LecturerDashboardView() {
               </p>
             </CardContent>
           </Card>
+          <Link href="/lecturer/tools" className="no-underline hover:no-underline">
+            <Card className="border-slate-200 h-full hover:border-[var(--brand-navy)]/40 hover:shadow-sm transition-shadow">
+              <CardContent className="pt-4">
+                <p className="text-sm text-slate-600 flex items-center gap-1.5">
+                  <Calculator className="h-4 w-4" />
+                  Engineering tools
+                </p>
+                <p className="text-sm font-semibold text-[var(--brand-navy)] mt-2">
+                  Calculators &amp; helpers →
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {courses.length === 0 ? (
@@ -202,7 +219,7 @@ export function LecturerDashboardView() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </LecturerPortalShell>
   )
 }
