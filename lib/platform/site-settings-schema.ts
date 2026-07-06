@@ -98,7 +98,7 @@ export const DEFAULT_WEB_SETTINGS: WebSettingsForm = {
     title: `${COMPANY.brandName} — Engineering Training`,
     subtitle:
       'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Kigali, Rwanda.',
-    background_image: '/hero-laboratory.jpg',
+    background_image: '/videos/playlist',
     cta_primary_label: 'View Programmes',
     cta_primary_url: '/learning',
     cta_secondary_label: 'About our founder',
