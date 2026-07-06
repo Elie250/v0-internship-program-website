@@ -92,6 +92,26 @@ export function CourseClassroomFeed({ courseId }: { courseId: string }) {
                   {s.location ?? ''}
                 </p>
                 {s.notes ? <p className="text-xs text-slate-700">{s.notes}</p> : null}
+                {s.session_materials ? (
+                  <ul className="text-xs text-slate-700 list-disc pl-4">
+                    {s.session_materials.split('\n').filter(Boolean).map((line) => (
+                      <li key={line}>
+                        {line.startsWith('http') ? (
+                          <a href={line} target="_blank" rel="noopener noreferrer" className="underline text-[var(--brand-navy)]">
+                            Material link
+                          </a>
+                        ) : (
+                          line
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {s.pre_session_checklist ? (
+                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    Bring: {s.pre_session_checklist.split('\n').filter(Boolean).join(' · ')}
+                  </p>
+                ) : null}
                 {s.meeting_link ? (
                   <a
                     href={s.meeting_link}
