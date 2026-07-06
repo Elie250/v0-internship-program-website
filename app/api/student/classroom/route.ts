@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     supabaseAdmin
       .from('course_sessions')
       .select(
-        'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes'
+        'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist'
       )
       .eq('course_id', courseId)
       .order('scheduled_at', { ascending: true })

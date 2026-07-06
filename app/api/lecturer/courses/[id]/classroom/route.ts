@@ -38,7 +38,7 @@ export async function GET(
       supabaseAdmin
         .from('course_sessions')
         .select(
-          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, created_at'
+          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist, created_at'
         )
         .eq('course_id', courseId)
         .order('scheduled_at', { ascending: true })
@@ -158,9 +158,11 @@ export async function POST(
           location: String(body.location ?? '').trim() || null,
           recording_url: String(body.recording_url ?? '').trim() || null,
           notes: String(body.notes ?? '').trim() || null,
+          session_materials: String(body.session_materials ?? '').trim() || null,
+          pre_session_checklist: String(body.pre_session_checklist ?? '').trim() || null,
         })
         .select(
-          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, created_at'
+          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist, created_at'
         )
         .single()
 

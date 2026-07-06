@@ -22,6 +22,8 @@ type ClassSession = {
   location: string | null
   recording_url: string | null
   notes: string | null
+  session_materials?: string | null
+  pre_session_checklist?: string | null
 }
 
 export function CourseClassroomFeed({ courseId }: { courseId: string }) {

@@ -23,6 +23,7 @@ import { COMPANY } from '@/lib/company/constants'
 import { AccessCountdown } from '@/components/student/access-countdown'
 import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
 import { StudentAnnouncementsPanel } from '@/components/student/student-announcements-panel'
+import { StudentGradesPanel } from '@/components/student/student-grades-panel'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
@@ -150,6 +151,8 @@ export default function StudentDashboardInner() {
         <WebinarsTab webinars={portal.webinars} locked={portal.activeCourses.length === 0} />
       ) : tab === 'announcements' ? (
         <StudentAnnouncementsPanel feed={portal.announcementFeed} />
+      ) : tab === 'grades' ? (
+        <StudentGradesPanel />
       ) : (
         <CoursesTab
           courses={portal.activeCourses}

@@ -1,6 +1,7 @@
 import { createHash } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { courseLessonsComplete } from '@/lib/learning/lesson-integrity'
+import { maybeAutoRequestCertificate } from '@/lib/learning/certificate-auto'
 
 export const INTEGRITY_HINT =
   'Assessment integrity tables missing. Run scripts/35-assessment-integrity.sql in Supabase.'
@@ -617,6 +618,14 @@ export async function submitAssessmentAttempt(input: {
     ],
     { onConflict: 'assessment_id,enrollment_id' }
   )
+
+  if (finalPassed) {
+    void maybeAutoRequestCertificate({
+      courseId: String(ctx.assessment.course_id),
+      enrollmentId: enrollment.id,
+      userId: input.userId,
+    })
+  }
 
   return {
     ok: true,

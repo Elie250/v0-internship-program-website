@@ -20,6 +20,7 @@ import {
   ChevronRight,
   FileText,
   Link2,
+  Lock,
   PlayCircle,
   Radio,
   Download,
@@ -71,11 +72,13 @@ export default function StudentCoursePage() {
           result.user.email
       )
       setActiveLessonId((current) => {
-        if (current && result.data.lessons.some((l) => l.id === current)) return current
+        const unlocked = result.data.lessons.filter((l) => !l.locked)
+        if (current && unlocked.some((l) => l.id === current)) return current
         return (
-          result.data.progress.resumeContentId ??
-          result.data.lessons[0]?.id ??
-          null
+          result.data.progress.resumeContentId &&
+          unlocked.some((l) => l.id === result.data.progress.resumeContentId)
+            ? result.data.progress.resumeContentId
+            : unlocked[0]?.id ?? null
         )
       })
     }
@@ -193,12 +196,13 @@ export default function StudentCoursePage() {
     )
   }
 
-  const activeIndex = course.lessons.findIndex((l) => l.id === activeLessonId)
-  const activeLesson = course.lessons[activeIndex] ?? course.lessons[0]
-  const prevLesson = activeIndex > 0 ? course.lessons[activeIndex - 1] : null
+  const unlockedLessons = course.lessons.filter((l) => !l.locked)
+  const activeIndex = unlockedLessons.findIndex((l) => l.id === activeLessonId)
+  const activeLesson = unlockedLessons[activeIndex] ?? unlockedLessons[0]
+  const prevLesson = activeIndex > 0 ? unlockedLessons[activeIndex - 1] : null
   const nextLesson =
-    activeIndex >= 0 && activeIndex < course.lessons.length - 1
-      ? course.lessons[activeIndex + 1]
+    activeIndex >= 0 && activeIndex < unlockedLessons.length - 1
+      ? unlockedLessons[activeIndex + 1]
       : null
 
   const lessonIcon = (type: string, done: boolean) => {
@@ -247,27 +251,44 @@ export default function StudentCoursePage() {
               </li>
             ) : (
               course.lessons.map((lesson, index) => {
-                const Icon = lessonIcon(lesson.content_type, Boolean(lesson.completed))
+                const Icon = lesson.locked
+                  ? Lock
+                  : lessonIcon(lesson.content_type, Boolean(lesson.completed))
                 return (
                   <li key={lesson.id}>
                     <button
                       type="button"
-                      onClick={() => setActiveLessonId(lesson.id)}
+                      disabled={lesson.locked}
+                      onClick={() => !lesson.locked && setActiveLessonId(lesson.id)}
                       className={cn(
-                        'w-full text-left px-4 py-3 flex items-start gap-3 text-sm hover:bg-slate-50 transition',
+                        'w-full text-left px-4 py-3 flex items-start gap-3 text-sm transition',
+                        lesson.locked && 'opacity-60 cursor-not-allowed',
+                        !lesson.locked && 'hover:bg-slate-50',
                         activeLessonId === lesson.id &&
+                          !lesson.locked &&
                           'bg-slate-100 border-l-2 border-l-[var(--brand-navy)]',
-                        lesson.completed && 'bg-green-50/50'
+                        lesson.completed && !lesson.locked && 'bg-green-50/50'
                       )}
                     >
                       <span className="text-slate-500 text-xs mt-0.5 w-4">{index + 1}</span>
                       <Icon
                         className={cn(
                           'h-4 w-4 shrink-0 mt-0.5',
-                          lesson.completed ? 'text-green-700' : 'text-[var(--brand-navy)]'
+                          lesson.locked
+                            ? 'text-slate-400'
+                            : lesson.completed
+                              ? 'text-green-700'
+                              : 'text-[var(--brand-navy)]'
                         )}
                       />
-                      <span className="text-slate-900 font-medium">{lesson.title}</span>
+                      <span className="min-w-0">
+                        <span className="text-slate-900 font-medium block">{lesson.title}</span>
+                        {lesson.locked && lesson.unlockLabel ? (
+                          <span className="text-[10px] text-amber-800 block mt-0.5">
+                            {lesson.unlockLabel}
+                          </span>
+                        ) : null}
+                      </span>
                     </button>
                   </li>
                 )
