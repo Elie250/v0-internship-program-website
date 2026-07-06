@@ -6,60 +6,149 @@ import type { HeroVideoSlide } from '@/lib/media/hero-videos'
 
 const FALLBACK_POSTER = '/hero-laboratory.jpg'
 
+function shuffleSlides(slides: HeroVideoSlide[]): HeroVideoSlide[] {
+  if (slides.length <= 1) return slides
+  const shuffled = [...slides]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [slides] = useState(() => shuffleSlides(playlist.length > 0 ? playlist : []))
   const [index, setIndex] = useState(0)
-  const [videoReady, setVideoReady] = useState(false)
+  const [activeLayer, setActiveLayer] = useState<0 | 1>(0)
+  const [showPoster, setShowPoster] = useState(true)
 
-  const slides = playlist.length > 0 ? playlist : []
-  const current = slides[index] ?? slides[0]
+  const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)]
+  const slideByLayer = useRef<[number, number]>([-1, -1])
+  const advancing = useRef(false)
+  const indexRef = useRef(0)
+  const activeLayerRef = useRef<0 | 1>(0)
 
-  const goToNext = useCallback(() => {
-    if (slides.length <= 1) return
-    setVideoReady(false)
-    setIndex((prev) => (prev + 1) % slides.length)
-  }, [slides.length])
+  indexRef.current = index
+  activeLayerRef.current = activeLayer
 
-  const playCurrent = useCallback(() => {
-    const video = videoRef.current
+  const inactiveLayer = (layer: 0 | 1): 0 | 1 => (layer === 0 ? 1 : 0)
+
+  const pauseLayer = useCallback((layer: 0 | 1) => {
+    const video = videoRefs[layer].current
     if (!video) return
-    void video.play().catch(() => {
-      /* autoplay blocked — first frame still visible */
-    })
+    video.pause()
   }, [])
 
-  useEffect(() => {
-    if (!current?.src) return
+  const assignSlideToLayer = useCallback(
+    (layer: 0 | 1, slideIndex: number) => {
+      if (slideByLayer.current[layer] === slideIndex) return
 
-    setVideoReady(false)
-    const video = videoRef.current
+      const video = videoRefs[layer].current
+      const slide = slides[slideIndex]
+      if (!video || !slide) return
+
+      video.src = slide.src
+      video.load()
+      slideByLayer.current[layer] = slideIndex
+    },
+    [slides]
+  )
+
+  const playLayer = useCallback((layer: 0 | 1) => {
+    const video = videoRefs[layer].current
+    if (!video) return
+    void video.play().catch(() => {})
+  }, [])
+
+  const whenLayerCanPlay = useCallback((layer: 0 | 1, onReady: () => void) => {
+    const video = videoRefs[layer].current
     if (!video) return
 
-    const onCanPlay = () => {
-      setVideoReady(true)
-      playCurrent()
+    if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      onReady()
+      return
     }
+
+    video.addEventListener('canplay', onReady, { once: true })
+  }, [])
+
+  const goToNext = useCallback(() => {
+    if (slides.length <= 1 || advancing.current) return
+    advancing.current = true
+
+    const currentIndex = indexRef.current
+    const currentLayer = activeLayerRef.current
+    const nextIndex = (currentIndex + 1) % slides.length
+    const nextLayer = inactiveLayer(currentLayer)
+
+    assignSlideToLayer(nextLayer, nextIndex)
+
+    const advanceTimer = window.setTimeout(() => {
+      advancing.current = false
+      goToNext()
+    }, 8000)
+
+    whenLayerCanPlay(nextLayer, () => {
+      window.clearTimeout(advanceTimer)
+      pauseLayer(currentLayer)
+      playLayer(nextLayer)
+      setActiveLayer(nextLayer)
+      setIndex(nextIndex)
+      setShowPoster(false)
+
+      window.setTimeout(() => {
+        advancing.current = false
+      }, 700)
+    })
+  }, [assignSlideToLayer, pauseLayer, playLayer, slides.length, whenLayerCanPlay])
+
+  useEffect(() => {
+    if (!slides.length) return
+
+    assignSlideToLayer(0, 0)
+
+    whenLayerCanPlay(0, () => {
+      playLayer(0)
+      setShowPoster(false)
+    })
+  }, [assignSlideToLayer, playLayer, slides, whenLayerCanPlay])
+
+  useEffect(() => {
+    if (!slides.length) return
+
+    const layer = activeLayerRef.current
+    const video = videoRefs[layer].current
+    if (!video) return
 
     const onEnded = () => goToNext()
-
     const onError = () => {
-      setVideoReady(false)
-      window.setTimeout(goToNext, 4000)
+      window.setTimeout(goToNext, 2000)
     }
 
-    video.addEventListener('canplay', onCanPlay)
     video.addEventListener('ended', onEnded)
     video.addEventListener('error', onError)
-    video.load()
 
     return () => {
-      video.removeEventListener('canplay', onCanPlay)
       video.removeEventListener('ended', onEnded)
       video.removeEventListener('error', onError)
     }
-  }, [current?.src, goToNext, playCurrent])
+  }, [activeLayer, goToNext, slides.length])
 
-  if (!current) {
+  useEffect(() => {
+    if (slides.length <= 1) return
+
+    const layer = inactiveLayer(activeLayer)
+    const nextIndex = (index + 1) % slides.length
+    if (slideByLayer.current[layer] === nextIndex) return
+
+    assignSlideToLayer(layer, nextIndex)
+  }, [activeLayer, assignSlideToLayer, index, slides])
+
+  useEffect(() => {
+    pauseLayer(inactiveLayer(activeLayer))
+  }, [activeLayer, pauseLayer])
+
+  if (!slides.length) {
     return (
       <Image
         src={FALLBACK_POSTER}
@@ -73,27 +162,32 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
 
   return (
     <>
-      <Image
-        src={FALLBACK_POSTER}
-        alt=""
-        fill
-        aria-hidden
-        className="absolute inset-0 object-cover object-center"
-        priority
-      />
-      <video
-        ref={videoRef}
-        key={current.src}
-        src={current.src}
-        muted
-        autoPlay
-        playsInline
-        preload="auto"
-        aria-label={`Hero background: ${current.label}`}
-        className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
-          videoReady ? 'opacity-100' : 'opacity-0'
-        }`}
-      />
+      {showPoster ? (
+        <Image
+          src={FALLBACK_POSTER}
+          alt=""
+          fill
+          aria-hidden
+          className="absolute inset-0 object-cover object-center"
+          priority
+        />
+      ) : null}
+
+      {([0, 1] as const).map((layer) => (
+        <video
+          key={layer}
+          ref={videoRefs[layer]}
+          muted
+          playsInline
+          preload="auto"
+          aria-hidden={layer !== activeLayer}
+          aria-label={layer === activeLayer ? `Hero background: ${slides[index]?.label}` : undefined}
+          className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
+            layer === activeLayer && !showPoster ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ))}
+
       {slides.length > 1 ? (
         <div className="absolute bottom-20 sm:bottom-4 right-4 z-[2] flex items-center gap-2" aria-hidden>
           {slides.map((slide, slideIndex) => (
