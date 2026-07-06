@@ -383,6 +383,7 @@
   }
 
   .app-form-surface [data-slot='tabs-trigger'][data-state='active'] {
+    background-color: var(--brand-navy);
     color: #ffffff;
   }
 }
