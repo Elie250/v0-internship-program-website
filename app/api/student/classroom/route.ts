@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-
-const MISSING_TABLE = /relation .* does not exist|could not find the table/i
+import { MISSING_TABLE, queryCourseSessions } from '@/lib/learning/classroom-sessions'
 
 async function sessionUser() {
   const cookieStore = await cookies()
@@ -40,32 +39,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'You are not admitted to this programme' }, { status: 403 })
   }
 
-  const [announcementsRes, sessionsRes] = await Promise.all([
+  const [announcementsRes, sessionsResult] = await Promise.all([
     supabaseAdmin
       .from('course_announcements')
       .select('id, title, message, created_at')
       .eq('course_id', courseId)
       .order('created_at', { ascending: false })
       .limit(20),
-    supabaseAdmin
-      .from('course_sessions')
-      .select(
-        'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist'
-      )
-      .eq('course_id', courseId)
-      .order('scheduled_at', { ascending: true })
-      .limit(50),
+    queryCourseSessions(courseId, 50),
   ])
 
-  // Tables optional until the migration runs — return empty feed instead of erroring.
   const announcements =
     announcementsRes.error && MISSING_TABLE.test(announcementsRes.error.message)
       ? []
       : (announcementsRes.data ?? [])
   const sessions =
-    sessionsRes.error && MISSING_TABLE.test(sessionsRes.error.message)
+    sessionsResult.error && MISSING_TABLE.test(sessionsResult.error)
       ? []
-      : (sessionsRes.data ?? [])
+      : sessionsResult.sessions
 
   return NextResponse.json({ announcements, sessions })
 }

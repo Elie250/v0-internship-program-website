@@ -35,6 +35,7 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [kitNotice, setKitNotice] = useState('')
 
   const [annForm, setAnnForm] = useState({ title: '', message: '', scope: 'class' as 'class' | 'programme' | 'platform' })
   const [annSaving, setAnnSaving] = useState(false)
@@ -63,6 +64,13 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
       if (!res.ok) throw new Error(data.error || 'Failed to load classroom data')
       setAnnouncements(data.announcements ?? [])
       setSessions(data.sessions ?? [])
+      if (data.kitColumnsReady === false) {
+        setKitNotice(
+          'Session materials/checklist need scripts/39-phase4-classroom.sql in Supabase. Until then, those fields are saved inside session notes.'
+        )
+      } else {
+        setKitNotice('')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load classroom data')
     } finally {
@@ -179,6 +187,11 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
       {message ? (
         <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-3">
           {message}
+        </p>
+      ) : null}
+      {kitNotice ? (
+        <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-md p-3">
+          {kitNotice}
         </p>
       ) : null}
 

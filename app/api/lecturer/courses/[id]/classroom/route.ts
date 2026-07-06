@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireLecturerCourseAccess } from '@/lib/lecturer/access'
 import { displayNameFromUser } from '@/lib/learning/display-creator'
+import {
+  MISSING_TABLE,
+  insertCourseSession,
+  queryCourseSessions,
+} from '@/lib/learning/classroom-sessions'
 
-const MISSING_TABLE = /relation .* does not exist|could not find the table/i
+const MISSING_TABLE_LEGACY = MISSING_TABLE
 
 function tableNotReady(message: string) {
   return NextResponse.json(
@@ -28,38 +33,34 @@ export async function GET(
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    const [announcementsRes, sessionsRes] = await Promise.all([
+    const [announcementsRes, sessionsResult] = await Promise.all([
       supabaseAdmin
         .from('course_announcements')
         .select('id, title, message, created_at')
         .eq('course_id', courseId)
         .order('created_at', { ascending: false })
         .limit(50),
-      supabaseAdmin
-        .from('course_sessions')
-        .select(
-          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist, created_at'
-        )
-        .eq('course_id', courseId)
-        .order('scheduled_at', { ascending: true })
-        .limit(100),
+      queryCourseSessions(courseId, 100),
     ])
 
-    const missing = [announcementsRes.error, sessionsRes.error].find(
-      (e) => e && MISSING_TABLE.test(e.message)
-    )
+    const missing = announcementsRes.error && MISSING_TABLE_LEGACY.test(announcementsRes.error.message)
+      ? announcementsRes.error
+      : sessionsResult.error && MISSING_TABLE_LEGACY.test(sessionsResult.error)
+        ? { message: sessionsResult.error }
+        : null
     if (missing) return tableNotReady(missing.message)
 
     if (announcementsRes.error) {
       return NextResponse.json({ error: announcementsRes.error.message }, { status: 500 })
     }
-    if (sessionsRes.error) {
-      return NextResponse.json({ error: sessionsRes.error.message }, { status: 500 })
+    if (sessionsResult.error) {
+      return NextResponse.json({ error: sessionsResult.error }, { status: 500 })
     }
 
     return NextResponse.json({
       announcements: announcementsRes.data ?? [],
-      sessions: sessionsRes.data ?? [],
+      sessions: sessionsResult.sessions,
+      kitColumnsReady: sessionsResult.kitColumnsReady,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load classroom data'
@@ -128,7 +129,7 @@ export async function POST(
         .single()
 
       if (error) {
-        if (MISSING_TABLE.test(error.message)) return tableNotReady(error.message)
+        if (MISSING_TABLE_LEGACY.test(error.message)) return tableNotReady(error.message)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
       return NextResponse.json(data)
@@ -146,31 +147,31 @@ export async function POST(
       }
 
       const duration = body.duration_minutes != null ? Number(body.duration_minutes) : null
-      const { data, error } = await supabaseAdmin
-        .from('course_sessions')
-        .insert({
-          course_id: courseId,
-          created_by: user.id,
-          topic,
-          scheduled_at: scheduledDate.toISOString(),
-          duration_minutes: duration && duration > 0 ? Math.round(duration) : null,
-          meeting_link: String(body.meeting_link ?? '').trim() || null,
-          location: String(body.location ?? '').trim() || null,
-          recording_url: String(body.recording_url ?? '').trim() || null,
-          notes: String(body.notes ?? '').trim() || null,
-          session_materials: String(body.session_materials ?? '').trim() || null,
-          pre_session_checklist: String(body.pre_session_checklist ?? '').trim() || null,
-        })
-        .select(
-          'id, topic, scheduled_at, duration_minutes, meeting_link, location, recording_url, notes, session_materials, pre_session_checklist, created_at'
-        )
-        .single()
+      const result = await insertCourseSession({
+        courseId,
+        createdBy: user.id,
+        topic,
+        scheduled_at: scheduledDate.toISOString(),
+        duration_minutes: duration && duration > 0 ? Math.round(duration) : null,
+        meeting_link: String(body.meeting_link ?? '').trim() || null,
+        location: String(body.location ?? '').trim() || null,
+        recording_url: String(body.recording_url ?? '').trim() || null,
+        notes: String(body.notes ?? '').trim() || null,
+        session_materials: String(body.session_materials ?? '').trim() || null,
+        pre_session_checklist: String(body.pre_session_checklist ?? '').trim() || null,
+      })
 
-      if (error) {
-        if (MISSING_TABLE.test(error.message)) return tableNotReady(error.message)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+      if (result.error) {
+        if (MISSING_TABLE_LEGACY.test(result.error)) return tableNotReady(result.error)
+        return NextResponse.json({ error: result.error }, { status: 500 })
       }
-      return NextResponse.json(data)
+      if (!result.session) {
+        return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+      }
+      return NextResponse.json({
+        ...result.session,
+        kitColumnsReady: result.kitColumnsReady,
+      })
     }
 
     return NextResponse.json({ error: 'Unknown kind' }, { status: 400 })
