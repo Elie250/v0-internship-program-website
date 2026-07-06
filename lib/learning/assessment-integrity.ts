@@ -52,6 +52,11 @@ function shuffle<T>(items: T[]): T[] {
   return copy
 }
 
+function parseQuestionOrder(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.map((id: unknown) => String(id))
+}
+
 function policyFromRow(row: Record<string, unknown>): AssessmentPolicy {
   const reveal = String(row.reveal_answers ?? 'after_all_attempts')
   return {
@@ -374,9 +379,7 @@ export async function resumeAssessmentAttempt(
     .eq('id', attempt.assessment_id)
     .maybeSingle()
 
-  const questionOrder = Array.isArray(attempt.question_order)
-    ? attempt.question_order.map(String)
-    : []
+  const questionOrder = parseQuestionOrder(attempt.question_order)
   const optionOrders = (attempt.option_orders ?? {}) as Record<string, number[]>
 
   const { data: questions } = await supabaseAdmin
@@ -506,9 +509,7 @@ export async function submitAssessmentAttempt(input: {
   if (!ctx.ok) return ctx
 
   const { policy, enrollment, questions } = ctx
-  const questionOrder = Array.isArray(attempt.question_order)
-    ? attempt.question_order.map(String)
-    : []
+  const questionOrder = parseQuestionOrder(attempt.question_order)
   const optionOrders = (attempt.option_orders ?? {}) as Record<string, number[]>
   const byId = new Map(questions.map((q) => [String(q.id), q]))
 
