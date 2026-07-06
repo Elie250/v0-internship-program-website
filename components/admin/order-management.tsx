@@ -100,7 +100,7 @@ export default function OrderManagement() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Shop orders</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Product orders</h1>
           <p className="text-slate-600 mt-1">
             Customer order requests from the shop cart. Contact them to confirm payment and fulfillment.
           </p>

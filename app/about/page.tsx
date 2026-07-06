@@ -118,7 +118,7 @@ export default async function AboutPage() {
           <CardHeader className="bg-slate-50 border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-slate-900">
               <ShoppingBag className="h-5 w-5 text-[var(--brand-navy)]" />
-              Engineering Shop
+              Engineering Products
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 pt-6">
@@ -149,7 +149,7 @@ export default async function AboutPage() {
             </div>
 
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm">
-              <p className="font-semibold text-indigo-900">Shop payments</p>
+              <p className="font-semibold text-indigo-900">Product payments</p>
               <p className="text-indigo-800/90 mt-1 text-xs leading-relaxed">
                 Payment is arranged after we confirm your order — MTN MoMo or cash on pickup. Online checkout via
                 IremboPay is coming soon for instant payment on shop orders.
@@ -159,7 +159,7 @@ export default async function AboutPage() {
             <div className="flex flex-wrap gap-2">
               <Link href="/shop">
                 <Button className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
-                  Visit the shop
+                  Visit products catalog
                 </Button>
               </Link>
               <Link href="/payment-instructions">

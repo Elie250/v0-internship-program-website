@@ -14,7 +14,7 @@ export async function fulfillApprovedPayment(paymentId: string): Promise<{
 
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from('payments')
-    .select('id, status, course_enrollment_id, support_subscription_id, application_id')
+    .select('id, status, course_enrollment_id, support_subscription_id, application_id, order_id')
     .eq('id', paymentId)
     .maybeSingle()
 
@@ -120,6 +120,42 @@ export async function fulfillApprovedPayment(paymentId: string): Promise<{
       const { sendSubscriptionApprovedEmail } = await import('@/lib/email/enrollment-notifications')
       void sendSubscriptionApprovedEmail({ to: subEmail, name: subName, planName })
     }
+  }
+
+  if (existing.order_id) {
+    const { decrementStockForLines } = await import('@/lib/shop/order-helpers')
+
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        status: 'confirmed',
+        paid_at: now,
+        updated_at: now,
+      })
+      .eq('id', existing.order_id)
+
+    const { data: orderItems } = await supabaseAdmin
+      .from('order_items')
+      .select('product_id, product_name, quantity, unit_price, unit_cost, line_total')
+      .eq('order_id', existing.order_id)
+
+    const { data: productRows } = await supabaseAdmin
+      .from('products')
+      .select('id, name, price, discount, stock, cost_price')
+      .in('id', (orderItems ?? []).map((i) => i.product_id))
+
+    const productMap = new Map((productRows ?? []).map((p) => [p.id, p]))
+    const lines = (orderItems ?? []).map((item) => ({
+      product_id: String(item.product_id),
+      product_name: String(item.product_name ?? ''),
+      quantity: Number(item.quantity),
+      unit_price: Number(item.unit_price),
+      unit_cost: Number(item.unit_cost ?? 0),
+      line_total: Number(item.line_total),
+    }))
+
+    await decrementStockForLines(lines, productMap)
   }
 
   const { notifyPaymentReviewed } = await import('@/lib/email/payment-hooks')

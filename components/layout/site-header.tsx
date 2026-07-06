@@ -129,7 +129,7 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
   const topLinks = [
     { href: '/', label: 'Home' },
     { href: '/tools', label: 'Tools' },
-    { href: '/shop', label: 'Shop' },
+    { href: '/shop', label: 'Products' },
     { href: '/engineering-support', label: 'Engineering Support' },
     { href: '/about', label: 'About' },
   ]
@@ -239,7 +239,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
 
           <Link href="/shop">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-              Shop
+              Products
             </Button>
           </Link>
 

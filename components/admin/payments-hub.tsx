@@ -18,8 +18,8 @@ export default function PaymentsHub() {
   return (
     <div className="space-y-6">
       <AdminSectionHeader
-        title="Payments center"
-        description="Review all MoMo receipt submissions in one place — programme enrollments, shop orders, and engineer support plans."
+        title="E-learning payments"
+        description="Verify MoMo receipts for programme enrollments and engineer support plans. Product order receipts appear here too."
       />
       <Tabs defaultValue="programme">
         <TabsList className="bg-white border border-slate-200 w-full sm:w-auto flex">
@@ -27,7 +27,7 @@ export default function PaymentsHub() {
             value="programme"
             className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
           >
-            Programme & shop
+            Programme enrollments
           </TabsTrigger>
           <TabsTrigger
             value="engineer"

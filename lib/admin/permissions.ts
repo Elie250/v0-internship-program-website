@@ -83,7 +83,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   },
   {
     id: 'shop',
-    label: 'Shop',
+    label: 'Products',
     permissions: [
       { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products & stock', description: 'Manage catalog and inventory' },
       { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders', description: 'View and fulfil customer orders' },
