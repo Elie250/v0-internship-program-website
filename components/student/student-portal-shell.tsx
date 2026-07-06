@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { BookOpen, GraduationCap, Home, LogOut, Megaphone, User, Award, Video } from 'lucide-react'
+import { BookOpen, Calculator, GraduationCap, Home, LogOut, Megaphone, User, Award, Video } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/actions/auth-service'
@@ -13,6 +13,7 @@ const nav = [
   { href: '/student/dashboard', label: 'My learning', icon: GraduationCap, tab: 'courses' },
   { href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
   { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
+  { href: '/student/tools', label: 'Tools', icon: Calculator },
   { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone, tab: 'announcements' },
   { href: '/student/certificates', label: 'Certificates', icon: Award },
   { href: '/student/profile', label: 'Profile', icon: User },
@@ -38,6 +39,9 @@ export function StudentPortalShell({
   const isActive = (item: (typeof nav)[0]) => {
     if (item.href.startsWith('/student/courses')) {
       return pathname.startsWith('/student/courses')
+    }
+    if (item.href === '/student/tools') {
+      return pathname.startsWith('/student/tools')
     }
     if (item.href === '/student/certificates') {
       return pathname.startsWith('/student/certificates')
@@ -119,6 +123,11 @@ export function StudentPortalShell({
         <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2">
           <p className="font-semibold text-slate-900 text-sm truncate">{COMPANY.platformName}</p>
           <div className="flex gap-1 shrink-0">
+            <Link href="/student/tools">
+              <Button size="sm" variant="outline" className="text-xs px-2 text-slate-900 border-slate-300">
+                Tools
+              </Button>
+            </Link>
             <Link href="/student/profile">
               <Button size="sm" variant="outline" className="text-xs px-2 text-slate-900 border-slate-300">
                 Profile

@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
   BookOpen,
+  Calculator,
   Clock,
   ExternalLink,
   Lock,
@@ -196,7 +197,7 @@ function CoursesTab({
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-slate-900">My courses</h2>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-slate-200">
           <CardContent className="pt-4">
             <p className="text-sm text-slate-600">Active courses</p>
@@ -220,6 +221,19 @@ function CoursesTab({
             </p>
           </CardContent>
         </Card>
+        <Link href="/student/tools" className="no-underline hover:no-underline">
+          <Card className="border-slate-200 h-full hover:border-[var(--brand-navy)]/40 hover:shadow-sm transition-shadow">
+            <CardContent className="pt-4">
+              <p className="text-sm text-slate-600 flex items-center gap-1.5">
+                <Calculator className="h-4 w-4" />
+                Engineering tools
+              </p>
+              <p className="text-sm font-semibold text-[var(--brand-navy)] mt-2">
+                Calculators &amp; helpers →
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <h3 className="text-lg font-semibold text-slate-900">Continue learning</h3>
