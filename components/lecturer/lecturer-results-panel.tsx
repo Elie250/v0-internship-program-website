@@ -23,6 +23,7 @@ type Standing = {
   averageScore: number | null
   eligible: boolean
   certificateCode: string | null
+  certificateStatus: string | null
 }
 
 export function LecturerResultsPanel({ courseId }: { courseId: string }) {
@@ -56,7 +57,7 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
   }, [load])
 
   const certify = async (enrollmentId: string, name: string) => {
-    if (!confirm(`Confirm passing average and issue certificate for ${name}?`)) return
+    if (!confirm(`Confirm passing average for ${name}? The certificate goes to admin for final approval.`)) return
     setCertifying(enrollmentId)
     setError('')
     setMessage('')
@@ -68,11 +69,13 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
         body: JSON.stringify({ enrollmentId }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to issue certificate')
-      setMessage(`Certificate issued for ${name} — code ${data.certificateCode}`)
+      if (!res.ok) throw new Error(data.error || 'Failed to confirm pass')
+      setMessage(
+        `Pass confirmed for ${name} — certificate ${data.certificateCode} sent to admin for final approval.`
+      )
       await load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to issue certificate')
+      setError(err instanceof Error ? err.message : 'Failed to confirm pass')
     } finally {
       setCertifying(null)
     }
@@ -84,7 +87,7 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
         <CardTitle className="text-base text-slate-900">Results & certification</CardTitle>
         <p className="text-sm text-slate-600">
           When a student completes every assessment with an average of {passingScore}% or higher,
-          confirm to generate their certificate automatically.
+          confirm the pass. Admin gives final approval before the certificate is issued.
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -122,7 +125,12 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    {student.certificateCode ? (
+                    {student.certificateCode && student.certificateStatus === 'pending_admin' ? (
+                      <Badge className="bg-amber-100 text-amber-900">
+                        <Award className="h-3 w-3 mr-1" />
+                        Awaiting admin approval · {student.certificateCode}
+                      </Badge>
+                    ) : student.certificateCode ? (
                       <Badge className="bg-green-100 text-green-800">
                         <Award className="h-3 w-3 mr-1" />
                         Certified · {student.certificateCode}
@@ -136,8 +144,8 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
                       >
                         <Award className="h-4 w-4 mr-1" />
                         {certifying === student.enrollmentId
-                          ? 'Issuing…'
-                          : 'Confirm pass & issue certificate'}
+                          ? 'Confirming…'
+                          : 'Confirm pass (send to admin)'}
                       </Button>
                     ) : (
                       <Badge className="bg-slate-100 text-slate-700">Not yet eligible</Badge>

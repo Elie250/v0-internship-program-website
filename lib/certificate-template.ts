@@ -4,6 +4,8 @@ export type CertificateData = {
   completionDate: Date
   certificateId: string
   finalScore?: number | null
+  /** Free programmes render a diagonal "Energy & Logics" watermark. */
+  freeCourse?: boolean
   /** Origin used to resolve image assets (print window has no base URL). */
   assetBaseUrl?: string
   verifyUrl?: string
@@ -21,6 +23,7 @@ export function createCertificateHTML({
   completionDate,
   certificateId,
   finalScore,
+  freeCourse = false,
   assetBaseUrl = '',
   verifyUrl,
 }: CertificateData): string {
@@ -106,6 +109,28 @@ export function createCertificateHTML({
           pointer-events: none;
         }
         .watermark img { width: 150mm; }
+
+        /* Free-programme text watermark */
+        .text-watermark {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .text-watermark span {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 64px;
+          font-weight: 700;
+          letter-spacing: 8px;
+          color: #1e3a5f;
+          opacity: 0.10;
+          transform: rotate(-24deg);
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
 
         .content {
           position: absolute;
@@ -260,6 +285,7 @@ export function createCertificateHTML({
         <div class="corner br"></div>
 
         <div class="watermark"><img src="${logoUrl}" alt=""></div>
+        ${freeCourse ? '<div class="text-watermark"><span>Energy &amp; Logics</span></div>' : ''}
 
         <div class="content">
           <img class="logo" src="${logoUrl}" alt="Energy & Logics">

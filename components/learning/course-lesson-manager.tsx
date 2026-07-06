@@ -72,24 +72,93 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     void load()
   }, [load])
 
+  const addLesson = async (payload: {
+    title: string
+    content_type: string
+    content_url: string
+  }): Promise<boolean> => {
+    const res = await fetch(contentBase, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      notify('error', data.error || 'Failed to add lesson')
+      return false
+    }
+    return true
+  }
+
   const handleUpload = async (file: File) => {
     setUploading(true)
     setLocalError('')
     try {
-      const body = new FormData()
-      body.append('file', file)
-      const res = await fetch(uploadUrl, {
+      let url: string | null = null
+
+      // Direct-to-storage upload (bypasses serverless body size limits)
+      const targetRes = await fetch(`${uploadUrl}-url`, {
         method: 'POST',
         credentials: 'same-origin',
-        body,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, type: file.type, size: file.size }),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        notify('error', data.hint ? `${data.error} — ${data.hint}` : data.error || 'Upload failed')
-        return
+      const target = await targetRes.json().catch(() => ({}))
+
+      if (targetRes.ok && target.signedUrl) {
+        const putRes = await fetch(target.signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': target.contentType || file.type || 'application/octet-stream' },
+          body: file,
+        })
+        if (!putRes.ok) {
+          const text = await putRes.text().catch(() => '')
+          const mimeBlocked = /mime|not supported/i.test(text)
+          throw new Error(
+            mimeBlocked
+              ? 'Storage bucket rejected this file type — run scripts/25-platform-media-course-materials.sql in Supabase.'
+              : `Storage upload failed (${putRes.status})`
+          )
+        }
+        url = target.publicUrl
+      } else {
+        // Fallback to legacy server-side upload (small files only)
+        const body = new FormData()
+        body.append('file', file)
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          body,
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(
+            data.hint ? `${data.error} — ${data.hint}` : data.error || target.error || 'Upload failed'
+          )
+        }
+        url = data.url
       }
-      setForm((current) => ({ ...current, content_url: data.url }))
-      notify('success', 'File uploaded — review the URL and click Add lesson')
+
+      if (!url) throw new Error('Upload failed')
+
+      setForm((current) => ({ ...current, content_url: url as string }))
+
+      // Auto-save the lesson immediately so the upload is never lost
+      const fallbackTitle = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim()
+      const title = form.title.trim() || fallbackTitle || 'New lesson'
+      const saved = await addLesson({
+        title,
+        content_type: form.content_type,
+        content_url: url,
+      })
+      if (saved) {
+        setForm({ title: '', content_type: form.content_type, content_url: '' })
+        notify('success', `Lesson "${title}" uploaded and saved — students can see it now.`)
+        await load()
+      }
+    } catch (err) {
+      notify('error', err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setUploading(false)
     }
@@ -108,27 +177,19 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     setLoading(true)
     setLocalError('')
     try {
-      const res = await fetch(contentBase, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title.trim(),
-          content_type: form.content_type,
-          content_url: form.content_url.trim(),
-        }),
+      const saved = await addLesson({
+        title: form.title.trim(),
+        content_type: form.content_type,
+        content_url: form.content_url.trim(),
       })
-      const data = await res.json()
-      if (!res.ok) {
-        notify('error', data.error || 'Failed to add lesson')
-        return
+      if (saved) {
+        setForm({ title: '', content_type: 'video', content_url: '' })
+        notify(
+          'success',
+          'Lesson added — admitted students will see it on their course page immediately.'
+        )
+        await load()
       }
-      setForm({ title: '', content_type: 'video', content_url: '' })
-      notify(
-        'success',
-        'Lesson added — admitted students will see it on their course page immediately.'
-      )
-      await load()
     } finally {
       setLoading(false)
     }
@@ -260,11 +321,12 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
               />
               {uploading ? (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading…
+                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading &amp; saving lesson…
                 </span>
               ) : (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> PDF, video, or slides up to 25 MB
+                  <Upload className="h-3 w-3" /> PDF, video, or slides up to 25 MB — the lesson saves
+                  automatically after upload
                 </span>
               )}
             </div>

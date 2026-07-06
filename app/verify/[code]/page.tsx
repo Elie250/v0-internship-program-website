@@ -23,10 +23,18 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
   if (supabaseAdmin && certificateCode) {
     const { data } = await supabaseAdmin
       .from('student_certificates')
-      .select('student_name, program_title, issued_at, final_score')
+      .select('*')
       .eq('certificate_code', certificateCode)
       .maybeSingle()
-    certificate = data
+    // Only admin-approved certificates verify as authentic
+    if (data && ((data.status as string | null) ?? 'issued') === 'issued') {
+      certificate = {
+        student_name: data.student_name,
+        program_title: data.program_title,
+        issued_at: data.issued_at,
+        final_score: data.final_score ?? null,
+      }
+    }
   }
 
   return (

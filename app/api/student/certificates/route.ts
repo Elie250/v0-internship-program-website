@@ -29,5 +29,10 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(data ?? [])
+  // Only admin-approved certificates are visible/downloadable
+  const issued = (data ?? []).filter(
+    (row) => ((row.status as string | null) ?? 'issued') === 'issued'
+  )
+
+  return NextResponse.json(issued)
 }

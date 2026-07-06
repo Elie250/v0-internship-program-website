@@ -58,7 +58,7 @@ export async function GET(request: Request) {
 
   const { data: certificate } = await supabaseAdmin
     .from('student_certificates')
-    .select('certificate_code, issued_at')
+    .select('*')
     .eq('enrollment_id', enrollment.id)
     .maybeSingle()
 
@@ -101,7 +101,11 @@ export async function GET(request: Request) {
     completedQuizzes: taken.length,
     totalQuizzes: payload.length,
     certificate: certificate
-      ? { code: certificate.certificate_code, issuedAt: certificate.issued_at }
+      ? {
+          code: certificate.certificate_code,
+          issuedAt: certificate.issued_at,
+          status: ((certificate.status as string | null) ?? 'issued'),
+        }
       : null,
   })
 }

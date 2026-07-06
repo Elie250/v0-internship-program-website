@@ -237,6 +237,7 @@ export type StudentQuizStanding = {
   averageScore: number | null
   eligible: boolean
   certificateCode: string | null
+  certificateStatus: string | null
 }
 
 /** Roster with per-quiz scores and average; eligible = all published quizzes taken and average >= pass mark. */
@@ -281,16 +282,25 @@ export async function queryCourseQuizStandings(
     submissions = data ?? []
   }
 
-  let certificates: Array<{ enrollment_id: string; certificate_code: string }> = []
+  let certificates: Array<{
+    enrollment_id: string
+    certificate_code: string
+    status?: string | null
+  }> = []
   if (enrollmentIds.length) {
     const { data } = await supabaseAdmin
       .from('student_certificates')
-      .select('enrollment_id, certificate_code')
+      .select('*')
       .in('enrollment_id', enrollmentIds)
     certificates = (data ?? []) as typeof certificates
   }
 
-  const certByEnrollment = new Map(certificates.map((c) => [String(c.enrollment_id), c.certificate_code]))
+  const certByEnrollment = new Map(
+    certificates.map((c) => [
+      String(c.enrollment_id),
+      { code: c.certificate_code, status: c.status ?? 'issued' },
+    ])
+  )
   const quizTitleById = new Map(gradedQuizzes.map((q) => [q.id, q.title]))
 
   const standings: StudentQuizStanding[] = (enrollments ?? []).map((enrollment) => {
@@ -318,6 +328,8 @@ export async function queryCourseQuizStandings(
       averageScore != null &&
       averageScore >= passingScore
 
+    const cert = certByEnrollment.get(String(enrollment.id)) ?? null
+
     return {
       enrollmentId: enrollment.id,
       userId: (enrollment.user_id as string | null) ?? null,
@@ -328,19 +340,20 @@ export async function queryCourseQuizStandings(
       totalQuizzes: gradedQuizzes.length,
       averageScore,
       eligible,
-      certificateCode: certByEnrollment.get(String(enrollment.id)) ?? null,
+      certificateCode: cert?.code ?? null,
+      certificateStatus: cert?.status ?? null,
     }
   })
 
   return { standings, passingScore }
 }
 
-/** Lecturer confirms a passing average → certificate is generated and emailed. */
+/** Lecturer confirms a passing average → certificate record created, awaiting admin final approval. */
 export async function certifyStudentCompletion(input: {
   courseId: string
   enrollmentId: string
   issuedBy?: string | null
-}): Promise<{ success: boolean; error?: string; certificateCode?: string }> {
+}): Promise<{ success: boolean; error?: string; certificateCode?: string; pendingAdmin?: boolean }> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
   const { standings, passingScore, error } = await queryCourseQuizStandings(input.courseId)
@@ -350,7 +363,11 @@ export async function certifyStudentCompletion(input: {
   if (!standing) return { success: false, error: 'Student not found in this programme' }
 
   if (standing.certificateCode) {
-    return { success: true, certificateCode: standing.certificateCode }
+    return {
+      success: true,
+      certificateCode: standing.certificateCode,
+      pendingAdmin: standing.certificateStatus === 'pending_admin',
+    }
   }
 
   if (!standing.eligible || standing.averageScore == null) {
@@ -362,15 +379,19 @@ export async function certifyStudentCompletion(input: {
 
   const { data: enrollment } = await supabaseAdmin
     .from('course_enrollments')
-    .select('id, user_id, course_id, applicant_name, applicant_email, course:courses(title)')
+    .select('id, user_id, course_id, applicant_name, applicant_email, amount_due, course:courses(title, pricing)')
     .eq('id', input.enrollmentId)
     .maybeSingle()
 
   if (!enrollment) return { success: false, error: 'Enrollment not found' }
 
-  const course = enrollment.course as { title?: string } | { title?: string }[] | null
-  const programTitle =
-    (Array.isArray(course) ? course[0]?.title : course?.title) ?? 'Engineering Programme'
+  const course = enrollment.course as
+    | { title?: string; pricing?: number | null }
+    | { title?: string; pricing?: number | null }[]
+    | null
+  const courseRow = Array.isArray(course) ? course[0] : course
+  const programTitle = courseRow?.title ?? 'Engineering Programme'
+  const isFree = Number(enrollment.amount_due ?? courseRow?.pricing ?? 0) <= 0
   const certificateCode = generateCertificateId()
 
   const insertPayload: Record<string, unknown> = {
@@ -382,28 +403,72 @@ export async function certifyStudentCompletion(input: {
     program_title: programTitle,
     issued_by: input.issuedBy ?? null,
     final_score: standing.averageScore,
+    status: 'pending_admin',
+    is_free: isFree,
   }
 
   let { error: certError } = await supabaseAdmin.from('student_certificates').insert([insertPayload])
 
-  if (certError?.message?.includes('final_score')) {
-    const { final_score: _omit, ...fallback } = insertPayload
-    const retry = await supabaseAdmin.from('student_certificates').insert([fallback])
-    certError = retry.error
+  if (certError && /status|is_free|final_score/.test(certError.message)) {
+    return {
+      success: false,
+      error:
+        'Certificate approval columns missing. Run scripts/28-certificate-approval.sql (and 27) in Supabase.',
+    }
   }
 
   if (certError) {
     return { success: false, error: certError.message }
   }
 
-  if (enrollment.applicant_email) {
+  return { success: true, certificateCode, pendingAdmin: true }
+}
+
+/** Admin final approval → certificate becomes valid and the student is emailed. */
+export async function approveCertificate(input: {
+  certificateId: string
+  adminUserId?: string | null
+}): Promise<{ success: boolean; error?: string; certificateCode?: string }> {
+  if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+  const { data: certificate } = await supabaseAdmin
+    .from('student_certificates')
+    .select('*')
+    .eq('id', input.certificateId)
+    .maybeSingle()
+
+  if (!certificate) return { success: false, error: 'Certificate not found' }
+
+  const status = (certificate.status as string | null) ?? 'issued'
+  if (status === 'issued') {
+    return { success: true, certificateCode: certificate.certificate_code as string }
+  }
+
+  const { error: updateError } = await supabaseAdmin
+    .from('student_certificates')
+    .update({
+      status: 'issued',
+      approved_by: input.adminUserId ?? null,
+      approved_at: new Date().toISOString(),
+    })
+    .eq('id', input.certificateId)
+
+  if (updateError) return { success: false, error: updateError.message }
+
+  const { data: enrollment } = await supabaseAdmin
+    .from('course_enrollments')
+    .select('applicant_name, applicant_email')
+    .eq('id', certificate.enrollment_id as string)
+    .maybeSingle()
+
+  if (enrollment?.applicant_email) {
     void sendCertificateIssuedEmail({
       to: enrollment.applicant_email,
-      studentName: enrollment.applicant_name,
-      programTitle,
-      certificateCode,
+      studentName: (certificate.student_name as string) ?? enrollment.applicant_name,
+      programTitle: certificate.program_title as string,
+      certificateCode: certificate.certificate_code as string,
     })
   }
 
-  return { success: true, certificateCode }
+  return { success: true, certificateCode: certificate.certificate_code as string }
 }
