@@ -1,5 +1,23 @@
 export function isDirectVideoFile(url: string): boolean {
-  return /\.(mp4|webm|ogg)(\?|$)/i.test(url)
+  return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)
+}
+
+export function isYouTubeOrVimeo(url: string): boolean {
+  try {
+    const parsed = new URL(url.trim())
+    const host = parsed.hostname.toLowerCase()
+    return host.includes('youtube.com') || host === 'youtu.be' || host.includes('vimeo.com')
+  } catch {
+    return false
+  }
+}
+
+/** Prefer native <video> for course uploads; use iframe only for YouTube/Vimeo links. */
+export function useNativeVideoPlayer(url: string, contentType?: string): boolean {
+  if (contentType === 'video') {
+    return !isYouTubeOrVimeo(url)
+  }
+  return isDirectVideoFile(url)
 }
 
 export function embedMediaUrl(url: string): string | null {

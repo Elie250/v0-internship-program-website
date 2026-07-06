@@ -7,6 +7,40 @@ import {
   verifyEnrollmentLessonAccess,
 } from '@/lib/learning/lesson-integrity'
 
+export async function GET(request: Request) {
+  try {
+    const user = await getCurrentUser()
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Please log in.' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const courseId = String(searchParams.get('courseId') ?? '').trim()
+    const contentId = String(searchParams.get('contentId') ?? '').trim()
+
+    if (!courseId || !contentId) {
+      return NextResponse.json({ error: 'courseId and contentId are required' }, { status: 400 })
+    }
+
+    const access = await verifyEnrollmentLessonAccess(user.id, courseId, contentId)
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: 403 })
+    }
+
+    return NextResponse.json({
+      timeSpentSeconds: access.existing.timeSpentSeconds,
+      watchPercent: access.existing.watchPercent,
+      completed: access.existing.completed,
+      contentType: access.contentType,
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to load progress' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser()
@@ -52,7 +86,12 @@ export async function POST(request: Request) {
         )
       }
 
-      return NextResponse.json({ success: true, heartbeat: true })
+      return NextResponse.json({
+        success: true,
+        heartbeat: true,
+        timeSpentSeconds: result.timeSpentSeconds,
+        watchPercent: result.watchPercent,
+      })
     }
 
     if (completed === false && access.existing.completionVerified) {
@@ -63,14 +102,14 @@ export async function POST(request: Request) {
     }
 
     if (completed === true) {
-      const timeSpent =
-        elapsedSeconds != null
-          ? Math.max(access.existing.timeSpentSeconds, Math.floor(elapsedSeconds))
-          : access.existing.timeSpentSeconds
-      const watch =
-        watchPercent != null
-          ? Math.max(access.existing.watchPercent, Math.floor(watchPercent))
-          : access.existing.watchPercent
+      const timeSpent = Math.max(
+        access.existing.timeSpentSeconds,
+        elapsedSeconds != null ? Math.floor(elapsedSeconds) : 0
+      )
+      const watch = Math.max(
+        access.existing.watchPercent,
+        watchPercent != null ? Math.floor(watchPercent) : 0
+      )
 
       const result = await completeLessonWithIntegrity({
         userId: user.id,
