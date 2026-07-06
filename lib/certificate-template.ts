@@ -394,6 +394,17 @@ export function createCertificateHTML({
           z-index: 3;
         }
         .footer .cert-id { font-weight: 600; color: #4a5568; }
+
+        .free-upgrade-note {
+          display: block;
+          margin-top: 1.5mm;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 8px;
+          font-weight: 600;
+          color: #b8941f;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+        }
       </style>
     </head>
     <body>
@@ -466,6 +477,7 @@ export function createCertificateHTML({
         <div class="footer">
           <span class="cert-id">Certificate ID: ${certificateId}</span>
           ${verifyUrl ? ` &nbsp;·&nbsp; Verify at ${verifyUrl}` : ''}
+          ${freeCourse ? `<span class="free-upgrade-note">Upgrade plan to remove watermark</span>` : ''}
         </div>
       </div>
 
