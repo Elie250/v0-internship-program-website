@@ -42,7 +42,9 @@ const navDropdownItemClass =
   'cursor-pointer text-slate-800 focus:bg-slate-100 focus:text-slate-900'
 
 const headerNavButtonClass =
-  'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/40 h-9 px-2.5 text-sm'
+  'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/40 h-9 px-3 text-sm font-medium'
+
+const desktopHeaderInnerClass = 'hidden lg:grid lg:grid-cols-[auto_1fr_auto] lg:items-center lg:gap-6 max-w-7xl mx-auto w-full px-6 xl:px-8 py-2.5'
 
 const mobileNavLinkClass =
   'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
@@ -198,86 +200,84 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           : 'sticky top-0 bg-[var(--brand-navy)]'
       }`}
     >
-      {/* Desktop — logo + nav grouped left, auth right */}
-      <div className="hidden lg:flex w-full items-center justify-between gap-6 px-5 xl:px-8 py-2.5">
-        <div className="flex items-center gap-5 xl:gap-8 min-w-0">
-          <Link
-            href="/"
-            className="flex items-center gap-2.5 shrink-0 hover:opacity-90 transition no-underline hover:no-underline"
-          >
-            <BrandMark logoUrl={logoUrl} />
-            <div className="min-w-0 hidden xl:block">
-              <p className="font-bold text-base leading-tight text-white truncate">{COMPANY.brandName}</p>
-              <p className="text-[10px] text-white/80 truncate leading-snug max-w-[12rem]">{COMPANY.slogan}</p>
-            </div>
+      {/* Desktop — logo left · nav centered · auth right */}
+      <div className={desktopHeaderInnerClass}>
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 shrink-0 hover:opacity-90 transition no-underline hover:no-underline min-w-0"
+        >
+          <BrandMark logoUrl={logoUrl} />
+          <div className="min-w-0 hidden lg:block max-w-[11rem] xl:max-w-[13rem]">
+            <p className="font-bold text-sm xl:text-base leading-tight text-white truncate">{COMPANY.brandName}</p>
+            <p className="text-[10px] text-white/75 truncate leading-snug hidden xl:block">{COMPANY.slogan}</p>
+          </div>
+        </Link>
+
+        <div className="flex items-center justify-center gap-0.5 flex-wrap min-w-0">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Home
+            </Button>
           </Link>
 
-          <div className="flex items-center gap-0.5 flex-wrap">
-            <Link href="/">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                Home
+                Learning <ChevronDown className="ml-0.5 h-3.5 w-3.5 opacity-80" />
               </Button>
-            </Link>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className={navDropdownContentClass}>
+              {learningLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                  Learning <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className={navDropdownContentClass}>
-                {learningLinks.map((link) => (
-                  <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
-                    <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
-                      {link.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <Link href="/shop">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Shop
+            </Button>
+          </Link>
 
-            <Link href="/shop">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                Shop
+                Career <ChevronDown className="ml-0.5 h-3.5 w-3.5 opacity-80" />
               </Button>
-            </Link>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className={navDropdownContentClass}>
+              {careerLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                  Career <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className={navDropdownContentClass}>
-                {careerLinks.map((link) => (
-                  <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
-                    <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
-                      {link.label}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Link href="/about">
-              <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                About
-              </Button>
-            </Link>
-            <Link href="/reviews">
-              <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-                Reviews
-              </Button>
-            </Link>
-          </div>
+          <Link href="/about">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              About
+            </Button>
+          </Link>
+          <Link href="/reviews">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Reviews
+            </Button>
+          </Link>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center justify-end gap-2 shrink-0">
           <Link href="/auth/login" className="text-sm font-semibold text-white hover:text-white px-2 py-1 no-underline hover:underline whitespace-nowrap">
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">
-            <Button size="sm" className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-8 px-3 shadow-sm border border-white">
+            <Button size="sm" className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-4 shadow-sm border border-white">
               Register
             </Button>
           </Link>
