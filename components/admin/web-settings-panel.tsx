@@ -48,7 +48,7 @@ function SaveSettingsButton({
       type="button"
       onClick={onClick}
       disabled={saving || uploading}
-      className={`bg-[var(--brand-navy)] text-white shrink-0 ${className}`}
+      className={`bg-[var(--brand-navy)] text-white shrink-0 pointer-events-auto relative z-[60] ${className}`}
     >
       <Save className="h-4 w-4 mr-2" />
       {saving ? 'Saving…' : uploading ? 'Uploading…' : 'Save all settings'}
@@ -139,8 +139,8 @@ export default function WebSettingsPanel() {
   }
 
   return (
-    <div className="space-y-6 pb-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="space-y-6 pb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 relative z-[60]">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Website settings</h1>
           <p className="text-slate-600 mt-1">
@@ -361,12 +361,8 @@ export default function WebSettingsPanel() {
         </TabsContent>
       </Tabs>
 
-      {/* Sticky save bar — always reachable while scrolling */}
-      <div className="sticky bottom-0 z-30 mt-8 -mx-1 border-t border-slate-200 bg-white/95 backdrop-blur px-1 py-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-600 hidden sm:block">Changes are not live until you save.</p>
-          <SaveSettingsButton onClick={handleSave} saving={saving} uploading={uploading} className="w-full sm:w-auto ml-auto" />
-        </div>
+      <div className="relative z-[60] flex justify-end pt-4 border-t border-slate-200">
+        <SaveSettingsButton onClick={handleSave} saving={saving} uploading={uploading} className="w-full sm:w-auto" />
       </div>
     </div>
   )

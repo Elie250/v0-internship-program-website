@@ -91,7 +91,10 @@ export default function StudentProfilePage() {
               </div>
             </div>
             <p className="text-xs text-slate-500">
-              To change your password, sign out and use forgot password on the login page, or contact{' '}
+              <Link href="/auth/forgot-password" className="text-[var(--brand-navy)] underline font-medium">
+                Reset your password
+              </Link>
+              {' '}from the login page, or contact{' '}
               <a href={`mailto:${COMPANY.email}`} className="text-[var(--brand-navy)] underline">
                 {COMPANY.email}
               </a>
