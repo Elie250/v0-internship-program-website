@@ -13,8 +13,10 @@ import {
   ShieldCheck,
   ShoppingBag,
   Users,
+  type LucideIcon,
 } from 'lucide-react'
 import type { AdminStats } from '@/app/actions/admin-context'
+import { PERMISSIONS, hasPermission } from '@/lib/admin/permissions'
 
 type ActionAlert = {
   id: string
@@ -25,10 +27,10 @@ type ActionAlert = {
   cta: string
 }
 
-function buildActionAlerts(stats: AdminStats): ActionAlert[] {
+function buildActionAlerts(stats: AdminStats, permissions: string[]): ActionAlert[] {
   const alerts: ActionAlert[] = []
 
-  if (stats.pendingStaffApprovals > 0) {
+  if (stats.pendingStaffApprovals > 0 && hasPermission(permissions, PERMISSIONS.USERS_VIEW)) {
     alerts.push({
       id: 'staff',
       title: 'Staff awaiting approval',
@@ -39,7 +41,7 @@ function buildActionAlerts(stats: AdminStats): ActionAlert[] {
     })
   }
 
-  if (stats.pendingPayments > 0) {
+  if (stats.pendingPayments > 0 && hasPermission(permissions, PERMISSIONS.PAYMENTS_VIEW)) {
     alerts.push({
       id: 'payments',
       title: 'Payments to verify',
@@ -50,7 +52,7 @@ function buildActionAlerts(stats: AdminStats): ActionAlert[] {
     })
   }
 
-  if (stats.pendingEnrollments > 0) {
+  if (stats.pendingEnrollments > 0 && hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)) {
     alerts.push({
       id: 'enrollments',
       title: 'Enrollments pending payment',
@@ -64,43 +66,104 @@ function buildActionAlerts(stats: AdminStats): ActionAlert[] {
   return alerts
 }
 
-export function AdminOverview({ stats }: { stats: AdminStats }) {
-  const actionAlerts = buildActionAlerts(stats)
+type MetricCard = {
+  label: string
+  value: number
+  icon: LucideIcon
+  hint: string
+}
 
-  const cards = [
-    { label: 'Users', value: stats.users, icon: Users, hint: `${stats.students} students` },
-    {
-      label: 'Course enrollments',
-      value: stats.courseEnrollments,
-      icon: GraduationCap,
-      hint: `${stats.admittedEnrollments} admitted · ${stats.pendingEnrollments} pending payment`,
-    },
-    {
-      label: 'Pending payments',
-      value: stats.pendingPayments,
-      icon: CreditCard,
-      hint: `${stats.approvedPaymentsTotal.toLocaleString()} RWF verified total`,
-    },
-    {
-      label: 'Staff approvals',
-      value: stats.pendingStaffApprovals,
-      icon: ShieldCheck,
-      hint: stats.pendingStaffApprovals > 0 ? 'Action required' : 'All staff accounts active',
-    },
-    { label: 'Courses', value: stats.courses, icon: BookOpen, hint: `${stats.publishedCourses} published` },
-    { label: 'Applications', value: stats.applications, icon: ClipboardList, hint: 'Internship / program applications' },
-    { label: 'Products', value: stats.products, icon: ShoppingBag, hint: 'Shop catalog' },
-    { label: 'Announcements', value: stats.announcements, icon: Megaphone, hint: 'Published content' },
-    { label: 'Support tickets', value: stats.supportTickets, icon: Headphones, hint: 'Open pipeline' },
-  ]
+export function AdminOverview({
+  stats,
+  permissions = [],
+}: {
+  stats: AdminStats
+  permissions?: string[]
+}) {
+  const actionAlerts = buildActionAlerts(stats, permissions)
+
+  const cards: MetricCard[] = [
+    hasPermission(permissions, PERMISSIONS.USERS_VIEW)
+      ? { label: 'Users', value: stats.users, icon: Users, hint: `${stats.students} students` }
+      : null,
+    hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)
+      ? {
+          label: 'Course enrollments',
+          value: stats.courseEnrollments,
+          icon: GraduationCap,
+          hint: `${stats.admittedEnrollments} admitted · ${stats.pendingEnrollments} pending payment`,
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.PAYMENTS_VIEW)
+      ? {
+          label: 'Pending payments',
+          value: stats.pendingPayments,
+          icon: CreditCard,
+          hint: `${stats.approvedPaymentsTotal.toLocaleString()} RWF verified total`,
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.USERS_VIEW)
+      ? {
+          label: 'Staff approvals',
+          value: stats.pendingStaffApprovals,
+          icon: ShieldCheck,
+          hint: stats.pendingStaffApprovals > 0 ? 'Action required' : 'All staff accounts active',
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
+      ? {
+          label: 'Courses',
+          value: stats.courses,
+          icon: BookOpen,
+          hint: `${stats.publishedCourses} published`,
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.APPLICATIONS_VIEW)
+      ? {
+          label: 'Applications',
+          value: stats.applications,
+          icon: ClipboardList,
+          hint: 'Internship / program applications',
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)
+      ? { label: 'Products', value: stats.products, icon: ShoppingBag, hint: 'Shop catalog' }
+      : null,
+    hasPermission(permissions, PERMISSIONS.CONTENT_ANNOUNCEMENTS)
+      ? {
+          label: 'Announcements',
+          value: stats.announcements,
+          icon: Megaphone,
+          hint: 'Published content',
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.SUPPORT_TICKETS)
+      ? {
+          label: 'Support tickets',
+          value: stats.supportTickets,
+          icon: Headphones,
+          hint: 'Open pipeline',
+        }
+      : null,
+  ].filter(Boolean) as MetricCard[]
 
   const quickLinks = [
-    { label: 'Programs / Courses', href: '/admin/dashboard/courses' },
-    { label: 'All users', href: '/admin/dashboard/users' },
-    { label: 'Payment receipts', href: '/admin/dashboard/payments' },
-    { label: 'Enrollments', href: '/admin/dashboard/enrollments' },
-    { label: 'Settings', href: '/admin/dashboard/settings' },
-  ]
+    hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
+      ? { label: 'Programs / Courses', href: '/admin/dashboard/courses' }
+      : null,
+    hasPermission(permissions, PERMISSIONS.USERS_VIEW)
+      ? { label: 'All users', href: '/admin/dashboard/users' }
+      : null,
+    hasPermission(permissions, PERMISSIONS.PAYMENTS_VIEW)
+      ? { label: 'Payment receipts', href: '/admin/dashboard/payments' }
+      : null,
+    hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)
+      ? { label: 'Enrollments', href: '/admin/dashboard/enrollments' }
+      : null,
+    hasPermission(permissions, PERMISSIONS.SETTINGS_MANAGE)
+      ? { label: 'Settings', href: '/admin/dashboard/settings' }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; href: string }>
 
   return (
     <div className="space-y-8">
@@ -159,41 +222,45 @@ export function AdminOverview({ stats }: { stats: AdminStats }) {
         </Card>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Key metrics
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {cards.map((card) => {
-            const Icon = card.icon
-            return (
-              <Card key={card.label} className="shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-slate-700">{card.label}</CardTitle>
-                  <Icon className="h-4 w-4 text-[var(--brand-navy)]" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{card.value}</div>
-                  <p className="text-xs text-slate-600 mt-1">{card.hint}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </section>
+      {cards.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Key metrics
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {cards.map((card) => {
+              const Icon = card.icon
+              return (
+                <Card key={card.label} className="shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-700">{card.label}</CardTitle>
+                    <Icon className="h-4 w-4 text-[var(--brand-navy)]" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-slate-900">{card.value}</div>
+                    <p className="text-xs text-slate-600 mt-1">{card.hint}</p>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Quick links
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {quickLinks.map((link) => (
-            <Button key={link.href} asChild variant="secondary" size="sm">
-              <Link href={link.href}>{link.label}</Link>
-            </Button>
-          ))}
-        </div>
-      </section>
+      {quickLinks.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Quick links
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {quickLinks.map((link) => (
+              <Button key={link.href} asChild variant="secondary" size="sm">
+                <Link href={link.href}>{link.label}</Link>
+              </Button>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

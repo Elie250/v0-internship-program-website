@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { requirePlatformAdmin } from '@/lib/admin/access-control'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 import { validateInstructorId } from '@/lib/admin/instructor-assignment'
@@ -116,6 +117,7 @@ export async function PATCH(
     const body = await request.json()
 
     if (body.instructor_id !== undefined) {
+      await requirePlatformAdmin()
       const instructor = await validateInstructorId(body.instructor_id)
       if (instructor.error) {
         return NextResponse.json({ error: instructor.error }, { status: 400 })
@@ -144,7 +146,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
+    await requirePlatformAdmin()
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }

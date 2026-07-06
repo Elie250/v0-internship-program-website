@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { requireAdminPermission } from '@/app/actions/admin-context'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { requirePlatformAdmin } from '@/lib/admin/access-control'
 import { queryAssignableLecturers } from '@/lib/admin/data/lecturers'
 
 export async function GET() {
   try {
-    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
+    await requirePlatformAdmin()
     const { lecturers, error } = await queryAssignableLecturers()
     if (error) {
       return NextResponse.json({ error }, { status: 500 })
