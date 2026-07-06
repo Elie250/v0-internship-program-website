@@ -2,13 +2,86 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { PERMISSIONS, hasPermission } from '@/lib/admin/permissions'
 import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
 import {
   isPendingPaymentStatus,
   paymentStatusForApproval,
   safeReviewedById,
 } from '@/lib/payments/status'
+
+type PaymentReviewRow = {
+  id: string
+  status: string
+  course_enrollment_id: string | null
+  support_subscription_id: string | null
+  application_id: string | null
+  order_id: string | null
+}
+
+async function fetchPaymentForReview(paymentId: string): Promise<{
+  payment: PaymentReviewRow | null
+  error?: string
+}> {
+  if (!supabaseAdmin) return { payment: null, error: 'Database not configured' }
+
+  const withOrder =
+    'id, status, course_enrollment_id, support_subscription_id, application_id, order_id'
+  const base = 'id, status, course_enrollment_id, support_subscription_id, application_id'
+
+  let { data, error } = await supabaseAdmin
+    .from('payments')
+    .select(withOrder)
+    .eq('id', paymentId)
+    .maybeSingle()
+
+  if (error?.message?.includes('order_id')) {
+    const retry = await supabaseAdmin.from('payments').select(base).eq('id', paymentId).maybeSingle()
+    data = retry.data
+    error = retry.error
+  }
+
+  if (error || !data) {
+    return { payment: null, error: error?.message ?? 'Payment not found' }
+  }
+
+  let orderId = (data as PaymentReviewRow).order_id ?? null
+  if (!orderId) {
+    const { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('id')
+      .eq('payment_id', paymentId)
+      .maybeSingle()
+    orderId = order?.id ?? null
+  }
+
+  return {
+    payment: {
+      ...(data as PaymentReviewRow),
+      order_id: orderId,
+    },
+  }
+}
+
+function canReviewPayment(
+  permissions: string[] | undefined,
+  payment: PaymentReviewRow
+): boolean {
+  if (payment.order_id) {
+    return hasPermission(permissions, [PERMISSIONS.PAYMENTS_APPROVE, PERMISSIONS.SHOP_ORDERS])
+  }
+  if (payment.course_enrollment_id) {
+    return hasPermission(permissions, [
+      PERMISSIONS.PAYMENTS_APPROVE,
+      PERMISSIONS.APPLICATIONS_APPROVE,
+      PERMISSIONS.LEARNING_STUDENTS,
+    ])
+  }
+  if (payment.support_subscription_id) {
+    return hasPermission(permissions, [PERMISSIONS.PAYMENTS_APPROVE, PERMISSIONS.SUPPORT_TICKETS])
+  }
+  return hasPermission(permissions, PERMISSIONS.PAYMENTS_APPROVE)
+}
 
 export type PaymentRecord = {
   id: string
@@ -92,25 +165,24 @@ export async function reviewPayment(input: {
   adminNotes?: string
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdminPermission(PERMISSIONS.PAYMENTS_APPROVE)
+    const session = await getAdminSession()
+    if (!session) return { success: false, error: 'Unauthorized' }
+
     if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
-    const session = await getAdminSession()
+    const { payment: existing, error: fetchError } = await fetchPaymentForReview(input.id)
+
+    if (fetchError || !existing) {
+      return { success: false, error: fetchError ?? 'Payment not found' }
+    }
+
+    if (!canReviewPayment(session.user.permissions, existing)) {
+      return { success: false, error: 'You do not have permission to review this payment' }
+    }
+
     const status = paymentStatusForApproval(input.decision)
     const reviewedBy = safeReviewedById(session?.user.id)
     const now = new Date().toISOString()
-
-    const { data: existing, error: fetchError } = await supabaseAdmin
-      .from('payments')
-      .select(
-        'id, status, course_enrollment_id, support_subscription_id, application_id, order_id'
-      )
-      .eq('id', input.id)
-      .maybeSingle()
-
-    if (fetchError || !existing) {
-      return { success: false, error: fetchError?.message ?? 'Payment not found' }
-    }
 
     if (!isPendingPaymentStatus(String(existing.status))) {
       if (input.decision === 'approved' && String(existing.status) === 'approved') {

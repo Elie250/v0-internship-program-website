@@ -184,9 +184,20 @@ export default function ProductManagement() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this product?')) return
-    const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
-    if (res.ok) load()
+    if (!confirm('Delete this product? Products with order history will be archived instead.')) return
+    setError('')
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: 'DELETE', credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Delete failed')
+      if (data.archived) {
+        setError('')
+        alert(data.message || 'Product archived — it no longer appears in the shop.')
+      }
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
+    }
   }
 
   return (

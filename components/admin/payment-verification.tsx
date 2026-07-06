@@ -83,7 +83,7 @@ export default function PaymentVerificationPanel({ embedded = false }: { embedde
     }
     setSuccess(
       decision === 'approved'
-        ? 'Payment approved — student access activated'
+        ? 'Payment approved'
         : 'Payment rejected'
     )
     load()

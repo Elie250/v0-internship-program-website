@@ -54,7 +54,7 @@ export default function ApplicationsManagement() {
         <h1 className="text-2xl font-bold text-slate-900">All applications</h1>
         <p className="text-slate-600 mt-1">
           Programme enrollments with MoMo receipts are reviewed under{' '}
-          <strong>Programme enrollments</strong>. For the full student registry, open{' '}
+          <strong>E-learning payments</strong> or below. For the full student registry, open{' '}
           <Link href="/admin/dashboard/students" className="text-[var(--brand-navy)] underline-offset-2 hover:underline">
             Students
           </Link>

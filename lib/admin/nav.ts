@@ -125,7 +125,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/payments',
         icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
-        description: 'Programme and engineer plan MoMo receipts',
+        description: 'Programme enrollment MoMo receipts — separate from product orders',
       },
       {
         id: 'certificates',
@@ -160,6 +160,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/orders',
         icon: 'package',
         permission: PERMISSIONS.SHOP_ORDERS,
+        description: 'Orders with MoMo receipts — approve payment to confirm',
       },
       {
         id: 'pos',

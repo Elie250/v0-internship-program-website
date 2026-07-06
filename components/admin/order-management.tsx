@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { reviewPayment } from '@/app/actions/admin-payments'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -11,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Phone, Mail, MapPin, Package, Trash2 } from 'lucide-react'
+import { Phone, Mail, MapPin, Package, Trash2, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
 
 type OrderItem = {
   id: string
@@ -19,6 +22,17 @@ type OrderItem = {
   quantity: number
   unit_price: number
   line_total?: number
+}
+
+type OrderPayment = {
+  id: string
+  amount: number
+  status: string
+  payment_method: string | null
+  receipt_url: string | null
+  receipt_number: string | null
+  admin_notes: string | null
+  created_at: string
 }
 
 type ShopOrder = {
@@ -32,8 +46,11 @@ type ShopOrder = {
   notes?: string | null
   total_amount: number
   status: string
+  payment_status?: string | null
+  payment_method?: string | null
   created_at: string
   items?: OrderItem[]
+  payment?: OrderPayment | null
 }
 
 const STATUS_OPTIONS = [
@@ -59,6 +76,8 @@ export default function OrderManagement() {
   const [filter, setFilter] = useState('all')
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [reviewingPaymentId, setReviewingPaymentId] = useState<string | null>(null)
+  const [paymentNotes, setPaymentNotes] = useState<Record<string, string>>({})
 
   const load = async () => {
     setLoading(true)
@@ -78,15 +97,6 @@ export default function OrderManagement() {
   useEffect(() => {
     load()
   }, [])
-
-  const updateStatus = async (orderId: string, status: string) => {
-    const res = await fetch(`/api/admin/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    })
-    if (res.ok) load()
-  }
 
   const deleteOrder = async (orderId: string, orderNumber?: string) => {
     const label = orderNumber ?? orderId.slice(0, 8)
@@ -112,6 +122,50 @@ export default function OrderManagement() {
     }
   }
 
+  const updateStatus = async (orderId: string, status: string) => {
+    const res = await fetch(`/api/admin/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    if (res.ok) load()
+  }
+
+  const handlePaymentReview = async (paymentId: string, decision: 'approved' | 'rejected') => {
+    setReviewingPaymentId(paymentId)
+    setError('')
+    const result = await reviewPayment({
+      id: paymentId,
+      decision,
+      adminNotes: paymentNotes[paymentId],
+    })
+    setReviewingPaymentId(null)
+    if (!result.success) {
+      setError(result.error || 'Payment review failed')
+      return
+    }
+    await load()
+  }
+
+  const paymentStatusBadge = (status: string) => {
+    if (status === 'approved' || status === 'Paid') {
+      return <Badge className="bg-green-100 text-green-700">Payment accepted</Badge>
+    }
+    if (status === 'rejected') {
+      return <Badge className="bg-red-100 text-red-700">Payment rejected</Badge>
+    }
+    if (status === 'gateway_pending') {
+      return <Badge className="bg-blue-100 text-blue-700">Awaiting IremboPay</Badge>
+    }
+    return <Badge className="bg-amber-100 text-amber-900">Receipt pending review</Badge>
+  }
+
+  const isPaymentPendingReview = (payment?: OrderPayment | null) =>
+    Boolean(
+      payment &&
+        ['pending_review', 'Pending', 'pending'].includes(payment.status)
+    )
+
   const filtered = orders.filter((order) => {
     if (filter === 'all') return true
     return order.status?.toLowerCase() === filter
@@ -127,7 +181,7 @@ export default function OrderManagement() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Product orders</h1>
           <p className="text-slate-600 mt-1">
-            Customer order requests from the shop cart. Contact them to confirm payment and fulfillment.
+            Review MoMo receipts and approve product payments here. Approving marks the order as paid and confirmed.
           </p>
         </div>
         <Select value={filter} onValueChange={setFilter}>
@@ -266,6 +320,88 @@ export default function OrderManagement() {
                 <div className="flex justify-between items-center font-semibold">
                   <span>Total</span>
                   <span>{Number(order.total_amount).toLocaleString()} RWF</span>
+                </div>
+
+                <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium text-slate-900">Payment &amp; receipt</p>
+                    {order.payment
+                      ? paymentStatusBadge(order.payment.status)
+                      : order.payment_status
+                        ? paymentStatusBadge(order.payment_status)
+                        : (
+                          <Badge className="bg-slate-200 text-slate-700">No payment linked</Badge>
+                        )}
+                  </div>
+
+                  {order.payment ? (
+                    <>
+                      <p className="text-sm text-slate-600">
+                        {Number(order.payment.amount).toLocaleString()} RWF
+                        {order.payment.payment_method ? ` · ${order.payment.payment_method}` : ''}
+                        {order.payment.receipt_number ? ` · Ref ${order.payment.receipt_number}` : ''}
+                      </p>
+
+                      {order.payment.receipt_url ? (
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={order.payment.receipt_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View MoMo receipt
+                          </a>
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-amber-800">No receipt uploaded for this order.</p>
+                      )}
+
+                      {isPaymentPendingReview(order.payment) ? (
+                        <div className="border-t pt-3 space-y-2">
+                          <Label htmlFor={`pay-notes-${order.payment.id}`}>Admin notes</Label>
+                          <Input
+                            id={`pay-notes-${order.payment.id}`}
+                            placeholder="Optional note after visual check…"
+                            value={paymentNotes[order.payment.id] ?? ''}
+                            onChange={(e) =>
+                              setPaymentNotes((prev) => ({
+                                ...prev,
+                                [order.payment!.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-700 hover:bg-green-800 text-white"
+                              disabled={reviewingPaymentId === order.payment.id}
+                              onClick={() => handlePaymentReview(order.payment!.id, 'approved')}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-1" />
+                              {reviewingPaymentId === order.payment.id
+                                ? 'Approving…'
+                                : 'Approve payment'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-800 hover:bg-red-50"
+                              disabled={reviewingPaymentId === order.payment.id}
+                              onClick={() => handlePaymentReview(order.payment!.id, 'rejected')}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject payment
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      Payment record not found. Customer may still be completing checkout.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
