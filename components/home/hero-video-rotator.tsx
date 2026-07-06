@@ -109,7 +109,7 @@ export function HeroVideoRotator() {
         src={FALLBACK_POSTER}
         alt="Energy & Logics engineering training"
         fill
-        className="absolute inset-0 object-cover object-center scale-105"
+        className="absolute inset-0 object-cover object-center"
         priority
       />
     )
@@ -122,7 +122,7 @@ export function HeroVideoRotator() {
         alt=""
         fill
         aria-hidden
-        className="absolute inset-0 object-cover object-center scale-105"
+        className="absolute inset-0 object-cover object-center"
         priority
       />
       <video
@@ -133,7 +133,7 @@ export function HeroVideoRotator() {
         playsInline
         preload="auto"
         aria-label={`Hero background: ${current.label}`}
-        className={`absolute inset-0 h-full w-full object-cover object-center scale-105 transition-opacity duration-1000 ${
+        className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-1000 ${
           videoVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >

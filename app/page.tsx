@@ -14,8 +14,10 @@ import { ReviewsTrustSection } from '@/components/home/reviews-trust-section'
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background">
-      <SiteHeader />
-      <HomeHeroSection />
+      <div className="relative">
+        <SiteHeader overlay />
+        <HomeHeroSection fullViewport />
+      </div>
       <TrainingProgramsSection />
       <BrowseCoursesSection />
       <MembershipSection />
