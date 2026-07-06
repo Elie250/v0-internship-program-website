@@ -251,6 +251,14 @@ export function createCertificateHTML({
           padding-bottom: 1mm;
         }
 
+        .right-column {
+          width: 75mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3mm;
+        }
+
         .sig-block {
           text-align: center;
           width: 95mm;
@@ -321,19 +329,14 @@ export function createCertificateHTML({
 
         .date-block {
           text-align: center;
-          width: 75mm;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-end;
+          width: 100%;
         }
 
         .qr-block {
           text-align: center;
-          margin-bottom: 4mm;
           background: #fff;
-          padding: 2mm;
-          border: 1px solid #e2e8f0;
+          padding: 2mm 2.5mm;
+          border: 1px solid #d1d9e6;
           border-radius: 2mm;
         }
         .qr-block img {
@@ -441,7 +444,7 @@ export function createCertificateHTML({
               <div class="sig-org">Managing Director, Energy and Logics Ltd</div>
             </div>
 
-            <div class="date-block">
+            <div class="right-column">
               ${
                 qrImageUrl
                   ? `<div class="qr-block">
@@ -451,9 +454,11 @@ export function createCertificateHTML({
                     </div>`
                   : ''
               }
-              <div class="date-value">${formattedDate}</div>
-              <div class="date-rule"></div>
-              <div class="date-label">Date of Issue</div>
+              <div class="date-block">
+                <div class="date-value">${formattedDate}</div>
+                <div class="date-rule"></div>
+                <div class="date-label">Date of Issue</div>
+              </div>
             </div>
           </div>
         </div>
