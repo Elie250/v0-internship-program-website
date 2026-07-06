@@ -194,14 +194,7 @@ function CoursesTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold text-slate-900">My courses</h2>
-        <Link href="/student/courses?track=training">
-          <Button size="sm" variant="outline" className="text-slate-800">
-            Browse more programmes
-          </Button>
-        </Link>
-      </div>
+      <h2 className="text-xl font-bold text-slate-900">My courses</h2>
 
       <div className="grid sm:grid-cols-3 gap-4">
         <Card className="border-slate-200">

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getCurrentUser, logoutUser } from '@/app/actions/auth-service'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
 import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
 import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
+import { LecturerReportsPanel } from '@/components/lecturer/lecturer-reports-panel'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import {
@@ -22,6 +23,7 @@ import {
   LogOut,
   Users,
   Video,
+  FileBarChart,
 } from 'lucide-react'
 
 type CourseDetail = {
@@ -71,6 +73,10 @@ function statusBadge(status: string) {
 
 export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get('tab') ?? 'overview'
+  const validTabs = ['overview', 'lessons', 'students', 'assessments', 'reports']
+  const defaultTab = validTabs.includes(initialTab) ? initialTab : 'overview'
   const [user, setUser] = useState<{ firstName?: string; lastName?: string } | null>(null)
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
@@ -241,7 +247,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-4">
+        <Tabs defaultValue={defaultTab} className="space-y-4">
           <TabsList className="bg-white border border-slate-200 flex flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               Overview
@@ -256,6 +262,10 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
             </TabsTrigger>
             <TabsTrigger value="assessments" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               Assessments
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
+              <FileBarChart className="h-4 w-4 mr-1.5 hidden sm:inline" />
+              Reports
             </TabsTrigger>
           </TabsList>
 
@@ -376,6 +386,10 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
           <TabsContent value="assessments" className="space-y-4">
             <LecturerQuizBuilder courseId={courseId} />
             <LecturerResultsPanel courseId={courseId} />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <LecturerReportsPanel courseId={courseId} />
           </TabsContent>
         </Tabs>
       </main>

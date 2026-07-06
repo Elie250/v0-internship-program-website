@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
-import { BookOpen, Users, LogOut, Home } from 'lucide-react'
+import { BookOpen, Users, LogOut, Home, FileBarChart } from 'lucide-react'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -189,6 +189,12 @@ export function LecturerDashboardView() {
                     <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
                       <BookOpen className="w-4 h-4 mr-2" />
                       Open classroom
+                    </Button>
+                  </Link>
+                  <Link href={`/lecturer/courses/${course.id}?tab=reports`}>
+                    <Button variant="outline" className="w-full text-slate-800 border-slate-300">
+                      <FileBarChart className="w-4 h-4 mr-2" />
+                      View reports
                     </Button>
                   </Link>
                 </CardContent>
