@@ -2,6 +2,7 @@
 
 export const PAYMENT_PENDING_STATUSES = [
   'pending_review',
+  'gateway_pending',
   'Pending',
   'pending',
 ] as const

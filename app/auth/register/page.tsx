@@ -34,6 +34,7 @@ function RegisterForm() {
   const [debug, setDebug] = useState<AuthDebugInfo | null>(null)
   const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   const loginHref = redirectTo
     ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}`
@@ -55,6 +56,10 @@ function RegisterForm() {
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters')
+      return
+    }
+    if (!acceptedTerms) {
+      setError('Please accept the Terms & Conditions and Privacy Policy')
       return
     }
 
@@ -241,10 +246,30 @@ function RegisterForm() {
             </CollapsibleContent>
           </Collapsible>
 
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-[var(--brand-navy)]"
+            />
+            <span className="text-slate-700">
+              I agree to the{' '}
+              <Link href="/terms" target="_blank" className="text-[var(--brand-navy)] underline">
+                Terms & Conditions
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" target="_blank" className="text-[var(--brand-navy)] underline">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+
           <Button
             type="submit"
             className="w-full h-11 bg-[var(--brand-navy)] hover:bg-[var(--brand-navy)]/90 text-white"
-            disabled={isLoading}
+            disabled={isLoading || !acceptedTerms}
           >
             {isLoading ? 'Creating account…' : enrolling ? 'Create account & continue' : 'Create account'}
           </Button>
@@ -271,7 +296,10 @@ export default function RegisterPage() {
         </Suspense>
       </div>
       <p className="text-center text-xs text-slate-400 pb-6">
-        © {new Date().getFullYear()} {COMPANY.brandName}
+        © {new Date().getFullYear()} {COMPANY.brandName} ·{' '}
+        <Link href="/privacy" className="underline hover:text-slate-600">Privacy</Link>
+        {' · '}
+        <Link href="/terms" className="underline hover:text-slate-600">Terms</Link>
       </p>
     </div>
   )

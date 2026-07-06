@@ -56,8 +56,22 @@ export async function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto border-t border-white/15 mt-8 pt-6 text-center text-sm text-slate-300">
-        © {new Date().getFullYear()} {profile.legalName}. All rights reserved.
+      <div className="max-w-7xl mx-auto border-t border-white/15 mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-300 px-2">
+        <p>© {new Date().getFullYear()} {profile.legalName}. All rights reserved.</p>
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+          <Link href="/privacy" className="hover:text-white underline-offset-2 hover:underline">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-white underline-offset-2 hover:underline">
+            Terms & Conditions
+          </Link>
+          <Link href="/refund-policy" className="hover:text-white underline-offset-2 hover:underline">
+            Refund Policy
+          </Link>
+          <Link href="/payment-instructions" className="hover:text-white underline-offset-2 hover:underline">
+            Payments
+          </Link>
+        </div>
       </div>
     </footer>
   )
