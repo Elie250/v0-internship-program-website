@@ -16,6 +16,7 @@ type CertificateRow = {
   student_name: string
   program_title: string
   issued_at: string
+  final_score?: number | null
 }
 
 export default function StudentCertificates() {
@@ -43,18 +44,21 @@ export default function StudentCertificates() {
   }, [router])
 
   const printCert = (cert: CertificateRow) => {
+    const origin = window.location.origin
     const html = createCertificateHTML({
       fullName: cert.student_name,
       program: cert.program_title,
       completionDate: new Date(cert.issued_at),
       certificateId: cert.certificate_code,
+      finalScore: cert.final_score ?? null,
+      assetBaseUrl: origin,
+      verifyUrl: `${origin}/verify/${cert.certificate_code}`,
     })
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(html)
     win.document.close()
     win.focus()
-    win.print()
   }
 
   return (
