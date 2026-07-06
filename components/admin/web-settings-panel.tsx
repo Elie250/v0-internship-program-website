@@ -210,7 +210,10 @@ export default function WebSettingsPanel() {
               <Field label="Subtitle">
                 <Textarea rows={3} value={form.hero.subtitle} onChange={(e) => patchHero('subtitle', e.target.value)} />
               </Field>
-              <Field label="Background image URL">
+              <Field
+                label="Background image or video URL"
+                hint="Use /videos/your-file.mp4 for local hero videos, or an image path like /hero-laboratory.jpg"
+              >
                 <Input value={form.hero.background_image} onChange={(e) => patchHero('background_image', e.target.value)} />
               </Field>
               <div>
@@ -218,13 +221,16 @@ export default function WebSettingsPanel() {
                 <Input
                   ref={heroFileRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/mp4,video/webm"
                   className="mt-1"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) void uploadImage(file, 'hero', (url) => patchHero('background_image', url))
                   }}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  For large hero videos, add the file to <code className="text-xs">public/videos/</code> and set the URL above (e.g. /videos/hero.mp4).
+                </p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label="Primary button label">

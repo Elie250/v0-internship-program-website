@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { getActiveHero } from '@/lib/platform/queries'
+import { HeroBackgroundMedia } from '@/components/home/hero-background-media'
 import { COMPANY } from '@/lib/company/constants'
 import type { HeroContent } from '@/types/platform'
 
@@ -24,13 +24,7 @@ export async function HomeHeroSection() {
   return (
     <section className="relative min-h-[560px] md:min-h-[680px] lg:min-h-[760px] flex items-center overflow-hidden bg-black">
       {hero.background_image && (
-        <Image
-          src={hero.background_image}
-          alt={hero.title}
-          fill
-          className="object-cover object-center scale-105"
-          priority
-        />
+        <HeroBackgroundMedia src={hero.background_image} alt={hero.title} />
       )}
       <div className="absolute inset-0 z-[1] bg-black/50" aria-hidden />
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-24 w-full">
