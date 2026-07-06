@@ -26,6 +26,9 @@ async function saveLessonProgress(input: {
   contentId: string
   enrollmentId: string
   completed?: boolean
+  heartbeat?: boolean
+  watchPercent?: number
+  elapsedSeconds?: number
 }) {
   const res = await fetch('/api/student/lesson-progress', {
     method: 'POST',
@@ -101,15 +104,41 @@ export default function StudentCoursePage() {
     }
   }, [activeLessonId, course, recordLessonOpen])
 
-  const handleMarkComplete = async (lessonId: string, completed: boolean) => {
+  const handleLessonHeartbeat = useCallback(
+    async (lessonId: string, meta: { watchPercent: number; elapsedSeconds: number }) => {
+      if (!course) return
+      try {
+        await saveLessonProgress({
+          courseId: course.id,
+          contentId: lessonId,
+          enrollmentId: course.enrollmentId,
+          heartbeat: true,
+          watchPercent: meta.watchPercent,
+          elapsedSeconds: meta.elapsedSeconds,
+        })
+      } catch {
+        /* optional table */
+      }
+    },
+    [course]
+  )
+
+  const handleMarkComplete = async (
+    lessonId: string,
+    completed: boolean,
+    meta?: { watchPercent: number; timeSpentSeconds: number }
+  ) => {
     if (!course) return
     setProgressSaving(true)
+    setError('')
     try {
       await saveLessonProgress({
         courseId: course.id,
         contentId: lessonId,
         enrollmentId: course.enrollmentId,
         completed,
+        watchPercent: meta?.watchPercent,
+        elapsedSeconds: meta?.timeSpentSeconds,
       })
       setCourse((prev) => {
         if (!prev) return prev
@@ -250,7 +279,10 @@ export default function StudentCoursePage() {
                 enrollmentId={course.enrollmentId}
                 completed={Boolean(activeLesson.completed)}
                 progressSaving={progressSaving}
-                onProgress={(completed) => void handleMarkComplete(activeLesson.id, completed)}
+                onHeartbeat={(meta) => void handleLessonHeartbeat(activeLesson.id, meta)}
+                onProgress={(completed, meta) =>
+                  void handleMarkComplete(activeLesson.id, completed, meta)
+                }
               />
               <div className="flex justify-between gap-2">
                 {prevLesson ? (

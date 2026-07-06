@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { queryCourseQuizzes } from '@/lib/learning/quiz'
+import { getAssessmentAccessSummary } from '@/lib/learning/assessment-integrity'
+import { courseLessonsComplete } from '@/lib/learning/lesson-integrity'
 
 async function sessionUser() {
   const cookieStore = await cookies()
@@ -38,6 +40,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'You are not admitted to this programme' }, { status: 403 })
   }
 
+  const lessonProgress = await courseLessonsComplete(user.id, courseId)
+
   const { quizzes, error } = await queryCourseQuizzes(courseId, {
     includeAnswers: false,
     publishedOnly: true,
@@ -50,7 +54,9 @@ export async function GET(request: Request) {
   if (withQuestions.length) {
     const { data } = await supabaseAdmin
       .from('assessment_submissions')
-      .select('assessment_id, score, passed, attempt_count, correct_count, total_questions, submitted_at')
+      .select(
+        'assessment_id, score, passed, attempt_count, correct_count, total_questions, submitted_at, locked_at, best_score'
+      )
       .eq('enrollment_id', enrollment.id)
       .in('assessment_id', withQuestions.map((q) => q.id))
     submissions = data ?? []
@@ -64,31 +70,52 @@ export async function GET(request: Request) {
 
   const subByQuiz = new Map(submissions.map((s) => [String(s.assessment_id), s]))
 
-  const payload = withQuestions.map((quiz) => {
-    const sub = subByQuiz.get(quiz.id)
-    return {
-      id: quiz.id,
-      title: quiz.title,
-      description: quiz.description,
-      passing_score: quiz.passing_score,
-      questionCount: quiz.questions.length,
-      questions: quiz.questions.map((q) => ({
-        id: q.id,
-        question: q.question,
-        options: q.options,
-      })),
-      mySubmission: sub
-        ? {
-            score: Number(sub.score),
-            passed: Boolean(sub.passed),
-            attemptCount: Number(sub.attempt_count ?? 1),
-            correctCount: sub.correct_count != null ? Number(sub.correct_count) : null,
-            totalQuestions: sub.total_questions != null ? Number(sub.total_questions) : null,
-            submittedAt: (sub.submitted_at as string | null) ?? null,
-          }
-        : null,
-    }
-  })
+  const payload = await Promise.all(
+    withQuestions.map(async (quiz) => {
+      const sub = subByQuiz.get(quiz.id)
+      const access = await getAssessmentAccessSummary(quiz.id, user.id)
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        passing_score: quiz.passing_score,
+        questionCount: quiz.questions.length,
+        mySubmission: sub
+          ? {
+              score: Number(sub.best_score ?? sub.score),
+              passed: Boolean(sub.passed),
+              attemptCount: Number(sub.attempt_count ?? 1),
+              correctCount: sub.correct_count != null ? Number(sub.correct_count) : null,
+              totalQuestions: sub.total_questions != null ? Number(sub.total_questions) : null,
+              submittedAt: (sub.submitted_at as string | null) ?? null,
+              locked: Boolean(sub.locked_at),
+            }
+          : null,
+        security: access.ok
+          ? {
+              maxAttempts: access.policy.maxAttempts,
+              attemptsRemaining: access.attemptsRemaining,
+              timeLimitMinutes: access.policy.timeLimitMinutes,
+              canStart: access.canStart,
+              blockReason: access.blockReason,
+              inProgressAttemptId: access.inProgressAttemptId,
+              expiresAt: access.expiresAt,
+              requireLessonsComplete: access.policy.requireLessonsComplete,
+            }
+          : {
+              maxAttempts: 3,
+              attemptsRemaining: 3,
+              timeLimitMinutes: null,
+              canStart: false,
+              blockReason: access.error,
+              inProgressAttemptId: null,
+              expiresAt: null,
+              requireLessonsComplete: true,
+            },
+      }
+    })
+  )
 
   const taken = payload.filter((q) => q.mySubmission)
   const averageScore = taken.length
@@ -100,6 +127,7 @@ export async function GET(request: Request) {
     averageScore,
     completedQuizzes: taken.length,
     totalQuizzes: payload.length,
+    lessonProgress,
     certificate: certificate
       ? {
           code: certificate.certificate_code,
