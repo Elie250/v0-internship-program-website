@@ -25,6 +25,14 @@ type Quiz = {
   passing_score: number
   is_published: boolean
   questions: QuizQuestion[]
+  max_attempts?: number
+  time_limit_minutes?: number | null
+  shuffle_questions?: boolean
+  shuffle_options?: boolean
+  require_lessons_complete?: boolean
+  lock_after_pass?: boolean
+  cooldown_minutes?: number
+  reveal_answers?: string
 }
 
 const emptyQuestion = (): QuizQuestion => ({
@@ -46,6 +54,10 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [passingScore, setPassingScore] = useState('70')
+  const [maxAttempts, setMaxAttempts] = useState('3')
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState('45')
+  const [shuffleQuestions, setShuffleQuestions] = useState(true)
+  const [lockAfterPass, setLockAfterPass] = useState(true)
   const [questions, setQuestions] = useState<QuizQuestion[]>([emptyQuestion()])
 
   const load = useCallback(async () => {
@@ -74,6 +86,10 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
     setTitle('')
     setDescription('')
     setPassingScore('70')
+    setMaxAttempts('3')
+    setTimeLimitMinutes('45')
+    setShuffleQuestions(true)
+    setLockAfterPass(true)
     setQuestions([emptyQuestion()])
     setEditorOpen(true)
     setError('')
@@ -85,6 +101,10 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
     setTitle(quiz.title)
     setDescription(quiz.description ?? '')
     setPassingScore(String(quiz.passing_score))
+    setMaxAttempts(String(quiz.max_attempts ?? 3))
+    setTimeLimitMinutes(String(quiz.time_limit_minutes ?? 45))
+    setShuffleQuestions(quiz.shuffle_questions !== false)
+    setLockAfterPass(quiz.lock_after_pass !== false)
     setQuestions(
       quiz.questions.length
         ? quiz.questions.map((q) => ({
@@ -109,6 +129,10 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
         title: title.trim(),
         description: description.trim(),
         passing_score: Number(passingScore) || 70,
+        max_attempts: Number(maxAttempts) || 3,
+        time_limit_minutes: Number(timeLimitMinutes) || 45,
+        shuffle_questions: shuffleQuestions,
+        lock_after_pass: lockAfterPass,
         questions: questions.map((q) => ({
           question: q.question,
           options: q.options,
@@ -254,6 +278,25 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Shown to students before they start"
               />
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-lg border border-slate-200 bg-white p-3">
+              <div>
+                <Label className="text-xs">Max attempts</Label>
+                <Input className="mt-1" type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Time limit (min)</Label>
+                <Input className="mt-1" type="number" min={5} max={180} value={timeLimitMinutes} onChange={(e) => setTimeLimitMinutes(e.target.value)} />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
+                <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
+                Shuffle questions
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
+                <input type="checkbox" checked={lockAfterPass} onChange={(e) => setLockAfterPass(e.target.checked)} />
+                Lock after pass
+              </label>
             </div>
 
             <div className="space-y-4">

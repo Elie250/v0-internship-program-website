@@ -44,6 +44,7 @@ export async function GET() {
       issued_at: row.issued_at,
       final_score: row.final_score ?? null,
       is_free: row.is_free ?? false,
+      course_id: row.course_id,
       status: (row.status as string | null) ?? 'issued',
     }))
   )

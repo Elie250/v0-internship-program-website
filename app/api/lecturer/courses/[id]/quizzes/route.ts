@@ -82,6 +82,12 @@ export async function POST(
     if (qError) return NextResponse.json({ error: qError }, { status: 400 })
 
     const passingScore = Math.max(1, Math.min(100, Number(body.passing_score) || 70))
+    const integrity = {
+      max_attempts: Math.max(1, Math.min(10, Number(body.max_attempts) || 3)),
+      time_limit_minutes: Math.max(5, Math.min(180, Number(body.time_limit_minutes) || 45)),
+      shuffle_questions: body.shuffle_questions !== false,
+      lock_after_pass: body.lock_after_pass !== false,
+    }
 
     const { data: quiz, error: createError } = await supabaseAdmin
       .from('course_assessments')
@@ -93,6 +99,7 @@ export async function POST(
           passing_score: passingScore,
           sort_order: Number(body.sort_order) || 0,
           created_by: user.id,
+          ...integrity,
         },
       ])
       .select('id')
@@ -165,6 +172,18 @@ export async function PATCH(
     }
     if (body.is_published !== undefined) {
       update.is_published = body.is_published === true
+    }
+    if (body.max_attempts !== undefined) {
+      update.max_attempts = Math.max(1, Math.min(10, Number(body.max_attempts) || 3))
+    }
+    if (body.time_limit_minutes !== undefined) {
+      update.time_limit_minutes = Math.max(5, Math.min(180, Number(body.time_limit_minutes) || 45))
+    }
+    if (body.shuffle_questions !== undefined) {
+      update.shuffle_questions = body.shuffle_questions === true
+    }
+    if (body.lock_after_pass !== undefined) {
+      update.lock_after_pass = body.lock_after_pass === true
     }
 
     const { error: updateError } = await supabaseAdmin

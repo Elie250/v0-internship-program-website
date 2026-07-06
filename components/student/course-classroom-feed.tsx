@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { CalendarClock, ExternalLink, Megaphone } from 'lucide-react'
 
 type Announcement = {
@@ -39,6 +40,20 @@ export function CourseClassroomFeed({ courseId }: { courseId: string }) {
       .finally(() => setLoaded(true))
   }, [courseId])
 
+  const [checkInMsg, setCheckInMsg] = useState('')
+
+  const checkIn = async (sessionId: string) => {
+    setCheckInMsg('')
+    const res = await fetch('/api/student/attendance', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, courseId }),
+    })
+    const data = await res.json()
+    setCheckInMsg(res.ok ? 'Attendance recorded — thank you!' : data.error || 'Check-in failed')
+  }
+
   const nowMs = Date.now()
   const upcoming = sessions.filter(
     (s) => new Date(s.scheduled_at).getTime() >= nowMs - 3_600_000
@@ -51,6 +66,7 @@ export function CourseClassroomFeed({ courseId }: { courseId: string }) {
 
   return (
     <div className="space-y-4">
+      {checkInMsg ? <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-2">{checkInMsg}</p> : null}
       {upcoming.length > 0 ? (
         <Card className="border-blue-200 bg-blue-50/50">
           <CardHeader className="pb-2">
@@ -84,6 +100,15 @@ export function CourseClassroomFeed({ courseId }: { courseId: string }) {
                     Join session <ExternalLink className="h-3 w-3" />
                   </a>
                 ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 border-slate-300"
+                  onClick={() => checkIn(s.id)}
+                >
+                  Check in (attendance)
+                </Button>
               </div>
             ))}
           </CardContent>
