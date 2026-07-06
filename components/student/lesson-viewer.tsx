@@ -4,14 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Circle, FileText, Link2, PlayCircle, Download, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 import type { StudentLesson } from '@/app/actions/student-learning'
 import {
   embedMediaUrl,
-  isDirectVideoFile,
   isPdfUrl,
   isWebinarJoinUrl,
+  useNativeVideoPlayer,
 } from '@/lib/learning/media-embed'
 import { MIN_LESSON_SECONDS, MIN_VIDEO_WATCH_PERCENT } from '@/lib/learning/lesson-integrity'
+
+/** Seconds on an embedded player (YouTube/Vimeo) that count as 80% watched. */
+const EMBED_VIDEO_SECONDS_FOR_CREDIT = 60
 
 type LessonViewerProps = {
   lesson: StudentLesson
@@ -34,8 +38,124 @@ export function LessonViewer({
 }: LessonViewerProps) {
   const [timeSpentSeconds, setTimeSpentSeconds] = useState(0)
   const [watchPercent, setWatchPercent] = useState(0)
+  const [progressLoaded, setProgressLoaded] = useState(false)
   const openedAt = useRef(Date.now())
   const videoRef = useRef<HTMLVideoElement>(null)
+  const timeSpentRef = useRef(0)
+  const watchPercentRef = useRef(0)
+
+  const url = lesson.content_url?.trim() ?? ''
+  const isVideo = lesson.content_type === 'video'
+  const embed = isVideo ? embedMediaUrl(url) : null
+  const nativeVideo = Boolean(url && isVideo && useNativeVideoPlayer(url, lesson.content_type))
+  const embedOnly = Boolean(isVideo && embed && !nativeVideo)
+
+  const syncRefs = useCallback((time: number, watch: number) => {
+    timeSpentRef.current = time
+    watchPercentRef.current = watch
+  }, [])
+
+  const effectiveWatchPercent = embedOnly
+    ? Math.min(100, Math.round((timeSpentSeconds / EMBED_VIDEO_SECONDS_FOR_CREDIT) * MIN_VIDEO_WATCH_PERCENT))
+    : watchPercent
+
+  useEffect(() => {
+    let cancelled = false
+    setProgressLoaded(false)
+    openedAt.current = Date.now()
+
+    async function loadProgress() {
+      try {
+        const res = await fetch(
+          `/api/student/lesson-progress?courseId=${encodeURIComponent(courseId)}&contentId=${encodeURIComponent(lesson.id)}`,
+          { credentials: 'same-origin' }
+        )
+        const data = await res.json()
+        if (!res.ok || cancelled) return
+        const time = Number(data.timeSpentSeconds ?? 0)
+        const watch = Number(data.watchPercent ?? 0)
+        setTimeSpentSeconds(time)
+        setWatchPercent(watch)
+        syncRefs(time, watch)
+      } catch {
+        if (!cancelled) {
+          setTimeSpentSeconds(0)
+          setWatchPercent(0)
+          syncRefs(0, 0)
+        }
+      } finally {
+        if (!cancelled) setProgressLoaded(true)
+      }
+    }
+
+    void loadProgress()
+    return () => {
+      cancelled = true
+    }
+  }, [courseId, lesson.id, syncRefs])
+
+  const flushHeartbeat = useCallback(() => {
+    if (!onHeartbeat) return
+    const elapsed = Math.min(
+      20,
+      Math.max(1, Math.floor((Date.now() - openedAt.current) / 1000))
+    )
+    openedAt.current = Date.now()
+
+    const nextTime = timeSpentRef.current + elapsed
+    const nextWatch = embedOnly
+      ? Math.min(100, Math.round((nextTime / EMBED_VIDEO_SECONDS_FOR_CREDIT) * MIN_VIDEO_WATCH_PERCENT))
+      : watchPercentRef.current
+
+    setTimeSpentSeconds(nextTime)
+    if (embedOnly) {
+      setWatchPercent(nextWatch)
+    }
+    syncRefs(nextTime, nextWatch)
+
+    onHeartbeat({
+      watchPercent: embedOnly ? nextWatch : watchPercentRef.current,
+      elapsedSeconds: elapsed,
+    })
+  }, [embedOnly, onHeartbeat, syncRefs])
+
+  useEffect(() => {
+    if (!onHeartbeat || !progressLoaded) return
+
+    const id = window.setInterval(flushHeartbeat, 5000)
+    return () => window.clearInterval(id)
+  }, [flushHeartbeat, onHeartbeat, progressLoaded, lesson.id])
+
+  const updateWatchFromVideo = useCallback(() => {
+    const video = videoRef.current
+    if (!video?.duration || !Number.isFinite(video.duration) || video.duration <= 0) return
+    const pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100))
+    setWatchPercent((prev) => {
+      const next = Math.max(prev, pct)
+      watchPercentRef.current = next
+      return next
+    })
+  }, [])
+
+  const canComplete =
+    completed ||
+    (timeSpentSeconds >= MIN_LESSON_SECONDS &&
+      (!isVideo || effectiveWatchPercent >= MIN_VIDEO_WATCH_PERCENT))
+
+  const completeHint = completed
+    ? ''
+    : timeSpentSeconds < MIN_LESSON_SECONDS
+      ? `Stay on this lesson for ${Math.max(0, MIN_LESSON_SECONDS - timeSpentSeconds)}s more.`
+      : isVideo && effectiveWatchPercent < MIN_VIDEO_WATCH_PERCENT
+        ? embedOnly
+          ? `Keep watching — ${effectiveWatchPercent}% of required time (${MIN_VIDEO_WATCH_PERCENT}% needed).`
+          : `Watch ${MIN_VIDEO_WATCH_PERCENT}% of the video (${effectiveWatchPercent}% so far).`
+        : ''
+
+  const handleMarkComplete = () => {
+    if (!onProgress) return
+    onProgress(true, { watchPercent: effectiveWatchPercent, timeSpentSeconds: timeSpentRef.current })
+  }
 
   const icon =
     lesson.content_type === 'video'
@@ -49,49 +169,6 @@ export function LessonViewer({
             : Link2
 
   const Icon = icon
-  const url = lesson.content_url?.trim() ?? ''
-  const isVideo = lesson.content_type === 'video'
-
-  useEffect(() => {
-    openedAt.current = Date.now()
-    setTimeSpentSeconds(0)
-    setWatchPercent(0)
-  }, [lesson.id])
-
-  useEffect(() => {
-    if (!onHeartbeat) return
-
-    const tick = () => {
-      const elapsed = Math.min(
-        20,
-        Math.max(1, Math.floor((Date.now() - openedAt.current) / 1000))
-      )
-      openedAt.current = Date.now()
-      setTimeSpentSeconds((prev) => prev + elapsed)
-      onHeartbeat({ watchPercent, elapsedSeconds: elapsed })
-    }
-
-    const id = window.setInterval(tick, 15000)
-    return () => window.clearInterval(id)
-  }, [lesson.id, onHeartbeat, watchPercent])
-
-  const canComplete =
-    completed ||
-    (timeSpentSeconds >= MIN_LESSON_SECONDS &&
-      (!isVideo || watchPercent >= MIN_VIDEO_WATCH_PERCENT))
-
-  const completeHint = completed
-    ? ''
-    : timeSpentSeconds < MIN_LESSON_SECONDS
-      ? `Stay on this lesson for ${MIN_LESSON_SECONDS - timeSpentSeconds}s more before completing.`
-      : isVideo && watchPercent < MIN_VIDEO_WATCH_PERCENT
-        ? `Watch ${MIN_VIDEO_WATCH_PERCENT}% of the video (${watchPercent}% so far).`
-        : ''
-
-  const handleMarkComplete = () => {
-    if (!onProgress) return
-    onProgress(true, { watchPercent, timeSpentSeconds })
-  }
 
   const renderContent = () => {
     if (!url) {
@@ -113,31 +190,34 @@ export function LessonViewer({
       )
     }
 
-    if (lesson.content_type === 'video') {
-      const embed = embedMediaUrl(url)
-      if (embed && isDirectVideoFile(embed)) {
-        return (
-          <div className="aspect-video rounded-lg overflow-hidden bg-black">
-            <video
-              ref={videoRef}
-              src={embed}
-              controls
-              className="w-full h-full"
-              title={lesson.title}
-              onTimeUpdate={() => {
-                const video = videoRef.current
-                if (!video || !video.duration || !Number.isFinite(video.duration)) return
-                const pct = Math.round((video.currentTime / video.duration) * 100)
-                setWatchPercent((prev) => Math.max(prev, pct))
-              }}
-            >
-              Your browser does not support video playback.
-            </video>
-          </div>
-        )
-      }
-      if (embed) {
-        return (
+    if (isVideo && nativeVideo) {
+      const src = embed ?? url
+      return (
+        <div className="aspect-video rounded-lg overflow-hidden bg-black">
+          <video
+            ref={videoRef}
+            src={src}
+            controls
+            playsInline
+            preload="metadata"
+            className="w-full h-full"
+            title={lesson.title}
+            onLoadedMetadata={updateWatchFromVideo}
+            onTimeUpdate={updateWatchFromVideo}
+            onEnded={() => {
+              setWatchPercent(100)
+              watchPercentRef.current = 100
+            }}
+          >
+            Your browser does not support video playback.
+          </video>
+        </div>
+      )
+    }
+
+    if (isVideo && embed) {
+      return (
+        <div className="space-y-2">
           <div className="aspect-video rounded-lg overflow-hidden bg-black">
             <iframe
               src={embed}
@@ -147,8 +227,11 @@ export function LessonViewer({
               allowFullScreen
             />
           </div>
-        )
-      }
+          <p className="text-xs text-slate-500">
+            Embedded video — progress is tracked by time spent watching on this page.
+          </p>
+        </div>
+      )
     }
 
     if (isPdfUrl(url, lesson.content_type)) {
@@ -198,7 +281,7 @@ export function LessonViewer({
                 type="button"
                 size="sm"
                 variant={completed ? 'outline' : 'default'}
-                disabled={progressSaving || (!completed && !canComplete)}
+                disabled={progressSaving || !progressLoaded || (!completed && !canComplete)}
                 className={
                   completed
                     ? 'border-green-600 text-green-800 hover:bg-green-50'
@@ -224,6 +307,15 @@ export function LessonViewer({
             </div>
           ) : null}
         </div>
+        {!completed && isVideo && progressLoaded ? (
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between text-xs text-slate-600">
+              <span>Watch progress</span>
+              <span>{effectiveWatchPercent}%</span>
+            </div>
+            <Progress value={effectiveWatchPercent} className="h-1.5" />
+          </div>
+        ) : null}
         <p className="text-xs text-slate-500 sr-only">
           Course {courseId}, enrollment {enrollmentId}
         </p>

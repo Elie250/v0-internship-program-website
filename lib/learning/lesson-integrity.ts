@@ -166,7 +166,12 @@ export async function recordLessonHeartbeat(input: {
     return { success: false, error: error.message }
   }
 
-  return { success: true, tableReady: true }
+  return {
+    success: true,
+    tableReady: true,
+    timeSpentSeconds: Number(payload.time_spent_seconds),
+    watchPercent: Number(payload.watch_percent),
+  }
 }
 
 export async function completeLessonWithIntegrity(input: {
