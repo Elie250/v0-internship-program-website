@@ -1,16 +1,17 @@
 import Link from 'next/link'
-import { COMPANY } from '@/lib/company/constants'
+import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const profile = await loadPublicCompanyProfile()
+
   return (
     <footer className="text-on-dark bg-[#152a45] border-t border-white/10 px-4 py-12">
       <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
         <div>
-          <h3 className="font-bold text-lg mb-1">{COMPANY.brandName}</h3>
-          <p className="text-xs text-slate-300 mb-3">{COMPANY.platformName} platform</p>
+          <h3 className="font-bold text-lg mb-1">{profile.brandName}</h3>
+          <p className="text-xs text-slate-300 mb-3">{profile.platformName} platform</p>
           <p className="text-sm text-slate-200 leading-relaxed">
-            Hands-on engineering training in embedded systems, industrial control, and electrical
-            technology — based in {COMPANY.address}.
+            {profile.tagline} — based in {profile.address}.
           </p>
         </div>
         <div>
@@ -36,15 +37,15 @@ export function SiteFooter() {
           <h4 className="font-semibold mb-3 text-white">Contact</h4>
           <ul className="space-y-2 text-sm text-slate-200">
             <li>
-              <a href={`tel:${COMPANY.phone}`}>{COMPANY.phoneDisplay}</a>
+              <a href={`tel:${profile.phone}`}>{profile.phoneDisplay}</a>
             </li>
             <li>
-              <a href={`mailto:${COMPANY.email}`}>{COMPANY.email}</a>
+              <a href={`mailto:${profile.email}`}>{profile.email}</a>
             </li>
-            <li>{COMPANY.address}</li>
+            <li>{profile.address}</li>
             <li className="pt-1">
               <a
-                href={`https://wa.me/${COMPANY.whatsapp}`}
+                href={`https://wa.me/${profile.whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2"
@@ -56,7 +57,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto border-t border-white/15 mt-8 pt-6 text-center text-sm text-slate-300">
-        © {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.
+        © {new Date().getFullYear()} {profile.legalName}. All rights reserved.
       </div>
     </footer>
   )

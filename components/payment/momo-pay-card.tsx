@@ -6,9 +6,19 @@ type MomoPayCardProps = {
   className?: string
   amountLabel?: string
   compact?: boolean
+  momoPayCode?: string
+  accountName?: string
+  workflow?: string
 }
 
-export function MomoPayCard({ className, amountLabel, compact = false }: MomoPayCardProps) {
+export function MomoPayCard({
+  className,
+  amountLabel,
+  compact = false,
+  momoPayCode = PAYMENT.momoPayCode,
+  accountName = PAYMENT.accountName,
+  workflow = PAYMENT.workflow,
+}: MomoPayCardProps) {
   return (
     <div
       className={cn(
@@ -39,15 +49,15 @@ export function MomoPayCard({ className, amountLabel, compact = false }: MomoPay
           <div className="grid sm:grid-cols-2 gap-3 text-sm">
             <div className="bg-white rounded-lg border border-slate-200 p-3">
               <p className="text-xs text-slate-500 uppercase tracking-wide">MoMo Pay Code</p>
-              <p className="font-bold text-xl text-[var(--brand-navy)] mt-0.5">{PAYMENT.momoPayCode}</p>
+              <p className="font-bold text-xl text-[var(--brand-navy)] mt-0.5">{momoPayCode}</p>
             </div>
             <div className="bg-white rounded-lg border border-slate-200 p-3">
               <p className="text-xs text-slate-500 uppercase tracking-wide">Account name</p>
-              <p className="font-semibold text-slate-900 mt-0.5">{PAYMENT.accountName}</p>
+              <p className="font-semibold text-slate-900 mt-0.5">{accountName}</p>
             </div>
           </div>
           {!compact ? (
-            <p className="text-xs text-slate-600">{PAYMENT.workflow}</p>
+            <p className="text-xs text-slate-600">{workflow}</p>
           ) : null}
         </div>
       </div>

@@ -5,19 +5,18 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getSiteSetting } from '@/lib/platform/queries'
 import {
-  ABOUT_DEFAULT,
   COMPANY,
   FOUNDER,
-  MISSION_DEFAULT,
   PAYMENT,
   TRAINING_PROGRAMS,
 } from '@/lib/company/constants'
+import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 
 export default async function AboutPage() {
-  const about = await getSiteSetting('about_content', ABOUT_DEFAULT)
-  const mission = await getSiteSetting('mission_content', MISSION_DEFAULT)
+  const profile = await loadPublicCompanyProfile()
+  const about = profile.about
+  const mission = profile.mission
 
   return (
     <main className="min-h-screen bg-background">
@@ -27,7 +26,7 @@ export default async function AboutPage() {
           <p className="text-white/70 text-sm font-medium mb-2">{COMPANY.brandName} Ltd</p>
           <h1 className="text-4xl font-bold mb-2">About Us</h1>
           <p className="text-white/85 text-lg">
-            Practical engineering training and technical support from {COMPANY.address}.
+            Practical engineering training and technical support from {profile.address}.
           </p>
         </div>
       </section>
