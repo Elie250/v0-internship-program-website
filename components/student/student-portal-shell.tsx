@@ -5,8 +5,10 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import {
   Award,
+  BarChart3,
   BookOpen,
   Calculator,
+  CalendarClock,
   GraduationCap,
   Home,
   LogOut,
@@ -25,6 +27,8 @@ import { COMPANY } from '@/lib/company/constants'
 const nav = [
   { href: '/student/dashboard', label: 'My learning', icon: GraduationCap, tab: 'courses' },
   { href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
+  { href: '/student/calendar', label: 'Calendar', icon: CalendarClock },
+  { href: '/student/dashboard?tab=grades', label: 'Grades', icon: BarChart3, tab: 'grades' },
   { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
   { href: '/student/tools', label: 'Tools', icon: Calculator },
   { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone, tab: 'announcements' },
@@ -38,6 +42,7 @@ function useStudentNavActive(pathname: string, tab: string) {
       return pathname.startsWith('/student/courses')
     }
     if (item.href === '/student/tools') return pathname.startsWith('/student/tools')
+    if (item.href === '/student/calendar') return pathname.startsWith('/student/calendar')
     if (item.href === '/student/certificates') return pathname.startsWith('/student/certificates')
     if (item.href === '/student/profile') return pathname.startsWith('/student/profile')
     if (item.tab && item.href.startsWith('/student/dashboard')) {

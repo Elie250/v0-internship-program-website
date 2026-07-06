@@ -25,6 +25,8 @@ type ClassSession = {
   location: string | null
   recording_url: string | null
   notes: string | null
+  session_materials?: string | null
+  pre_session_checklist?: string | null
 }
 
 export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
@@ -44,6 +46,8 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
     meeting_link: '',
     location: '',
     notes: '',
+    session_materials: '',
+    pre_session_checklist: '',
   })
   const [sessionSaving, setSessionSaving] = useState(false)
   const [attendanceSessionId, setAttendanceSessionId] = useState<string | null>(null)
@@ -127,6 +131,8 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
         meeting_link: '',
         location: '',
         notes: '',
+        session_materials: '',
+        pre_session_checklist: '',
       })
       setMessage('Session scheduled — it appears on the students’ course page.')
       await load()
@@ -339,6 +345,30 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
                   value={sessionForm.notes}
                   onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
                   placeholder="e.g., Bring your multimeter and laptop"
+                />
+              </div>
+              <div>
+                <Label>Session materials (links or file URLs, one per line)</Label>
+                <Textarea
+                  className="mt-1"
+                  rows={2}
+                  value={sessionForm.session_materials}
+                  onChange={(e) =>
+                    setSessionForm({ ...sessionForm, session_materials: e.target.value })
+                  }
+                  placeholder="https://…/slides.pdf&#10;https://…/lab-sheet"
+                />
+              </div>
+              <div>
+                <Label>Pre-session checklist (one item per line)</Label>
+                <Textarea
+                  className="mt-1"
+                  rows={2}
+                  value={sessionForm.pre_session_checklist}
+                  onChange={(e) =>
+                    setSessionForm({ ...sessionForm, pre_session_checklist: e.target.value })
+                  }
+                  placeholder="Laptop charged&#10;Multimeter&#10;Safety goggles"
                 />
               </div>
               <Button
@@ -570,6 +600,34 @@ function SessionRow({
           {session.location ? ` · ${session.location}` : ''}
         </p>
         {session.notes ? <p className="text-xs text-slate-600">{session.notes}</p> : null}
+        {session.session_materials ? (
+          <div className="text-xs text-slate-700">
+            <p className="font-medium">Materials:</p>
+            <ul className="list-disc pl-4">
+              {session.session_materials.split('\n').filter(Boolean).map((line) => (
+                <li key={line}>
+                  {line.startsWith('http') ? (
+                    <a href={line} target="_blank" rel="noopener noreferrer" className="underline text-[var(--brand-navy)]">
+                      {line}
+                    </a>
+                  ) : (
+                    line
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {session.pre_session_checklist ? (
+          <div className="text-xs text-slate-700">
+            <p className="font-medium">Checklist:</p>
+            <ul className="list-disc pl-4">
+              {session.pre_session_checklist.split('\n').filter(Boolean).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div className="flex flex-wrap gap-3 text-xs">
           {session.meeting_link ? (
             <a

@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
 import { LecturerClassroomPanel } from '@/components/lecturer/lecturer-classroom-panel'
 import { LecturerLabsPanel } from '@/components/lecturer/lecturer-labs-panel'
+import { LecturerGradebookPanel } from '@/components/lecturer/lecturer-gradebook-panel'
 import { LecturerQAPanel } from '@/components/lecturer/lecturer-qa-panel'
 import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
 import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
@@ -26,6 +27,7 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronRight,
+  GraduationCap,
   ExternalLink,
   Users,
   Video,
@@ -147,7 +149,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') ?? 'overview'
-  const validTabs = ['overview', 'lessons', 'classroom', 'labs', 'qa', 'students', 'assessments', 'reports']
+  const validTabs = ['overview', 'lessons', 'classroom', 'labs', 'qa', 'gradebook', 'students', 'assessments', 'reports']
   const defaultTab = validTabs.includes(initialTab) ? initialTab : 'overview'
   const [userName, setUserName] = useState('')
   const [course, setCourse] = useState<CourseDetail | null>(null)
@@ -324,6 +326,10 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
               <MessageCircleQuestion className="h-4 w-4 mr-1.5 hidden sm:inline" />
               Q&amp;A
             </TabsTrigger>
+            <TabsTrigger value="gradebook" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
+              <GraduationCap className="h-4 w-4 mr-1.5 hidden sm:inline" />
+              Gradebook
+            </TabsTrigger>
             <TabsTrigger value="students" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               <Users className="h-4 w-4 mr-1.5 hidden sm:inline" />
               Students
@@ -407,6 +413,10 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
 
           <TabsContent value="qa">
             <LecturerQAPanel courseId={courseId} />
+          </TabsContent>
+
+          <TabsContent value="gradebook">
+            <LecturerGradebookPanel courseId={courseId} />
           </TabsContent>
 
           <TabsContent value="students">

@@ -30,10 +30,10 @@ import {
   type StudentAnnouncementFeed,
 } from '@/lib/learning/student-announcement-feed'
 import {
-  queryLessonProgress,
-  summarizeCourseProgress,
-  type CourseProgressSummary,
-} from '@/lib/learning/lesson-progress'
+  filterUnlockedLessons,
+  isLessonUnlocked,
+  type DripLesson,
+} from '@/lib/learning/drip-content'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
 export type { CourseProgressSummary } from '@/lib/learning/lesson-progress'
@@ -46,6 +46,8 @@ export type StudentLesson = {
   content_url: string | null
   sort_order: number
   completed?: boolean
+  locked?: boolean
+  unlockLabel?: string | null
 }
 
 export type StudentCourse = {
@@ -184,12 +186,52 @@ function buildStudentCourse(
   const completedSet = new Set(
     courseProgressRecords.filter((p) => p.completed).map((p) => p.contentId)
   )
-  const lessonsWithProgress = courseLessons.map((lesson) => ({
+
+  const lessonsWithDrip = courseLessons.map((lesson) => {
+    const dripLesson = lesson as StudentLesson & DripLesson
+    const unlocked = isLessonUnlocked(
+      {
+        id: lesson.id,
+        sort_order: lesson.sort_order,
+        unlock_at: (lesson as { unlock_at?: string | null }).unlock_at ?? null,
+        unlock_after_content_id:
+          (lesson as { unlock_after_content_id?: string | null }).unlock_after_content_id ?? null,
+      },
+      completedSet
+    )
+    let unlockLabel: string | null = null
+    if (!unlocked) {
+      const unlockAt = (lesson as { unlock_at?: string | null }).unlock_at
+      const afterId = (lesson as { unlock_after_content_id?: string | null }).unlock_after_content_id
+      if (unlockAt && new Date(unlockAt).getTime() > Date.now()) {
+        unlockLabel = `Unlocks ${formatAccessDate(unlockAt)}`
+      } else if (afterId) {
+        unlockLabel = 'Complete the previous lesson first'
+      }
+    }
+    return {
+      ...lesson,
+      locked: !unlocked,
+      unlockLabel,
+    }
+  })
+
+  const accessibleLessons = filterUnlockedLessons(
+    lessonsWithDrip.map((l) => ({
+      ...l,
+      unlock_at: (l as { unlock_at?: string | null }).unlock_at ?? null,
+      unlock_after_content_id:
+        (l as { unlock_after_content_id?: string | null }).unlock_after_content_id ?? null,
+    })),
+    completedSet
+  )
+
+  const lessonsWithProgress = lessonsWithDrip.map((lesson) => ({
     ...lesson,
     completed: completedSet.has(lesson.id),
   }))
   const progress = summarizeCourseProgress(
-    lessonsWithProgress.map((l) => l.id),
+    accessibleLessons.map((l) => l.id),
     courseProgressRecords
   )
 
@@ -396,7 +438,9 @@ export async function getStudentPortalData(options?: {
   if (activeAdmittedIds.length) {
     const { data: content } = await supabaseAdmin
       .from('course_content')
-      .select('id, course_id, title, content_type, content_url, sort_order')
+      .select(
+        'id, course_id, title, content_type, content_url, sort_order, unlock_at, unlock_after_content_id'
+      )
       .in('course_id', activeAdmittedIds)
       .order('sort_order', { ascending: true })
 
