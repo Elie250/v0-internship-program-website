@@ -40,6 +40,7 @@ const topLinks = [
   { href: '/shop', label: 'Shop' },
   { href: '/engineering-support', label: 'Engineering Support' },
   { href: '/about', label: 'About' },
+  { href: '/reviews', label: 'Reviews' },
 ]
 
 const navDropdownContentClass =

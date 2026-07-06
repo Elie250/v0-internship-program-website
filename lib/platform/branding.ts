@@ -1,4 +1,5 @@
-import { COMPANY } from '@/lib/company/constants'import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
+import { COMPANY } from '@/lib/company/constants'
+import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 
 export async function getCompanyLogoUrl(): Promise<string> {
   try {
