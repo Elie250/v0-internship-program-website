@@ -14,6 +14,7 @@ import {
   Receipt,
   Settings,
   Shield,
+  Star,
   ShoppingBag,
   Package,
   Warehouse,
@@ -42,4 +43,5 @@ export const ADMIN_NAV_ICONS: Record<AdminNavIconName, LucideIcon> = {
   'bar-chart': BarChart3,
   settings: Settings,
   mail: Mail,
+  star: Star,
 }

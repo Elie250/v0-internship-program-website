@@ -19,6 +19,7 @@ export type AdminNavIconName =
   | 'bar-chart'
   | 'settings'
   | 'mail'
+  | 'star'
 
 export type AdminNavItem = {
   id: string
@@ -165,6 +166,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         label: 'Services',
         href: '/admin/dashboard/services',
         icon: 'zap',
+        permission: PERMISSIONS.CONTENT_SERVICES,
+      },
+      {
+        id: 'reviews',
+        label: 'Reviews & ratings',
+        href: '/admin/dashboard/reviews',
+        icon: 'star',
         permission: PERMISSIONS.CONTENT_SERVICES,
       },
     ],

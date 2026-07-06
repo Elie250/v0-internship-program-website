@@ -9,6 +9,7 @@ import { PaymentCtaSection } from '@/components/home/payment-cta-section'
 import { EventsSection } from '@/components/home/events-section'
 import { WebinarsSection } from '@/components/home/webinars-section'
 import { AnnouncementsSection, FeaturedServicesSection } from '@/components/home/announcements-section'
+import { ReviewsTrustSection } from '@/components/home/reviews-trust-section'
 
 export default function HomePage() {
   return (
@@ -23,6 +24,7 @@ export default function HomePage() {
       <EventsSection />
       <AnnouncementsSection />
       <FeaturedServicesSection />
+      <ReviewsTrustSection />
       <FounderSection />
       <SiteFooter />
     </main>
