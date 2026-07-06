@@ -85,7 +85,7 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
       })
       const data = await res.json()
       if (!res.ok) {
-        notify('error', data.error || 'Upload failed')
+        notify('error', data.hint ? `${data.error} — ${data.hint}` : data.error || 'Upload failed')
         return
       }
       setForm((current) => ({ ...current, content_url: data.url }))

@@ -6,8 +6,20 @@ VALUES (
   'platform-media',
   'platform-media',
   true,
-  5242880,
-  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  26214400,
+  ARRAY[
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+    'video/mp4',
+    'video/webm',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ]
 )
 ON CONFLICT (id) DO UPDATE SET
   public = EXCLUDED.public,

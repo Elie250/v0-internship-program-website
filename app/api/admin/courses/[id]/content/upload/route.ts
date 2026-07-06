@@ -2,20 +2,10 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-
-const MAX_BYTES = 25 * 1024 * 1024
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'video/mp4',
-  'video/webm',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-]
+import {
+  isStorageMimeTypeError,
+  validateCourseMaterialFile,
+} from '@/lib/storage/course-material-upload'
 
 export async function POST(
   request: Request,
@@ -36,15 +26,9 @@ export async function POST(
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Upload PDF, image, video (MP4/WebM), Word, or PowerPoint files' },
-        { status: 400 }
-      )
-    }
-
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: 'File must be under 25 MB' }, { status: 400 })
+    const validation = validateCourseMaterialFile(file)
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
@@ -53,13 +37,16 @@ export async function POST(
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from('platform-media')
-      .upload(path, buffer, { contentType: file.type, upsert: false })
+      .upload(path, buffer, { contentType: validation.contentType, upsert: false })
 
     if (uploadError) {
+      const mimeBlocked = isStorageMimeTypeError(uploadError.message)
       return NextResponse.json(
         {
           error: uploadError.message,
-          hint: 'Ensure the platform-media bucket exists, or paste a public URL instead.',
+          hint: mimeBlocked
+            ? 'Run scripts/25-platform-media-course-materials.sql in Supabase to allow PDFs and lesson files.'
+            : 'Ensure the platform-media bucket exists, or paste a public URL instead.',
         },
         { status: 500 }
       )
