@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-import { queryLecturersRegistry } from '@/lib/admin/data/lecturers-registry'
+import { queryEngineersRegistry } from '@/lib/admin/data/engineers-registry'
 
 export async function GET(request: Request) {
   try {
@@ -9,9 +9,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') ?? undefined
 
-    const { lecturers, error } = await queryLecturersRegistry({ search })
+    const { engineers, error } = await queryEngineersRegistry({ search })
     if (error) return NextResponse.json({ error }, { status: 500 })
-    return NextResponse.json(lecturers)
+    return NextResponse.json(engineers)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     return NextResponse.json({ error: message }, { status: 403 })

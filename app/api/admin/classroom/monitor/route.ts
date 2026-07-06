@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-import { queryLecturersRegistry } from '@/lib/admin/data/lecturers-registry'
+import { queryClassroomMonitor } from '@/lib/admin/data/classroom-monitor'
 
 export async function GET(request: Request) {
   try {
-    await requireAdminPermission(PERMISSIONS.USERS_VIEW)
+    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
     const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search') ?? undefined
+    const window = (searchParams.get('window') as 'upcoming' | 'past' | 'all' | null) ?? 'upcoming'
 
-    const { lecturers, error } = await queryLecturersRegistry({ search })
+    const { sessions, error } = await queryClassroomMonitor({ window })
     if (error) return NextResponse.json({ error }, { status: 500 })
-    return NextResponse.json(lecturers)
+    return NextResponse.json(sessions)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     return NextResponse.json({ error: message }, { status: 403 })

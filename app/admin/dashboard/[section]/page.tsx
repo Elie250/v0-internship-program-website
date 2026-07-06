@@ -8,26 +8,31 @@ import { findNavItem } from '@/lib/admin/nav'
 import { hasPermission } from '@/lib/admin/permissions'
 
 const SECTIONS: Record<string, ComponentType> = {
+  students: dynamic(() => import('@/components/admin/students-management')),
+  lecturers: dynamic(() => import('@/components/admin/lecturers-management')),
+  engineers: dynamic(() => import('@/components/admin/engineers-management')),
   users: dynamic(() => import('@/components/admin/user-management')),
   roles: dynamic(() => import('@/components/admin/roles-permissions')),
   applications: dynamic(() => import('@/components/admin/applications-management')),
-  payments: dynamic(() => import('@/components/admin/payment-verification')),
-  services: dynamic(() => import('@/components/admin/service-management')),
-  reviews: dynamic(() => import('@/components/admin/review-management')),
-  courses: dynamic(() => import('@/components/admin/course-management')),
   enrollments: dynamic(() => import('@/components/admin/enrollment-management')),
-  webinars: dynamic(() => import('@/components/admin/webinar-management')),
-  announcements: dynamic(() => import('@/components/admin/announcement-management')),
+  payments: dynamic(() => import('@/components/admin/payment-verification')),
+  certificates: dynamic(() => import('@/components/admin/certificates-management')),
   products: dynamic(() => import('@/components/admin/product-management')),
   stock: dynamic(() => import('@/components/admin/stock-management')),
   orders: dynamic(() => import('@/components/admin/order-management')),
   categories: dynamic(() => import('@/components/admin/category-management')),
+  courses: dynamic(() => import('@/components/admin/course-management')),
+  webinars: dynamic(() => import('@/components/admin/webinar-management')),
+  classroom: dynamic(() => import('@/components/admin/classroom-monitor-management')),
+  announcements: dynamic(() => import('@/components/admin/announcement-management')),
+  services: dynamic(() => import('@/components/admin/service-management')),
+  reviews: dynamic(() => import('@/components/admin/review-management')),
+  settings: dynamic(() => import('@/components/admin/settings-panel')),
   support: dynamic(() => import('@/components/admin/support-management')),
   'engineer-subscriptions': dynamic(() => import('@/components/admin/engineer-subscriptions-management')),
   'support-plans': dynamic(() => import('@/components/admin/support-plan-management')),
   reports: dynamic(() => import('@/components/admin/reports-tab')),
   communications: dynamic(() => import('@/components/admin/admin-communications')),
-  settings: dynamic(() => import('@/components/admin/settings-panel')),
 }
 
 export default async function AdminSectionPage({

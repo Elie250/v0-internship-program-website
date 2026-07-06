@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import type { AdminApplicationRow } from '@/lib/admin/data/applications'
 import { LearningApplicationsPanel } from '@/components/admin/learning-applications-panel'
 import { StudentsRegistryPanel } from '@/components/admin/students-registry-panel'
@@ -52,9 +53,12 @@ export default function ApplicationsManagement() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">All applications</h1>
         <p className="text-slate-600 mt-1">
-          Programme enrollments with MoMo receipts are reviewed under <strong>Programme enrollments</strong>.
-          The <strong>All students</strong> tab lists every student account with contact details and
-          programme history. Shop payments go to <strong>Orders</strong>.
+          Programme enrollments with MoMo receipts are reviewed under{' '}
+          <strong>Programme enrollments</strong>. For the full student registry, open{' '}
+          <Link href="/admin/dashboard/students" className="text-[var(--brand-navy)] underline-offset-2 hover:underline">
+            Students
+          </Link>
+          . Shop payments go to <strong>Orders</strong>.
         </p>
       </div>
 
