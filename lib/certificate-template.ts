@@ -322,7 +322,42 @@ export function createCertificateHTML({
         .date-block {
           text-align: center;
           width: 75mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
         }
+
+        .qr-block {
+          text-align: center;
+          margin-bottom: 4mm;
+          background: #fff;
+          padding: 2mm;
+          border: 1px solid #e2e8f0;
+          border-radius: 2mm;
+        }
+        .qr-block img {
+          width: 20mm;
+          height: 20mm;
+          display: block;
+          margin: 0 auto;
+        }
+        .qr-label {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 6.5px;
+          font-weight: 600;
+          color: #1e3a5f;
+          margin-top: 1mm;
+          letter-spacing: 0.2px;
+          text-transform: uppercase;
+        }
+        .qr-hint {
+          font-family: 'Montserrat', sans-serif;
+          font-size: 5.5px;
+          color: #718096;
+          margin-top: 0.5mm;
+        }
+
         .date-value {
           font-family: 'Libre Baskerville', Georgia, serif;
           font-size: 14px;
@@ -356,38 +391,6 @@ export function createCertificateHTML({
           z-index: 3;
         }
         .footer .cert-id { font-weight: 600; color: #4a5568; }
-
-        .qr-block {
-          position: absolute;
-          bottom: 10mm;
-          right: 14mm;
-          text-align: center;
-          z-index: 4;
-          background: #fff;
-          padding: 2mm;
-          border: 1px solid #e2e8f0;
-          border-radius: 2mm;
-        }
-        .qr-block img {
-          width: 22mm;
-          height: 22mm;
-          display: block;
-        }
-        .qr-label {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 6.5px;
-          font-weight: 600;
-          color: #1e3a5f;
-          margin-top: 1mm;
-          letter-spacing: 0.2px;
-          text-transform: uppercase;
-        }
-        .qr-hint {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 5.5px;
-          color: #718096;
-          margin-top: 0.5mm;
-        }
       </style>
     </head>
     <body>
@@ -439,6 +442,15 @@ export function createCertificateHTML({
             </div>
 
             <div class="date-block">
+              ${
+                qrImageUrl
+                  ? `<div class="qr-block">
+                      <img src="${qrImageUrl}" alt="Scan to verify certificate">
+                      <div class="qr-label">Scan to verify</div>
+                      <div class="qr-hint">www.energyandlogics.com</div>
+                    </div>`
+                  : ''
+              }
               <div class="date-value">${formattedDate}</div>
               <div class="date-rule"></div>
               <div class="date-label">Date of Issue</div>
@@ -450,16 +462,6 @@ export function createCertificateHTML({
           <span class="cert-id">Certificate ID: ${certificateId}</span>
           ${verifyUrl ? ` &nbsp;·&nbsp; Verify at ${verifyUrl}` : ''}
         </div>
-
-        ${
-          qrImageUrl
-            ? `<div class="qr-block">
-                <img src="${qrImageUrl}" alt="Scan to verify certificate">
-                <div class="qr-label">Scan to verify</div>
-                <div class="qr-hint">www.energyandlogics.com</div>
-              </div>`
-            : ''
-        }
       </div>
 
       <script>
