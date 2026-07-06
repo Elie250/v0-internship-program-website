@@ -168,6 +168,22 @@
     text-decoration: underline;
   }
 
+  /* Site header height for full-viewport hero */
+  .site-header {
+    --site-header-h: 3.25rem;
+  }
+
+  @media (min-width: 1024px) {
+    .site-header {
+      --site-header-h: 3.75rem;
+    }
+  }
+
+  .hero-viewport {
+    min-height: calc(100svh - var(--site-header-h));
+    min-height: calc(100dvh - var(--site-header-h));
+  }
+
   /* Header nav: keep auth links readable on navy */
   .site-header .text-white {
     color: white;

@@ -35,14 +35,6 @@ const careerLinks = [
   { href: '/career?module=events', label: 'Events' },
 ]
 
-const topLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/shop', label: 'Shop' },
-  { href: '/engineering-support', label: 'Engineering Support' },
-  { href: '/about', label: 'About' },
-  { href: '/reviews', label: 'Reviews' },
-]
-
 const navDropdownContentClass =
   'nav-dropdown-panel z-[100] min-w-[14rem] bg-white text-slate-900 border border-slate-200 shadow-xl'
 
@@ -50,13 +42,13 @@ const navDropdownItemClass =
   'cursor-pointer text-slate-800 focus:bg-slate-100 focus:text-slate-900'
 
 const headerNavButtonClass =
-  'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/40'
+  'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white/40 h-9 px-2.5 text-sm'
 
 const mobileNavLinkClass =
   'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
 
 const mobileRegisterButtonClass =
-  'site-header-register-btn h-8 px-2 text-[10px] sm:text-xs font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
+  'site-header-register-btn h-8 px-2.5 text-xs font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
 
 function BrandMark({
   logoUrl,
@@ -66,7 +58,7 @@ function BrandMark({
   compact?: boolean
 }) {
   return (
-    <div className="bg-white rounded-lg p-1 shrink-0 shadow-sm border border-white/80">
+    <div className="bg-white rounded-md p-0.5 shrink-0 shadow-sm border border-white/80">
       <Image
         src={logoUrl}
         alt={`${COMPANY.brandName} logo`}
@@ -74,8 +66,8 @@ function BrandMark({
         height={48}
         className={
           compact
-            ? 'rounded object-contain h-7 w-7 sm:h-8 sm:w-8'
-            : 'rounded object-contain h-9 w-9 sm:h-12 sm:w-auto sm:max-w-[120px]'
+            ? 'rounded object-contain h-8 w-8'
+            : 'rounded object-contain h-9 w-9 xl:h-10 xl:w-auto xl:max-w-[100px]'
         }
         unoptimized
       />
@@ -118,12 +110,9 @@ function MobileNavSheet({
             className="flex items-center gap-3 no-underline hover:no-underline"
           >
             <BrandMark logoUrl={logoUrl} compact />
-            <div className="min-w-0 text-left">
-              <SheetTitle className="text-base font-bold text-[var(--brand-navy)] truncate">
-                {COMPANY.brandName}
-              </SheetTitle>
-              <p className="text-xs text-slate-600 truncate mt-0.5">{COMPANY.slogan}</p>
-            </div>
+            <SheetTitle className="text-base font-bold text-[var(--brand-navy)] truncate">
+              {COMPANY.brandName}
+            </SheetTitle>
           </Link>
         </SheetHeader>
         <div className="px-4 pb-6">
@@ -135,17 +124,20 @@ function MobileNavSheet({
 }
 
 function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
+  const topLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/shop', label: 'Shop' },
+    { href: '/engineering-support', label: 'Engineering Support' },
+    { href: '/about', label: 'About' },
+    { href: '/reviews', label: 'Reviews' },
+  ]
+
   return (
     <div className="mobile-nav-panel flex flex-col gap-6 py-2">
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Menu</p>
         {topLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onNavigate}
-            className={mobileNavLinkClass}
-          >
+          <Link key={link.href} href={link.href} onClick={onNavigate} className={mobileNavLinkClass}>
             {link.label}
           </Link>
         ))}
@@ -154,12 +146,7 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Learning</p>
         {learningLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onNavigate}
-            className={mobileNavLinkClass}
-          >
+          <Link key={link.href} href={link.href} onClick={onNavigate} className={mobileNavLinkClass}>
             {link.label}
           </Link>
         ))}
@@ -168,12 +155,7 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       <div className="space-y-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 px-1">Career</p>
         {careerLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            onClick={onNavigate}
-            className={mobileNavLinkClass}
-          >
+          <Link key={link.href} href={link.href} onClick={onNavigate} className={mobileNavLinkClass}>
             {link.label}
           </Link>
         ))}
@@ -181,10 +163,7 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="border-t border-slate-200 pt-4 flex flex-col gap-2">
         <Link href="/auth/login" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button
-            variant="outline"
-            className="w-full border-slate-400 bg-white text-slate-950 font-semibold hover:bg-slate-50"
-          >
+          <Button variant="outline" className="w-full border-slate-400 bg-white text-slate-950 font-semibold hover:bg-slate-50">
             Login
           </Button>
         </Link>
@@ -213,39 +192,36 @@ export function SiteHeader() {
 
   return (
     <nav className="site-header text-on-dark sticky top-0 z-50 bg-[var(--brand-navy)] border-b border-white/10 shadow-md">
-      {/* Desktop header */}
-      <div className="hidden lg:flex max-w-7xl mx-auto justify-between items-center gap-2 px-4 py-3">
+      {/* Desktop */}
+      <div className="hidden lg:flex max-w-7xl mx-auto justify-between items-center gap-3 px-4 py-2.5">
         <Link
           href="/"
-          className="flex items-center gap-3 min-w-0 hover:opacity-90 transition no-underline hover:no-underline"
+          className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition no-underline hover:no-underline shrink-0"
         >
           <BrandMark logoUrl={logoUrl} />
-          <div className="min-w-0">
-            <p className="font-bold text-lg leading-tight text-white truncate">{COMPANY.brandName}</p>
-            <p className="text-[11px] text-white/90 truncate leading-snug">{COMPANY.slogan}</p>
+          <div className="min-w-0 hidden xl:block">
+            <p className="font-bold text-base leading-tight text-white truncate">{COMPANY.brandName}</p>
+            <p className="text-[10px] text-white/80 truncate leading-snug max-w-[12rem]">{COMPANY.slogan}</p>
           </div>
         </Link>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 flex-1 justify-center min-w-0">
           <Link href="/">
-            <Button variant="ghost" className={headerNavButtonClass}>
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               Home
             </Button>
           </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className={headerNavButtonClass}>
-                Learning <ChevronDown className="ml-1 h-4 w-4" />
+              <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+                Learning <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className={navDropdownContentClass}>
               {learningLinks.map((link) => (
                 <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
-                  <Link
-                    href={link.href}
-                    className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]"
-                  >
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
                     {link.label}
                   </Link>
                 </DropdownMenuItem>
@@ -254,24 +230,21 @@ export function SiteHeader() {
           </DropdownMenu>
 
           <Link href="/shop">
-            <Button variant="ghost" className={headerNavButtonClass}>
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               Shop
             </Button>
           </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className={headerNavButtonClass}>
-                Career <ChevronDown className="ml-1 h-4 w-4" />
+              <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+                Career <ChevronDown className="ml-0.5 h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className={navDropdownContentClass}>
               {careerLinks.map((link) => (
                 <DropdownMenuItem key={link.href} asChild className={navDropdownItemClass}>
-                  <Link
-                    href={link.href}
-                    className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]"
-                  >
+                  <Link href={link.href} className="w-full text-slate-800 no-underline hover:no-underline hover:text-[var(--brand-navy)]">
                     {link.label}
                   </Link>
                 </DropdownMenuItem>
@@ -279,60 +252,41 @@ export function SiteHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href="/engineering-support">
-            <Button variant="ghost" className={headerNavButtonClass}>
-              Engineering Support
+          <Link href="/about">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              About
             </Button>
           </Link>
-          <Link href="/about">
-            <Button variant="ghost" className={headerNavButtonClass}>
-              About
+          <Link href="/reviews">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Reviews
             </Button>
           </Link>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Link
-            href="/auth/login"
-            className="text-sm font-semibold text-white hover:text-white px-2 py-1.5 no-underline hover:underline"
-          >
+          <Link href="/auth/login" className="text-sm font-semibold text-white hover:text-white px-2 py-1 no-underline hover:underline whitespace-nowrap">
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">
-            <Button
-              size="sm"
-              className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-3 shadow-sm border border-white"
-            >
+            <Button size="sm" className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-8 px-3 shadow-sm border border-white">
               Register
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Mobile header: menu left · brand center · auth right */}
-      <div className="lg:hidden grid grid-cols-[2.75rem_1fr_auto] items-center gap-2 px-3 py-2.5 max-w-7xl mx-auto">
-        <div className="flex justify-start">
+      {/* Mobile: menu + logo left, auth right — no center brand block */}
+      <div className="lg:hidden flex items-center justify-between gap-2 px-3 py-2">
+        <div className="flex items-center gap-2 min-w-0">
           <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
+          <Link href="/" className="hover:opacity-90 transition no-underline hover:no-underline shrink-0" aria-label={`${COMPANY.brandName} home`}>
+            <BrandMark logoUrl={logoUrl} compact />
+          </Link>
         </div>
 
-        <Link
-          href="/"
-          className="flex flex-col items-center justify-center min-w-0 text-center gap-0.5 hover:opacity-90 transition no-underline hover:no-underline"
-        >
-          <BrandMark logoUrl={logoUrl} compact />
-          <p className="font-bold text-[11px] leading-tight text-white truncate max-w-full px-1">
-            {COMPANY.brandName}
-          </p>
-          <p className="text-[9px] leading-snug text-white/90 line-clamp-2 max-w-[11rem] px-1">
-            {COMPANY.slogan}
-          </p>
-        </Link>
-
-        <div className="site-header-mobile-auth flex flex-row items-center justify-end gap-1.5 shrink-0">
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center h-8 px-1 text-[10px] font-semibold text-white hover:text-white leading-none no-underline hover:underline whitespace-nowrap"
-          >
+        <div className="site-header-mobile-auth flex items-center gap-1.5 shrink-0">
+          <Link href="/auth/login" className="inline-flex items-center h-8 px-1.5 text-xs font-semibold text-white hover:text-white no-underline hover:underline whitespace-nowrap">
             Login
           </Link>
           <Link href="/auth/register" className="no-underline hover:no-underline">
