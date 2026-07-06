@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { getActiveHero } from '@/lib/platform/queries'
 import { HeroVideoRotator } from '@/components/home/hero-video-rotator'
 import { HeroBackgroundMedia } from '@/components/home/hero-background-media'
+import { getHeroVideoPlaylist } from '@/lib/media/hero-videos'
 import { COMPANY } from '@/lib/company/constants'
 import type { HeroContent } from '@/types/platform'
 
@@ -30,6 +31,7 @@ function useHeroVideoPlaylist(background: string | null | undefined): boolean {
 export async function HomeHeroSection({ fullViewport = false }: { fullViewport?: boolean }) {
   const hero = (await getActiveHero()) ?? defaultHero
   const showPlaylist = useHeroVideoPlaylist(hero.background_image)
+  const videoPlaylist = getHeroVideoPlaylist()
 
   return (
     <section
@@ -38,7 +40,7 @@ export async function HomeHeroSection({ fullViewport = false }: { fullViewport?:
       }`}
     >
       {showPlaylist ? (
-        <HeroVideoRotator />
+        <HeroVideoRotator playlist={videoPlaylist} />
       ) : hero.background_image ? (
         <HeroBackgroundMedia src={hero.background_image} alt={hero.title} />
       ) : null}
