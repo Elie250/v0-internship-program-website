@@ -13,6 +13,7 @@ import {
   type WebSettingsForm,
 } from '@/lib/platform/site-settings-schema'
 import { Building2, CreditCard, Globe, Home, ImageIcon, Save, User } from 'lucide-react'
+import { HeroVideosUploadPanel } from '@/components/admin/hero-videos-upload-panel'
 
 function Field({
   label,
@@ -229,10 +230,18 @@ export default function WebSettingsPanel() {
               </Field>
               <Field
                 label="Background image or video URL"
-                hint="Use /videos/playlist for the 4-video rotation, /videos/your-file.mp4 for one video, or /hero-laboratory.jpg for image"
+                hint="Use /videos/playlist for the 4-video rotation (loads from Supabase when project URL is set on Vercel)"
               >
                 <Input value={form.hero.background_image} onChange={(e) => patchHero('background_image', e.target.value)} />
               </Field>
+
+              <HeroVideosUploadPanel
+                onPlaylistReady={() => {
+                  patchHero('background_image', '/videos/playlist')
+                  setMessage('Videos uploaded — background set to /videos/playlist. Click Save all settings.')
+                }}
+              />
+
               <div>
                 <Label className="text-slate-800">Upload hero image or video</Label>
                 <Input

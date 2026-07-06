@@ -39,14 +39,18 @@ export async function POST(request: Request) {
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const fixedName = String(formData.get('filename') ?? '').trim()
+    const path =
+      folder === 'hero' && fixedName && /^[\w.-]+$/.test(fixedName)
+        ? `hero/${fixedName}`
+        : `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const buffer = Buffer.from(await file.arrayBuffer())
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from('platform-media')
       .upload(path, buffer, {
         contentType: file.type,
-        upsert: false,
+        upsert: folder === 'hero' && Boolean(fixedName),
       })
 
     if (uploadError) {
