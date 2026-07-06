@@ -121,7 +121,10 @@ export async function recordLessonHeartbeat(input: {
   enrollmentId: string
   elapsedSeconds?: number
   watchPercent?: number
-}): Promise<{ success: boolean; error?: string; tableReady?: boolean }> {
+}): Promise<
+  | { success: true; tableReady?: boolean; timeSpentSeconds: number; watchPercent: number }
+  | { success: false; error: string; tableReady?: boolean }
+> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
   const elapsed = Math.min(
