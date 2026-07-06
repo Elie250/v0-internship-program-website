@@ -13,7 +13,7 @@ export type HeroVideoSlide = {
 }
 
 /** Seconds each hero clip plays before rotating (highlights, not full file length). */
-export const HERO_CLIP_SECONDS = 10
+export const HERO_CLIP_SECONDS = 4
 
 /** Resolve public URL base for hero videos (Supabase CDN preferred on Vercel). */
 export function getHeroVideosBaseUrl(): string {
