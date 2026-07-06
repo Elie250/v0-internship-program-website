@@ -4,7 +4,7 @@ import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
 
-const ALLOWED_NAMES = new Set(HERO_VIDEO_FILES.map((f) => f.file))
+const ALLOWED_NAMES = new Set<string>(HERO_VIDEO_FILES.map((f) => f.file))
 
 /** Return a signed upload URL so large hero videos upload directly to Supabase (bypasses Vercel size limits). */
 export async function POST(request: Request) {
