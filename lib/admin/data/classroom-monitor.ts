@@ -26,45 +26,84 @@ export async function queryClassroomMonitor(filters?: {
   const window = filters?.window ?? 'upcoming'
   const now = new Date().toISOString()
 
-  let query = supabaseAdmin
+  let sessionQuery = supabaseAdmin
     .from('course_sessions')
-    .select(
-      `${SESSION_SELECT_BASE}, course_id, course:courses(id, title, instructor_id, instructor:users(first_name, last_name, email))`
-    )
+    .select(`${SESSION_SELECT_BASE}, course_id`)
     .order('scheduled_at', { ascending: window !== 'past' })
     .limit(limit)
 
   if (window === 'upcoming') {
-    query = query.gte('scheduled_at', now)
+    sessionQuery = sessionQuery.gte('scheduled_at', now)
   } else if (window === 'past') {
-    query = query.lt('scheduled_at', now)
+    sessionQuery = sessionQuery.lt('scheduled_at', now)
   }
 
-  const { data, error } = await query
-  if (error) {
-    if (MISSING_TABLE.test(error.message)) return { sessions: [] }
-    return { sessions: [], error: error.message }
+  const { data: sessionRows, error: sessionError } = await sessionQuery
+  if (sessionError) {
+    if (MISSING_TABLE.test(sessionError.message)) return { sessions: [] }
+    return { sessions: [], error: sessionError.message }
   }
 
-  const sessions: ClassroomSessionRow[] = (data ?? []).map((row) => {
-    const courseRel = row.course as
-      | {
-          id?: string
-          title?: string
-          instructor?: { first_name?: string; last_name?: string; email?: string } | null
-        }
-      | Array<{
-          id?: string
-          title?: string
-          instructor?: { first_name?: string; last_name?: string; email?: string } | null
-        }>
-      | null
+  const rows = sessionRows ?? []
+  const courseIds = [...new Set(rows.map((row) => String(row.course_id ?? '')).filter(Boolean))]
 
-    const course = Array.isArray(courseRel) ? courseRel[0] : courseRel
-    const instructor = course?.instructor
-    const instructorName = instructor
-      ? [instructor.first_name, instructor.last_name].filter(Boolean).join(' ') || null
-      : null
+  let coursesById = new Map<
+    string,
+    { title: string; instructorId: string | null }
+  >()
+  if (courseIds.length) {
+    const { data: courses, error: courseError } = await supabaseAdmin
+      .from('courses')
+      .select('id, title, instructor_id')
+      .in('id', courseIds)
+
+    if (courseError) return { sessions: [], error: courseError.message }
+
+    for (const course of courses ?? []) {
+      coursesById.set(String(course.id), {
+        title: String(course.title ?? 'Course'),
+        instructorId: (course.instructor_id as string | null) ?? null,
+      })
+    }
+  }
+
+  const instructorIds = [
+    ...new Set(
+      [...coursesById.values()]
+        .map((course) => course.instructorId)
+        .filter((id): id is string => Boolean(id))
+    ),
+  ]
+
+  let instructorsById = new Map<
+    string,
+    { fullName: string; email: string }
+  >()
+  if (instructorIds.length) {
+    const { data: instructors, error: instructorError } = await supabaseAdmin
+      .from('users')
+      .select('id, first_name, last_name, email')
+      .in('id', instructorIds)
+
+    if (instructorError) return { sessions: [], error: instructorError.message }
+
+    for (const user of instructors ?? []) {
+      const fullName =
+        [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+        String(user.email ?? 'Lecturer')
+      instructorsById.set(String(user.id), {
+        fullName,
+        email: String(user.email ?? ''),
+      })
+    }
+  }
+
+  const sessions: ClassroomSessionRow[] = rows.map((row) => {
+    const courseId = String(row.course_id ?? '')
+    const course = coursesById.get(courseId)
+    const instructor = course?.instructorId
+      ? instructorsById.get(course.instructorId)
+      : undefined
 
     return {
       id: String(row.id),
@@ -73,9 +112,9 @@ export async function queryClassroomMonitor(filters?: {
       durationMinutes: row.duration_minutes != null ? Number(row.duration_minutes) : null,
       meetingLink: (row.meeting_link as string | null) ?? null,
       location: (row.location as string | null) ?? null,
-      courseId: String(row.course_id ?? course?.id ?? ''),
-      courseTitle: String(course?.title ?? 'Course'),
-      instructorName,
+      courseId,
+      courseTitle: course?.title ?? 'Course',
+      instructorName: instructor?.fullName ?? null,
       instructorEmail: instructor?.email ?? null,
     }
   })

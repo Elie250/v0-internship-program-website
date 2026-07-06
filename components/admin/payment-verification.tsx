@@ -27,7 +27,7 @@ import { ExternalLink, CheckCircle2, XCircle, RotateCcw, Trash2 } from 'lucide-r
 
 type RefundTarget = { id: string; payerLabel: string; mode: 'refund' | 'deleteReceipt' }
 
-export default function PaymentVerificationPanel() {
+export default function PaymentVerificationPanel({ embedded = false }: { embedded?: boolean }) {
   const [pending, setPending] = useState<PaymentRecord[]>([])
   const [history, setHistory] = useState<PaymentRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,14 +137,16 @@ export default function PaymentVerificationPanel() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Shop payment receipts</h1>
-        <p className="text-slate-600 mt-1">
-          Manual verification for shop and legacy application payments only. Programme enrollments are
-          under <strong>Applications → Programme enrollments</strong>. Engineer plans use{' '}
-          <strong>Engineer subscriptions</strong>.
-        </p>
-      </div>
+      {!embedded ? (
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Shop payment receipts</h1>
+          <p className="text-slate-600 mt-1">
+            Manual verification for shop and legacy application payments only. Programme enrollments are
+            under <strong>Applications → Programme enrollments</strong>. Engineer plans use{' '}
+            <strong>Engineer subscriptions</strong>.
+          </p>
+        </div>
+      ) : null}
 
       {error && (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">

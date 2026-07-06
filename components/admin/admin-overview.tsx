@@ -91,6 +91,17 @@ function buildActionAlerts(stats: AdminStats, permissions: string[]): ActionAler
     })
   }
 
+  if (stats.pendingCertificates > 0 && hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)) {
+    alerts.push({
+      id: 'certificates',
+      title: 'Certificates awaiting approval',
+      description: 'Lecturers confirmed passing scores — final admin approval is required to issue.',
+      count: stats.pendingCertificates,
+      href: '/admin/dashboard/certificates',
+      cta: 'Review certificates',
+    })
+  }
+
   return alerts
 }
 
@@ -139,12 +150,21 @@ function buildHubs(stats: AdminStats, permissions: string[]): HubCard[] {
       : null,
     hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
       ? {
-          id: 'learning',
-          title: 'Learning',
-          description: 'Courses, webinars, and live classroom sessions.',
+          id: 'courses',
+          title: 'Programmes & courses',
+          description: 'Create courses, assign lecturers, and manage curriculum.',
           icon: BookOpen,
           href: '/admin/dashboard/courses',
           stat: `${stats.publishedCourses} published`,
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
+      ? {
+          id: 'learning-analytics',
+          title: 'Learning analytics',
+          description: 'Progress, enrollments, and at-risk learners by programme.',
+          icon: BookOpen,
+          href: '/admin/dashboard/learning-analytics',
         }
       : null,
     hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
@@ -193,6 +213,7 @@ function buildHubs(stats: AdminStats, permissions: string[]): HubCard[] {
           description: 'Final approval after lecturer confirmation.',
           icon: Award,
           href: '/admin/dashboard/certificates',
+          alert: stats.pendingCertificates > 0 ? stats.pendingCertificates : undefined,
         }
       : null,
   ].filter(Boolean) as HubCard[]

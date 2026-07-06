@@ -15,7 +15,7 @@ function hubIsActive(pathname: string, hub: AdminMobileHub): boolean {
     const groupPrefixes: Record<string, string[]> = {
       people: ['students', 'lecturers', 'engineers', 'users', 'roles'],
       commerce: ['products', 'stock', 'orders', 'categories'],
-      learning: ['courses', 'webinars', 'classroom'],
+      learning: ['courses', 'webinars', 'classroom', 'learning-analytics'],
       public: [
         'announcements',
         'services',

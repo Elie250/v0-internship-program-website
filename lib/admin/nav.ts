@@ -121,10 +121,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'payments',
-        label: 'Payment queue',
+        label: 'Payments center',
         href: '/admin/dashboard/payments',
         icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
+        description: 'Programme, shop, and engineer plan receipts',
       },
       {
         id: 'certificates',
@@ -186,6 +187,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/webinars',
         icon: 'video',
         permission: PERMISSIONS.LEARNING_PROGRAMS,
+      },
+      {
+        id: 'learning-analytics',
+        label: 'Learning analytics',
+        href: '/admin/dashboard/learning-analytics',
+        icon: 'bar-chart',
+        permission: PERMISSIONS.LEARNING_PROGRAMS,
+        description: 'Enrollments, progress, and delivery health by programme',
       },
       {
         id: 'classroom',
