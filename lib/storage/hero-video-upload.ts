@@ -3,7 +3,7 @@ import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
 
 export const HERO_VIDEO_MAX_BYTES = 500 * 1024 * 1024
 
-const ALLOWED_NAMES = new Map(HERO_VIDEO_FILES.map((item) => [item.file, item.type]))
+const ALLOWED_NAMES: Map<string, string> = new Map(HERO_VIDEO_FILES.map((item) => [item.file, item.type]))
 
 export function validateHeroVideoFile(file: {
   name: string
