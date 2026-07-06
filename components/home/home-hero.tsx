@@ -32,30 +32,30 @@ export async function HomeHeroSection() {
   const showPlaylist = useHeroVideoPlaylist(hero.background_image)
 
   return (
-    <section className="relative min-h-[560px] md:min-h-[680px] lg:min-h-[760px] flex items-center overflow-hidden bg-black">
+    <section className="hero-viewport relative flex items-center overflow-hidden bg-black">
       {showPlaylist ? (
         <HeroVideoRotator />
       ) : hero.background_image ? (
         <HeroBackgroundMedia src={hero.background_image} alt={hero.title} />
       ) : null}
-      <div className="absolute inset-0 z-[1] bg-black/50" aria-hidden />
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-20 md:py-24 w-full">
+      <div className="absolute inset-0 z-[1] bg-black/45" aria-hidden />
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-16">
         <div className="max-w-2xl text-on-dark">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">{hero.title}</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 leading-tight">{hero.title}</h1>
           {hero.subtitle && (
-            <p className="text-lg md:text-xl text-white/90 mb-8">{hero.subtitle}</p>
+            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-6 sm:mb-8 leading-relaxed">{hero.subtitle}</p>
           )}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
             {hero.cta_primary_url && (
-              <Link href="#browse-courses">
-                <Button size="lg" className="bg-white text-[var(--brand-navy)] hover:bg-white/90">
+              <Link href="#browse-courses" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto bg-white text-[var(--brand-navy)] hover:bg-white/90">
                   {hero.cta_primary_label ?? 'Browse programmes'}
                 </Button>
               </Link>
             )}
             {hero.cta_secondary_url && (
-              <Link href={hero.cta_secondary_url}>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 bg-transparent">
+              <Link href={hero.cta_secondary_url} className="w-full sm:w-auto">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white/10 bg-transparent">
                   {hero.cta_secondary_label ?? 'Register'}
                 </Button>
               </Link>

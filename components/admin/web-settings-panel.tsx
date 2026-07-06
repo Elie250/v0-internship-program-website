@@ -32,6 +32,30 @@ function Field({
   )
 }
 
+function SaveSettingsButton({
+  onClick,
+  saving,
+  uploading,
+  className = '',
+}: {
+  onClick: () => void
+  saving: boolean
+  uploading: boolean
+  className?: string
+}) {
+  return (
+    <Button
+      type="button"
+      onClick={onClick}
+      disabled={saving || uploading}
+      className={`bg-[var(--brand-navy)] text-white shrink-0 ${className}`}
+    >
+      <Save className="h-4 w-4 mr-2" />
+      {saving ? 'Saving…' : uploading ? 'Uploading…' : 'Save all settings'}
+    </Button>
+  )
+}
+
 export default function WebSettingsPanel() {
   const [form, setForm] = useState<WebSettingsForm>(DEFAULT_WEB_SETTINGS)
   const [loading, setLoading] = useState(true)
@@ -76,11 +100,11 @@ export default function WebSettingsPanel() {
       const body = new FormData()
       body.append('file', file)
       body.append('folder', folder)
-      const res = await fetch('/api/admin/upload', { method: 'POST', body })
+      const res = await fetch('/api/admin/upload', { method: 'POST', body, credentials: 'same-origin' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       onUrl(data.url)
-      setMessage('Image uploaded — remember to save settings.')
+      setMessage('File uploaded — tap Save all settings to apply.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
@@ -115,7 +139,7 @@ export default function WebSettingsPanel() {
   }
 
   return (
-    <div className="space-y-6 app-form-surface">
+    <div className="space-y-6 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Website settings</h1>
@@ -123,14 +147,7 @@ export default function WebSettingsPanel() {
             Manage company details, homepage, payments, and SEO for the whole public site.
           </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving || uploading}
-          className="bg-[var(--brand-navy)] text-white shrink-0"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving…' : 'Save all settings'}
-        </Button>
+        <SaveSettingsButton onClick={handleSave} saving={saving} uploading={uploading} />
       </div>
 
       {error ? (
@@ -212,16 +229,16 @@ export default function WebSettingsPanel() {
               </Field>
               <Field
                 label="Background image or video URL"
-                hint="Use /videos/your-file.mp4 for local hero videos, or an image path like /hero-laboratory.jpg"
+                hint="Use /videos/playlist for the 4-video rotation, /videos/your-file.mp4 for one video, or /hero-laboratory.jpg for image"
               >
                 <Input value={form.hero.background_image} onChange={(e) => patchHero('background_image', e.target.value)} />
               </Field>
               <div>
-                <Label className="text-slate-800">Upload hero image</Label>
+                <Label className="text-slate-800">Upload hero image or video</Label>
                 <Input
                   ref={heroFileRef}
                   type="file"
-                  accept="image/*,video/mp4,video/webm"
+                  accept="image/*,video/mp4,video/webm,video/quicktime"
                   className="mt-1"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
@@ -229,7 +246,7 @@ export default function WebSettingsPanel() {
                   }}
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  For large hero videos, add the file to <code className="text-xs">public/videos/</code> and set the URL above (e.g. /videos/hero.mp4).
+                  Large hero videos: add to <code className="text-xs">public/videos/</code> and set URL to e.g. /videos/hero.mp4 or /videos/playlist.
                 </p>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
@@ -344,11 +361,12 @@ export default function WebSettingsPanel() {
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving || uploading} className="bg-[var(--brand-navy)] text-white">
-          <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving…' : 'Save all settings'}
-        </Button>
+      {/* Sticky save bar — always reachable while scrolling */}
+      <div className="sticky bottom-0 z-30 mt-8 -mx-1 border-t border-slate-200 bg-white/95 backdrop-blur px-1 py-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-600 hidden sm:block">Changes are not live until you save.</p>
+          <SaveSettingsButton onClick={handleSave} saving={saving} uploading={uploading} className="w-full sm:w-auto ml-auto" />
+        </div>
       </div>
     </div>
   )

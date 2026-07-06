@@ -97,7 +97,7 @@ export default function StockManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Stock management</h1>
@@ -105,9 +105,9 @@ export default function StockManagement() {
             Update inventory levels. Stock decreases automatically when customers submit shop orders.
           </p>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-[#1e3a5f]">
+        <Button onClick={handleSave} disabled={saving} className="bg-[#1e3a5f] shrink-0">
           <Save className="h-4 w-4 mr-2" />
-          Save all changes
+          {saving ? 'Saving…' : 'Save all changes'}
         </Button>
       </div>
 
@@ -209,6 +209,13 @@ export default function StockManagement() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="sticky bottom-0 z-30 mt-6 border-t border-slate-200 bg-white/95 backdrop-blur py-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
+        <Button onClick={handleSave} disabled={saving} className="bg-[#1e3a5f] w-full sm:w-auto ml-auto flex">
+          <Save className="h-4 w-4 mr-2" />
+          {saving ? 'Saving…' : 'Save all changes'}
+        </Button>
+      </div>
     </div>
   )
 }

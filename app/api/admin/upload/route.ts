@@ -3,10 +3,11 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS, type Permission } from '@/lib/admin/permissions'
 
-const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand'] as const
+const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero'] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
   brand: PERMISSIONS.SETTINGS_MANAGE,
+  hero: PERMISSIONS.SETTINGS_MANAGE,
   products: PERMISSIONS.SHOP_PRODUCTS,
   services: PERMISSIONS.CONTENT_SERVICES,
   announcements: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
@@ -33,8 +34,8 @@ export async function POST(request: Request) {
 
     await requireAdminPermission(FOLDER_PERMISSIONS[folder as (typeof ALLOWED_FOLDERS)[number]])
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 })
+    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+      return NextResponse.json({ error: 'File must be an image or video' }, { status: 400 })
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
