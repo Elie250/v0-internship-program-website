@@ -34,6 +34,11 @@ import {
   isLessonUnlocked,
   type DripLesson,
 } from '@/lib/learning/drip-content'
+import {
+  queryLessonProgress,
+  summarizeCourseProgress,
+  type CourseProgressSummary,
+} from '@/lib/learning/lesson-progress'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
 export type { CourseProgressSummary } from '@/lib/learning/lesson-progress'
