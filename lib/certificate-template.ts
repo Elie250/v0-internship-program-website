@@ -167,7 +167,7 @@ export function createCertificateHTML({
           z-index: 3;
         }
 
-        .logo { height: 24mm; margin-top: 1mm; }
+        .logo { height: 34mm; margin-top: 0; }
 
         .cert-title {
           font-family: 'Cinzel', 'Times New Roman', serif;
@@ -263,7 +263,7 @@ export function createCertificateHTML({
         .sig-stamp-wrap {
           position: relative;
           width: 100%;
-          min-height: 32mm;
+          min-height: 40mm;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -272,15 +272,15 @@ export function createCertificateHTML({
 
         .sig-stamp {
           position: absolute;
-          width: 46mm;
+          width: 58mm;
           height: auto;
-          opacity: 0.88;
+          opacity: 0.90;
           transform: rotate(-12deg);
           z-index: 1;
           top: 50%;
           left: 50%;
-          margin-left: -23mm;
-          margin-top: -20mm;
+          margin-left: -29mm;
+          margin-top: -26mm;
           mix-blend-mode: multiply;
           filter: contrast(1.15) saturate(1.1);
         }
@@ -288,12 +288,15 @@ export function createCertificateHTML({
         .sig-name {
           position: relative;
           z-index: 2;
-          font-family: 'Great Vibes', cursive;
-          font-size: 34px;
-          color: #0f2744;
-          line-height: 1;
-          margin-top: 8mm;
-          text-shadow: 0 0 8px rgba(255,255,255,0.85);
+          font-family: 'Cinzel', 'Times New Roman', serif;
+          font-size: 22px;
+          font-weight: 700;
+          color: #1e3a5f;
+          letter-spacing: 3px;
+          line-height: 1.2;
+          margin-top: 10mm;
+          text-transform: uppercase;
+          text-shadow: 0 0 10px rgba(255,255,255,0.9);
         }
 
         .sig-rule {
@@ -307,11 +310,11 @@ export function createCertificateHTML({
         .sig-title {
           position: relative;
           z-index: 2;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 11px;
+          font-family: 'Cinzel', 'Times New Roman', serif;
+          font-size: 13px;
           font-weight: 700;
           color: #1e3a5f;
-          letter-spacing: 1px;
+          letter-spacing: 2px;
           text-transform: uppercase;
         }
         .sig-org {
