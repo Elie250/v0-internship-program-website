@@ -303,7 +303,7 @@ export default function EnrollmentManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Refund and revoke course access?</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="space-y-3 text-sm text-slate-600">
                 <p>
                   <strong>{revokeTarget?.applicant_name}</strong> will lose access to{' '}
                   <strong>{revokeTarget?.course?.title ?? 'this course'}</strong>. Any linked

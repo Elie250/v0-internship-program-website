@@ -8,7 +8,7 @@ Through our Engineering Hub platform, we deliver structured programmes in embedd
   ('mission_content', 'We bridge the gap between classroom theory and industry practice by delivering hands-on engineering training, mentorship, and technical support—so our learners are ready to work, build, and solve real problems in Rwanda and the wider region.'),
   ('company_email', 'admin@energyandlogics.com'),
   ('company_phone', '+250783986252'),
-  ('company_address', 'Nyanza, Rwanda'),
+  ('company_address', 'Kigali, Rwanda'),
   ('payment_momo_code', '4402091'),
   ('payment_account_name', 'Energy and Logics Ltd'),
   ('founder_name', 'Elie Bisamaza'),
@@ -20,7 +20,7 @@ ON CONFLICT (key) DO UPDATE SET
 INSERT INTO site_hero (title, subtitle, background_image, cta_primary_label, cta_primary_url, cta_secondary_label, cta_secondary_url, is_active)
 SELECT
   'Energy & Logics — Engineering Training',
-  'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Nyanza, Rwanda.',
+  'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Kigali, Rwanda.',
   '/hero-laboratory.jpg',
   'View Programmes',
   '/learning',

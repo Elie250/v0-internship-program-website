@@ -11,9 +11,9 @@ const _geistMono = Geist_Mono({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: `${COMPANY.brandName} | Engineering Training — Embedded Systems, PLC & Electrical`,
   description:
-    'Energy & Logics Ltd delivers hands-on engineering training in embedded systems, industrial control, and advanced electrical technology from Nyanza, Rwanda. MTN MoMo payments. Led by founder Elie Bisamaza.',
+    'Energy & Logics Ltd delivers hands-on engineering training in embedded systems, industrial control, and advanced electrical technology from Kigali, Rwanda. MTN MoMo payments. Led by founder Elie Bisamaza.',
   keywords:
-    'Energy and Logics, engineering training Rwanda, embedded systems, PLC, industrial automation, electrical technology, RTB, Nyanza, East Africa, internship',
+    'Energy and Logics, engineering training Rwanda, embedded systems, PLC, industrial automation, electrical technology, RTB, Kigali, East Africa, internship',
   authors: [{ name: COMPANY.legalName }],
   creator: COMPANY.legalName,
   publisher: COMPANY.legalName,

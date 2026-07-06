@@ -111,7 +111,7 @@ export function ShopCartPanel() {
             {step === 'success'
               ? 'Thank you — our team will contact you shortly.'
               : step === 'checkout'
-                ? 'Provide contact details for delivery or local pickup in Nyanza.'
+                ? 'Provide contact details for delivery or local pickup in Kigali.'
                 : 'Review items before submitting your order request.'}
           </SheetDescription>
         </SheetHeader>

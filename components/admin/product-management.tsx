@@ -146,7 +146,7 @@ export default function ProductManagement() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Products</h1>
-        <p className="text-muted-foreground mt-1">Add, edit, and manage shop products with images.</p>
+        <p className="text-slate-600 mt-1">Add, edit, and manage shop products with images.</p>
       </div>
 
       <Card>
@@ -236,7 +236,7 @@ export default function ProductManagement() {
                 <Image src={p.images[0]} alt={p.name} fill className="object-cover" unoptimized />
               </div>
             ) : (
-              <div className="h-40 bg-muted flex items-center justify-center text-sm text-muted-foreground border-b">
+              <div className="h-40 bg-muted flex items-center justify-center text-sm text-slate-600 border-b">
                 No image
               </div>
             )}
@@ -244,7 +244,7 @@ export default function ProductManagement() {
               <CardTitle className="text-base">{p.name}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+              <p className="text-sm text-slate-600 line-clamp-2">{p.description}</p>
               <p className="text-sm">
                 {p.price?.toLocaleString()} RWF · Stock {p.stock} · {p.status}
               </p>

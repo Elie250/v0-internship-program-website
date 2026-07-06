@@ -279,7 +279,7 @@ export default function CourseManagementTab() {
   const publishedCount = courses.filter((c) => c.status === 'published').length
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading courses...</p>
+    return <p className="text-slate-600">Loading courses...</p>
   }
 
   return (
@@ -329,7 +329,7 @@ export default function CourseManagementTab() {
       >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create program</DialogTitle>
+            <DialogTitle className="text-slate-900">Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} lecturers={lecturers} />
           {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
@@ -343,7 +343,7 @@ export default function CourseManagementTab() {
       {courses.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center space-y-3">
-            <p className="text-muted-foreground">No courses created yet.</p>
+            <p className="text-slate-600">No courses created yet.</p>
             <Button variant="outline" onClick={seedDefaults} disabled={saving}>
               Add Embedded Systems, Industrial Control & Advanced Electrical
             </Button>
@@ -358,7 +358,7 @@ export default function CourseManagementTab() {
                   <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
                 </div>
               ) : (
-                <div className="h-40 bg-muted flex items-center justify-center text-sm text-muted-foreground">
+                <div className="h-40 bg-muted flex items-center justify-center text-sm text-slate-600">
                   No thumbnail
                 </div>
               )}
@@ -423,7 +423,7 @@ export default function CourseManagementTab() {
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit program</DialogTitle>
+            <DialogTitle className="text-slate-900">Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
           {editError ? <p className="text-sm text-destructive">{editError}</p> : null}

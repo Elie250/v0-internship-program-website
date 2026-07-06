@@ -104,7 +104,7 @@ Total Announcements: ${reportData.totalAnnouncements}
   };
 
   if (isLoading) {
-    return <p className="text-muted-foreground">Loading reports...</p>;
+    return <p className="text-slate-600">Loading reports...</p>;
   }
 
   return (
@@ -143,7 +143,7 @@ Total Announcements: ${reportData.totalAnnouncements}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{reportData.totalUsers}</div>
-                <p className="text-xs text-muted-foreground mt-1">{reportData.students} students</p>
+                <p className="text-xs text-slate-600 mt-1">{reportData.students} students</p>
               </CardContent>
             </Card>
 
@@ -154,7 +154,7 @@ Total Announcements: ${reportData.totalAnnouncements}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{reportData.courseEnrollments}</div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-slate-600 mt-1">
                   {reportData.admittedEnrollments} admitted · {reportData.pendingEnrollments} pending
                 </p>
               </CardContent>
@@ -167,7 +167,7 @@ Total Announcements: ${reportData.totalAnnouncements}
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{reportData.approvedPaymentsTotal.toLocaleString()} RWF</div>
-                <p className="text-xs text-muted-foreground mt-1">{reportData.pendingPayments} receipts awaiting review</p>
+                <p className="text-xs text-slate-600 mt-1">{reportData.pendingPayments} receipts awaiting review</p>
               </CardContent>
             </Card>
           </div>
@@ -179,7 +179,7 @@ Total Announcements: ${reportData.totalAnnouncements}
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Admission rate</p>
+                  <p className="text-sm text-slate-600 mb-1">Admission rate</p>
                   <p className="text-2xl font-bold">
                     {reportData.courseEnrollments > 0
                       ? Math.round((reportData.admittedEnrollments / reportData.courseEnrollments) * 100)
@@ -188,7 +188,7 @@ Total Announcements: ${reportData.totalAnnouncements}
                   </p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">Course Publication Rate</p>
+                  <p className="text-sm text-slate-600 mb-1">Course Publication Rate</p>
                   <p className="text-2xl font-bold">
                     {reportData.totalCourses > 0 ? Math.round((reportData.publishedCourses / reportData.totalCourses) * 100) : 0}%
                   </p>
@@ -240,15 +240,15 @@ Total Announcements: ${reportData.totalAnnouncements}
               <CardContent>
                 <ul className="space-y-3">
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Total Registered</span>
+                    <span className="text-slate-600">Total Registered</span>
                     <span className="font-semibold">{reportData.totalUsers}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Students</span>
+                    <span className="text-slate-600">Students</span>
                     <span className="font-semibold text-green-600">{reportData.students}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Other roles</span>
+                    <span className="text-slate-600">Other roles</span>
                     <span className="font-semibold text-yellow-600">{reportData.totalUsers - reportData.students}</span>
                   </li>
                 </ul>
@@ -299,19 +299,19 @@ Total Announcements: ${reportData.totalAnnouncements}
               <CardContent>
                 <ul className="space-y-3">
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Total Courses</span>
+                    <span className="text-slate-600">Total Courses</span>
                     <span className="font-semibold">{reportData.totalCourses}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Published</span>
+                    <span className="text-slate-600">Published</span>
                     <span className="font-semibold text-green-600">{reportData.publishedCourses}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Draft</span>
+                    <span className="text-slate-600">Draft</span>
                     <span className="font-semibold text-yellow-600">{reportData.totalCourses - reportData.publishedCourses}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Total Enrollments</span>
+                    <span className="text-slate-600">Total Enrollments</span>
                     <span className="font-semibold">{reportData.courseEnrollments}</span>
                   </li>
                 </ul>

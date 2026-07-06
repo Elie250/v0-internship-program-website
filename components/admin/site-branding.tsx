@@ -59,7 +59,7 @@ export default function SiteBrandingPanel({ initialLogoUrl = '/images/energy-log
         <CardTitle>Company logo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-slate-600">
           Used in the site header, admin sidebar, and browser tab. Default: Energy & Logics logo bundled with the site.
         </p>
 
@@ -69,7 +69,7 @@ export default function SiteBrandingPanel({ initialLogoUrl = '/images/energy-log
           </div>
           <div className="text-sm">
             <p className="font-medium">{COMPANY.brandName}</p>
-            <p className="text-muted-foreground break-all">{logoUrl}</p>
+            <p className="text-slate-600 break-all">{logoUrl}</p>
           </div>
         </div>
 

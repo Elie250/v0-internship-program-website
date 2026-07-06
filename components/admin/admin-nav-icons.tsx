@@ -9,6 +9,7 @@ import {
   GraduationCap,
   Headphones,
   LayoutDashboard,
+  Mail,
   Megaphone,
   Receipt,
   Settings,
@@ -40,4 +41,5 @@ export const ADMIN_NAV_ICONS: Record<AdminNavIconName, LucideIcon> = {
   headphones: Headphones,
   'bar-chart': BarChart3,
   settings: Settings,
+  mail: Mail,
 }

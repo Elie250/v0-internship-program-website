@@ -25,6 +25,7 @@ const SECTIONS: Record<string, ComponentType> = {
   'engineer-subscriptions': dynamic(() => import('@/components/admin/engineer-subscriptions-management')),
   'support-plans': dynamic(() => import('@/components/admin/support-plan-management')),
   reports: dynamic(() => import('@/components/admin/reports-tab')),
+  communications: dynamic(() => import('@/components/admin/admin-communications')),
   settings: dynamic(() => import('@/components/admin/settings-panel')),
 }
 

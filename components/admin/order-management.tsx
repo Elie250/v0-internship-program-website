@@ -93,7 +93,7 @@ export default function OrderManagement() {
   })
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading orders...</p>
+    return <p className="text-slate-600">Loading orders...</p>
   }
 
   return (
@@ -101,7 +101,7 @@ export default function OrderManagement() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Shop orders</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-slate-600 mt-1">
             Customer order requests from the shop cart. Contact them to confirm payment and fulfillment.
           </p>
         </div>
@@ -125,7 +125,7 @@ export default function OrderManagement() {
 
       {filtered.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-muted-foreground">
+          <CardContent className="py-10 text-center text-slate-600">
             No shop orders yet. Orders appear here when customers submit the cart from the shop page.
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ export default function OrderManagement() {
                       <Package className="h-5 w-5" />
                       {order.order_number ?? order.id.slice(0, 8)}
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <p className="text-sm text-slate-600 mt-1">
                       {new Date(order.created_at).toLocaleString()} ·{' '}
                       {order.fulfillment_type === 'delivery' ? 'Delivery' : 'Local pickup'}
                     </p>
@@ -170,7 +170,7 @@ export default function OrderManagement() {
                   <div className="space-y-2">
                     <p className="font-medium">{order.customer_name ?? 'Unknown customer'}</p>
                     {order.customer_email ? (
-                      <p className="flex items-center gap-2 text-muted-foreground">
+                      <p className="flex items-center gap-2 text-slate-600">
                         <Mail className="h-4 w-4" />
                         <a href={`mailto:${order.customer_email}`} className="hover:underline">
                           {order.customer_email}
@@ -178,7 +178,7 @@ export default function OrderManagement() {
                       </p>
                     ) : null}
                     {order.customer_phone ? (
-                      <p className="flex items-center gap-2 text-muted-foreground">
+                      <p className="flex items-center gap-2 text-slate-600">
                         <Phone className="h-4 w-4" />
                         <a href={`tel:${order.customer_phone}`} className="hover:underline">
                           {order.customer_phone}
@@ -188,15 +188,15 @@ export default function OrderManagement() {
                   </div>
                   <div className="space-y-2">
                     {order.fulfillment_type === 'delivery' && order.delivery_address ? (
-                      <p className="flex items-start gap-2 text-muted-foreground">
+                      <p className="flex items-start gap-2 text-slate-600">
                         <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                         {order.delivery_address}
                       </p>
                     ) : (
-                      <p className="text-muted-foreground">Pickup at Energy & Logics — Nyanza</p>
+                      <p className="text-slate-600">Pickup at Energy & Logics — Kigali</p>
                     )}
                     {order.notes ? (
-                      <p className="text-muted-foreground">
+                      <p className="text-slate-600">
                         <span className="font-medium text-foreground">Notes:</span> {order.notes}
                       </p>
                     ) : null}

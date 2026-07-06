@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import type { AdminApplicationRow } from '@/lib/admin/data/applications'
+import { LearningApplicationsPanel } from '@/components/admin/learning-applications-panel'
+import { StudentsRegistryPanel } from '@/components/admin/students-registry-panel'
+import DashboardTable from '@/app/admin/dashboard/table'
 import {
   acceptAdminApplication,
   declineAdminApplication,
 } from '@/app/actions/admin-applications'
-import type { AdminApplicationRow } from '@/lib/admin/data/applications'
-import { LearningApplicationsPanel } from '@/components/admin/learning-applications-panel'
-import DashboardTable from '@/app/admin/dashboard/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -51,78 +52,98 @@ export default function ApplicationsManagement() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">All applications</h1>
         <p className="text-slate-600 mt-1">
-          Programme enrollments with MoMo receipts are reviewed here first. After approval, students
-          move to <strong>Learning → Enrollments</strong>. Shop payments go to <strong>Orders</strong>;
-          engineer subscriptions use <strong>Engineer subscriptions</strong>.
+          Programme enrollments with MoMo receipts are reviewed under <strong>Programme enrollments</strong>.
+          The <strong>All students</strong> tab lists every student account with contact details and
+          programme history. Shop payments go to <strong>Orders</strong>.
         </p>
       </div>
 
       {error ? (
-        <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
-          {error}
-        </p>
+        <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
       ) : null}
 
       <Tabs defaultValue="learning">
-        <TabsList>
-          <TabsTrigger value="learning">Programme enrollments</TabsTrigger>
-          <TabsTrigger value="legacy">Legacy forms ({legacyTotal})</TabsTrigger>
+        <TabsList className="bg-white border border-slate-200">
+          <TabsTrigger
+            value="learning"
+            className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+          >
+            Programme enrollments
+          </TabsTrigger>
+          <TabsTrigger
+            value="students"
+            className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+          >
+            All students
+          </TabsTrigger>
+          {legacyTotal > 0 ? (
+            <TabsTrigger
+              value="legacy"
+              className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+            >
+              Legacy forms ({legacyTotal})
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <TabsContent value="learning" className="mt-4">
           <LearningApplicationsPanel />
         </TabsContent>
 
-        <TabsContent value="legacy" className="mt-4 space-y-6">
-          {loading ? (
-            <p className="text-muted-foreground">Loading legacy applications…</p>
-          ) : legacyTotal === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                No legacy form submissions. Public internship/training forms appear here if used.
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Program applications ({applications.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {applications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">None</p>
-                  ) : (
-                    <DashboardTable
-                      registrations={applications}
-                      source="applications"
-                      onAccept={acceptAdminApplication}
-                      onDecline={declineAdminApplication}
-                      onUpdated={load}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Registrations ({registrations.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {registrations.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">None</p>
-                  ) : (
-                    <DashboardTable
-                      registrations={registrations}
-                      source="registrations"
-                      onAccept={acceptAdminApplication}
-                      onDecline={declineAdminApplication}
-                      onUpdated={load}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </>
-          )}
+        <TabsContent value="students" className="mt-4">
+          <StudentsRegistryPanel />
         </TabsContent>
+
+        {legacyTotal > 0 ? (
+          <TabsContent value="legacy" className="mt-4 space-y-6">
+            {loading ? (
+              <p className="text-slate-600">Loading legacy applications…</p>
+            ) : (
+              <>
+                <Card className="border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900">
+                      Program applications ({applications.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {applications.length === 0 ? (
+                      <p className="text-sm text-slate-600">None</p>
+                    ) : (
+                      <DashboardTable
+                        registrations={applications}
+                        source="applications"
+                        onAccept={acceptAdminApplication}
+                        onDecline={declineAdminApplication}
+                        onUpdated={load}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900">
+                      Registrations ({registrations.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {registrations.length === 0 ? (
+                      <p className="text-sm text-slate-600">None</p>
+                    ) : (
+                      <DashboardTable
+                        registrations={registrations}
+                        source="registrations"
+                        onAccept={acceptAdminApplication}
+                        onDecline={declineAdminApplication}
+                        onUpdated={load}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   )

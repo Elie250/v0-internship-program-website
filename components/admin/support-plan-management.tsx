@@ -265,9 +265,9 @@ export default function SupportPlanManagement() {
 
       <div className="space-y-3">
         {loading ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-slate-600">Loading…</p>
         ) : plans.length === 0 ? (
-          <p className="text-muted-foreground">No plans yet.</p>
+          <p className="text-slate-600">No plans yet.</p>
         ) : (
           plans.map((plan) => (
             <Card key={plan.id}>

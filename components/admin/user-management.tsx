@@ -243,7 +243,7 @@ function UserManagementTab() {
   }
 
   const badgeClass = (value: string, map: Record<string, string>) =>
-    map[value] || 'bg-muted text-muted-foreground'
+    map[value] || 'bg-muted text-slate-600'
 
   const roleColors: Record<string, string> = {
     admin: 'bg-red-100 text-red-700',
@@ -365,7 +365,7 @@ function UserManagementTab() {
       <Card>
         <CardContent className="pt-6">
           {isLoading ? (
-            <p className="text-muted-foreground">Loading users…</p>
+            <p className="text-slate-600">Loading users…</p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -381,7 +381,7 @@ function UserManagementTab() {
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={5} className="text-center text-slate-600 py-8">
                         No users found.
                       </TableCell>
                     </TableRow>

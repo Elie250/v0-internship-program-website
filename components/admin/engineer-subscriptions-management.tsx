@@ -94,10 +94,10 @@ export default function EngineerSubscriptionsManagement() {
         </TabsList>
         <TabsContent value={tab} className="mt-4 space-y-4">
           {loading ? (
-            <p className="text-muted-foreground">Loading…</p>
+            <p className="text-slate-600">Loading…</p>
           ) : rows.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              <CardContent className="py-8 text-center text-slate-600 text-sm">
                 {tab === 'pending' ? 'No pending engineer subscription payments.' : 'No records yet.'}
               </CardContent>
             </Card>

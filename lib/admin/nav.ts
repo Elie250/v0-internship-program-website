@@ -18,6 +18,7 @@ export type AdminNavIconName =
   | 'headphones'
   | 'bar-chart'
   | 'settings'
+  | 'mail'
 
 export type AdminNavItem = {
   id: string
@@ -61,6 +62,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: '/admin/dashboard/roles',
         icon: 'shield',
         permission: PERMISSIONS.USERS_ASSIGN_ROLE,
+      },
+      {
+        id: 'communications',
+        label: 'Email communications',
+        href: '/admin/dashboard/communications',
+        icon: 'mail',
+        permission: PERMISSIONS.USERS_EDIT,
       },
     ],
   },

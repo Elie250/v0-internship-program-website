@@ -100,9 +100,9 @@ export default function SupportManagement() {
 
         <TabsContent value="tickets" className="space-y-4 mt-4">
           {loading ? (
-            <p className="text-muted-foreground">Loading…</p>
+            <p className="text-slate-600">Loading…</p>
           ) : tickets.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">No support tickets yet.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-slate-600">No support tickets yet.</CardContent></Card>
           ) : (
             tickets.map((ticket) => (
               <Card key={ticket.id}>
@@ -197,7 +197,7 @@ export default function SupportManagement() {
 
         <TabsContent value="subscriptions" className="space-y-3 mt-4">
           {subscriptions.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">No subscriptions yet.</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-slate-600">No subscriptions yet.</CardContent></Card>
           ) : (
             subscriptions.map((sub) => {
               const user = sub.user as { email?: string; first_name?: string; last_name?: string; role?: string } | null

@@ -89,10 +89,10 @@ export function LearningApplicationsPanel() {
             </p>
           ) : null}
           {loading ? (
-            <p className="text-muted-foreground">Loading programme applications…</p>
+            <p className="text-slate-600">Loading programme applications…</p>
           ) : rows.length === 0 ? (
             <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              <CardContent className="py-8 text-center text-slate-600 text-sm">
                 {tab === 'pending'
                   ? 'No pending enrollment payments. New student enrollments with MoMo receipts appear here.'
                   : 'No processed applications yet.'}

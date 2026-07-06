@@ -71,7 +71,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </Link>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            Open the cart (top bar) to submit your order with contact details for delivery or pickup in Nyanza.
+            Open the cart (top bar) to submit your order with contact details for delivery or pickup in Kigali.
           </p>
           {specs.length > 0 && (
             <Card className="mt-8">

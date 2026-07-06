@@ -164,9 +164,9 @@ export default function PaymentVerificationPanel() {
         </CardHeader>
         <CardContent className="space-y-4">
           {loading ? (
-            <p className="text-muted-foreground">Loading…</p>
+            <p className="text-slate-600">Loading…</p>
           ) : pending.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No payments awaiting receipt review.</p>
+            <p className="text-sm text-slate-600">No payments awaiting receipt review.</p>
           ) : (
             pending.map((payment) => (
               <div key={payment.id} className="rounded-lg border p-4 space-y-3">
@@ -259,7 +259,7 @@ export default function PaymentVerificationPanel() {
         </CardHeader>
         <CardContent className="space-y-3">
           {history.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reviewed payments yet.</p>
+            <p className="text-sm text-slate-600">No reviewed payments yet.</p>
           ) : (
             history.map((payment) => (
               <div
@@ -338,7 +338,7 @@ export default function PaymentVerificationPanel() {
                 : 'Remove receipt file?'}
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="space-y-3 text-sm text-slate-600">
                 {refundTarget?.mode === 'refund' ? (
                   <>
                     <p>
