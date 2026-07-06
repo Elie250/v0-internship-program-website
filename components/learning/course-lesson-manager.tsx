@@ -305,13 +305,11 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           <div className="sm:col-span-2">
             <Label>Or upload a file</Label>
             <div className="mt-1 flex flex-wrap items-center gap-2">
+              {/* No accept filter: the picker opens on "All Files" so PDFs and
+                  documents are selectable on mobile (image/* was forcing the
+                  photo gallery) and desktop no longer defaults to Custom Files. */}
               <Input
                 type="file"
-                accept={
-                  form.content_type === 'video'
-                    ? 'video/mp4,video/webm'
-                    : '.pdf,.doc,.docx,.ppt,.pptx,image/*'
-                }
                 disabled={uploading}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
