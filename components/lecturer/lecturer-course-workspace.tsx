@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
-import { LecturerAssessmentsPanel } from '@/components/lecturer/lecturer-assessments-panel'
+import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
+import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import {
@@ -372,8 +373,9 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="assessments">
-            <LecturerAssessmentsPanel courseId={courseId} />
+          <TabsContent value="assessments" className="space-y-4">
+            <LecturerQuizBuilder courseId={courseId} />
+            <LecturerResultsPanel courseId={courseId} />
           </TabsContent>
         </Tabs>
       </main>

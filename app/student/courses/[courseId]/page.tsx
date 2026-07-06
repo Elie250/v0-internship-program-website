@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getStudentCourse, type StudentCourse } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
-import { CourseAssessmentPanel } from '@/components/student/course-assessment-panel'
+import { CourseQuizPanel } from '@/components/student/course-quiz-panel'
 import { LessonViewer } from '@/components/student/lesson-viewer'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -284,7 +284,7 @@ export default function StudentCoursePage() {
             </div>
           )}
           {course.accessState === 'active' ? (
-            <CourseAssessmentPanel enrollmentId={course.enrollmentId} courseTitle={course.title} />
+            <CourseQuizPanel courseId={course.id} />
           ) : null}
         </div>
       </div>
