@@ -1,17 +1,9 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { COMPANY } from '@/lib/company/constants'
+import { COMPANY } from '@/lib/company/constants'import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 
 export async function getCompanyLogoUrl(): Promise<string> {
-  if (!supabaseAdmin) return COMPANY.logoUrl
-
   try {
-    const { data } = await supabaseAdmin
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'company_logo_url')
-      .maybeSingle()
-
-    return data?.value || COMPANY.logoUrl
+    const profile = await loadPublicCompanyProfile()
+    return profile.logoUrl || COMPANY.logoUrl
   } catch {
     return COMPANY.logoUrl
   }

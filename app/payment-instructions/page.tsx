@@ -4,10 +4,13 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MomoPayCard } from '@/components/payment/momo-pay-card'
-import { COMPANY, PAYMENT } from '@/lib/company/constants'
+import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
+import { PAYMENT } from '@/lib/company/constants'
 import { CheckCircle2 } from 'lucide-react'
 
-export default function PaymentInstructionsPage() {
+export default async function PaymentInstructionsPage() {
+  const profile = await loadPublicCompanyProfile()
+
   return (
     <main className="min-h-screen bg-background">
       <SiteHeader />
@@ -15,7 +18,7 @@ export default function PaymentInstructionsPage() {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl font-bold mb-3">Payment Instructions</h1>
           <p className="text-white/85 text-lg">
-            {COMPANY.brandName} uses manual payment verification—pay via MTN MoMo, then submit your
+            {profile.brandName} uses manual payment verification—pay via MTN MoMo, then submit your
             receipt for admin approval. No online payment gateway.
           </p>
         </div>
@@ -24,10 +27,14 @@ export default function PaymentInstructionsPage() {
       <section className="max-w-3xl mx-auto px-4 py-10 space-y-6">
         <Card className="border-[#1e3a5f]/20">
           <CardHeader>
-            <CardTitle>{PAYMENT.method}</CardTitle>
+            <CardTitle>{profile.payment.method}</CardTitle>
           </CardHeader>
           <CardContent>
-            <MomoPayCard />
+            <MomoPayCard
+              momoPayCode={profile.payment.momoPayCode}
+              accountName={profile.payment.accountName}
+              workflow={profile.payment.workflow}
+            />
           </CardContent>
         </Card>
 
@@ -38,11 +45,11 @@ export default function PaymentInstructionsPage() {
           <CardContent>
             <ol className="space-y-3">
               {PAYMENT.steps.map((step, index) => (
-                <li key={step} className="flex gap-3 text-sm">
+                <li key={step} className="flex gap-3 text-sm text-slate-800">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#1e3a5f] text-white text-xs flex items-center justify-center font-bold">
                     {index + 1}
                   </span>
-                  <span className="pt-0.5">{step}</span>
+                  <span className="pt-0.5">{step.replace('4402091', profile.payment.momoPayCode)}</span>
                 </li>
               ))}
             </ol>
@@ -57,12 +64,12 @@ export default function PaymentInstructionsPage() {
               <p>
                 Our admin team will review your receipt visually and confirm your enrollment.
                 Questions? Call{' '}
-                <a href={`tel:${COMPANY.phone}`} className="underline font-medium">
-                  {COMPANY.phoneDisplay}
+                <a href={`tel:${profile.phone}`} className="underline font-medium">
+                  {profile.phoneDisplay}
                 </a>{' '}
                 or email{' '}
-                <a href={`mailto:${COMPANY.email}`} className="underline font-medium">
-                  {COMPANY.email}
+                <a href={`mailto:${profile.email}`} className="underline font-medium">
+                  {profile.email}
                 </a>
                 .
               </p>
@@ -75,7 +82,7 @@ export default function PaymentInstructionsPage() {
             <Button className="bg-[#1e3a5f] hover:bg-[#1e3a5f]/90">Apply for a programme</Button>
           </Link>
           <Link href="/auth/register">
-            <Button variant="outline">Create an account</Button>
+            <Button variant="outline" className="text-slate-800">Create an account</Button>
           </Link>
         </div>
       </section>
