@@ -3,6 +3,7 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { HomeHeroSection } from '@/components/home/home-hero'
 import { FounderSection } from '@/components/home/founder-section'
 import { TrainingProgramsSection } from '@/components/home/training-programs-section'
+import { ToolsSection } from '@/components/home/tools-section'
 import { BrowseCoursesSection } from '@/components/home/browse-courses-section'
 import { MembershipSection } from '@/components/home/membership-section'
 import { PaymentCtaSection } from '@/components/home/payment-cta-section'
@@ -19,6 +20,7 @@ export default function HomePage() {
         <HomeHeroSection fullViewport />
       </div>
       <TrainingProgramsSection />
+      <ToolsSection />
       <BrowseCoursesSection />
       <MembershipSection />
       <PaymentCtaSection />
