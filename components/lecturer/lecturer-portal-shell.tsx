@@ -48,7 +48,7 @@ export function LecturerPortalShell({
     if (item.match === 'students') return pathname.startsWith('/lecturer/students')
     if (item.match === 'tools') return pathname.startsWith('/lecturer/tools')
     if (item.match === 'profile') return pathname.startsWith('/lecturer/profile')
-    return pathname === item.href
+    return false
   }
 
   return (
