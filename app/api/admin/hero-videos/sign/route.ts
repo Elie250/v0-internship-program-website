@@ -1,51 +1,32 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
-
-const ALLOWED_NAMES = new Set<string>(HERO_VIDEO_FILES.map((f) => f.file))
+import { createHeroVideoUploadTarget } from '@/lib/storage/hero-video-upload'
 
 /** Return a signed upload URL so large hero videos upload directly to Supabase (bypasses Vercel size limits). */
 export async function POST(request: Request) {
   try {
     await requireAdminPermission(PERMISSIONS.SETTINGS_MANAGE)
 
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
-    }
-
     const body = await request.json()
-    const file = String(body.file ?? '')
-    if (!ALLOWED_NAMES.has(file)) {
-      return NextResponse.json({ error: 'Invalid hero video filename' }, { status: 400 })
-    }
+    const target = await createHeroVideoUploadTarget({
+      name: String(body.file ?? ''),
+      size: Number(body.size ?? 0),
+    })
 
-    const path = `hero/${file}`
-    const { data, error } = await supabaseAdmin.storage
-      .from('platform-media')
-      .createSignedUploadUrl(path)
-
-    if (error || !data) {
+    if (!target.ok) {
       return NextResponse.json(
-        {
-          error: error?.message ?? 'Could not create upload URL',
-          hint: 'Run scripts/34-hero-video-storage.sql and ensure the platform-media bucket exists.',
-        },
-        { status: 500 }
+        { error: target.error, hint: target.hint },
+        { status: target.status }
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? ''
-    const publicUrl = supabaseUrl
-      ? `${supabaseUrl}/storage/v1/object/public/platform-media/${path}`
-      : ''
-
     return NextResponse.json({
-      file,
-      path: data.path,
-      token: data.token,
-      publicUrl,
+      file: String(body.file ?? ''),
+      signedUrl: target.signedUrl,
+      path: target.path,
+      publicUrl: target.publicUrl,
+      contentType: target.contentType,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'

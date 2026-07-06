@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { createClient } from '@/lib/supabase/client'
+import { Progress } from '@/components/ui/progress'
 import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
+import { HERO_VIDEO_MAX_BYTES } from '@/lib/storage/hero-video-upload'
 import { CheckCircle2, Upload, Video } from 'lucide-react'
 
 type VideoStatus = {
@@ -12,6 +13,47 @@ type VideoStatus = {
   label: string
   url: string
   exists: boolean
+}
+
+function formatMb(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function uploadWithProgress(
+  signedUrl: string,
+  file: File,
+  contentType: string,
+  onProgress: (percent: number) => void,
+  signal: AbortSignal
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('PUT', signedUrl)
+    xhr.setRequestHeader('Content-Type', contentType)
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.round((event.loaded / event.total) * 100))
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve()
+        return
+      }
+      const detail = xhr.responseText?.slice(0, 200)
+      reject(new Error(detail ? `Upload failed (${xhr.status}): ${detail}` : `Upload failed (${xhr.status})`))
+    }
+
+    xhr.onerror = () => reject(new Error('Network error during upload — check your connection and try again'))
+    xhr.onabort = () => reject(new Error('Upload cancelled'))
+
+    const onAbort = () => xhr.abort()
+    signal.addEventListener('abort', onAbort, { once: true })
+
+    xhr.send(file)
+  })
 }
 
 export function HeroVideosUploadPanel({
@@ -23,9 +65,11 @@ export function HeroVideosUploadPanel({
   const [files, setFiles] = useState<Record<string, File | null>>({})
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState('')
+  const [progressLabel, setProgressLabel] = useState('')
+  const [progressPercent, setProgressPercent] = useState(0)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const abortRef = useRef<AbortController | null>(null)
 
   const loadStatus = useCallback(async () => {
     setLoading(true)
@@ -46,52 +90,84 @@ export function HeroVideosUploadPanel({
     void loadStatus()
   }, [loadStatus])
 
+  const cancelUpload = () => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setUploading(false)
+    setProgressLabel('')
+    setProgressPercent(0)
+    setError('Upload cancelled.')
+  }
+
   const handleUpload = async () => {
     const selected = HERO_VIDEO_FILES.filter(({ file }) => files[file])
+      .map(({ file, label }) => ({ file, label, blob: files[file]! }))
+      .sort((a, b) => a.blob.size - b.blob.size)
+
     if (!selected.length) {
       setError('Select at least one video file to upload.')
       return
     }
 
+    for (const { file, blob } of selected) {
+      if (blob.size > HERO_VIDEO_MAX_BYTES) {
+        setError(`${file} is ${formatMb(blob.size)} — max is ${formatMb(HERO_VIDEO_MAX_BYTES)}. Compress or use a smaller file.`)
+        return
+      }
+    }
+
     setUploading(true)
     setError('')
     setMessage('')
-    const supabase = createClient()
+    setProgressPercent(0)
+    abortRef.current = new AbortController()
     let ok = 0
 
     try {
-      for (const { file, label } of selected) {
-        const blob = files[file]
-        if (!blob) continue
-
-        setProgress(`Uploading ${label}…`)
+      for (const { file, label, blob } of selected) {
+        setProgressLabel(`Uploading ${label} (${formatMb(blob.size)})…`)
+        setProgressPercent(0)
 
         const signRes = await fetch('/api/admin/hero-videos/sign', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file }),
+          body: JSON.stringify({ file, size: blob.size }),
+          signal: abortRef.current.signal,
         })
         const signData = await signRes.json()
-        if (!signRes.ok) throw new Error(signData.error || `Could not sign ${file}`)
+        if (!signRes.ok) {
+          throw new Error(signData.hint ? `${signData.error} — ${signData.hint}` : signData.error || `Could not sign ${file}`)
+        }
 
-        const { error: uploadError } = await supabase.storage
-          .from('platform-media')
-          .uploadToSignedUrl(signData.path, signData.token, blob, { upsert: true })
+        if (!signData.signedUrl) {
+          throw new Error(`No upload URL returned for ${file}`)
+        }
 
-        if (uploadError) throw new Error(`${label}: ${uploadError.message}`)
+        await uploadWithProgress(
+          signData.signedUrl,
+          blob,
+          signData.contentType || blob.type || 'application/octet-stream',
+          setProgressPercent,
+          abortRef.current.signal
+        )
         ok += 1
       }
 
       setMessage(`Uploaded ${ok} video(s) to Supabase storage.`)
-      setProgress('')
+      setProgressLabel('')
+      setProgressPercent(0)
       onPlaylistReady?.()
       await loadStatus()
       setFiles({})
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
-      setProgress('')
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setError(err instanceof Error ? err.message : 'Upload failed')
+      }
+      setProgressLabel('')
+      setProgressPercent(0)
     } finally {
+      abortRef.current = null
       setUploading(false)
     }
   }
@@ -106,7 +182,11 @@ export function HeroVideosUploadPanel({
           <p className="font-semibold text-slate-900">Hero video library (Supabase)</p>
           <p className="text-sm text-slate-600 mt-1">
             Pick your video files below — they upload <strong>directly to Supabase</strong> (no folder to create).
+            Large files can take several minutes; keep this tab open until the progress bar finishes.
             After upload, use background URL <strong>/videos/playlist</strong> and save.
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            Max {formatMb(HERO_VIDEO_MAX_BYTES)} per file. MP4 is recommended over MOV for faster uploads.
           </p>
           {!loading ? (
             <p className="text-xs text-slate-500 mt-1">
@@ -133,24 +213,38 @@ export function HeroVideosUploadPanel({
       ) : null}
 
       <div className="space-y-3">
-        {HERO_VIDEO_FILES.map(({ file, label }) => (
-          <div key={file}>
-            <Label className="text-slate-800 text-sm">{label}</Label>
-            <input
-              type="file"
-              accept="video/mp4,video/quicktime,.mp4,.mov"
-              className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--brand-navy)] file:px-3 file:py-1.5 file:text-white file:text-sm"
-              onChange={(e) => {
-                const picked = e.target.files?.[0] ?? null
-                setFiles((prev) => ({ ...prev, [file]: picked }))
-              }}
-            />
-            <p className="text-xs text-slate-500 mt-0.5">Stored as: platform-media/hero/{file}</p>
-          </div>
-        ))}
+        {HERO_VIDEO_FILES.map(({ file, label }) => {
+          const picked = files[file]
+          return (
+            <div key={file}>
+              <Label className="text-slate-800 text-sm">{label}</Label>
+              <input
+                type="file"
+                accept="video/mp4,video/quicktime,.mp4,.mov"
+                className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-[var(--brand-navy)] file:px-3 file:py-1.5 file:text-white file:text-sm"
+                disabled={uploading}
+                onChange={(e) => {
+                  const next = e.target.files?.[0] ?? null
+                  setFiles((prev) => ({ ...prev, [file]: next }))
+                }}
+              />
+              <p className="text-xs text-slate-500 mt-0.5">
+                Stored as: platform-media/hero/{file}
+                {picked ? ` · selected: ${formatMb(picked.size)}` : ''}
+              </p>
+            </div>
+          )
+        })}
       </div>
 
-      {progress ? <p className="text-sm text-slate-600">{progress}</p> : null}
+      {uploading ? (
+        <div className="space-y-2">
+          {progressLabel ? <p className="text-sm text-slate-700">{progressLabel}</p> : null}
+          <Progress value={progressPercent} className="h-2 bg-slate-200 [&_[data-slot=progress-indicator]]:bg-[var(--brand-navy)]" />
+          <p className="text-xs text-slate-500">{progressPercent}% — do not close this page</p>
+        </div>
+      ) : null}
+
       {error ? (
         <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-2">{error}</p>
       ) : null}
@@ -168,7 +262,12 @@ export function HeroVideosUploadPanel({
           <Upload className="h-4 w-4 mr-2" />
           {uploading ? 'Uploading…' : 'Upload videos to Supabase'}
         </Button>
-        <Button type="button" variant="outline" onClick={loadStatus} disabled={loading}>
+        {uploading ? (
+          <Button type="button" variant="outline" onClick={cancelUpload}>
+            Cancel
+          </Button>
+        ) : null}
+        <Button type="button" variant="outline" onClick={loadStatus} disabled={loading || uploading}>
           Refresh status
         </Button>
       </div>

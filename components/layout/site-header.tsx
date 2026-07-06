@@ -131,7 +131,6 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
     { href: '/shop', label: 'Shop' },
     { href: '/engineering-support', label: 'Engineering Support' },
     { href: '/about', label: 'About' },
-    { href: '/reviews', label: 'Reviews' },
   ]
 
   return (
@@ -263,11 +262,6 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           <Link href="/about">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               About
-            </Button>
-          </Link>
-          <Link href="/reviews">
-            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-              Reviews
             </Button>
           </Link>
         </div>

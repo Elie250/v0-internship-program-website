@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Mail, MapPin, MessageCircle, Phone, Clock } from 'lucide-react'
+import { Mail, MapPin, MessageCircle, Phone, Clock, Star } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -97,6 +97,31 @@ export default async function AboutPage() {
                 Full payment instructions
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-[var(--brand-navy)]" />
+              Reviews & ratings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Read verified feedback from students, interns, and engineering clients — or share your own experience
+              with our training, shop, and support services.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/reviews">
+                <Button className="bg-[var(--brand-navy)] hover:bg-[var(--brand-navy)]/90">
+                  Read reviews
+                </Button>
+              </Link>
+              <Link href="/reviews#write-review">
+                <Button variant="outline">Write a review</Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
