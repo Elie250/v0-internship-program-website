@@ -65,7 +65,8 @@ export async function POST(request: Request) {
     const result = await createReview({
       reviewerName,
       reviewerEmail,
-      reviewerRole: sessionUser?.role ?? String(body.reviewerRole ?? '').trim() || undefined,
+      reviewerRole:
+        sessionUser?.role ?? (String(body.reviewerRole ?? '').trim() || undefined),
       userId: sessionUser?.id ?? null,
       serviceId: body.serviceId ? String(body.serviceId) : null,
       rating: Number(body.rating),
