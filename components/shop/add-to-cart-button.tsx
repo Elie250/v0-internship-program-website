@@ -28,7 +28,7 @@ export function AddToCartButton({ productId, name, price, stock, image, classNam
   return (
     <Button
       size={size}
-      className={className ?? 'bg-[#1e3a5f]'}
+      className={className ?? 'bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90'}
       onClick={() =>
         addItem(
           {
