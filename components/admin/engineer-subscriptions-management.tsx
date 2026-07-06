@@ -23,7 +23,7 @@ import { CheckCircle2, ExternalLink, XCircle } from 'lucide-react'
 
 type ReviewAction = { paymentId: string; decision: 'approved' | 'rejected'; label: string }
 
-export default function EngineerSubscriptionsManagement() {
+export default function EngineerSubscriptionsManagement({ embedded = false }: { embedded?: boolean }) {
   const [tab, setTab] = useState<'pending' | 'history'>('pending')
   const [rows, setRows] = useState<EngineerSubscriptionApplication[]>([])
   const [loading, setLoading] = useState(true)
@@ -72,14 +72,16 @@ export default function EngineerSubscriptionsManagement() {
   }
 
   return (
-    <div className="space-y-6 app-form-surface">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Engineer subscriptions</h1>
-        <p className="text-slate-600 mt-1">
-          Review MoMo receipts for engineering support plans. Approved engineers can open support
-          tickets from their dashboard.
-        </p>
-      </div>
+    <div className={embedded ? 'space-y-6' : 'space-y-6 app-form-surface'}>
+      {!embedded ? (
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Engineer subscriptions</h1>
+          <p className="text-slate-600 mt-1">
+            Review MoMo receipts for engineering support plans. Approved engineers can open support
+            tickets from their dashboard.
+          </p>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">

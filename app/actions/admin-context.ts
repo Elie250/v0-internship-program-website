@@ -31,6 +31,7 @@ export type AdminStats = {
   pendingEnrollments: number
   pendingPayments: number
   pendingStaffApprovals: number
+  pendingCertificates: number
   approvedPaymentsTotal: number
 }
 
@@ -146,6 +147,19 @@ async function countLowStockProducts(): Promise<number> {
   }).length
 }
 
+async function countPendingCertificates(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { count, error } = await supabaseAdmin
+    .from('student_certificates')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending_admin')
+  if (error) {
+    if (error.message.includes('student_certificates')) return 0
+    return 0
+  }
+  return count ?? 0
+}
+
 async function countPendingStaffApprovals(): Promise<number> {
   if (!supabaseAdmin) return 0
   const { count, error } = await supabaseAdmin
@@ -176,6 +190,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     pendingEnrollments,
     pendingPayments,
     pendingStaffApprovals,
+    pendingCertificates,
     approvedPaymentsTotal,
   ] = await Promise.all([
     countTable('users'),
@@ -194,6 +209,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     countPendingEnrollments(),
     countPendingPayments(),
     countPendingStaffApprovals(),
+    countPendingCertificates(),
     sumApprovedPayments(),
   ])
 
@@ -214,6 +230,7 @@ async function fetchAdminStats(): Promise<AdminStats> {
     pendingEnrollments,
     pendingPayments,
     pendingStaffApprovals,
+    pendingCertificates,
     approvedPaymentsTotal,
   }
 }
@@ -280,6 +297,7 @@ export async function getAdminStats(): Promise<AdminStats> {
       pendingEnrollments: 0,
       pendingPayments: 0,
       pendingStaffApprovals: 0,
+      pendingCertificates: 0,
       approvedPaymentsTotal: 0,
     }
   }
