@@ -34,7 +34,7 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const [annForm, setAnnForm] = useState({ title: '', message: '' })
+  const [annForm, setAnnForm] = useState({ title: '', message: '', scope: 'class' as 'class' | 'programme' | 'platform' })
   const [annSaving, setAnnSaving] = useState(false)
 
   const [sessionForm, setSessionForm] = useState({
@@ -86,8 +86,14 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to post announcement')
-      setAnnForm({ title: '', message: '' })
-      setMessage('Announcement posted — students see it on their course page.')
+      setAnnForm({ title: '', message: '', scope: 'class' })
+      setMessage(
+        annForm.scope === 'class'
+          ? 'Announcement posted — students see it on their course page and Announcements tab.'
+          : annForm.scope === 'programme'
+            ? 'Announcement published to this programme — enrolled students see it on Announcements.'
+            : 'Public announcement published — all students see it on their Announcements tab.'
+      )
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post announcement')
@@ -177,11 +183,28 @@ export function LecturerClassroomPanel({ courseId }: { courseId: string }) {
               <Megaphone className="h-4 w-4" /> Class announcements
             </CardTitle>
             <p className="text-xs text-slate-500">
-              Visible to all admitted students of this programme on their course page.
+              Choose who sees the update — class-only posts also appear on the student Announcements tab.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 border rounded-lg p-3 bg-slate-50/60">
+              <div>
+                <Label>Audience</Label>
+                <select
+                  className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={annForm.scope}
+                  onChange={(e) =>
+                    setAnnForm({
+                      ...annForm,
+                      scope: e.target.value as 'class' | 'programme' | 'platform',
+                    })
+                  }
+                >
+                  <option value="class">This class only (course page + Announcements)</option>
+                  <option value="programme">This programme (Announcements tab)</option>
+                  <option value="platform">All students (public announcement)</option>
+                </select>
+              </div>
               <div>
                 <Label>Title</Label>
                 <Input

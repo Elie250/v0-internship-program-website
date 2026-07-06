@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 
+import { displayNameFromUser } from '@/lib/learning/display-creator'
+
 function normalizeAnnouncement(row: Record<string, unknown>) {
   return {
     ...row,
@@ -49,13 +51,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
+    const session = await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
     const body = await request.json()
-    const payload = toAnnouncementPayload(body)
+    const creatorName = displayNameFromUser({
+      firstName: session.user.firstName,
+      lastName: session.user.lastName,
+      email: session.user.email,
+    })
+    const payload = {
+      ...toAnnouncementPayload(body),
+      created_by: session.user.id,
+      creator_role: 'admin',
+      creator_name: creatorName,
+      course_id: body.course_id ? String(body.course_id) : null,
+    }
     const { data, error } = await supabaseAdmin
       .from('announcements')
       .insert([payload])

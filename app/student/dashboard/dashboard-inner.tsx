@@ -22,6 +22,7 @@ import {
 import { COMPANY } from '@/lib/company/constants'
 import { AccessCountdown } from '@/components/student/access-countdown'
 import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
+import { StudentAnnouncementsPanel } from '@/components/student/student-announcements-panel'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
@@ -148,7 +149,7 @@ export default function StudentDashboardInner() {
       ) : tab === 'webinars' ? (
         <WebinarsTab webinars={portal.webinars} locked={portal.activeCourses.length === 0} />
       ) : tab === 'announcements' ? (
-        <AnnouncementsTab announcements={portal.announcements} />
+        <StudentAnnouncementsPanel feed={portal.announcementFeed} />
       ) : (
         <CoursesTab
           courses={portal.activeCourses}
@@ -378,27 +379,6 @@ function WebinarsTab({
                 ) : null}
               </div>
             </CardContent>
-          </Card>
-        ))
-      )}
-    </div>
-  )
-}
-
-function AnnouncementsTab({ announcements }: { announcements: StudentPortalData['announcements'] }) {
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-slate-900">Announcements</h2>
-      {announcements.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-slate-600">No announcements.</CardContent></Card>
-      ) : (
-        announcements.map((a) => (
-          <Card key={a.id}>
-            <CardHeader>
-              <CardTitle className="text-base">{a.title}</CardTitle>
-              <p className="text-xs text-slate-600">{new Date(a.created_at).toLocaleDateString()}</p>
-            </CardHeader>
-            <CardContent><p className="text-sm text-slate-700">{a.message}</p></CardContent>
           </Card>
         ))
       )}

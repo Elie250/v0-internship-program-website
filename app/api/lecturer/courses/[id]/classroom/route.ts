@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireLecturerCourseAccess } from '@/lib/lecturer/access'
+import { displayNameFromUser } from '@/lib/learning/display-creator'
 
 const MISSING_TABLE = /relation .* does not exist|could not find the table/i
 
@@ -87,6 +88,37 @@ export async function POST(
       const message = String(body.message ?? '').trim()
       if (!title || !message) {
         return NextResponse.json({ error: 'Title and message are required' }, { status: 400 })
+      }
+
+      const scope = String(body.scope ?? 'class')
+      const creatorName = displayNameFromUser({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+      })
+
+      if (scope === 'platform' || scope === 'programme') {
+        const { data, error } = await supabaseAdmin
+          .from('announcements')
+          .insert({
+            title,
+            message,
+            content: message,
+            status: 'published',
+            is_published: true,
+            type: 'news',
+            created_by: user.id,
+            creator_role: 'lecturer',
+            creator_name: creatorName,
+            course_id: scope === 'programme' ? courseId : null,
+          })
+          .select('id, title, message, created_at')
+          .single()
+
+        if (error) {
+          return NextResponse.json({ error: error.message }, { status: 500 })
+        }
+        return NextResponse.json({ ...data, scope })
       }
 
       const { data, error } = await supabaseAdmin
