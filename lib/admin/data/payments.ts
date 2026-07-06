@@ -42,12 +42,19 @@ export function isShopOrLegacyPayment(payment: PaymentRecord): boolean {
 const PAYMENT_COLUMNS_BASE =
   'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
 
+type PaymentQueryResult = {
+  data: Array<Record<string, unknown>> | null
+  error: { message: string } | null
+}
+
 async function queryPaymentRows(
-  build: (columns: string) => ReturnType<NonNullable<typeof supabaseAdmin>['from']>
+  build: (columns: string) => PromiseLike<PaymentQueryResult>
 ): Promise<{ rows: PaymentRecord[]; error?: string }> {
   if (!supabaseAdmin) return { rows: [], error: 'Database not configured' }
 
-  let { data, error } = await build(PAYMENT_COLUMNS)
+  const primary = await build(PAYMENT_COLUMNS)
+  let data: Array<Record<string, unknown>> | null = primary.data
+  let error = primary.error
 
   if (error?.message?.includes('order_id')) {
     const retry = await build(PAYMENT_COLUMNS_BASE)
@@ -56,19 +63,20 @@ async function queryPaymentRows(
   }
 
   if (error) return { rows: [], error: error.message }
-  return { rows: (data ?? []) as PaymentRecord[] }
+  return { rows: (data ?? []) as unknown as PaymentRecord[] }
 }
 
 export async function queryPendingPayments(): Promise<{
   payments: PaymentRecord[]
   error?: string
 }> {
-  const { rows, error } = await queryPaymentRows((columns) =>
-    supabaseAdmin!
-      .from('payments')
-      .select(columns)
-      .in('status', ['pending_review', 'Pending', 'pending'])
-      .order('created_at', { ascending: false })
+  const { rows, error } = await queryPaymentRows(
+    (columns) =>
+      supabaseAdmin!
+        .from('payments')
+        .select(columns)
+        .in('status', ['pending_review', 'Pending', 'pending'])
+        .order('created_at', { ascending: false }) as unknown as PromiseLike<PaymentQueryResult>
   )
 
   if (error) return { payments: [], error }
@@ -84,12 +92,13 @@ export async function queryAllPayments(limit = 100): Promise<{
   payments: PaymentRecord[]
   error?: string
 }> {
-  const { rows, error } = await queryPaymentRows((columns) =>
-    supabaseAdmin!
-      .from('payments')
-      .select(columns)
-      .order('created_at', { ascending: false })
-      .limit(limit)
+  const { rows, error } = await queryPaymentRows(
+    (columns) =>
+      supabaseAdmin!
+        .from('payments')
+        .select(columns)
+        .order('created_at', { ascending: false })
+        .limit(limit) as unknown as PromiseLike<PaymentQueryResult>
   )
 
   if (error) return { payments: [], error }
