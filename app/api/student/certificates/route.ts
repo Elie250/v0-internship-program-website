@@ -29,10 +29,22 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Only admin-approved certificates are visible/downloadable
-  const issued = (data ?? []).filter(
-    (row) => ((row.status as string | null) ?? 'issued') === 'issued'
-  )
+  // Issued + lecturer-approved (pending admin) certificates are visible to students
+  const visible = (data ?? []).filter((row) => {
+    const status = (row.status as string | null) ?? 'issued'
+    return status === 'issued' || status === 'pending_admin'
+  })
 
-  return NextResponse.json(issued)
+  return NextResponse.json(
+    visible.map((row) => ({
+      id: row.id,
+      certificate_code: row.certificate_code,
+      student_name: row.student_name,
+      program_title: row.program_title,
+      issued_at: row.issued_at,
+      final_score: row.final_score ?? null,
+      is_free: row.is_free ?? false,
+      status: (row.status as string | null) ?? 'issued',
+    }))
+  )
 }
