@@ -103,7 +103,7 @@ export async function reviewPayment(input: {
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, status, course_enrollment_id, support_subscription_id, application_id'
+        'id, status, course_enrollment_id, support_subscription_id, application_id, order_id'
       )
       .eq('id', input.id)
       .maybeSingle()
@@ -262,6 +262,29 @@ export async function reviewPayment(input: {
             reason: input.adminNotes,
           })
         }
+      }
+    }
+
+    if (existing.order_id) {
+      if (input.decision === 'approved') {
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            payment_status: 'paid',
+            status: 'confirmed',
+            paid_at: now,
+            updated_at: now,
+          })
+          .eq('id', existing.order_id)
+      } else {
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            payment_status: 'rejected',
+            status: 'cancelled',
+            updated_at: now,
+          })
+          .eq('id', existing.order_id)
       }
     }
 

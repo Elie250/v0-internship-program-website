@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import {
+  buildOrderLines,
+  decrementStockForLines,
+  generateOrderNumber,
+} from '@/lib/shop/order-helpers'
 
 type OrderItemInput = {
   productId: string
   quantity: number
-}
-
-function generateOrderNumber() {
-  const stamp = Date.now().toString(36).toUpperCase()
-  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `EL-${stamp}-${rand}`
 }
 
 export async function POST(request: Request) {
@@ -26,6 +25,9 @@ export async function POST(request: Request) {
     const fulfillmentType = body.fulfillmentType === 'delivery' ? 'delivery' : 'pickup'
     const deliveryAddress = String(body.deliveryAddress ?? '').trim()
     const notes = String(body.notes ?? '').trim()
+    const paymentMethod = body.paymentMethod === 'irembopay' ? 'irembopay' : 'momo'
+    const receiptUrl = String(body.receiptUrl ?? '').trim()
+    const receiptNumber = String(body.receiptNumber ?? '').trim()
 
     if (!items.length) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
@@ -37,60 +39,18 @@ export async function POST(request: Request) {
       )
     }
     if (fulfillmentType === 'delivery' && !deliveryAddress) {
-      return NextResponse.json(
-        { error: 'Delivery address is required for delivery orders' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Delivery address is required for delivery orders' }, { status: 400 })
     }
 
-    const productIds = items.map((item) => item.productId)
-    const { data: products, error: productsError } = await supabaseAdmin
-      .from('products')
-      .select('id, name, price, discount, stock, status')
-      .in('id', productIds)
-      .eq('status', 'published')
-
-    if (productsError) {
-      return NextResponse.json({ error: productsError.message }, { status: 500 })
+    const built = await buildOrderLines(items)
+    if (!built.order) {
+      return NextResponse.json({ error: built.error || 'Invalid cart' }, { status: 400 })
     }
 
-    const productMap = new Map((products ?? []).map((p) => [p.id, p]))
-    let totalAmount = 0
-    const lineItems: {
-      product_id: string
-      product_name: string
-      quantity: number
-      unit_price: number
-      line_total: number
-    }[] = []
-
-    for (const item of items) {
-      const product = productMap.get(item.productId)
-      const quantity = Number(item.quantity)
-
-      if (!product || !Number.isFinite(quantity) || quantity < 1) {
-        return NextResponse.json({ error: 'Invalid cart item' }, { status: 400 })
-      }
-      if ((product.stock ?? 0) < quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${product.name}. Available: ${product.stock ?? 0}` },
-          { status: 400 }
-        )
-      }
-
-      const unitPrice = Number(product.price) - Number(product.discount ?? 0)
-      const lineTotal = unitPrice * quantity
-      totalAmount += lineTotal
-      lineItems.push({
-        product_id: product.id,
-        product_name: product.name,
-        quantity,
-        unit_price: unitPrice,
-        line_total: lineTotal,
-      })
-    }
-
+    const { lineItems, totalAmount, productMap } = built.order
     const orderNumber = generateOrderNumber()
+    const now = new Date().toISOString()
+
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert([
@@ -104,7 +64,10 @@ export async function POST(request: Request) {
           notes: notes || null,
           total_amount: totalAmount,
           status: 'pending',
-          order_date: new Date().toISOString(),
+          payment_status: paymentMethod === 'irembopay' ? 'gateway_pending' : 'pending_review',
+          payment_method: paymentMethod,
+          channel: 'online',
+          order_date: now,
         },
       ])
       .select()
@@ -121,6 +84,7 @@ export async function POST(request: Request) {
         product_name: line.product_name,
         quantity: line.quantity,
         unit_price: line.unit_price,
+        unit_cost: line.unit_cost,
         line_total: line.line_total,
       }))
     )
@@ -130,30 +94,63 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: itemsError.message }, { status: 500 })
     }
 
-    for (const line of lineItems) {
-      const product = productMap.get(line.product_id)!
-      const nextStock = Math.max(0, Number(product.stock ?? 0) - line.quantity)
-      const updatePayload: Record<string, unknown> = {
-        stock: nextStock,
-        in_stock: nextStock > 0,
-        updated_at: new Date().toISOString(),
-      }
-      const { error: stockError } = await supabaseAdmin
-        .from('products')
-        .update(updatePayload)
-        .eq('id', line.product_id)
+    if (paymentMethod === 'irembopay') {
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        orderNumber,
+        totalAmount,
+        requiresIremboPay: true,
+        message: 'Order created — redirecting to IremboPay checkout.',
+      })
+    }
 
-      if (stockError) {
-        return NextResponse.json(
-          {
-            error: stockError.message,
-            orderId: order.id,
-            orderNumber,
-            hint: 'Order was created but stock update failed. Admin should verify inventory.',
-          },
-          { status: 500 }
-        )
-      }
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from('payments')
+      .insert([
+        {
+          amount: totalAmount,
+          payer_name: customerName,
+          payer_email: customerEmail,
+          payer_phone: customerPhone,
+          payment_method: 'MTN MoMo (manual)',
+          order_id: order.id,
+          status: 'pending_review',
+          receipt_url: receiptUrl || null,
+          receipt_number: receiptNumber || null,
+          currency: 'RWF',
+        },
+      ])
+      .select()
+      .single()
+
+    if (paymentError || !payment) {
+      await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
+      await supabaseAdmin.from('orders').delete().eq('id', order.id)
+      return NextResponse.json({ error: paymentError?.message || 'Failed to create payment record' }, { status: 500 })
+    }
+
+    await supabaseAdmin
+      .from('orders')
+      .update({ payment_id: payment.id, updated_at: now })
+      .eq('id', order.id)
+
+    const stockResult = await decrementStockForLines(lineItems, productMap)
+    if (stockResult.error) {
+      return NextResponse.json(
+        {
+          success: true,
+          orderId: order.id,
+          orderNumber,
+          totalAmount,
+          warning: 'Order submitted but stock update failed. Admin will verify.',
+          message:
+            fulfillmentType === 'delivery'
+              ? 'Order submitted with MoMo receipt. We will verify payment and contact you for delivery.'
+              : 'Order submitted with MoMo receipt. We will verify payment and notify you for pickup.',
+        },
+        { status: 201 }
+      )
     }
 
     return NextResponse.json(
@@ -164,8 +161,8 @@ export async function POST(request: Request) {
         totalAmount,
         message:
           fulfillmentType === 'delivery'
-            ? 'Order submitted. We will contact you to confirm delivery details.'
-            : 'Order submitted. We will contact you when your order is ready for pickup in Kigali.',
+            ? 'Order submitted. We will verify your MoMo payment and contact you for delivery.'
+            : 'Order submitted. We will verify your MoMo payment and notify you when ready for pickup.',
       },
       { status: 201 }
     )

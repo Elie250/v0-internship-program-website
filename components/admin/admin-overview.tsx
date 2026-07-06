@@ -139,13 +139,22 @@ function buildHubs(stats: AdminStats, permissions: string[]): HubCard[] {
       : null,
     hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)
       ? {
-          id: 'stock',
-          title: 'Stock & shop',
-          description: 'Inventory levels, products, and customer orders.',
-          icon: Warehouse,
-          href: '/admin/dashboard/stock',
+          id: 'products-hub',
+          title: 'Products & sales',
+          description: 'Catalog, POS terminal, orders, and financial overview.',
+          icon: ShoppingBag,
+          href: '/admin/dashboard/products',
           stat: `${stats.products} products`,
           alert: stats.lowStockProducts > 0 ? stats.lowStockProducts : undefined,
+        }
+      : null,
+    hasPermission(permissions, PERMISSIONS.REPORTS_VIEW)
+      ? {
+          id: 'financial',
+          title: 'Financial overview',
+          description: 'Total revenue, e-learning vs products profit.',
+          icon: CreditCard,
+          href: '/admin/dashboard/financial',
         }
       : null,
     hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
@@ -258,7 +267,7 @@ export function AdminOverview({
       : null,
     hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)
       ? {
-          label: 'Shop catalog',
+          label: 'Products catalog',
           value: stats.products,
           icon: ShoppingBag,
           hint:

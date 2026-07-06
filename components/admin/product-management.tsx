@@ -29,6 +29,7 @@ type Product = {
   name: string
   description?: string
   price: number
+  cost_price?: number
   stock: number
   sku?: string
   status: string
@@ -39,6 +40,7 @@ const emptyForm = {
   name: '',
   description: '',
   price: '',
+  costPrice: '',
   stock: '0',
   sku: '',
   status: 'published',
@@ -74,6 +76,7 @@ export default function ProductManagement() {
           name: form.name,
           description: form.description,
           price: Number(form.price),
+          cost_price: Number(form.costPrice) || 0,
           stock: Number(form.stock),
           sku: form.sku,
           status: form.status,
@@ -99,6 +102,7 @@ export default function ProductManagement() {
       name: product.name,
       description: product.description || '',
       price: String(product.price),
+      costPrice: String(product.cost_price ?? 0),
       stock: String(product.stock ?? 0),
       sku: product.sku || '',
       status: product.status || 'published',
@@ -118,6 +122,7 @@ export default function ProductManagement() {
           name: editForm.name,
           description: editForm.description,
           price: Number(editForm.price),
+          cost_price: Number(editForm.costPrice) || 0,
           stock: Number(editForm.stock),
           sku: editForm.sku,
           status: editForm.status,
@@ -146,7 +151,7 @@ export default function ProductManagement() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Products</h1>
-        <p className="text-slate-600 mt-1">Add, edit, and manage shop products with images.</p>
+        <p className="text-slate-600 mt-1">Add, edit, and manage product catalog with cost tracking for profit reports.</p>
       </div>
 
       <Card>
@@ -180,6 +185,16 @@ export default function ProductManagement() {
               type="number"
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Cost price (RWF)</Label>
+            <Input
+              className="mt-1"
+              placeholder="Wholesale / COGS"
+              type="number"
+              value={form.costPrice}
+              onChange={(e) => setForm({ ...form, costPrice: e.target.value })}
             />
           </div>
           <div>
@@ -292,6 +307,15 @@ export default function ProductManagement() {
                   type="number"
                   value={editForm.price}
                   onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Cost price</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  value={editForm.costPrice}
+                  onChange={(e) => setEditForm({ ...editForm, costPrice: e.target.value })}
                 />
               </div>
               <div>

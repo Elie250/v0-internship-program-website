@@ -18,7 +18,7 @@ export async function SiteFooter() {
           <h4 className="font-semibold mb-3 text-white">Portals</h4>
           <ul className="space-y-2 text-sm text-slate-200">
             <li><Link href="/learning">Learning</Link></li>
-            <li><Link href="/shop">Shop</Link></li>
+            <li><Link href="/shop">Products</Link></li>
             <li><Link href="/career">Career</Link></li>
             <li><Link href="/internship">Internship</Link></li>
             <li><Link href="/engineering-support">Engineering Support</Link></li>

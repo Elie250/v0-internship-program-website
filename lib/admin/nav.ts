@@ -121,11 +121,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'payments',
-        label: 'Payments center',
+        label: 'E-learning payments',
         href: '/admin/dashboard/payments',
         icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
-        description: 'Programme, shop, and engineer plan receipts',
+        description: 'Programme and engineer plan MoMo receipts',
       },
       {
         id: 'certificates',
@@ -138,11 +138,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
   {
     id: 'commerce',
-    label: 'Commerce & stock',
+    label: 'Products & sales',
     items: [
       {
         id: 'products',
-        label: 'Products',
+        label: 'Products catalog',
         href: '/admin/dashboard/products',
         icon: 'shopping-bag',
         permission: PERMISSIONS.SHOP_PRODUCTS,
@@ -156,10 +156,26 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'orders',
-        label: 'Orders',
+        label: 'Product orders',
         href: '/admin/dashboard/orders',
         icon: 'package',
         permission: PERMISSIONS.SHOP_ORDERS,
+      },
+      {
+        id: 'pos',
+        label: 'Point of Sale',
+        href: '/admin/dashboard/pos',
+        icon: 'shopping-bag',
+        permission: PERMISSIONS.SHOP_ORDERS,
+        description: 'In-store sales terminal with instant stock updates',
+      },
+      {
+        id: 'financial',
+        label: 'Financial overview',
+        href: '/admin/dashboard/financial',
+        icon: 'bar-chart',
+        permission: PERMISSIONS.REPORTS_VIEW,
+        description: 'Revenue, profit, and sales by channel — separate from e-learning',
       },
       {
         id: 'categories',
@@ -316,9 +332,9 @@ export const ADMIN_MOBILE_HUBS: AdminMobileHub[] = [
   },
   {
     id: 'commerce',
-    label: 'Shop',
-    href: '/admin/dashboard/stock',
-    icon: 'warehouse',
+    label: 'Products',
+    href: '/admin/dashboard/products',
+    icon: 'shopping-bag',
     groupIds: ['commerce'],
   },
   {
