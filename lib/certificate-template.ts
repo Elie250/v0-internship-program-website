@@ -6,6 +6,8 @@ export type CertificateData = {
   finalScore?: number | null
   /** Free programmes render a diagonal "Energy & Logics" watermark. */
   freeCourse?: boolean
+  /** Awaiting admin stamp — preview only, not publicly verifiable. */
+  pendingApproval?: boolean
   /** Origin used to resolve image assets (print window has no base URL). */
   assetBaseUrl?: string
   verifyUrl?: string
@@ -25,10 +27,12 @@ export function createCertificateHTML({
   certificateId,
   finalScore,
   freeCourse = false,
+  pendingApproval = false,
   assetBaseUrl = '',
   verifyUrl,
   qrImageUrl,
 }: CertificateData): string {
+  const isOfficial = !pendingApproval
   const formattedDate = completionDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -272,34 +276,32 @@ export function createCertificateHTML({
           width: 100%;
           display: flex;
           align-items: flex-end;
-          justify-content: flex-start;
-          padding-bottom: 14mm;
+          justify-content: space-between;
+          gap: 8mm;
+          padding-bottom: 16mm;
         }
 
         .right-column {
-          position: absolute;
-          right: 24mm;
-          bottom: 38mm;
-          width: 68mm;
+          width: 72mm;
+          flex-shrink: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 2.5mm;
-          z-index: 4;
         }
 
         .sig-block {
           text-align: center;
           width: 100mm;
-          max-width: 42%;
+          flex: 1;
+          max-width: 48%;
           position: relative;
-          min-height: 40mm;
+          min-height: 42mm;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
-          padding-top: 10mm;
-          padding-bottom: 2mm;
+          padding-top: 8mm;
         }
 
         /* Stamp centered over the whole signature block */
@@ -338,27 +340,54 @@ export function createCertificateHTML({
           margin: 2mm 0 1.5mm;
         }
 
-        .sig-title {
-          position: relative;
-          z-index: 2;
-          font-family: 'Cinzel', 'Times New Roman', serif;
-          font-size: 13px;
-          font-weight: 700;
-          color: #1e3a5f;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-        }
         .sig-org {
           position: relative;
           z-index: 2;
           font-family: 'Montserrat', sans-serif;
-          font-size: 8.5px;
+          font-size: 9px;
           line-height: 1.45;
           color: #5a6472;
-          letter-spacing: 0.2px;
-          margin-top: 1mm;
+          letter-spacing: 0.3px;
+          margin-top: 0.5mm;
           max-width: 90mm;
-          white-space: normal;
+        }
+
+        .sig-pending {
+          position: relative;
+          z-index: 2;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 9px;
+          font-weight: 600;
+          color: #94a3b8;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          margin-top: 2mm;
+          padding: 2mm 3mm;
+          border: 1px dashed #cbd5e1;
+          border-radius: 1mm;
+        }
+
+        .pending-approval-notice {
+          margin: 4mm auto 0;
+          max-width: 165mm;
+          padding: 3mm 4mm;
+          border: 1.5px solid #64748b;
+          border-radius: 2mm;
+          background: rgba(100, 116, 139, 0.1);
+          font-family: 'Montserrat', sans-serif;
+          font-size: 10px;
+          font-weight: 600;
+          line-height: 1.55;
+          color: #334155;
+        }
+        .pending-approval-notice strong {
+          display: block;
+          font-size: 11px;
+          font-weight: 700;
+          color: #475569;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          margin-bottom: 1mm;
         }
 
         .date-block {
@@ -432,10 +461,20 @@ export function createCertificateHTML({
         }
         .footer .cert-id {
           display: block;
-          font-weight: 600;
-          color: #4a5568;
-          font-size: 8.5px;
+          font-weight: 700;
+          color: #1e3a5f;
+          font-size: 11px;
+          letter-spacing: 0.5px;
           margin-bottom: 0.5mm;
+        }
+        .footer .cert-id code {
+          font-family: 'Montserrat', monospace;
+          font-size: 11.5px;
+          font-weight: 700;
+          color: #0f2744;
+          background: #f1f5f9;
+          padding: 0.5mm 1.5mm;
+          border-radius: 1mm;
         }
         .footer .verify-line {
           display: block;
@@ -460,6 +499,15 @@ export function createCertificateHTML({
                 <div class="wm-repeat"></div>
                 <div class="wm-primary">Energy &amp; Logics</div>
                 <div class="wm-secondary">Complimentary Programme Certificate</div>
+              </div>`
+            : ''
+        }
+        ${
+          pendingApproval
+            ? `<div class="text-watermark">
+                <div class="wm-repeat"></div>
+                <div class="wm-primary">Pending Approval</div>
+                <div class="wm-secondary">Awaiting Official Stamp &amp; Signature</div>
               </div>`
             : ''
         }
@@ -490,39 +538,52 @@ export function createCertificateHTML({
                   </div>`
                 : ''
             }
+            ${
+              pendingApproval
+                ? `<div class="pending-approval-notice">
+                    <strong>Preview — pending admin approval</strong>
+                    This certificate will receive the official company stamp and authorised signature once approved by Energy and Logics Ltd. It is not yet publicly verifiable.
+                  </div>`
+                : ''
+            }
           </div>
 
           <div class="bottom-row">
             <div class="sig-block">
-              <img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">
-              <div class="sig-name">Elie BISAMAZA</div>
-              <div class="sig-rule"></div>
-              <div class="sig-title">Elie BISAMAZA</div>
-              <div class="sig-org">Managing Director<br>Energy and Logics Ltd</div>
+              ${isOfficial ? `<img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">` : ''}
+              ${
+                isOfficial
+                  ? `<div class="sig-name">Elie BISAMAZA</div>
+                     <div class="sig-rule"></div>
+                     <div class="sig-org">Managing Director · Energy and Logics Ltd</div>`
+                  : `<div class="sig-rule" style="margin-top: 18mm"></div>
+                     <div class="sig-pending">Awaiting official stamp &amp; signature</div>`
+              }
+            </div>
+
+            <div class="right-column">
+              ${
+                qrImageUrl && isOfficial
+                  ? `<div class="qr-block">
+                      <img src="${qrImageUrl}" alt="Scan to verify certificate">
+                      <div class="qr-label">Scan to verify</div>
+                      <div class="qr-hint">www.energyandlogics.com</div>
+                    </div>`
+                  : ''
+              }
+              <div class="date-block">
+                <div class="date-value">${formattedDate}</div>
+                <div class="date-rule"></div>
+                <div class="date-label">${isOfficial ? 'Date of Issue' : 'Completion Date'}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="right-column">
-          ${
-            qrImageUrl
-              ? `<div class="qr-block">
-                  <img src="${qrImageUrl}" alt="Scan to verify certificate">
-                  <div class="qr-label">Scan to verify</div>
-                  <div class="qr-hint">www.energyandlogics.com</div>
-                </div>`
-              : ''
-          }
-          <div class="date-block">
-            <div class="date-value">${formattedDate}</div>
-            <div class="date-rule"></div>
-            <div class="date-label">Date of Issue</div>
-          </div>
-        </div>
-
         <div class="footer">
-          <span class="cert-id">Certificate ID: ${certificateId}</span>
-          ${verifyUrl ? `<span class="verify-line">Verify at ${verifyUrl}</span>` : ''}
+          <span class="cert-id">Certificate ID: <code>${certificateId}</code></span>
+          ${verifyUrl && isOfficial ? `<span class="verify-line">Verify at ${verifyUrl}</span>` : ''}
+          ${pendingApproval ? `<span class="verify-line">Verification available after admin approval</span>` : ''}
         </div>
       </div>
 
