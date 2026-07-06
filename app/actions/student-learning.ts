@@ -441,7 +441,7 @@ export async function getStudentPortalData(options?: {
 
   let lessons: StudentLesson[] = []
   if (activeAdmittedIds.length) {
-    const { data: content } = await supabaseAdmin
+    const full = await supabaseAdmin
       .from('course_content')
       .select(
         'id, course_id, title, content_type, content_url, sort_order, unlock_at, unlock_after_content_id'
@@ -449,7 +449,16 @@ export async function getStudentPortalData(options?: {
       .in('course_id', activeAdmittedIds)
       .order('sort_order', { ascending: true })
 
-    lessons = (content ?? []) as StudentLesson[]
+    if (!full.error) {
+      lessons = (full.data ?? []) as StudentLesson[]
+    } else if (/column .* does not exist|could not find the .* column/i.test(full.error.message)) {
+      const base = await supabaseAdmin
+        .from('course_content')
+        .select('id, course_id, title, content_type, content_url, sort_order')
+        .in('course_id', activeAdmittedIds)
+        .order('sort_order', { ascending: true })
+      lessons = (base.data ?? []) as StudentLesson[]
+    }
   }
 
   let progressRecords: Awaited<ReturnType<typeof queryLessonProgress>>['records'] = []
