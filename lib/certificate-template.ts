@@ -221,7 +221,8 @@ export function createCertificateHTML({
           color: #2d3748;
           margin-top: 5mm;
           line-height: 1.75;
-          max-width: 185mm;
+          max-width: 170mm;
+          padding-bottom: 2mm;
         }
 
         .program-name {
@@ -271,28 +272,34 @@ export function createCertificateHTML({
           width: 100%;
           display: flex;
           align-items: flex-end;
-          justify-content: space-between;
-          padding-bottom: 1mm;
+          justify-content: flex-start;
+          padding-bottom: 14mm;
         }
 
         .right-column {
-          width: 75mm;
+          position: absolute;
+          right: 24mm;
+          bottom: 38mm;
+          width: 68mm;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 3mm;
+          gap: 2.5mm;
+          z-index: 4;
         }
 
         .sig-block {
           text-align: center;
-          width: 95mm;
+          width: 100mm;
+          max-width: 42%;
           position: relative;
-          min-height: 46mm;
+          min-height: 40mm;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
-          padding-top: 14mm;
+          padding-top: 10mm;
+          padding-bottom: 2mm;
         }
 
         /* Stamp centered over the whole signature block */
@@ -345,10 +352,13 @@ export function createCertificateHTML({
           position: relative;
           z-index: 2;
           font-family: 'Montserrat', sans-serif;
-          font-size: 9px;
+          font-size: 8.5px;
+          line-height: 1.45;
           color: #5a6472;
-          letter-spacing: 0.3px;
-          margin-top: 0.5mm;
+          letter-spacing: 0.2px;
+          margin-top: 1mm;
+          max-width: 90mm;
+          white-space: normal;
         }
 
         .date-block {
@@ -407,17 +417,32 @@ export function createCertificateHTML({
 
         .footer {
           position: absolute;
-          bottom: 9.5mm;
-          left: 0;
-          right: 0;
+          bottom: 11mm;
+          left: 22mm;
+          right: 22mm;
           text-align: center;
           font-family: 'Montserrat', sans-serif;
-          font-size: 8.5px;
+          font-size: 8px;
+          line-height: 1.5;
           color: #718096;
-          letter-spacing: 0.4px;
+          letter-spacing: 0.3px;
           z-index: 3;
+          padding-top: 2mm;
+          border-top: 1px solid #e2e8f0;
         }
-        .footer .cert-id { font-weight: 600; color: #4a5568; }
+        .footer .cert-id {
+          display: block;
+          font-weight: 600;
+          color: #4a5568;
+          font-size: 8.5px;
+          margin-bottom: 0.5mm;
+        }
+        .footer .verify-line {
+          display: block;
+          font-size: 7px;
+          color: #94a3b8;
+          word-break: break-all;
+        }
       </style>
     </head>
     <body>
@@ -473,31 +498,31 @@ export function createCertificateHTML({
               <div class="sig-name">Elie BISAMAZA</div>
               <div class="sig-rule"></div>
               <div class="sig-title">Elie BISAMAZA</div>
-              <div class="sig-org">Managing Director, Energy and Logics Ltd</div>
+              <div class="sig-org">Managing Director<br>Energy and Logics Ltd</div>
             </div>
+          </div>
+        </div>
 
-            <div class="right-column">
-              ${
-                qrImageUrl
-                  ? `<div class="qr-block">
-                      <img src="${qrImageUrl}" alt="Scan to verify certificate">
-                      <div class="qr-label">Scan to verify</div>
-                      <div class="qr-hint">www.energyandlogics.com</div>
-                    </div>`
-                  : ''
-              }
-              <div class="date-block">
-                <div class="date-value">${formattedDate}</div>
-                <div class="date-rule"></div>
-                <div class="date-label">Date of Issue</div>
-              </div>
-            </div>
+        <div class="right-column">
+          ${
+            qrImageUrl
+              ? `<div class="qr-block">
+                  <img src="${qrImageUrl}" alt="Scan to verify certificate">
+                  <div class="qr-label">Scan to verify</div>
+                  <div class="qr-hint">www.energyandlogics.com</div>
+                </div>`
+              : ''
+          }
+          <div class="date-block">
+            <div class="date-value">${formattedDate}</div>
+            <div class="date-rule"></div>
+            <div class="date-label">Date of Issue</div>
           </div>
         </div>
 
         <div class="footer">
           <span class="cert-id">Certificate ID: ${certificateId}</span>
-          ${verifyUrl ? ` &nbsp;·&nbsp; Verify at ${verifyUrl}` : ''}
+          ${verifyUrl ? `<span class="verify-line">Verify at ${verifyUrl}</span>` : ''}
         </div>
       </div>
 
