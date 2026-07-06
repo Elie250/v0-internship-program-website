@@ -23,9 +23,12 @@ import {
   TRAINING_PROGRAMS,
 } from '@/lib/company/constants'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
+import { loadPublicTeamMembers } from '@/lib/platform/team'
+import { OurTeamSection } from '@/components/about/our-team-section'
 
 export default async function AboutPage() {
   const profile = await loadPublicCompanyProfile()
+  const teamMembers = await loadPublicTeamMembers()
   const about = profile.about
   const mission = profile.mission
 
@@ -94,6 +97,8 @@ export default async function AboutPage() {
             </ul>
           </CardContent>
         </Card>
+
+        <OurTeamSection members={teamMembers} />
 
         <Card className="border-slate-200 bg-white">
           <CardHeader>

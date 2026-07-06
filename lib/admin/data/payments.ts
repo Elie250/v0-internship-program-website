@@ -18,50 +18,80 @@ export type PaymentRecord = {
   student_id: string | null
   course_enrollment_id: string | null
   support_subscription_id: string | null
+  order_id: string | null
   course_id: string | null
   created_at: string
 }
 
 const PAYMENT_COLUMNS =
+  'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, order_id, course_id, created_at'
+
+export function isEnrollmentPayment(payment: PaymentRecord): boolean {
+  return Boolean(payment.course_enrollment_id)
+}
+
+export function isProductOrderPayment(payment: PaymentRecord): boolean {
+  return Boolean(payment.order_id) || (!payment.course_enrollment_id && !payment.support_subscription_id)
+}
+
+/** @deprecated Use isProductOrderPayment */
+export function isShopOrLegacyPayment(payment: PaymentRecord): boolean {
+  return isProductOrderPayment(payment)
+}
+
+const PAYMENT_COLUMNS_BASE =
   'id, amount, status, payment_method, receipt_number, receipt_url, payer_name, payer_email, payer_phone, admin_notes, reviewed_by, reviewed_at, application_id, student_id, course_enrollment_id, support_subscription_id, course_id, created_at'
 
-export function isShopOrLegacyPayment(payment: PaymentRecord): boolean {
-  return !payment.course_enrollment_id && !payment.support_subscription_id
+async function queryPaymentRows(
+  build: (columns: string) => ReturnType<NonNullable<typeof supabaseAdmin>['from']>
+): Promise<{ rows: PaymentRecord[]; error?: string }> {
+  if (!supabaseAdmin) return { rows: [], error: 'Database not configured' }
+
+  let { data, error } = await build(PAYMENT_COLUMNS)
+
+  if (error?.message?.includes('order_id')) {
+    const retry = await build(PAYMENT_COLUMNS_BASE)
+    data = (retry.data ?? []).map((row) => ({ ...row, order_id: null }))
+    error = retry.error
+  }
+
+  if (error) return { rows: [], error: error.message }
+  return { rows: (data ?? []) as PaymentRecord[] }
 }
 
 export async function queryPendingPayments(): Promise<{
   payments: PaymentRecord[]
   error?: string
 }> {
-  if (!supabaseAdmin) return { payments: [], error: 'Database not configured' }
+  const { rows, error } = await queryPaymentRows((columns) =>
+    supabaseAdmin!
+      .from('payments')
+      .select(columns)
+      .in('status', ['pending_review', 'Pending', 'pending'])
+      .order('created_at', { ascending: false })
+  )
 
-  const { data, error } = await supabaseAdmin
-    .from('payments')
-    .select(PAYMENT_COLUMNS)
-    .in('status', ['pending_review', 'Pending', 'pending'])
-    .order('created_at', { ascending: false })
+  if (error) return { payments: [], error }
 
-  if (error) return { payments: [], error: error.message }
-
-  const pending = (data ?? [])
+  const pending = rows
     .filter((row) => isPendingPaymentStatus(String(row.status)))
-    .filter((row) => isShopOrLegacyPayment(row as PaymentRecord))
+    .filter((row) => isProductOrderPayment(row))
 
-  return { payments: pending as PaymentRecord[] }
+  return { payments: pending }
 }
 
 export async function queryAllPayments(limit = 100): Promise<{
   payments: PaymentRecord[]
   error?: string
 }> {
-  if (!supabaseAdmin) return { payments: [], error: 'Database not configured' }
+  const { rows, error } = await queryPaymentRows((columns) =>
+    supabaseAdmin!
+      .from('payments')
+      .select(columns)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+  )
 
-  const { data, error } = await supabaseAdmin
-    .from('payments')
-    .select(PAYMENT_COLUMNS)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  if (error) return { payments: [], error: error.message }
-  return { payments: ((data ?? []) as PaymentRecord[]).filter(isShopOrLegacyPayment) }
+  if (error) return { payments: [], error }
+  return { payments: rows.filter(isProductOrderPayment) }
 }

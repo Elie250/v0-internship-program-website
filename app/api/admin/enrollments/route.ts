@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdminPermission } from '@/app/actions/admin-context'
+import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { admitEnrollmentById, rejectEnrollmentById } from '@/lib/enrollment/admit'
 import { revokeEnrollmentWithPayment } from '@/lib/admin/refund-payment'
 import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
+import {
+  approveEnrollmentPaymentRecord,
+  resolveEnrollmentPaymentId,
+} from '@/lib/payments/enrollment-payment'
+import { isPendingPaymentStatus } from '@/lib/payments/status'
 
 async function attachLearningProgress(
   rows: Array<{ course_id?: string | null; user_id?: string | null; status?: string }>
@@ -65,7 +70,50 @@ export async function GET() {
       course: row.course_id ? coursesById.get(row.course_id) ?? null : null,
     }))
 
-    const withProgress = await attachLearningProgress(rows)
+    const enrollmentIds = rows.map((row) => row.id)
+    const paymentIds = [
+      ...new Set(rows.map((row) => row.payment_id).filter(Boolean) as string[]),
+    ]
+
+    const paymentsByEnrollment = new Map<string, Record<string, unknown>>()
+    const paymentsById = new Map<string, Record<string, unknown>>()
+
+    if (paymentIds.length) {
+      const { data: payments } = await supabaseAdmin
+        .from('payments')
+        .select('id, amount, status, receipt_url, receipt_number, payment_method, admin_notes, course_enrollment_id')
+        .in('id', paymentIds)
+
+      for (const payment of payments ?? []) {
+        paymentsById.set(payment.id, payment)
+        if (payment.course_enrollment_id) {
+          paymentsByEnrollment.set(payment.course_enrollment_id, payment)
+        }
+      }
+    }
+
+    if (enrollmentIds.length) {
+      const { data: enrollmentPayments } = await supabaseAdmin
+        .from('payments')
+        .select('id, amount, status, receipt_url, receipt_number, payment_method, admin_notes, course_enrollment_id')
+        .in('course_enrollment_id', enrollmentIds)
+
+      for (const payment of enrollmentPayments ?? []) {
+        if (payment.course_enrollment_id && !paymentsByEnrollment.has(payment.course_enrollment_id)) {
+          paymentsByEnrollment.set(payment.course_enrollment_id, payment)
+        }
+      }
+    }
+
+    const withPayments = rows.map((row) => ({
+      ...row,
+      payment:
+        (row.payment_id ? paymentsById.get(row.payment_id) : null) ??
+        paymentsByEnrollment.get(row.id) ??
+        null,
+    }))
+
+    const withProgress = await attachLearningProgress(withPayments)
 
     return NextResponse.json(withProgress)
   } catch (error) {
@@ -88,6 +136,27 @@ export async function PATCH(request: Request) {
     }
 
     if (status === 'admitted') {
+      const session = await getAdminSession()
+      const paymentId = await resolveEnrollmentPaymentId(id)
+
+      if (paymentId) {
+        const { data: payment } = await supabaseAdmin
+          .from('payments')
+          .select('status')
+          .eq('id', paymentId)
+          .maybeSingle()
+
+        if (payment && isPendingPaymentStatus(String(payment.status))) {
+          const approved = await approveEnrollmentPaymentRecord(paymentId, {
+            adminNotes: adminNotes,
+            reviewedBy: session?.user.id ?? null,
+          })
+          if (!approved.success) {
+            return NextResponse.json({ error: approved.error }, { status: 500 })
+          }
+        }
+      }
+
       const result = await admitEnrollmentById(id)
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 })
@@ -142,7 +211,18 @@ export async function PATCH(request: Request) {
       course = courseRow
     }
 
-    return NextResponse.json({ ...data, course })
+    const paymentId = await resolveEnrollmentPaymentId(id)
+    let payment = null
+    if (paymentId) {
+      const { data: paymentRow } = await supabaseAdmin
+        .from('payments')
+        .select('id, amount, status, receipt_url, receipt_number, payment_method, admin_notes')
+        .eq('id', paymentId)
+        .maybeSingle()
+      payment = paymentRow
+    }
+
+    return NextResponse.json({ ...data, course, payment })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update enrollment'
     return NextResponse.json({ error: message }, { status: 403 })

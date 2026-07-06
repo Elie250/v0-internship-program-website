@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { AdminAssessmentsPanel } from '@/components/admin/admin-assessments-panel'
-import { Mail, Phone, RotateCcw } from 'lucide-react'
+import { Mail, Phone, RotateCcw, ExternalLink } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 
@@ -35,6 +35,16 @@ type LearningProgress = {
   completed: number
   total: number
 } | null
+
+type EnrollmentPayment = {
+  id: string
+  amount: number
+  status: string
+  receipt_url: string | null
+  receipt_number: string | null
+  payment_method: string | null
+  admin_notes: string | null
+}
 
 type Enrollment = {
   id: string
@@ -48,6 +58,7 @@ type Enrollment = {
   created_at: string
   access_starts_at?: string | null
   access_ends_at?: string | null
+  payment?: EnrollmentPayment | null
   admitted_at?: string | null
   learningProgress?: LearningProgress
   course?: { id: string; title: string; pricing?: number }
@@ -249,6 +260,45 @@ export default function EnrollmentManagement() {
                   <a href={`tel:${row.applicant_phone}`} className="hover:underline">{row.applicant_phone}</a>
                 </p>
                 {row.motivation ? <p className="text-slate-600">{row.motivation}</p> : null}
+
+                {row.payment ? (
+                  <div className="rounded-lg border bg-slate-50 p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-slate-700 uppercase">Payment receipt</p>
+                      <Badge
+                        className={
+                          row.payment.status === 'approved' || row.payment.status === 'Paid'
+                            ? 'bg-green-100 text-green-800'
+                            : row.payment.status === 'rejected'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-900'
+                        }
+                      >
+                        {row.payment.status.replace(/_/g, ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {Number(row.payment.amount).toLocaleString()} RWF
+                      {row.payment.payment_method ? ` · ${row.payment.payment_method}` : ''}
+                      {row.payment.receipt_number ? ` · Ref ${row.payment.receipt_number}` : ''}
+                    </p>
+                    {row.payment.receipt_url ? (
+                      <a
+                        href={row.payment.receipt_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[var(--brand-navy)] underline text-sm"
+                      >
+                        View MoMo receipt <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    ) : (
+                      <p className="text-xs text-amber-800">No receipt uploaded.</p>
+                    )}
+                  </div>
+                ) : row.status === 'payment_pending_review' ? (
+                  <p className="text-xs text-amber-800">Awaiting payment receipt.</p>
+                ) : null}
+
                 {row.access_starts_at || row.access_ends_at ? (
                   <p className="text-xs text-slate-500 pt-1">
                     Access:{' '}
