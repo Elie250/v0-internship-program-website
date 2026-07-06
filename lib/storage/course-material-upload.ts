@@ -1,3 +1,5 @@
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+
 export const COURSE_MATERIAL_MAX_BYTES = 25 * 1024 * 1024
 
 export const COURSE_MATERIAL_ALLOWED_TYPES = [
@@ -29,7 +31,7 @@ const EXTENSION_TO_MIME: Record<string, string> = {
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 }
 
-export function resolveCourseMaterialContentType(file: File): string | null {
+export function resolveCourseMaterialContentType(file: { name: string; type: string }): string | null {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   const mimeFromExt = ext ? EXTENSION_TO_MIME[ext] : undefined
 
@@ -44,7 +46,11 @@ export function resolveCourseMaterialContentType(file: File): string | null {
   return mimeFromExt ?? null
 }
 
-export function validateCourseMaterialFile(file: File): { ok: true; contentType: string } | { ok: false; error: string } {
+export function validateCourseMaterialFile(file: {
+  name: string
+  type: string
+  size: number
+}): { ok: true; contentType: string } | { ok: false; error: string } {
   const contentType = resolveCourseMaterialContentType(file)
 
   if (!contentType) {
@@ -63,4 +69,50 @@ export function validateCourseMaterialFile(file: File): { ok: true; contentType:
 
 export function isStorageMimeTypeError(message: string): boolean {
   return /mime type|not supported|invalid.*type/i.test(message)
+}
+
+/**
+ * Create a signed direct-to-storage upload target. The browser PUTs the file
+ * straight to Supabase, bypassing the ~4.5 MB Vercel API body limit.
+ */
+export async function createCourseMaterialUploadTarget(
+  courseId: string,
+  file: { name: string; type: string; size: number }
+): Promise<
+  | { ok: true; signedUrl: string; path: string; publicUrl: string; contentType: string }
+  | { ok: false; error: string; status: number }
+> {
+  if (!supabaseAdmin) {
+    return { ok: false, error: 'Database not configured', status: 500 }
+  }
+
+  const validation = validateCourseMaterialFile(file)
+  if (!validation.ok) {
+    return { ok: false, error: validation.error, status: 400 }
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
+  const path = `course-materials/${courseId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+  const { data, error } = await supabaseAdmin.storage
+    .from('platform-media')
+    .createSignedUploadUrl(path)
+
+  if (error || !data?.signedUrl) {
+    return {
+      ok: false,
+      error: error?.message ?? 'Could not create upload URL',
+      status: 500,
+    }
+  }
+
+  const { data: publicData } = supabaseAdmin.storage.from('platform-media').getPublicUrl(path)
+
+  return {
+    ok: true,
+    signedUrl: data.signedUrl,
+    path,
+    publicUrl: publicData.publicUrl,
+    contentType: validation.contentType,
+  }
 }

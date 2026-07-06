@@ -17,6 +17,7 @@ type CertificateRow = {
   program_title: string
   issued_at: string
   final_score?: number | null
+  is_free?: boolean
 }
 
 export default function StudentCertificates() {
@@ -51,6 +52,7 @@ export default function StudentCertificates() {
       completionDate: new Date(cert.issued_at),
       certificateId: cert.certificate_code,
       finalScore: cert.final_score ?? null,
+      freeCourse: cert.is_free === true,
       assetBaseUrl: origin,
       verifyUrl: `${origin}/verify/${cert.certificate_code}`,
     })

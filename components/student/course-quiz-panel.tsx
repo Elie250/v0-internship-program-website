@@ -38,7 +38,7 @@ type QuizListResponse = {
   averageScore: number | null
   completedQuizzes: number
   totalQuizzes: number
-  certificate: { code: string; issuedAt: string } | null
+  certificate: { code: string; issuedAt: string; status: string } | null
 }
 
 type GradedAnswer = {
@@ -368,17 +368,26 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
         </div>
 
         {data.certificate ? (
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-green-900 flex items-center gap-2">
-              <Award className="h-5 w-5 text-green-700" />
-              Certificate issued — code <span className="font-mono">{data.certificate.code}</span>
-            </p>
-            <Link href="/student/certificates">
-              <Button size="sm" className="bg-[var(--brand-navy)] text-white">
-                View certificate
-              </Button>
-            </Link>
-          </div>
+          data.certificate.status === 'issued' ? (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-green-900 flex items-center gap-2">
+                <Award className="h-5 w-5 text-green-700" />
+                Certificate issued — code <span className="font-mono">{data.certificate.code}</span>
+              </p>
+              <Link href="/student/certificates">
+                <Button size="sm" className="bg-[var(--brand-navy)] text-white">
+                  View certificate
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm text-amber-900 flex items-center gap-2">
+                <Award className="h-5 w-5 text-amber-700" />
+                Your lecturer confirmed your pass — the certificate is awaiting final admin approval.
+              </p>
+            </div>
+          )
         ) : null}
 
         <ul className="space-y-3">
