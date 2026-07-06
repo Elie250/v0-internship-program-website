@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, Calculator } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ENGINEERING_TOOL_CATEGORIES } from '@/components/tools/engineering-tools-panel'
+import { ENGINEERING_TOOL_CATEGORIES } from '@/lib/engineering/tool-categories'
 
 export function ToolsSection() {
   return (
