@@ -3,17 +3,22 @@ import { PERMISSIONS, type Permission, hasPermission } from '@/lib/admin/permiss
 export type AdminNavIconName =
   | 'layout-dashboard'
   | 'users'
+  | 'graduation-cap'
+  | 'user-cog'
+  | 'hard-hat'
   | 'shield'
   | 'clipboard-list'
   | 'receipt'
+  | 'award'
   | 'shopping-bag'
   | 'package'
   | 'warehouse'
   | 'folder-tree'
   | 'book-open'
-  | 'graduation-cap'
   | 'video'
+  | 'monitor'
   | 'megaphone'
+  | 'globe'
   | 'zap'
   | 'headphones'
   | 'bar-chart'
@@ -27,73 +32,112 @@ export type AdminNavItem = {
   href: string
   icon: AdminNavIconName
   permission: Permission
+  description?: string
 }
 
 export type AdminNavGroup = {
+  id: string
   label: string
   items: AdminNavItem[]
 }
 
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
-    label: 'Dashboard',
+    id: 'overview',
+    label: 'Overview',
     items: [
       {
         id: 'overview',
-        label: 'Overview',
+        label: 'Dashboard',
         href: '/admin/dashboard',
         icon: 'layout-dashboard',
         permission: PERMISSIONS.REPORTS_VIEW,
+        description: 'Platform snapshot and action items',
       },
     ],
   },
   {
-    label: 'Users',
+    id: 'people',
+    label: 'People',
     items: [
       {
+        id: 'students',
+        label: 'Students',
+        href: '/admin/dashboard/students',
+        icon: 'graduation-cap',
+        permission: PERMISSIONS.LEARNING_STUDENTS,
+        description: 'Student accounts, enrollments, and contact details',
+      },
+      {
+        id: 'lecturers',
+        label: 'Lecturers',
+        href: '/admin/dashboard/lecturers',
+        icon: 'user-cog',
+        permission: PERMISSIONS.USERS_VIEW,
+        description: 'Teaching staff and assigned programmes',
+      },
+      {
+        id: 'engineers',
+        label: 'Engineers',
+        href: '/admin/dashboard/engineers',
+        icon: 'hard-hat',
+        permission: PERMISSIONS.USERS_VIEW,
+        description: 'Engineering support accounts and subscriptions',
+      },
+      {
         id: 'users',
-        label: 'All Users',
+        label: 'Staff & accounts',
         href: '/admin/dashboard/users',
         icon: 'users',
         permission: PERMISSIONS.USERS_VIEW,
+        description: 'All platform users, roles, and approvals',
       },
       {
         id: 'roles',
-        label: 'Roles & Permissions',
+        label: 'Roles & permissions',
         href: '/admin/dashboard/roles',
         icon: 'shield',
         permission: PERMISSIONS.USERS_ASSIGN_ROLE,
       },
-      {
-        id: 'communications',
-        label: 'Email communications',
-        href: '/admin/dashboard/communications',
-        icon: 'mail',
-        permission: PERMISSIONS.USERS_EDIT,
-      },
     ],
   },
   {
-    label: 'Applications',
+    id: 'admissions',
+    label: 'Admissions & payments',
     items: [
       {
         id: 'applications',
-        label: 'All Applications',
+        label: 'Applications',
         href: '/admin/dashboard/applications',
         icon: 'clipboard-list',
         permission: PERMISSIONS.APPLICATIONS_VIEW,
       },
       {
+        id: 'enrollments',
+        label: 'Enrollments',
+        href: '/admin/dashboard/enrollments',
+        icon: 'graduation-cap',
+        permission: PERMISSIONS.LEARNING_STUDENTS,
+      },
+      {
         id: 'payments',
-        label: 'Shop payments',
+        label: 'Payment queue',
         href: '/admin/dashboard/payments',
         icon: 'receipt',
         permission: PERMISSIONS.PAYMENTS_VIEW,
       },
+      {
+        id: 'certificates',
+        label: 'Certificates',
+        href: '/admin/dashboard/certificates',
+        icon: 'award',
+        permission: PERMISSIONS.LEARNING_STUDENTS,
+      },
     ],
   },
   {
-    label: 'Shop',
+    id: 'commerce',
+    label: 'Commerce & stock',
     items: [
       {
         id: 'products',
@@ -104,7 +148,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'stock',
-        label: 'Stock',
+        label: 'Stock & inventory',
         href: '/admin/dashboard/stock',
         icon: 'warehouse',
         permission: PERMISSIONS.SHOP_PRODUCTS,
@@ -126,21 +170,15 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
-    label: 'Learning',
+    id: 'learning',
+    label: 'Learning & delivery',
     items: [
       {
         id: 'courses',
-        label: 'Programs / Courses',
+        label: 'Programs / courses',
         href: '/admin/dashboard/courses',
         icon: 'book-open',
         permission: PERMISSIONS.LEARNING_PROGRAMS,
-      },
-      {
-        id: 'enrollments',
-        label: 'Enrollments',
-        href: '/admin/dashboard/enrollments',
-        icon: 'graduation-cap',
-        permission: PERMISSIONS.LEARNING_STUDENTS,
       },
       {
         id: 'webinars',
@@ -149,10 +187,19 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: 'video',
         permission: PERMISSIONS.LEARNING_PROGRAMS,
       },
+      {
+        id: 'classroom',
+        label: 'Classroom monitor',
+        href: '/admin/dashboard/classroom',
+        icon: 'monitor',
+        permission: PERMISSIONS.LEARNING_PROGRAMS,
+        description: 'Live sessions across all programmes',
+      },
     ],
   },
   {
-    label: 'Content',
+    id: 'public',
+    label: 'Public website',
     items: [
       {
         id: 'announcements',
@@ -175,9 +222,18 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: 'star',
         permission: PERMISSIONS.CONTENT_SERVICES,
       },
+      {
+        id: 'settings',
+        label: 'Site & branding',
+        href: '/admin/dashboard/settings',
+        icon: 'globe',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
+        description: 'Hero, about, SEO, and company details',
+      },
     ],
   },
   {
+    id: 'support',
     label: 'Support',
     items: [
       {
@@ -191,7 +247,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         id: 'engineer-subscriptions',
         label: 'Engineer subscriptions',
         href: '/admin/dashboard/engineer-subscriptions',
-        icon: 'users',
+        icon: 'receipt',
         permission: PERMISSIONS.SUPPORT_TICKETS,
       },
       {
@@ -204,6 +260,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    id: 'system',
     label: 'System',
     items: [
       {
@@ -214,19 +271,64 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: PERMISSIONS.REPORTS_VIEW,
       },
       {
-        id: 'settings',
-        label: 'Settings',
-        href: '/admin/dashboard/settings',
-        icon: 'settings',
-        permission: PERMISSIONS.SETTINGS_MANAGE,
+        id: 'communications',
+        label: 'Email communications',
+        href: '/admin/dashboard/communications',
+        icon: 'mail',
+        permission: PERMISSIONS.USERS_EDIT,
       },
     ],
   },
 ]
 
-export function filterAdminNav(
-  permissions: string[] | undefined
-): AdminNavGroup[] {
+export type AdminMobileHub = {
+  id: string
+  label: string
+  href: string
+  icon: AdminNavIconName
+  groupIds: string[]
+}
+
+/** Bottom navigation hubs for mobile admin (maps to nav groups). */
+export const ADMIN_MOBILE_HUBS: AdminMobileHub[] = [
+  {
+    id: 'overview',
+    label: 'Home',
+    href: '/admin/dashboard',
+    icon: 'layout-dashboard',
+    groupIds: ['overview'],
+  },
+  {
+    id: 'people',
+    label: 'People',
+    href: '/admin/dashboard/students',
+    icon: 'users',
+    groupIds: ['people'],
+  },
+  {
+    id: 'commerce',
+    label: 'Shop',
+    href: '/admin/dashboard/stock',
+    icon: 'warehouse',
+    groupIds: ['commerce'],
+  },
+  {
+    id: 'learning',
+    label: 'Learning',
+    href: '/admin/dashboard/courses',
+    icon: 'book-open',
+    groupIds: ['learning'],
+  },
+  {
+    id: 'public',
+    label: 'Public',
+    href: '/admin/dashboard/announcements',
+    icon: 'globe',
+    groupIds: ['public', 'admissions', 'support', 'system'],
+  },
+]
+
+export function filterAdminNav(permissions: string[] | undefined): AdminNavGroup[] {
   return ADMIN_NAV.map((group) => ({
     ...group,
     items: group.items.filter((item) => hasPermission(permissions, item.permission)),
@@ -239,4 +341,32 @@ export function findNavItem(section: string): AdminNavItem | undefined {
     if (item) return item
   }
   return undefined
+}
+
+export function resolveSectionFromPathname(pathname: string): string | null {
+  if (pathname === '/admin/dashboard') return 'overview'
+  const match = pathname.match(/^\/admin\/dashboard\/([^/]+)/)
+  return match?.[1] ?? null
+}
+
+export function findNavGroupForSection(section: string): AdminNavGroup | undefined {
+  return ADMIN_NAV.find((group) => group.items.some((item) => item.id === section))
+}
+
+export function filterMobileHubs(
+  permissions: string[] | undefined
+): AdminMobileHub[] {
+  const filteredNav = filterAdminNav(permissions)
+  const visibleGroupIds = new Set(filteredNav.map((g) => g.id))
+
+  return ADMIN_MOBILE_HUBS.filter((hub) =>
+    hub.groupIds.some((groupId) => visibleGroupIds.has(groupId))
+  ).map((hub) => {
+    const firstVisibleGroup = hub.groupIds.find((id) => visibleGroupIds.has(id))
+    if (!firstVisibleGroup) return hub
+    const group = filteredNav.find((g) => g.id === firstVisibleGroup)
+    const firstItem = group?.items[0]
+    if (!firstItem) return hub
+    return { ...hub, href: firstItem.href }
+  })
 }

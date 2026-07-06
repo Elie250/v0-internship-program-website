@@ -300,6 +300,18 @@
     color: inherit;
   }
 
+  .admin-portal-main {
+    min-height: 100svh;
+  }
+
+  .admin-portal-content {
+    color: #0f172a;
+  }
+
+  .admin-portal-content .text-muted-foreground {
+    color: #475569 !important;
+  }
+
   .section-eyebrow {
     color: var(--brand-navy);
     font-size: 0.875rem;

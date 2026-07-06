@@ -19,18 +19,25 @@ type CertificateRow = {
 }
 
 /** Admin final approval for certificates confirmed by lecturers. */
-export function AdminAssessmentsPanel({ courseId }: { courseId?: string }) {
+export function AdminAssessmentsPanel({
+  courseId,
+  standalone = false,
+}: {
+  courseId?: string
+  standalone?: boolean
+}) {
   const [rows, setRows] = useState<CertificateRow[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [approving, setApproving] = useState<string | null>(null)
 
-  const load = useCallback(async (id: string) => {
+  const load = useCallback(async (id?: string) => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/admin/certificates?courseId=${id}`, {
+      const query = id ? `?courseId=${encodeURIComponent(id)}` : ''
+      const res = await fetch(`/api/admin/certificates${query}`, {
         credentials: 'same-origin',
       })
       const data = await res.json()
@@ -44,8 +51,8 @@ export function AdminAssessmentsPanel({ courseId }: { courseId?: string }) {
   }, [])
 
   useEffect(() => {
-    if (courseId) void load(courseId)
-  }, [courseId, load])
+    if (standalone || courseId) void load(courseId)
+  }, [courseId, standalone, load])
 
   const approve = async (row: CertificateRow) => {
     if (!confirm(`Give final approval for ${row.student_name}'s certificate? The student will be emailed.`)) return
@@ -62,7 +69,7 @@ export function AdminAssessmentsPanel({ courseId }: { courseId?: string }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Approval failed')
       setMessage(`Certificate ${data.certificateCode} approved and emailed to ${row.student_name}.`)
-      if (courseId) await load(courseId)
+      await load(courseId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Approval failed')
     } finally {
@@ -70,15 +77,15 @@ export function AdminAssessmentsPanel({ courseId }: { courseId?: string }) {
     }
   }
 
-  if (!courseId) return null
+  if (!standalone && !courseId) return null
 
   const pending = rows.filter((r) => r.status === 'pending_admin')
   const issued = rows.filter((r) => r.status !== 'pending_admin')
 
-  if (!loading && rows.length === 0 && !error) return null
+  if (!standalone && !loading && rows.length === 0 && !error) return null
 
   return (
-    <Card className="mt-4">
+    <Card className={standalone ? 'border-slate-200 bg-white shadow-sm' : 'mt-4'}>
       <CardHeader>
         <CardTitle className="text-base text-slate-900">Certificates — final approval</CardTitle>
         <p className="text-sm text-slate-600">

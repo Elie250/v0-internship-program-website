@@ -17,11 +17,14 @@ import { repairEnrollmentsWithApprovedPayments } from '@/lib/enrollment/repair-a
 export type AdminStats = {
   users: number
   students: number
+  lecturers: number
+  engineers: number
   courses: number
   publishedCourses: number
   announcements: number
   applications: number
   products: number
+  lowStockProducts: number
   supportTickets: number
   courseEnrollments: number
   admittedEnrollments: number
@@ -119,14 +122,28 @@ async function sumApprovedPayments(): Promise<number> {
   return data.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
 }
 
-async function countStudents(): Promise<number> {
+async function countUsersByRoles(roles: string[]): Promise<number> {
   if (!supabaseAdmin) return 0
   const { count, error } = await supabaseAdmin
     .from('users')
     .select('*', { count: 'exact', head: true })
-    .in('role', ['student', 'registered'])
+    .in('role', roles)
   if (error) return 0
   return count ?? 0
+}
+
+async function countLowStockProducts(): Promise<number> {
+  if (!supabaseAdmin) return 0
+  const { data, error } = await supabaseAdmin
+    .from('products')
+    .select('stock, low_stock_threshold')
+    .eq('status', 'active')
+  if (error || !data) return 0
+  return data.filter((row) => {
+    const stock = Number(row.stock ?? 0)
+    const threshold = Number(row.low_stock_threshold ?? 5)
+    return stock > 0 && stock <= threshold
+  }).length
 }
 
 async function countPendingStaffApprovals(): Promise<number> {
@@ -145,11 +162,14 @@ async function fetchAdminStats(): Promise<AdminStats> {
   const [
     users,
     students,
+    lecturers,
+    engineers,
     courses,
     publishedCourses,
     announcements,
     applications,
     products,
+    lowStockProducts,
     supportTickets,
     courseEnrollments,
     admittedEnrollments,
@@ -159,12 +179,15 @@ async function fetchAdminStats(): Promise<AdminStats> {
     approvedPaymentsTotal,
   ] = await Promise.all([
     countTable('users'),
-    countStudents(),
+    countUsersByRoles(['student', 'registered']),
+    countUsersByRoles(['lecturer', 'instructor']),
+    countUsersByRoles(['engineer']),
     countTable('courses'),
     countPublishedCourses(),
     countTable('announcements'),
     countTable('applications'),
     countTable('products'),
+    countLowStockProducts(),
     countTable('support_tickets'),
     countEnrollmentsByStatus(),
     countEnrollmentsByStatus('admitted'),
@@ -177,11 +200,14 @@ async function fetchAdminStats(): Promise<AdminStats> {
   return {
     users,
     students,
+    lecturers,
+    engineers,
     courses,
     publishedCourses,
     announcements,
     applications,
     products,
+    lowStockProducts,
     supportTickets,
     courseEnrollments,
     admittedEnrollments,
@@ -240,11 +266,14 @@ export async function getAdminStats(): Promise<AdminStats> {
     return {
       users: 0,
       students: 0,
+      lecturers: 0,
+      engineers: 0,
       courses: 0,
       publishedCourses: 0,
       announcements: 0,
       applications: 0,
       products: 0,
+      lowStockProducts: 0,
       supportTickets: 0,
       courseEnrollments: 0,
       admittedEnrollments: 0,

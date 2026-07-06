@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
+import { adminStatusClass } from '@/components/admin/admin-section-header'
 
 type StudentRow = {
   id: string
@@ -25,19 +26,6 @@ type StudentRow = {
   }>
   activeEnrollments: number
   pendingEnrollments: number
-}
-
-function statusClass(status: string) {
-  const map: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    pending_approval: 'bg-amber-100 text-amber-900',
-    inactive: 'bg-slate-200 text-slate-700',
-    suspended: 'bg-red-100 text-red-800',
-    admitted: 'bg-green-100 text-green-800',
-    payment_pending_review: 'bg-amber-100 text-amber-900',
-    payment_rejected: 'bg-red-100 text-red-800',
-  }
-  return map[status] ?? 'bg-slate-100 text-slate-800'
 }
 
 function exportCsv(students: StudentRow[]) {
@@ -138,10 +126,50 @@ export function StudentsRegistryPanel() {
           <CardContent className="py-8 text-center text-slate-600">No students found.</CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <>
+          <div className="md:hidden space-y-3">
+            {students.map((s) => (
+              <Card key={s.id} className="border-slate-200 bg-white shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">{s.fullName}</p>
+                      <p className="text-xs text-slate-600 break-all">{s.email}</p>
+                    </div>
+                    <Badge variant="outline" className={adminStatusClass(s.status)}>
+                      {s.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-700">{s.phone ?? 'No phone'}</p>
+                  <p className="text-sm text-slate-800">
+                    <span className="font-semibold text-emerald-800">{s.activeEnrollments}</span> active
+                    {s.pendingEnrollments > 0 ? (
+                      <span className="text-amber-800"> · {s.pendingEnrollments} pending</span>
+                    ) : null}
+                  </p>
+                  {s.enrollments.length > 0 ? (
+                    <ul className="text-xs space-y-1">
+                      {s.enrollments.map((e) => (
+                        <li key={e.enrollmentId} className="text-slate-700">
+                          <span className="font-medium text-slate-900">{e.courseTitle}</span>
+                          <Badge variant="outline" className={`ml-1.5 ${adminStatusClass(e.status)}`}>
+                            {e.status}
+                          </Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-slate-500">No programme enrollments</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-700">
+              <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-800">
                 <th className="py-3 px-4 font-semibold">Student</th>
                 <th className="py-3 px-4 font-semibold">Phone</th>
                 <th className="py-3 px-4 font-semibold">Account</th>
@@ -161,7 +189,7 @@ export function StudentsRegistryPanel() {
                   </td>
                   <td className="py-3 px-4 text-slate-700">{s.phone ?? '—'}</td>
                   <td className="py-3 px-4">
-                    <Badge className={statusClass(s.status)}>{s.status}</Badge>
+                    <Badge variant="outline" className={adminStatusClass(s.status)}>{s.status}</Badge>
                     <p className="text-xs text-slate-500 mt-1">{s.role}</p>
                   </td>
                   <td className="py-3 px-4 text-slate-700">
@@ -178,7 +206,7 @@ export function StudentsRegistryPanel() {
                         {s.enrollments.map((e) => (
                           <li key={e.enrollmentId} className="text-xs">
                             <span className="text-slate-900 font-medium">{e.courseTitle}</span>
-                            <Badge className={`ml-1.5 ${statusClass(e.status)}`}>{e.status}</Badge>
+                            <Badge variant="outline" className={`ml-1.5 ${adminStatusClass(e.status)}`}>{e.status}</Badge>
                             {e.amountDue > 0 ? (
                               <span className="text-slate-500 ml-1">
                                 · {e.amountDue.toLocaleString()} RWF
@@ -194,8 +222,9 @@ export function StudentsRegistryPanel() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </>
       )}
     </div>
   )
