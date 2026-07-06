@@ -66,7 +66,7 @@ export function AdminShell({
             </div>
             <div className="flex flex-col gap-0.5 min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="font-bold text-sm leading-tight truncate text-white">{COMPANY.platformName}</p>
-              <p className="text-xs text-white/75">Admin console</p>
+              <p className="text-xs text-white/75">Settings & management</p>
             </div>
           </div>
         </SidebarHeader>

@@ -210,8 +210,8 @@ export default function StockManagement() {
         </CardContent>
       </Card>
 
-      <div className="sticky bottom-0 z-30 mt-6 border-t border-slate-200 bg-white/95 backdrop-blur py-3 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
-        <Button onClick={handleSave} disabled={saving} className="bg-[#1e3a5f] w-full sm:w-auto ml-auto flex">
+      <div className="relative z-[60] flex justify-end pt-4 border-t border-slate-200">
+        <Button onClick={handleSave} disabled={saving} className="bg-[#1e3a5f] w-full sm:w-auto pointer-events-auto">
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Saving…' : 'Save all changes'}
         </Button>
