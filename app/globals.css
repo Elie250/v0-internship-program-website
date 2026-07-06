@@ -398,4 +398,73 @@
     background-color: var(--brand-navy);
     color: #ffffff;
   }
+
+  /* Shop portal — category filters, catalog cards, checkout sheet */
+  .shop-portal .text-muted-foreground {
+    color: #475569;
+  }
+
+  .shop-portal [data-slot='sheet-content'] {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  .shop-portal [data-slot='sheet-title'] {
+    color: #0f172a;
+  }
+
+  .shop-portal [data-slot='sheet-description'] {
+    color: #475569;
+  }
+
+  .shop-portal [data-slot='input'],
+  .shop-portal [data-slot='textarea'],
+  .shop-portal [data-slot='select-trigger'] {
+    color: #0f172a;
+    border-color: #94a3b8;
+    background-color: #ffffff;
+  }
+
+  .shop-portal [data-slot='select-item'] {
+    color: #0f172a;
+  }
+
+  .shop-portal [data-slot='button'][data-variant='outline'] {
+    color: #0f172a;
+    border-color: #94a3b8;
+    background-color: #ffffff;
+  }
+
+  .shop-category-active {
+    background-color: var(--brand-navy) !important;
+    color: #ffffff !important;
+    border-color: var(--brand-navy) !important;
+  }
+
+  .shop-category-active:hover {
+    background-color: var(--brand-navy-deep) !important;
+    color: #ffffff !important;
+  }
+
+  .shop-category-inactive {
+    color: #1e293b;
+    border-color: #94a3b8;
+    background-color: #ffffff;
+  }
+
+  .shop-category-inactive:hover {
+    color: #0f172a;
+    background-color: #f1f5f9;
+    border-color: #64748b;
+  }
+
+  /* About page — readable body copy on cards */
+  .about-portal .text-muted-foreground {
+    color: #475569;
+  }
+
+  .about-portal [data-slot='card-title'] {
+    color: #0f172a;
+  }
 }

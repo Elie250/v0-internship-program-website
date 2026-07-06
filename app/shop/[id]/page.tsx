@@ -25,20 +25,20 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     <>
       <section className="max-w-6xl mx-auto px-4 py-10 grid lg:grid-cols-2 gap-10">
         <div>
-          <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
+          <div className="relative aspect-square bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
             {images[0] ? (
               <Image src={images[0]} alt={product.name} fill className="object-cover" unoptimized />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                <Package className="h-12 w-12 opacity-50" />
-                <span>No image available</span>
+              <div className="flex flex-col items-center justify-center h-full text-slate-600 gap-3">
+                <Package className="h-12 w-12 opacity-60" />
+                <span className="font-medium">No image available</span>
               </div>
             )}
           </div>
           {images.length > 1 ? (
             <div className="grid grid-cols-4 gap-2 mt-3">
               {images.slice(0, 4).map((img, index) => (
-                <div key={index} className="relative aspect-square rounded-md overflow-hidden border">
+                <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-slate-200">
                   <Image src={img} alt={`${product.name} ${index + 1}`} fill className="object-cover" unoptimized />
                 </div>
               ))}
@@ -46,16 +46,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           ) : null}
         </div>
         <div>
-          <p className="text-sm text-muted-foreground mb-2">{product.category?.name}</p>
-          <h1 className="text-3xl font-bold text-[#1e3a5f] mb-4">{product.name}</h1>
-          <p className="text-muted-foreground mb-6">{product.description}</p>
-          <div className="text-2xl font-bold mb-2">{finalPrice.toLocaleString()} RWF</div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
+            {product.category?.name}
+          </p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">{product.name}</h1>
+          <p className="text-slate-700 mb-6 leading-relaxed">{product.description}</p>
+          <div className="text-3xl font-bold text-[var(--brand-navy)] mb-2">
+            {finalPrice.toLocaleString()} RWF
+          </div>
           {product.discount ? (
-            <p className="text-sm text-muted-foreground line-through mb-4">{product.price.toLocaleString()} RWF</p>
+            <p className="text-sm text-slate-500 line-through mb-4">{product.price.toLocaleString()} RWF</p>
           ) : null}
-          <p className="text-sm mb-6">
-            SKU: {product.sku ?? 'N/A'} ·{' '}
-            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+          <p className="text-sm text-slate-700 mb-6">
+            <span className="font-medium">SKU:</span> {product.sku ?? 'N/A'} ·{' '}
+            <span className={product.stock > 0 ? 'text-emerald-700 font-medium' : 'text-red-700 font-medium'}>
+              {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+            </span>
           </p>
           <div className="flex flex-wrap gap-3">
             <AddToCartButton
@@ -64,23 +70,27 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               price={finalPrice}
               stock={product.stock}
               image={images[0]}
-              className="bg-[#1e3a5f]"
+              className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
             />
             <Link href="/shop">
-              <Button size="lg" variant="outline">Back to shop</Button>
+              <Button size="lg" variant="outline" className="border-slate-300 text-slate-800 hover:bg-slate-50">
+                Back to shop
+              </Button>
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-3">
+          <p className="text-xs text-slate-600 mt-3 leading-relaxed">
             Open the cart (top bar) to submit your order with contact details for delivery or pickup in Kigali.
           </p>
           {specs.length > 0 && (
-            <Card className="mt-8">
-              <CardHeader><CardTitle>Specifications</CardTitle></CardHeader>
+            <Card className="mt-8 border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-slate-900">Specifications</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-2">
                 {specs.map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm border-b pb-2">
-                    <span className="font-medium">{key}</span>
-                    <span className="text-muted-foreground">{value}</span>
+                  <div key={key} className="flex justify-between text-sm border-b border-slate-100 pb-2">
+                    <span className="font-semibold text-slate-800">{key}</span>
+                    <span className="text-slate-600">{value}</span>
                   </div>
                 ))}
               </CardContent>
@@ -91,22 +101,28 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
       {related.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 pb-12">
-          <h2 className="text-2xl font-bold mb-6">Related Products</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Related Products</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {related.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
+              <Card key={item.id} className="overflow-hidden border-slate-200 bg-white">
                 {item.images?.[0] ? (
                   <div className="relative h-32">
                     <Image src={item.images[0]} alt={item.name} fill className="object-cover" unoptimized />
                   </div>
                 ) : (
-                  <div className="h-32 bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                  <div className="h-32 bg-slate-100 flex items-center justify-center text-xs text-slate-600 font-medium">
                     No image
                   </div>
                 )}
-                <CardHeader><CardTitle className="text-base">{item.name}</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base text-slate-900">{item.name}</CardTitle>
+                </CardHeader>
                 <CardContent>
-                  <Link href={`/shop/${item.id}`}><Button variant="outline" size="sm">View</Button></Link>
+                  <Link href={`/shop/${item.id}`}>
+                    <Button variant="outline" size="sm" className="border-slate-300 text-slate-800 hover:bg-slate-50">
+                      View
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
