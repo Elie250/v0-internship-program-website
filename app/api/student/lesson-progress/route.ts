@@ -6,6 +6,7 @@ import {
   recordLessonHeartbeat,
   verifyEnrollmentLessonAccess,
 } from '@/lib/learning/lesson-integrity'
+import { maybeAutoRequestCertificate } from '@/lib/learning/certificate-auto'
 
 export async function GET(request: Request) {
   try {
@@ -127,6 +128,12 @@ export async function POST(request: Request) {
           { status: result.tableReady === false ? 503 : 400 }
         )
       }
+
+      void maybeAutoRequestCertificate({
+        courseId,
+        enrollmentId: enrollmentId ?? access.enrollmentId,
+        userId: user.id,
+      })
 
       return NextResponse.json({ success: true, completed: true })
     }
