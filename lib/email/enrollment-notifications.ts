@@ -1,7 +1,11 @@
 import { Resend } from 'resend'
 import { COMPANY } from '@/lib/company/constants'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend(): Resend | null {
+  const key = process.env.RESEND_API_KEY?.trim()
+  return key ? new Resend(key) : null
+}
+
 const from = process.env.EMAIL_FROM ?? 'Energy & Logics <noreply@energyandlogics.com>'
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://energyandlogics.com'
 
@@ -21,6 +25,8 @@ export async function sendEnrollmentApprovedEmail(input: {
   accessStartsAt?: string | null
 }) {
   if (!process.env.RESEND_API_KEY) return { success: false, skipped: true }
+  const resend = getResend()
+  if (!resend) return { success: false, skipped: true }
   const accessNote = input.accessStartsAt
     ? `<p>Course access opens on <strong>${new Date(input.accessStartsAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</strong>.</p>`
     : '<p>Your course materials are available now in your student dashboard.</p>'
@@ -53,6 +59,8 @@ export async function sendEnrollmentRejectedEmail(input: {
   reason?: string | null
 }) {
   if (!process.env.RESEND_API_KEY) return { success: false, skipped: true }
+  const resend = getResend()
+  if (!resend) return { success: false, skipped: true }
   const reasonBlock = input.reason?.trim()
     ? `<p><strong>Reason:</strong> ${input.reason.trim()}</p>`
     : ''
@@ -83,6 +91,8 @@ export async function sendSubscriptionApprovedEmail(input: {
   planName: string
 }) {
   if (!process.env.RESEND_API_KEY) return { success: false, skipped: true }
+  const resend = getResend()
+  if (!resend) return { success: false, skipped: true }
   try {
     await resend.emails.send({
       from,
@@ -109,6 +119,8 @@ export async function sendSubscriptionRejectedEmail(input: {
   reason?: string | null
 }) {
   if (!process.env.RESEND_API_KEY) return { success: false, skipped: true }
+  const resend = getResend()
+  if (!resend) return { success: false, skipped: true }
   const reasonBlock = input.reason?.trim()
     ? `<p><strong>Reason:</strong> ${input.reason.trim()}</p>`
     : ''
@@ -139,6 +151,8 @@ export async function sendCertificateIssuedEmail(input: {
   certificateCode: string
 }) {
   if (!process.env.RESEND_API_KEY) return { success: false, skipped: true }
+  const resend = getResend()
+  if (!resend) return { success: false, skipped: true }
   try {
     await resend.emails.send({
       from,
