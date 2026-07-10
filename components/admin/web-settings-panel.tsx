@@ -230,7 +230,7 @@ export default function WebSettingsPanel() {
               </Field>
               <Field
                 label="Background image or video URL"
-                hint="Use /videos/playlist for the 4-video rotation (loads from Supabase when project URL is set on Vercel)"
+                hint="Use /videos/playlist for the 4-video rotation (loads from R2 when NEXT_PUBLIC_R2_PUBLIC_BASE_URL is set on Vercel)"
               >
                 <Input value={form.hero.background_image} onChange={(e) => patchHero('background_image', e.target.value)} />
               </Field>
