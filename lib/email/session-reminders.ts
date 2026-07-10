@@ -2,7 +2,11 @@ import { Resend } from 'resend'
 import { COMPANY } from '@/lib/company/constants'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend(): Resend | null {
+  const key = process.env.RESEND_API_KEY?.trim()
+  return key ? new Resend(key) : null
+}
+
 const from = process.env.EMAIL_FROM ?? 'Energy & Logics <noreply@energyandlogics.com>'
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.energyandlogics.com'
 
@@ -20,7 +24,8 @@ ${linkBlock}
 }
 
 export async function sendSessionReminders(): Promise<{ sent: number; skipped: boolean }> {
-  if (!process.env.RESEND_API_KEY || !supabaseAdmin) {
+  const resend = getResend()
+  if (!resend || !supabaseAdmin) {
     return { sent: 0, skipped: true }
   }
 
