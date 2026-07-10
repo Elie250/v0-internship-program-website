@@ -179,9 +179,9 @@ export function HeroVideosUploadPanel({
       <div className="flex items-start gap-3">
         <Video className="h-5 w-5 text-[var(--brand-navy)] shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-slate-900">Hero video library (Supabase)</p>
+          <p className="font-semibold text-slate-900">Hero video library (Cloudflare R2)</p>
           <p className="text-sm text-slate-600 mt-1">
-            Pick your video files below — they upload <strong>directly to Supabase</strong> (no folder to create).
+            Pick your video files below — they upload <strong>directly to your media CDN</strong> (no Vercel size limit).
             Large files can take several minutes; keep this tab open until the progress bar finishes.
             After upload, use background URL <strong>/videos/playlist</strong> and save.
           </p>
@@ -190,7 +190,7 @@ export function HeroVideosUploadPanel({
           </p>
           {!loading ? (
             <p className="text-xs text-slate-500 mt-1">
-              {uploadedCount} of {HERO_VIDEO_FILES.length} videos on Supabase
+              {uploadedCount} of {HERO_VIDEO_FILES.length} videos on media storage
             </p>
           ) : null}
         </div>
@@ -260,7 +260,7 @@ export function HeroVideosUploadPanel({
           className="bg-[var(--brand-navy)] text-white"
         >
           <Upload className="h-4 w-4 mr-2" />
-          {uploading ? 'Uploading…' : 'Upload videos to Supabase'}
+          {uploading ? 'Uploading…' : 'Upload videos to R2'}
         </Button>
         {uploading ? (
           <Button type="button" variant="outline" onClick={cancelUpload}>
