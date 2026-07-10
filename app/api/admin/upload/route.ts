@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS, type Permission } from '@/lib/admin/permissions'
+import {
+  storageConfigHint,
+  storageConfigured,
+  uploadObject,
+} from '@/lib/storage/object-storage'
 
 const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero'] as const
 
@@ -16,8 +20,8 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
 
 export async function POST(request: Request) {
   try {
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+    if (!storageConfigured()) {
+      return NextResponse.json({ error: 'Storage not configured', hint: storageConfigHint() }, { status: 500 })
     }
 
     const formData = await request.formData()
@@ -46,29 +50,14 @@ export async function POST(request: Request) {
         : `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from('platform-media')
-      .upload(path, buffer, {
-        contentType: file.type,
-        upsert: folder === 'hero' && Boolean(fixedName),
-      })
+    const result = await uploadObject(path, buffer, file.type, {
+      upsert: folder === 'hero' && Boolean(fixedName),
+    })
 
-    if (uploadError) {
-      return NextResponse.json(
-        {
-          error: uploadError.message,
-          hint: 'Create a public Supabase Storage bucket named "platform-media" (or paste an image URL instead).',
-        },
-        { status: 500 }
-      )
-    }
-
-    const { data } = supabaseAdmin.storage.from('platform-media').getPublicUrl(path)
-
-    return NextResponse.json({ url: data.publicUrl, path })
+    return NextResponse.json({ url: result.url, path: result.path, provider: result.provider })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed'
     const status = message === 'Unauthorized' || message === 'Forbidden' ? 403 : 500
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, hint: storageConfigHint() }, { status })
   }
 }

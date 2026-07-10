@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import {
-  isStorageMimeTypeError,
-  validateCourseMaterialFile,
-} from '@/lib/storage/course-material-upload'
+  storageConfigHint,
+  storageConfigured,
+  uploadObject,
+} from '@/lib/storage/object-storage'
+import { validateCourseMaterialFile } from '@/lib/storage/course-material-upload'
 
 export async function POST(request: Request) {
   const raw = (await cookies()).get('user_session')?.value
@@ -18,6 +20,9 @@ export async function POST(request: Request) {
   }
 
   if (!supabaseAdmin) return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+  if (!storageConfigured()) {
+    return NextResponse.json({ error: 'Storage not configured', hint: storageConfigHint() }, { status: 500 })
+  }
 
   const formData = await request.formData()
   const file = formData.get('file')
@@ -44,23 +49,11 @@ export async function POST(request: Request) {
   const path = `lab-submissions/${courseId}/${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  const { error: uploadError } = await supabaseAdmin.storage
-    .from('platform-media')
-    .upload(path, buffer, { contentType: validation.contentType, upsert: false })
-
-  if (uploadError) {
-    const mimeBlocked = isStorageMimeTypeError(uploadError.message)
-    return NextResponse.json(
-      {
-        error: uploadError.message,
-        hint: mimeBlocked
-          ? 'Run scripts/25-platform-media-course-materials.sql in Supabase.'
-          : undefined,
-      },
-      { status: 500 }
-    )
+  try {
+    const result = await uploadObject(path, buffer, validation.contentType)
+    return NextResponse.json({ url: result.url, fileName: file.name })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload failed'
+    return NextResponse.json({ error: message, hint: storageConfigHint() }, { status: 500 })
   }
-
-  const { data } = supabaseAdmin.storage.from('platform-media').getPublicUrl(path)
-  return NextResponse.json({ url: data.publicUrl, fileName: file.name })
 }

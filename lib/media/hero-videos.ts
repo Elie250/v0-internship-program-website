@@ -15,10 +15,17 @@ export type HeroVideoSlide = {
 /** Seconds each hero clip plays before rotating (highlights, not full file length). */
 export const HERO_CLIP_SECONDS = 4
 
-/** Resolve public URL base for hero videos (Supabase CDN preferred on Vercel). */
+/** Resolve public URL base for hero videos (Cloudflare R2 CDN preferred). */
 export function getHeroVideosBaseUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_HERO_VIDEOS_BASE_URL?.trim()
   if (explicit) return explicit.replace(/\/$/, '')
+
+  const r2Base =
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL?.trim() ||
+    process.env.R2_PUBLIC_BASE_URL?.trim()
+  if (r2Base) {
+    return `${r2Base.replace(/\/$/, '')}/hero`
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   if (supabaseUrl) {

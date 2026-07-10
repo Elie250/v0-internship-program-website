@@ -1,0 +1,13 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://www.energyandlogics.com",
+      "https://energyandlogics.com",
+      "http://localhost:3000"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

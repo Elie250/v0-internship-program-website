@@ -3,7 +3,7 @@ import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { createHeroVideoUploadTarget } from '@/lib/storage/hero-video-upload'
 
-/** Return a signed upload URL so large hero videos upload directly to Supabase (bypasses Vercel size limits). */
+/** Return a signed upload URL so large hero videos upload directly to R2 (bypasses Vercel size limits). */
 export async function POST(request: Request) {
   try {
     await requireAdminPermission(PERMISSIONS.SETTINGS_MANAGE)

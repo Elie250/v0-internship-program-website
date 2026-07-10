@@ -117,7 +117,7 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           const mimeBlocked = /mime|not supported/i.test(text)
           throw new Error(
             mimeBlocked
-              ? 'Storage bucket rejected this file type — run scripts/25-platform-media-course-materials.sql in Supabase.'
+              ? 'Storage rejected this file type — check the file format or contact admin.'
               : `Storage upload failed (${putRes.status})`
           )
         }

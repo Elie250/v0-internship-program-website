@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
+import {
+  getHeroVideosPublicBaseUrl,
+  uploadHeroVideoFile,
+} from '@/lib/storage/hero-video-upload'
+import { listObjectNames, objectExists, storageConfigHint, storageConfigured } from '@/lib/storage/object-storage'
 
 const ALLOWED_NAMES = new Set<string>(HERO_VIDEO_FILES.map((f) => f.file))
 
-/** Upload homepage hero videos to Supabase platform-media/hero/ (fixed filenames, upsert). */
+/** Upload homepage hero videos to Cloudflare R2 hero/ (fixed filenames, upsert). */
 export async function POST(request: Request) {
   try {
     await requireAdminPermission(PERMISSIONS.SETTINGS_MANAGE)
 
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+    if (!storageConfigured()) {
+      return NextResponse.json({ error: 'Storage not configured', hint: storageConfigHint() }, { status: 500 })
     }
 
     const formData = await request.formData()
@@ -31,23 +35,15 @@ export async function POST(request: Request) {
 
       const contentType =
         expectedName.endsWith('.mov') ? 'video/quicktime' : entry.type || 'video/mp4'
-      const storagePath = `hero/${expectedName}`
       const buffer = Buffer.from(await entry.arrayBuffer())
 
-      const { error } = await supabaseAdmin.storage
-        .from('platform-media')
-        .upload(storagePath, buffer, {
-          contentType,
-          upsert: true,
-        })
-
-      if (error) {
-        results.push({ file: expectedName, error: error.message })
+      const uploaded = await uploadHeroVideoFile(expectedName, buffer, contentType)
+      if (!uploaded.ok) {
+        results.push({ file: expectedName, error: uploaded.error })
         continue
       }
 
-      const { data } = supabaseAdmin.storage.from('platform-media').getPublicUrl(storagePath)
-      results.push({ file: expectedName, url: data.publicUrl })
+      results.push({ file: expectedName, url: uploaded.url })
     }
 
     const uploaded = results.filter((r) => r.url)
@@ -61,17 +57,14 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? ''
-    const baseUrl = supabaseUrl
-      ? `${supabaseUrl}/storage/v1/object/public/platform-media/hero`
-      : ''
+    const baseUrl = getHeroVideosPublicBaseUrl()
 
     return NextResponse.json({
       success: true,
-      message: `Uploaded ${uploaded.length} hero video(s) to Supabase storage.`,
+      message: `Uploaded ${uploaded.length} hero video(s) to media storage.`,
       baseUrl,
       results,
-      hint: 'Set homepage hero background to /videos/playlist and save settings. Videos load from Supabase automatically when NEXT_PUBLIC_SUPABASE_URL is set on Vercel.',
+      hint: 'Homepage hero videos load from your R2 custom domain when R2_PUBLIC_BASE_URL is set on Vercel.',
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed'
@@ -84,24 +77,21 @@ export async function GET() {
   try {
     await requireAdminPermission(PERMISSIONS.SETTINGS_MANAGE)
 
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+    if (!storageConfigured()) {
+      return NextResponse.json({ error: 'Storage not configured', hint: storageConfigHint() }, { status: 500 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? ''
-    const base = supabaseUrl
-      ? `${supabaseUrl}/storage/v1/object/public/platform-media/hero`
-      : '/videos'
+    const base = getHeroVideosPublicBaseUrl()
+    const namesOnStorage = new Set(await listObjectNames('hero/'))
 
-    const { data: listed } = await supabaseAdmin.storage.from('platform-media').list('hero', {
-      limit: 20,
-    })
-    const namesOnStorage = new Set((listed ?? []).map((o) => o.name))
-
-    const files = HERO_VIDEO_FILES.map(({ file, label }) => {
-      const url = `${base}/${file}`
-      return { file, label, url, exists: namesOnStorage.has(file) }
-    })
+    const files = await Promise.all(
+      HERO_VIDEO_FILES.map(async ({ file, label }) => {
+        const exists =
+          namesOnStorage.has(file) || (await objectExists(`hero/${file}`))
+        const url = `${base}/${file}`
+        return { file, label, url, exists }
+      })
+    )
 
     return NextResponse.json({ baseUrl: base, files })
   } catch (error) {
