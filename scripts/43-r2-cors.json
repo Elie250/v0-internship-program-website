@@ -2,8 +2,7 @@
   {
     "AllowedOrigins": [
       "https://www.energyandlogics.com",
-      "https://energyandlogics.com",
-      "http://localhost:3000"
+      "https://energyandlogics.com"
     ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["*"],
