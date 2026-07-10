@@ -154,7 +154,7 @@ export function HeroVideosUploadPanel({
         ok += 1
       }
 
-      setMessage(`Uploaded ${ok} video(s) to Supabase storage.`)
+      setMessage(`Uploaded ${ok} video(s) to media storage.`)
       setProgressLabel('')
       setProgressPercent(0)
       onPlaylistReady?.()
@@ -229,7 +229,7 @@ export function HeroVideosUploadPanel({
                 }}
               />
               <p className="text-xs text-slate-500 mt-0.5">
-                Stored as: platform-media/hero/{file}
+                Stored as: hero/{file} on Cloudflare R2
                 {picked ? ` · selected: ${formatMb(picked.size)}` : ''}
               </p>
             </div>

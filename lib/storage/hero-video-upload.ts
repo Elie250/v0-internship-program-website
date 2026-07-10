@@ -1,5 +1,11 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { HERO_VIDEO_FILES } from '@/lib/media/hero-videos'
+import {
+  createSignedPutUrl,
+  getMediaPublicBaseUrl,
+  storageConfigHint,
+  storageConfigured,
+  uploadObject,
+} from '@/lib/storage/object-storage'
 
 export const HERO_VIDEO_MAX_BYTES = 500 * 1024 * 1024
 
@@ -38,8 +44,8 @@ export async function createHeroVideoUploadTarget(file: {
   | { ok: true; signedUrl: string; path: string; publicUrl: string; contentType: string }
   | { ok: false; error: string; status: number; hint?: string }
 > {
-  if (!supabaseAdmin) {
-    return { ok: false, error: 'Database not configured', status: 500 }
+  if (!storageConfigured()) {
+    return { ok: false, error: 'Storage not configured', status: 500, hint: storageConfigHint() }
   }
 
   const validation = validateHeroVideoFile(file)
@@ -47,29 +53,54 @@ export async function createHeroVideoUploadTarget(file: {
     return { ok: false, error: validation.error, status: 400 }
   }
 
-  const { data, error } = await supabaseAdmin.storage
-    .from('platform-media')
-    .createSignedUploadUrl(validation.path)
-
-  if (error || !data?.signedUrl) {
+  try {
+    const target = await createSignedPutUrl(validation.path, validation.contentType, 7200)
+    return {
+      ok: true,
+      signedUrl: target.signedUrl,
+      path: target.path,
+      publicUrl: target.publicUrl,
+      contentType: validation.contentType,
+    }
+  } catch (error) {
     return {
       ok: false,
-      error: error?.message ?? 'Could not create upload URL',
+      error: error instanceof Error ? error.message : 'Could not create upload URL',
       status: 500,
-      hint: 'Run scripts/34-hero-video-storage.sql and ensure the platform-media bucket exists.',
+      hint: storageConfigHint(),
     }
   }
+}
+
+export async function uploadHeroVideoFile(
+  fileName: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const validation = validateHeroVideoFile({ name: fileName, size: buffer.length })
+  if (!validation.ok) {
+    return { ok: false, error: validation.error }
+  }
+
+  try {
+    const result = await uploadObject(validation.path, buffer, contentType, { upsert: true })
+    return { ok: true, url: result.url }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Upload failed' }
+  }
+}
+
+export function getHeroVideosPublicBaseUrl(): string {
+  const mediaBase = getMediaPublicBaseUrl()
+  if (mediaBase) return `${mediaBase}/hero`
+
+  const explicit = process.env.NEXT_PUBLIC_HERO_VIDEOS_BASE_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, '') ?? ''
-  const publicUrl = supabaseUrl
-    ? `${supabaseUrl}/storage/v1/object/public/platform-media/${validation.path}`
-    : ''
-
-  return {
-    ok: true,
-    signedUrl: data.signedUrl,
-    path: validation.path,
-    publicUrl,
-    contentType: validation.contentType,
+  if (supabaseUrl) {
+    return `${supabaseUrl}/storage/v1/object/public/platform-media/hero`
   }
+
+  return '/videos'
 }
