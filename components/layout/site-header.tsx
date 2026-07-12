@@ -32,6 +32,7 @@ const careerLinks = [
   { href: '/career?module=workshops', label: 'Workshops' },
   { href: '/career?module=webinars', label: 'Webinars' },
   { href: '/career?module=events', label: 'Events' },
+  { href: '/engineering-support', label: 'Engineering Support' },
 ]
 
 const navDropdownContentClass =
@@ -252,6 +253,12 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           <Link href="/tools">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               Tools
+            </Button>
+          </Link>
+
+          <Link href="/engineering-support">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Support
             </Button>
           </Link>
 

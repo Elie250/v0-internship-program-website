@@ -213,12 +213,6 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
                 Explore support plans
               </Link>
             </div>
-            <Link
-              href="/engineering/rss.xml"
-              className="block text-sm text-slate-500 hover:text-[var(--brand-navy)]"
-            >
-              RSS feed
-            </Link>
           </aside>
         </div>
       </div>
