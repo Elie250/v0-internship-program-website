@@ -1,10 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { MessageSquare, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { buildAuthLinks } from '@/lib/auth/public-auth-links'
 
 type Comment = {
   id: string
@@ -27,7 +29,27 @@ function formatWhen(iso: string) {
   }
 }
 
-export function PublicCommentPanel({
+export function PublicCommentPanel(props: {
+  fetchUrl: string
+  postUrl: string
+  title?: string
+  emptyLabel?: string
+  isSignedIn: boolean
+}) {
+  return (
+    <Suspense
+      fallback={
+        <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
+          <p className="text-sm text-slate-500">Loading comments…</p>
+        </section>
+      }
+    >
+      <PublicCommentPanelInner {...props} />
+    </Suspense>
+  )
+}
+
+function PublicCommentPanelInner({
   fetchUrl,
   postUrl,
   title = 'Comments',
@@ -40,6 +62,11 @@ export function PublicCommentPanel({
   emptyLabel?: string
   isSignedIn: boolean
 }) {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const returnPath = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+  const { loginUrl, registerUrl } = buildAuthLinks(returnPath)
+
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading] = useState(true)
   const [body, setBody] = useState('')
@@ -81,6 +108,14 @@ export function PublicCommentPanel({
         body: JSON.stringify({ body: trimmed }),
       })
       const data = await res.json()
+      if (res.status === 401) {
+        const target =
+          typeof data.registerUrl === 'string'
+            ? data.registerUrl
+            : registerUrl
+        window.location.href = target
+        return
+      }
       if (!res.ok) {
         setError(data.error ?? 'Could not post comment')
         return
@@ -154,12 +189,26 @@ export function PublicCommentPanel({
           </Button>
         </div>
       ) : (
-        <p className="text-sm text-slate-600 pt-2 border-t border-slate-100">
-          <Link href="/login" className="text-[var(--brand-navy)] font-medium underline">
-            Sign in
-          </Link>{' '}
-          to join the conversation — free for all members, no paid plan required.
-        </p>
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          <p className="text-sm text-slate-700">
+            Create a free account or sign in to join the conversation — no paid plan required.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={registerUrl}>
+              <Button
+                size="sm"
+                className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+              >
+                Create free account
+              </Button>
+            </Link>
+            <Link href={loginUrl}>
+              <Button size="sm" variant="outline" className="border-slate-300 text-slate-800">
+                Sign in
+              </Button>
+            </Link>
+          </div>
+        </div>
       )}
     </section>
   )
