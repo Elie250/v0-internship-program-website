@@ -41,6 +41,7 @@ const nav = [
     tab: 'announcements',
   },
   { id: 'certificates', href: '/student/certificates', label: 'Certificates', icon: Award },
+  { id: 'alumni', href: '/student/alumni', label: 'Alumni', icon: GraduationCap },
   { id: 'profile', href: '/student/profile', label: 'Profile', icon: User },
 ] as const
 
@@ -53,6 +54,7 @@ function useStudentNavActive(pathname: string, tab: string) {
     if (item.href === '/student/library') return pathname.startsWith('/student/library')
     if (item.href === '/student/calendar') return pathname.startsWith('/student/calendar')
     if (item.href === '/student/certificates') return pathname.startsWith('/student/certificates')
+    if (item.href === '/student/alumni') return pathname.startsWith('/student/alumni')
     if (item.href === '/student/profile') return pathname.startsWith('/student/profile')
     if ('tab' in item && item.tab && item.href.startsWith('/student/dashboard')) {
       if (pathname.startsWith('/student/courses/') && !pathname.endsWith('/enroll')) return false

@@ -9,6 +9,8 @@ import { PublicCommentPanel } from '@/components/engineering/public-comment-pane
 import { getSessionUser } from '@/lib/auth/session-user'
 import {
   cultureTypeLabel,
+  galleryTypeLabel,
+  isEngineeringProject,
   pillarLabel,
 } from '@/lib/library/items'
 import { loadPublishedLibraryItemBySlug } from '@/lib/library/queries'
@@ -63,11 +65,31 @@ export default async function LibraryItemPage({ params }: PageProps) {
             {cultureLabelText ? (
               <span className="rounded-full border border-slate-300 px-2 py-0.5">{cultureLabelText}</span>
             ) : null}
+            {isEngineeringProject(item) ? (
+              <span className="rounded-full border border-slate-300 px-2 py-0.5">
+                {galleryTypeLabel(item.gallery_type)}
+              </span>
+            ) : null}
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{item.title}</h1>
           {item.description ? <p className="text-lg text-slate-600">{item.description}</p> : null}
           {item.author_name ? (
             <p className="text-sm text-slate-500">By {item.author_name}</p>
+          ) : null}
+          {isEngineeringProject(item) ? (
+            <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+              {item.project_team ? <span>Team: {item.project_team}</span> : null}
+              {item.project_year ? <span>Year: {item.project_year}</span> : null}
+            </div>
+          ) : null}
+          {isEngineeringProject(item) && item.tech_stack.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {item.tech_stack.map((tag) => (
+                <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                  {tag}
+                </span>
+              ))}
+            </div>
           ) : null}
         </header>
 
@@ -82,6 +104,12 @@ export default async function LibraryItemPage({ params }: PageProps) {
               priority
             />
           </div>
+        ) : null}
+
+        {item.pillar === 'gallery' && item.body ? (
+          <section className="prose prose-slate max-w-none">
+            <p className="whitespace-pre-wrap text-slate-700">{item.body}</p>
+          </section>
         ) : null}
 
         {item.pillar === 'gallery' ? (

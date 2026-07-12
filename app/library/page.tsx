@@ -7,6 +7,7 @@ import { LibraryItemCard } from '@/components/library/library-item-card'
 import { LibrarySearch } from '@/components/library/library-search'
 import {
   loadFeaturedCultureItems,
+  loadFeaturedEngineeringProjects,
   loadFeaturedLibraryPicks,
   loadPopularLibraryItems,
   loadPublishedLibraryItems,
@@ -14,8 +15,10 @@ import {
 } from '@/lib/library/queries'
 import {
   LIBRARY_CULTURE_TYPES,
+  LIBRARY_GALLERY_TYPES,
   LIBRARY_PILLARS,
   type LibraryCultureType,
+  type LibraryGalleryType,
   type LibraryPillar,
 } from '@/lib/library/items'
 import {
@@ -24,6 +27,7 @@ import {
   LIBRARY_SORT_OPTIONS,
   type LibrarySort,
 } from '@/lib/library/urls'
+import { getLibraryMessages, parseSiteLocale } from '@/lib/i18n/library'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +41,7 @@ type PageProps = {
   searchParams: Promise<{
     category?: string
     type?: string
+    gallery?: string
     lang?: string
     sort?: string
     q?: string
@@ -55,6 +60,11 @@ function parseCultureType(value?: string): LibraryCultureType | undefined {
   return undefined
 }
 
+function parseGalleryType(value?: string): LibraryGalleryType | undefined {
+  if (value === 'photo' || value === 'engineering_project') return value
+  return undefined
+}
+
 function parseSort(value?: string): LibrarySort {
   return value === 'popular' ? 'popular' : 'newest'
 }
@@ -65,33 +75,38 @@ function parseLanguage(value?: string): string | undefined {
 }
 
 export default async function LibraryPage({ searchParams }: PageProps) {
-  const { category: categoryParam, type: typeParam, lang: langParam, sort: sortParam, q: qParam } =
+  const { category: categoryParam, type: typeParam, gallery: galleryParam, lang: langParam, sort: sortParam, q: qParam } =
     await searchParams
   const category = parseCategory(categoryParam)
   const cultureType = parseCultureType(typeParam)
+  const galleryType = parseGalleryType(galleryParam)
   const language = parseLanguage(langParam)
   const sort = parseSort(sortParam)
   const query = qParam?.trim() ?? ''
+  const locale = parseSiteLocale(language)
+  const t = getLibraryMessages(locale)
 
   const browseOptions = {
     pillar: category,
     cultureType: category === 'culture' ? cultureType : undefined,
+    galleryType: category === 'gallery' ? galleryType : undefined,
     language,
     sort,
   }
 
   const showHomeSections = !category && !query && sort === 'newest' && !language
 
-  const [items, featuredCulture, readingPicks, popularMonth] = await Promise.all([
+  const [items, featuredCulture, featuredProjects, readingPicks, popularMonth] = await Promise.all([
     query
       ? searchPublishedLibraryItems(query, browseOptions)
       : loadPublishedLibraryItems(browseOptions),
     showHomeSections ? loadFeaturedCultureItems(3) : Promise.resolve([]),
+    showHomeSections ? loadFeaturedEngineeringProjects(6) : Promise.resolve([]),
     showHomeSections ? loadFeaturedLibraryPicks(3) : Promise.resolve([]),
     showHomeSections ? loadPopularLibraryItems({ limit: 5 }) : Promise.resolve([]),
   ])
 
-  const baseParams = { category, type: cultureType, lang: language, sort, q: query || undefined }
+  const baseParams = { category, type: cultureType, gallery: galleryType, lang: language, sort, q: query || undefined }
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -100,13 +115,10 @@ export default async function LibraryPage({ searchParams }: PageProps) {
         <section className="space-y-4">
           <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-wider text-[var(--brand-navy)]">
-              Energy Library
+              {t.title}
             </p>
-            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Energy Library</h1>
-            <p className="text-slate-600 max-w-2xl">
-              Browse our company gallery, books, and culture. Pick a category, open a title, and start
-              reading or exploring — no login required.
-            </p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{t.title}</h1>
+            <p className="text-slate-600 max-w-2xl">{t.subtitle}</p>
           </div>
           <Suspense fallback={<div className="h-10 rounded-md bg-slate-100 animate-pulse" />}>
             <LibrarySearch />
@@ -117,6 +129,28 @@ export default async function LibraryPage({ searchParams }: PageProps) {
           <p className="text-sm text-slate-600">
             {items.length} result{items.length === 1 ? '' : 's'} for &ldquo;{query}&rdquo;
           </p>
+        ) : null}
+
+        {showHomeSections && featuredProjects.length > 0 ? (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">{t.projectsTitle}</h2>
+                <p className="text-sm text-slate-600">{t.projectsSubtitle}</p>
+              </div>
+              <Link
+                href={buildLibraryHref({ category: 'gallery', gallery: 'engineering_project' })}
+                className="text-sm font-medium text-[var(--brand-navy)] underline"
+              >
+                {t.viewAllProjects}
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredProjects.map((item) => (
+                <LibraryItemCard key={item.id} item={item} showViews />
+              ))}
+            </div>
+          </section>
         ) : null}
 
         {showHomeSections && readingPicks.length > 0 ? (
@@ -201,6 +235,34 @@ export default async function LibraryPage({ searchParams }: PageProps) {
               </Link>
             ))}
           </div>
+
+          {category === 'gallery' ? (
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={buildLibraryHref({ ...baseParams, category: 'gallery', gallery: undefined })}
+                className={`text-sm px-3 py-1 rounded-full border ${
+                  !galleryType
+                    ? 'bg-slate-800 text-white border-slate-800'
+                    : 'border-slate-300 text-slate-700'
+                }`}
+              >
+                All gallery
+              </Link>
+              {LIBRARY_GALLERY_TYPES.map((type) => (
+                <Link
+                  key={type.id}
+                  href={buildLibraryHref({ ...baseParams, category: 'gallery', gallery: type.id })}
+                  className={`text-sm px-3 py-1 rounded-full border ${
+                    galleryType === type.id
+                      ? 'bg-slate-800 text-white border-slate-800'
+                      : 'border-slate-300 text-slate-700'
+                  }`}
+                >
+                  {type.id === 'engineering_project' ? t.engineeringProject : t.photosEvents}
+                </Link>
+              ))}
+            </div>
+          ) : null}
 
           {category === 'culture' ? (
             <div className="flex flex-wrap gap-2">

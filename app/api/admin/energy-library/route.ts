@@ -8,6 +8,7 @@ import {
 } from '@/lib/library/items'
 import { LIBRARY_TERMS_VERSION } from '@/lib/library/terms'
 import { validateLibraryItemPayload } from '@/lib/library/validation'
+import { logAdminAction } from '@/lib/admin/audit-log'
 
 export async function GET() {
   try {
@@ -73,7 +74,21 @@ export async function POST(request: Request) {
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(normalizeLibraryItem(data as Record<string, unknown>), { status: 201 })
+
+    const item = normalizeLibraryItem(data as Record<string, unknown>)
+    await logAdminAction({
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      actorRole: session.user.role,
+      action: 'create',
+      module: 'energy_library',
+      targetType: 'energy_library_item',
+      targetId: item.id,
+      summary: `Created library item “${item.title}”`,
+      metadata: { pillar: item.pillar, gallery_type: item.gallery_type },
+    })
+
+    return NextResponse.json(item, { status: 201 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create library item'
     return NextResponse.json({ error: message }, { status: 403 })

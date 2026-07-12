@@ -1,4 +1,4 @@
-import type { LibraryPillar } from '@/lib/library/items'
+import type { LibraryGalleryType, LibraryPillar } from '@/lib/library/items'
 
 export function validateLibraryItemPayload(payload: Record<string, unknown>) {
   const title = String(payload.title ?? '').trim()
@@ -15,6 +15,11 @@ export function validateLibraryItemPayload(payload: Record<string, unknown>) {
     const cover = String(payload.cover_image_url ?? '').trim()
     if (images.length === 0 && !cover) {
       return 'Gallery items require at least one image'
+    }
+    const galleryType = String(payload.gallery_type ?? 'photo') as LibraryGalleryType
+    if (galleryType === 'engineering_project') {
+      const description = String(payload.description ?? '').trim()
+      if (!description) return 'Engineering projects require a short description'
     }
   }
 

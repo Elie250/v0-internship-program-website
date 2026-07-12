@@ -4,6 +4,8 @@ import { BookOpen, Images, Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   cultureTypeLabel,
+  galleryTypeLabel,
+  isEngineeringProject,
   libraryItemCover,
   pillarLabel,
   type EnergyLibraryItem,
@@ -34,7 +36,9 @@ export function LibraryItemCard({ item, showViews = false }: { item: EnergyLibra
           <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-slate-700">
             {item.pillar === 'culture' && item.culture_type
               ? cultureTypeLabel(item.culture_type)
-              : pillarLabel(item.pillar)}
+              : item.pillar === 'gallery' && isEngineeringProject(item)
+                ? galleryTypeLabel(item.gallery_type)
+                : pillarLabel(item.pillar)}
           </span>
         </div>
         <CardContent className="p-4 space-y-1">
@@ -46,6 +50,9 @@ export function LibraryItemCard({ item, showViews = false }: { item: EnergyLibra
           ) : null}
           {item.author_name ? (
             <p className="text-xs text-slate-500">By {item.author_name}</p>
+          ) : null}
+          {isEngineeringProject(item) && item.project_team ? (
+            <p className="text-xs text-slate-500">{item.project_team}</p>
           ) : null}
           {showViews && item.view_count > 0 ? (
             <p className="text-xs text-slate-500">{item.view_count} views</p>

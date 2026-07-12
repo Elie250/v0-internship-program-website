@@ -1,10 +1,11 @@
-import type { LibraryCultureType, LibraryPillar } from '@/lib/library/items'
+import type { LibraryCultureType, LibraryGalleryType, LibraryPillar } from '@/lib/library/items'
 
 export type LibrarySort = 'newest' | 'popular'
 
 export type LibraryBrowseParams = {
   category?: LibraryPillar
   type?: LibraryCultureType
+  gallery?: LibraryGalleryType
   lang?: string
   sort?: LibrarySort
   q?: string
@@ -24,6 +25,7 @@ export function buildLibraryHref(params: LibraryBrowseParams): string {
   const search = new URLSearchParams()
   if (params.category) search.set('category', params.category)
   if (params.type) search.set('type', params.type)
+  if (params.gallery) search.set('gallery', params.gallery)
   if (params.lang) search.set('lang', params.lang)
   if (params.sort && params.sort !== 'newest') search.set('sort', params.sort)
   if (params.q?.trim()) search.set('q', params.q.trim())

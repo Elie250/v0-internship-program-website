@@ -3,6 +3,7 @@ import {
   normalizeLibraryItem,
   type EnergyLibraryItem,
   type LibraryCultureType,
+  type LibraryGalleryType,
   type LibraryPillar,
 } from '@/lib/library/items'
 import type { LibrarySort } from '@/lib/library/urls'
@@ -12,6 +13,7 @@ const MISSING_TABLE = /energy_library_items|could not find the table/i
 type BrowseOptions = {
   pillar?: LibraryPillar
   cultureType?: LibraryCultureType
+  galleryType?: LibraryGalleryType
   language?: string
   sort?: LibrarySort
   limit?: number
@@ -24,6 +26,7 @@ function applyBrowseFilters<T extends { eq: (col: string, val: string) => T }>(
   let next = query
   if (options?.pillar) next = next.eq('pillar', options.pillar)
   if (options?.cultureType) next = next.eq('culture_type', options.cultureType)
+  if (options?.galleryType) next = next.eq('gallery_type', options.galleryType)
   if (options?.language) next = next.eq('language', options.language)
   return next
 }
@@ -123,6 +126,14 @@ export async function loadPopularLibraryItems(
 
 export async function loadFeaturedCultureItems(limit = 3): Promise<EnergyLibraryItem[]> {
   return loadPublishedLibraryItems({ pillar: 'culture', limit })
+}
+
+export async function loadFeaturedEngineeringProjects(limit = 6): Promise<EnergyLibraryItem[]> {
+  return loadPublishedLibraryItems({
+    pillar: 'gallery',
+    galleryType: 'engineering_project',
+    limit,
+  })
 }
 
 export async function loadFeaturedLibraryPicks(limit = 4): Promise<EnergyLibraryItem[]> {

@@ -2,6 +2,8 @@ export type LibraryPillar = 'gallery' | 'books' | 'culture'
 
 export type LibraryCultureType = 'inkuru' | 'ibisigo' | 'imivugo' | 'creative' | 'other'
 
+export type LibraryGalleryType = 'photo' | 'engineering_project'
+
 export type LibraryItemStatus = 'draft' | 'pending_review' | 'published' | 'archived'
 
 export type EnergyLibraryItem = {
@@ -11,6 +13,10 @@ export type EnergyLibraryItem = {
   description: string | null
   pillar: LibraryPillar
   culture_type: LibraryCultureType | null
+  gallery_type: LibraryGalleryType | null
+  project_team: string | null
+  project_year: number | null
+  tech_stack: string[]
   body: string | null
   cover_image_url: string | null
   file_url: string | null
@@ -35,7 +41,7 @@ export const LIBRARY_PILLARS: { id: LibraryPillar; label: string; description: s
   {
     id: 'gallery',
     label: 'Gallery',
-    description: 'Company photos, events, and visual archives from Energy & Logics.',
+    description: 'Company photos, engineering project showcases, and visual archives from Energy & Logics.',
   },
   {
     id: 'books',
@@ -55,6 +61,11 @@ export const LIBRARY_CULTURE_TYPES: { id: LibraryCultureType; label: string }[] 
   { id: 'imivugo', label: 'Imivugo' },
   { id: 'creative', label: 'Creative arts' },
   { id: 'other', label: 'Other' },
+]
+
+export const LIBRARY_GALLERY_TYPES: { id: LibraryGalleryType; label: string }[] = [
+  { id: 'photo', label: 'Photos & events' },
+  { id: 'engineering_project', label: 'Engineering project' },
 ]
 
 export function slugifyLibraryTitle(title: string): string {
@@ -80,6 +91,10 @@ export function normalizeLibraryItem(row: Record<string, unknown>): EnergyLibrar
     description: row.description != null ? String(row.description) : null,
     pillar: (row.pillar as LibraryPillar) ?? 'gallery',
     culture_type: row.culture_type != null ? (row.culture_type as LibraryCultureType) : null,
+    gallery_type: row.gallery_type != null ? (row.gallery_type as LibraryGalleryType) : null,
+    project_team: row.project_team != null ? String(row.project_team) : null,
+    project_year: row.project_year != null ? Number(row.project_year) : null,
+    tech_stack: normalizeStringArray(row.tech_stack),
     body: row.body != null ? String(row.body) : null,
     cover_image_url: row.cover_image_url != null ? String(row.cover_image_url) : null,
     file_url: row.file_url != null ? String(row.file_url) : null,
@@ -113,6 +128,8 @@ export function libraryItemPayloadFromBody(
   const status = String(body.status ?? 'draft') as LibraryItemStatus
   const pillar = String(body.pillar ?? 'gallery') as LibraryPillar
   const cultureTypeRaw = String(body.culture_type ?? '').trim()
+  const galleryTypeRaw = String(body.gallery_type ?? 'photo').trim() as LibraryGalleryType
+  const techStackRaw = String(body.tech_stack ?? '').trim()
   const now = new Date().toISOString()
 
   const payload: Record<string, unknown> = {
@@ -121,6 +138,21 @@ export function libraryItemPayloadFromBody(
     description: String(body.description ?? '').trim() || null,
     pillar,
     culture_type: pillar === 'culture' && cultureTypeRaw ? cultureTypeRaw : null,
+    gallery_type: pillar === 'gallery' ? galleryTypeRaw : null,
+    project_team:
+      pillar === 'gallery' && galleryTypeRaw === 'engineering_project'
+        ? String(body.project_team ?? '').trim() || null
+        : null,
+    project_year:
+      pillar === 'gallery' && galleryTypeRaw === 'engineering_project' && body.project_year
+        ? Number(body.project_year)
+        : null,
+    tech_stack:
+      pillar === 'gallery' && galleryTypeRaw === 'engineering_project'
+        ? techStackRaw
+          ? techStackRaw.split(',').map((s) => s.trim()).filter(Boolean)
+          : normalizeStringArray(body.tech_stack)
+        : [],
     body: String(body.body ?? '').trim() || null,
     cover_image_url: String(body.cover_image_url ?? '').trim() || null,
     file_url: String(body.file_url ?? '').trim() || null,
@@ -165,6 +197,15 @@ export function pillarLabel(pillar: LibraryPillar): string {
 export function cultureTypeLabel(value: LibraryCultureType | null): string | null {
   if (!value) return null
   return LIBRARY_CULTURE_TYPES.find((entry) => entry.id === value)?.label ?? value
+}
+
+export function galleryTypeLabel(value: LibraryGalleryType | null): string | null {
+  if (!value) return null
+  return LIBRARY_GALLERY_TYPES.find((entry) => entry.id === value)?.label ?? value
+}
+
+export function isEngineeringProject(item: EnergyLibraryItem): boolean {
+  return item.pillar === 'gallery' && item.gallery_type === 'engineering_project'
 }
 
 export function libraryStatusLabel(status: LibraryItemStatus): string {

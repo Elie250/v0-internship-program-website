@@ -10,6 +10,7 @@ import {
   PROGRAM_TYPE_LABELS,
   type ProgramType,
 } from '@/lib/enrollment/program-types'
+import { MentorRequestForm } from '@/components/career/mentor-request-form'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
 
 const MODULES = [
@@ -77,6 +78,12 @@ export default async function CareerPage({
             </>
           )}
         </p>
+
+        {moduleId === 'mentorship' ? (
+          <div className="mb-8">
+            <MentorRequestForm />
+          </div>
+        ) : null}
 
         {filtered.length === 0 ? (
           <Card>

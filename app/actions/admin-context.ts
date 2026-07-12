@@ -292,6 +292,38 @@ export async function getAdminStats(): Promise<AdminStats> {
   return fetchAdminStats()
 }
 
+/** Internal report builder for cron jobs (no session required). */
+export async function buildAdminReportDataInternal(): Promise<AdminReportData> {
+  const emptyStats: AdminStats = {
+    users: 0,
+    students: 0,
+    lecturers: 0,
+    engineers: 0,
+    courses: 0,
+    publishedCourses: 0,
+    announcements: 0,
+    applications: 0,
+    products: 0,
+    lowStockProducts: 0,
+    supportTickets: 0,
+    courseEnrollments: 0,
+    admittedEnrollments: 0,
+    pendingEnrollments: 0,
+    pendingPayments: 0,
+    pendingStaffApprovals: 0,
+    pendingCertificates: 0,
+    approvedPaymentsTotal: 0,
+  }
+
+  try {
+    const stats = await fetchAdminStats()
+    if (!supabaseAdmin) return emptyAdminReportData(stats)
+    return await queryAdminReportData(stats)
+  } catch {
+    return emptyAdminReportData(emptyStats)
+  }
+}
+
 /** Batched report payload aligned with dashboard stats and programme notifications. */
 export async function getAdminReportData(): Promise<AdminReportData> {
   const session = await getAdminSession()

@@ -16,6 +16,7 @@ import {
   loginBlockedMessage,
   requiresAdminApproval,
 } from '@/lib/auth/staff-registration'
+import { verifyTotpCode } from '@/lib/auth/totp'
 import { clearAuthCookies } from '@/lib/auth/session-cookies'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
@@ -25,6 +26,7 @@ export type AuthResult = {
   error?: string
   redirectTo?: string
   pendingApproval?: boolean
+  requiresTotp?: boolean
   debug?: AuthDebugInfo
 }
 
@@ -224,7 +226,8 @@ export async function registerUser(
 export async function loginUser(
   email: string,
   password: string,
-  role: AuthRole
+  role: AuthRole,
+  totpCode?: string
 ): Promise<AuthResult & { user?: unknown }> {
   const debug = baseDebug(email, role)
   try {
@@ -242,7 +245,7 @@ export async function loginUser(
 
     const { data: user, error } = await supabaseAdmin
       .from('users')
-      .select('id, email, role, first_name, last_name, status, password_hash, permissions')
+      .select('id, email, role, first_name, last_name, status, password_hash, permissions, totp_enabled, totp_secret')
       .ilike('email', trimmedEmail)
       .eq('role', role)
       .maybeSingle()
@@ -306,6 +309,18 @@ export async function loginUser(
         success: false,
         error: `Password incorrect (stored type: ${debug.passwordHashType}). Try admin123 for seeded admin.`,
         debug,
+      }
+    }
+
+    if (user.totp_enabled && user.totp_secret) {
+      if (!totpCode || !verifyTotpCode(String(user.totp_secret), totpCode)) {
+        debug.step = 'totp_required'
+        return {
+          success: false,
+          requiresTotp: true,
+          error: totpCode ? 'Invalid authenticator code' : 'Enter the 6-digit code from your authenticator app',
+          debug,
+        }
       }
     }
 

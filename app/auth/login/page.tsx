@@ -40,6 +40,8 @@ function LoginForm() {
   const [showRolePicker, setShowRolePicker] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [requiresTotp, setRequiresTotp] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -84,7 +86,7 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      const result = await loginUser(email, password, role)
+      const result = await loginUser(email, password, role, totpCode || undefined)
 
       if (result.success) {
         const dest =
@@ -93,6 +95,9 @@ function LoginForm() {
             : (result.redirectTo ?? '/dashboard')
         router.push(dest)
         router.refresh()
+      } else if (result.requiresTotp) {
+        setRequiresTotp(true)
+        setError(result.error || 'Enter your authenticator code')
       } else {
         setError(result.error || 'Invalid email or password')
       }
@@ -208,6 +213,25 @@ function LoginForm() {
                   className="mt-1.5"
                 />
               </div>
+
+              {requiresTotp ? (
+                <div>
+                  <Label htmlFor="totp" className="text-slate-700">
+                    Authenticator code
+                  </Label>
+                  <Input
+                    id="totp"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="6-digit code"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value)}
+                    required
+                    maxLength={6}
+                    className="mt-1.5"
+                  />
+                </div>
+              ) : null}
 
               <Button
                 type="submit"

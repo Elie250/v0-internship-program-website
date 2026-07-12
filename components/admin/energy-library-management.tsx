@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import {
   LIBRARY_CULTURE_TYPES,
+  LIBRARY_GALLERY_TYPES,
   LIBRARY_PILLARS,
   libraryStatusBadgeClass,
   libraryStatusLabel,
@@ -29,6 +30,10 @@ const empty = {
   description: '',
   pillar: 'gallery' as LibraryPillar,
   culture_type: '',
+  gallery_type: 'photo',
+  project_team: '',
+  project_year: '',
+  tech_stack: '',
   body: '',
   cover_image_url: '',
   file_url: '',
@@ -161,6 +166,10 @@ export default function EnergyLibraryManagement() {
       description: item.description ?? '',
       pillar: item.pillar,
       culture_type: item.culture_type ?? '',
+      gallery_type: item.gallery_type ?? 'photo',
+      project_team: item.project_team ?? '',
+      project_year: item.project_year ? String(item.project_year) : '',
+      tech_stack: item.tech_stack.join(', '),
       body: item.body ?? '',
       cover_image_url: item.cover_image_url ?? '',
       file_url: item.file_url ?? '',
@@ -246,6 +255,26 @@ export default function EnergyLibraryManagement() {
             </div>
           </div>
 
+          {form.pillar === 'gallery' ? (
+            <div className="space-y-2">
+              <Label>Gallery type</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={form.gallery_type}
+                onChange={(e) => setForm((f) => ({ ...f, gallery_type: e.target.value }))}
+              >
+                {LIBRARY_GALLERY_TYPES.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Engineering projects are admin-uploaded showcases in the public Gallery.
+              </p>
+            </div>
+          ) : null}
+
           {form.pillar === 'culture' ? (
             <div className="space-y-2">
               <Label>Culture type</Label>
@@ -293,6 +322,43 @@ export default function EnergyLibraryManagement() {
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
           </div>
+
+          {form.pillar === 'gallery' && form.gallery_type === 'engineering_project' ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Project team</Label>
+                <Input
+                  value={form.project_team}
+                  onChange={(e) => setForm((f) => ({ ...f, project_team: e.target.value }))}
+                  placeholder="e.g. Solar capstone team 2025"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Project year</Label>
+                <Input
+                  type="number"
+                  value={form.project_year}
+                  onChange={(e) => setForm((f) => ({ ...f, project_year: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Technologies (comma-separated)</Label>
+                <Input
+                  value={form.tech_stack}
+                  onChange={(e) => setForm((f) => ({ ...f, tech_stack: e.target.value }))}
+                  placeholder="PVsyst, Arduino, SCADA"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>Project write-up</Label>
+                <Textarea
+                  value={form.body}
+                  onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                  placeholder="Problem, approach, results, and lessons learned."
+                />
+              </div>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <Label>Author name (optional)</Label>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { PwaRegister } from '@/components/pwa/pwa-register'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 import './globals.css'
 
@@ -22,6 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: profile.logoUrl,
       apple: profile.logoUrl,
     },
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      title: profile.legalName,
+    },
     openGraph: {
       type: 'website',
       locale: 'en_RW',
@@ -42,6 +48,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${_geist.className} font-sans antialiased`}>
         {children}
+        <PwaRegister />
         <Analytics />
       </body>
     </html>

@@ -6,6 +6,7 @@ import type { AdminReportData } from '@/lib/admin/data/admin-reports'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { ReportsCharts } from '@/components/admin/reports-charts'
 import {
   BarChart3,
   Users,
@@ -233,6 +234,8 @@ Field Notes articles: ${content.engineeringArticlesTotal} (${content.engineering
               </CardContent>
             </Card>
           </div>
+
+          <ReportsCharts report={report} />
 
           <Card>
             <CardHeader>
