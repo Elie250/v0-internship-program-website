@@ -12,11 +12,12 @@ import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
 import { SiteHeader } from '@/components/layout/site-header'
 
-type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin'
+type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
 
 const ROLE_OPTIONS: { value: LoginRole; label: string; hint: string }[] = [
   { value: 'student', label: 'Student', hint: 'Courses & learning portal' },
   { value: 'lecturer', label: 'Lecturer', hint: 'Assigned programmes & classroom' },
+  { value: 'mentor', label: 'Mentor', hint: 'Career guidance & mentorship programmes' },
   { value: 'engineer', label: 'Engineer', hint: 'Community & technical support' },
   { value: 'admin', label: 'Administrator', hint: 'Platform management' },
 ]
@@ -58,7 +59,7 @@ function LoginForm() {
     }
     if (searchParams.get('message') === 'staff_pending') {
       const pendingRole = searchParams.get('role')
-      if (pendingRole === 'lecturer' || pendingRole === 'engineer' || pendingRole === 'admin') {
+      if (pendingRole === 'lecturer' || pendingRole === 'engineer' || pendingRole === 'admin' || pendingRole === 'mentor') {
         setRole(pendingRole)
       }
       setSuccess(
@@ -67,6 +68,16 @@ function LoginForm() {
     }
     if (searchParams.get('redirect')?.includes('/enroll')) {
       setSuccess((prev) => prev || 'Sign in to continue enrollment.')
+    }
+    const roleParam = searchParams.get('role')
+    if (
+      roleParam === 'student' ||
+      roleParam === 'lecturer' ||
+      roleParam === 'mentor' ||
+      roleParam === 'engineer' ||
+      roleParam === 'admin'
+    ) {
+      setRole(roleParam)
     }
   }, [searchParams])
 

@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { applyDeliveryProgramScope } from '@/lib/lecturer/access'
+import { isDeliveryPortalRole } from '@/lib/lecturer/delivery-portal'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 import type { Course } from '@/types/platform'
 
@@ -13,7 +15,7 @@ export async function getLecturerAssignedCourses(): Promise<
     return { success: false, error: 'Please log in as a lecturer.' }
   }
 
-  if (user.role !== 'lecturer' && user.role !== 'instructor') {
+  if (!isDeliveryPortalRole(user.role)) {
     return { success: false, error: 'Lecturer access only.' }
   }
 
@@ -21,11 +23,14 @@ export async function getLecturerAssignedCourses(): Promise<
     return { success: false, error: 'Courses are temporarily unavailable.' }
   }
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('courses')
     .select('*')
     .eq('instructor_id', user.id)
-    .order('created_at', { ascending: false })
+
+  query = applyDeliveryProgramScope(query, user.role)
+
+  const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) {
     return { success: false, error: error.message }

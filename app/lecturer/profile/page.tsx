@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { isDeliveryPortalRole, deliveryLoginRoleForUser, isMentorDeliveryRole } from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,6 +41,7 @@ export default function LecturerProfilePage() {
   const [saveMessage, setSaveMessage] = useState('')
   const [saveError, setSaveError] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [userRole, setUserRole] = useState('lecturer')
   const [userName, setUserName] = useState('')
   const [profile, setProfile] = useState<{
     firstName: string
@@ -65,10 +67,15 @@ export default function LecturerProfilePage() {
   useEffect(() => {
     const init = async () => {
       const user = await getCurrentUser()
-      if (!user || (user.role !== 'lecturer' && user.role !== 'instructor' && user.role !== 'support_staff')) {
-        router.push('/auth/login?role=lecturer&redirect=/lecturer/profile')
+      if (!user || !isDeliveryPortalRole(user.role) || user.role === 'mentor') {
+        router.push(
+          user?.role === 'mentor'
+            ? '/lecturer/dashboard'
+            : `/auth/login?role=${deliveryLoginRoleForUser(user?.role ?? 'lecturer')}&redirect=/lecturer/profile`
+        )
         return
       }
+      setUserRole(user.role)
       setProfile({
         firstName: String(user.firstName ?? ''),
         lastName: String(user.lastName ?? ''),
@@ -76,7 +83,9 @@ export default function LecturerProfilePage() {
         role: user.role,
       })
       setUserName(
-        [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Lecturer'
+        [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+          user.email ||
+          (isMentorDeliveryRole(user.role) ? 'Mentor' : 'Lecturer')
       )
 
       const [profileRes, coursesRes] = await Promise.all([
@@ -229,13 +238,14 @@ export default function LecturerProfilePage() {
   if (!profile) return null
 
   return (
-    <LecturerPortalShell userName={userName}>
+    <LecturerPortalShell userName={userName} userRole={userRole}>
       <div className="max-w-2xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Your profile</h1>
           <p className="text-sm text-slate-600 mt-1">
-            {COMPANY.platformName} lecturer account — add your photo and CV details for the team
-            page.
+            {isMentorDeliveryRole(profile.role)
+              ? `${COMPANY.platformName} mentor account — manage your public team profile.`
+              : `${COMPANY.platformName} lecturer account — add your photo and CV details for the team page.`}
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireLecturerSession } from '@/lib/lecturer/access'
+import { requireLecturerSession, applyDeliveryProgramScope } from '@/lib/lecturer/access'
+import { canDeliverProgramType } from '@/lib/lecturer/delivery-portal'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 
@@ -11,11 +12,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('courses')
       .select('*')
       .eq('instructor_id', user.id)
-      .order('created_at', { ascending: false })
+
+    query = applyDeliveryProgramScope(query, user.role)
+
+    const { data, error } = await query.order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -91,6 +95,17 @@ export async function POST(request: Request) {
 
     const program = String(body.program || body.difficulty || '').trim()
     const programType = normalizeProgramType(body.program_type)
+    if (!canDeliverProgramType(user.role, programType)) {
+      return NextResponse.json(
+        {
+          error:
+            user.role === 'mentor'
+              ? 'Mentors can only create career guidance or mentorship programmes'
+              : 'You cannot create this programme type',
+        },
+        { status: 400 }
+      )
+    }
 
     const payload = {
       title,

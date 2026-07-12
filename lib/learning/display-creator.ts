@@ -10,6 +10,9 @@ export function formatCreatorLabel(
   if (r === 'lecturer' || r === 'instructor') {
     return n ? `Lecturer · ${n}` : 'Lecturer'
   }
+  if (r === 'mentor') {
+    return n ? `Mentor · ${n}` : 'Mentor'
+  }
   return n || 'Staff'
 }
 

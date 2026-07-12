@@ -24,6 +24,7 @@ import { TRAINING_PROGRAMS } from '@/lib/company/constants'
 import {
   PROGRAM_TYPE_LABELS,
   PROGRAM_TYPES,
+  MENTOR_PROGRAM_TYPES,
   programTypeNeedsLocation,
   programTypeNeedsMeetingLink,
   programTypeNeedsSchedule,
@@ -45,11 +46,16 @@ const emptyForm = {
 
 export function LecturerCreateCourseDialog({
   onCreated,
+  isMentor = false,
 }: {
   onCreated: () => void | Promise<void>
+  isMentor?: boolean
 }) {
+  const programTypeOptions = isMentor ? MENTOR_PROGRAM_TYPES : PROGRAM_TYPES
+  const defaultProgramType = isMentor ? 'career_guidance' : 'training'
+
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState({ ...emptyForm, program_type: defaultProgramType as ProgramType })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -82,7 +88,7 @@ export function LecturerCreateCourseDialog({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not submit programme')
 
-      setForm(emptyForm)
+      setForm({ ...emptyForm, program_type: defaultProgramType as ProgramType })
       setOpen(false)
       await onCreated()
     } catch (err) {
@@ -99,7 +105,7 @@ export function LecturerCreateCourseDialog({
         className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
       >
         <Plus className="w-4 h-4 mr-2" />
-        Propose new programme
+        Propose {isMentor ? 'career programme' : 'new programme'}
       </Button>
 
       <Dialog open={open} onOpenChange={(next) => {
@@ -108,10 +114,13 @@ export function LecturerCreateCourseDialog({
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">Propose a new programme</DialogTitle>
+            <DialogTitle className="text-slate-900">
+              {isMentor ? 'Propose a career programme' : 'Propose a new programme'}
+            </DialogTitle>
             <p className="text-sm text-slate-600">
-              Your programme is sent to admin for review. It becomes visible on /learning only after
-              approval and publishing.
+              {isMentor
+                ? 'Your career guidance or mentorship programme is sent to admin for review before it appears on /career.'
+                : 'Your programme is sent to admin for review. It becomes visible on /learning only after approval and publishing.'}
             </p>
           </DialogHeader>
 
@@ -126,7 +135,7 @@ export function LecturerCreateCourseDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROGRAM_TYPES.map((type) => (
+                  {programTypeOptions.map((type) => (
                     <SelectItem key={type} value={type}>
                       {PROGRAM_TYPE_LABELS[type]}
                     </SelectItem>

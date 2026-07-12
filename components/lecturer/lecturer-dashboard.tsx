@@ -18,6 +18,12 @@ import {
   lecturerCourseStatusBadgeClass,
 } from '@/components/lecturer/lecturer-create-course-dialog'
 import { NotificationBadge } from '@/components/ui/notification-badge'
+import {
+  isDeliveryPortalRole,
+  deliveryLoginRoleForUser,
+  isMentorDeliveryRole,
+  portalBranding,
+} from '@/lib/lecturer/delivery-portal'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -39,6 +45,7 @@ type LecturerCourse = {
 
 export function LecturerDashboardView() {
   const router = useRouter()
+  const [userRole, setUserRole] = useState('lecturer')
   const [userName, setUserName] = useState('')
   const [courses, setCourses] = useState<LecturerCourse[]>([])
   const [atRiskCount, setAtRiskCount] = useState(0)
@@ -55,17 +62,15 @@ export function LecturerDashboardView() {
   useEffect(() => {
     const init = async () => {
       const currentUser = await getCurrentUser()
-      if (
-        !currentUser ||
-        (currentUser.role !== 'lecturer' && currentUser.role !== 'instructor')
-      ) {
-        router.push('/auth/login?role=lecturer')
+      if (!currentUser || !isDeliveryPortalRole(currentUser.role)) {
+        router.push(`/auth/login?role=${deliveryLoginRoleForUser(currentUser?.role ?? 'lecturer')}`)
         return
       }
+      setUserRole(currentUser.role)
       setUserName(
         [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') ||
           currentUser.email ||
-          'Lecturer'
+          (isMentorDeliveryRole(currentUser.role) ? 'Mentor' : 'Lecturer')
       )
       try {
         await loadCourses()
@@ -86,6 +91,9 @@ export function LecturerDashboardView() {
   const totalStudents = courses.reduce((sum, c) => sum + c.enrollment_stats.admitted, 0)
   const totalNotifications = courses.reduce((sum, c) => sum + (c.notification_count ?? 0), 0)
 
+  const branding = portalBranding(userRole)
+  const isMentor = isMentorDeliveryRole(userRole)
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -95,12 +103,12 @@ export function LecturerDashboardView() {
   }
 
   return (
-    <LecturerPortalShell userName={userName}>
+    <LecturerPortalShell userName={userName} userRole={userRole}>
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-bold text-slate-950">My programmes</h1>
+              <h1 className="text-2xl font-bold text-slate-950">{branding.programmesLabel}</h1>
               {totalNotifications > 0 ? <NotificationBadge count={totalNotifications} /> : null}
               {atRiskCount > 0 ? (
                 <Link href="/lecturer/students" className="inline-flex items-center gap-2 no-underline">
@@ -110,20 +118,24 @@ export function LecturerDashboardView() {
               ) : null}
             </div>
             <p className="text-sm text-slate-700 mt-1">
-              Open a classroom to manage lessons, students, assessments, and reports.
+              {isMentor
+                ? 'Manage assigned career guidance and mentorship programmes, participants, and sessions.'
+                : 'Open a classroom to manage lessons, students, assessments, and reports.'}
             </p>
           </div>
-          <LecturerCreateCourseDialog onCreated={loadCourses} />
+          <LecturerCreateCourseDialog onCreated={loadCourses} isMentor={isMentor} />
         </div>
 
         {error ? (
           <p className="text-sm text-red-800 bg-red-50 border border-red-300 rounded-md p-3 font-medium">{error}</p>
         ) : null}
 
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950 mb-3">Broadcast to students</h2>
-          <LecturerBroadcastPanel />
-        </div>
+        {!isMentor ? (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950 mb-3">Broadcast to students</h2>
+            <LecturerBroadcastPanel />
+          </div>
+        ) : null}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="border-slate-200">

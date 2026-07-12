@@ -118,7 +118,16 @@ export async function PATCH(
 
     if (body.instructor_id !== undefined) {
       await requirePlatformAdmin()
-      const instructor = await validateInstructorId(body.instructor_id)
+      let programTypeForAssignment = body.program_type
+      if (programTypeForAssignment === undefined) {
+        const { data: existing } = await supabaseAdmin
+          .from('courses')
+          .select('program_type')
+          .eq('id', id)
+          .maybeSingle()
+        programTypeForAssignment = existing?.program_type
+      }
+      const instructor = await validateInstructorId(body.instructor_id, programTypeForAssignment)
       if (instructor.error) {
         return NextResponse.json({ error: instructor.error }, { status: 400 })
       }

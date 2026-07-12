@@ -247,7 +247,7 @@ export async function sendStaffApprovedEmail(input: {
 }): Promise<SendEmailResult> {
   const appUrl = getAppUrl()
   const dashboard =
-    input.role === 'lecturer' || input.role === 'instructor'
+    input.role === 'lecturer' || input.role === 'instructor' || input.role === 'mentor'
       ? `${appUrl}/lecturer/dashboard`
       : input.role === 'engineer'
         ? `${appUrl}/engineer/dashboard`

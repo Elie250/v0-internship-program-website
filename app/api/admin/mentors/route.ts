@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
-import { queryLecturersRegistry } from '@/lib/admin/data/lecturers-registry'
-import { queryAssignableLecturers } from '@/lib/admin/data/lecturers'
+import { queryAssignableMentors, queryMentorsRegistry } from '@/lib/admin/data/mentors-registry'
 
 export async function GET(request: Request) {
   try {
@@ -12,14 +11,14 @@ export async function GET(request: Request) {
     const assignableOnly = searchParams.get('assignable') === '1'
 
     if (assignableOnly) {
-      const { lecturers, error } = await queryAssignableLecturers()
+      const { mentors, error } = await queryAssignableMentors()
       if (error) return NextResponse.json({ error }, { status: 500 })
-      return NextResponse.json(lecturers)
+      return NextResponse.json(mentors)
     }
 
-    const { lecturers, error } = await queryLecturersRegistry({ search })
+    const { mentors, error } = await queryMentorsRegistry({ search })
     if (error) return NextResponse.json({ error }, { status: 500 })
-    return NextResponse.json(lecturers)
+    return NextResponse.json(mentors)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     return NextResponse.json({ error: message }, { status: 403 })

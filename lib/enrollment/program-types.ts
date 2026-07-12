@@ -40,6 +40,13 @@ export const CAREER_PROGRAM_TYPES: ProgramType[] = [
   'event',
 ]
 
+/** Programmes mentors deliver — career guidance and mentorship only. */
+export const MENTOR_PROGRAM_TYPES: ProgramType[] = ['mentorship', 'career_guidance']
+
+export function isMentorManagedProgramType(value: unknown): boolean {
+  return MENTOR_PROGRAM_TYPES.includes(normalizeProgramType(value))
+}
+
 export function normalizeProgramType(value: unknown): ProgramType {
   const raw = String(value ?? 'training').trim().toLowerCase()
   if (PROGRAM_TYPES.includes(raw as ProgramType)) return raw as ProgramType

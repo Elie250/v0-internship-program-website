@@ -154,8 +154,8 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
     slug: 'mentor',
     label: 'Mentor',
-    description: 'Career mentorship — view and approve applications, limited admin visibility.',
-    canAccessAdmin: true,
+    description: 'Delivers career guidance and mentorship programmes via the career portal (no admin console).',
+    canAccessAdmin: false,
     isSystem: true,
   },
   {
@@ -201,13 +201,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
   lecturer: [],
   instructor: [],
-  mentor: [
-    PERMISSIONS.ADMIN_ACCESS,
-    PERMISSIONS.REPORTS_VIEW,
-    PERMISSIONS.APPLICATIONS_VIEW,
-    PERMISSIONS.APPLICATIONS_APPROVE,
-    PERMISSIONS.USERS_VIEW,
-  ],
+  mentor: [],
   student: [],
   registered: [],
 }
@@ -233,7 +227,7 @@ export function resolvePermissions(role: string, stored: unknown): Permission[] 
     return ALL_PERMISSIONS
   }
 
-  if (role === 'lecturer' || role === 'instructor') {
+  if (role === 'lecturer' || role === 'instructor' || role === 'mentor') {
     return []
   }
 
@@ -260,7 +254,7 @@ export function hasPermission(
 
 export function canAccessAdminPanel(role: string, permissions?: string[]): boolean {
   if (role === 'admin') return true
-  if (role === 'lecturer' || role === 'instructor') return false
+  if (role === 'lecturer' || role === 'instructor' || role === 'mentor') return false
   return hasPermission(permissions, PERMISSIONS.ADMIN_ACCESS)
 }
 

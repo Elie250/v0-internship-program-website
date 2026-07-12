@@ -25,17 +25,22 @@ import { NotificationBadge } from '@/components/ui/notification-badge'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
+import {
+  deliveryNavForRole,
+  portalBranding,
+  type DeliveryNavItem,
+} from '@/lib/lecturer/delivery-portal'
 
-const nav = [
-  { id: 'programmes', href: '/lecturer/dashboard', label: 'My programmes', icon: GraduationCap, match: 'programmes' as const },
-  { id: 'students', href: '/lecturer/students', label: 'Students', icon: Users, match: 'students' as const },
-  { id: 'library', href: '/lecturer/library', label: 'Library', icon: Library, match: 'library' as const },
-  { id: 'tools', href: '/lecturer/tools', label: 'Tools', icon: Calculator, match: 'tools' as const },
-  { id: 'profile', href: '/lecturer/profile', label: 'Profile', icon: User, match: 'profile' as const },
-]
+const NAV_ICONS = {
+  programmes: GraduationCap,
+  students: Users,
+  library: Library,
+  tools: Calculator,
+  profile: User,
+} as const
 
 function useNavActive(pathname: string) {
-  return (item: (typeof nav)[0]) => {
+  return (item: DeliveryNavItem) => {
     if (item.match === 'programmes') {
       return pathname === '/lecturer/dashboard' || pathname.startsWith('/lecturer/courses/')
     }
@@ -50,11 +55,15 @@ function useNavActive(pathname: string) {
 function LecturerSidebarContent({
   pathname,
   badges,
+  navItems,
+  userRole,
   onNavigate,
   onLogout,
 }: {
   pathname: string
   badges: Record<string, number>
+  navItems: DeliveryNavItem[]
+  userRole: string
   onNavigate?: () => void
   onLogout: () => void
 }) {
@@ -63,8 +72,8 @@ function LecturerSidebarContent({
   return (
     <>
       <nav className="flex-1 p-3 space-y-1">
-        {nav.map((item) => {
-          const Icon = item.icon
+        {navItems.map((item) => {
+          const Icon = NAV_ICONS[item.match]
           const active = isActive(item)
           const count = badges[item.id] ?? 0
           return (
@@ -93,16 +102,29 @@ function LecturerSidebarContent({
         })}
       </nav>
       <div className="p-3 border-t border-white/25 space-y-1">
-        <Link href="/engineering-support" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-white hover:text-white hover:bg-white/15 min-h-[44px] text-sm font-medium"
-          >
-            <BookOpen className="h-5 w-5 mr-2" />
-            Engineering support
-          </Button>
-        </Link>
+        {userRole === 'mentor' ? (
+          <Link href="/career" onClick={onNavigate} className="no-underline hover:no-underline">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-white hover:text-white hover:bg-white/15 min-h-[44px] text-sm font-medium"
+            >
+              <BookOpen className="h-5 w-5 mr-2" />
+              Public career page
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/engineering-support" onClick={onNavigate} className="no-underline hover:no-underline">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-white hover:text-white hover:bg-white/15 min-h-[44px] text-sm font-medium"
+            >
+              <BookOpen className="h-5 w-5 mr-2" />
+              Engineering support
+            </Button>
+          </Link>
+        )}
         <Link href="/" onClick={onNavigate} className="no-underline hover:no-underline">
           <Button
             variant="ghost"
@@ -132,10 +154,12 @@ function LecturerSidebarContent({
 
 export function LecturerPortalShell({
   userName,
+  userRole = 'lecturer',
   children,
   headerAction,
 }: {
   userName: string
+  userRole?: string
   children: React.ReactNode
   headerAction?: React.ReactNode
 }) {
@@ -143,6 +167,8 @@ export function LecturerPortalShell({
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [badges, setBadges] = useState<Record<string, number>>({})
+  const branding = portalBranding(userRole)
+  const navItems = deliveryNavForRole(userRole)
 
   useEffect(() => {
     let cancelled = false
@@ -163,17 +189,22 @@ export function LecturerPortalShell({
   }
 
   const closeMobile = () => setMobileOpen(false)
-  const mobileBadgeTotal =
-    (badges.programmes ?? 0) + (badges.students ?? 0) + (badges.library ?? 0)
+  const mobileBadgeTotal = navItems.reduce((sum, item) => sum + (badges[item.id] ?? 0), 0)
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <aside className="lecturer-portal-sidebar text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0 border-r border-white/20">
         <div className="p-5 border-b border-white/25">
           <p className="font-bold text-lg text-white">{COMPANY.platformName}</p>
-          <p className="text-xs text-white/90 font-medium mt-1">Lecturer portal</p>
+          <p className="text-xs text-white/90 font-medium mt-1">{branding.title}</p>
         </div>
-        <LecturerSidebarContent pathname={pathname} badges={badges} onLogout={handleLogout} />
+        <LecturerSidebarContent
+          pathname={pathname}
+          badges={badges}
+          navItems={navItems}
+          userRole={userRole}
+          onLogout={handleLogout}
+        />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -199,7 +230,7 @@ export function LecturerPortalShell({
               ) : null}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-slate-600 leading-tight font-medium">Lecturer portal</p>
+              <p className="text-xs text-slate-600 leading-tight font-medium">{branding.title}</p>
               <p className="font-semibold text-slate-950 text-sm truncate">{userName}</p>
             </div>
           </div>
@@ -213,7 +244,7 @@ export function LecturerPortalShell({
             <SheetHeader className="border-b border-white/25 px-4 py-4 pr-12 text-left">
               <SheetTitle className="text-white text-left">
                 <span className="block font-bold text-lg">{COMPANY.platformName}</span>
-                <span className="block text-xs font-normal text-white/90 mt-0.5">Lecturer portal</span>
+                <span className="block text-xs font-normal text-white/90 mt-0.5">{branding.title}</span>
               </SheetTitle>
               <p className="text-sm text-white/90 truncate pt-1">{userName}</p>
             </SheetHeader>
@@ -221,6 +252,8 @@ export function LecturerPortalShell({
               <LecturerSidebarContent
                 pathname={pathname}
                 badges={badges}
+                navItems={navItems}
+                userRole={userRole}
                 onNavigate={closeMobile}
                 onLogout={handleLogout}
               />
@@ -236,7 +269,7 @@ export function LecturerPortalShell({
           {headerAction ?? (
             <Link href="/lecturer/dashboard">
               <Button size="sm" className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
-                My programmes
+                {branding.programmesLabel}
               </Button>
             </Link>
           )}

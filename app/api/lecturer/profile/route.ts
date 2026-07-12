@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { refreshSessionForUser } from '@/app/actions/auth-service'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-const TEAM_ROLES = new Set(['lecturer', 'instructor', 'support_staff'])
+const TEAM_ROLES = new Set(['lecturer', 'instructor', 'support_staff', 'mentor'])
 
 const PROFILE_SELECT =
   'id, first_name, last_name, email, phone, role, profile_title, profile_bio, profile_photo_url, show_on_team, profile_education, profile_experience, profile_qualifications, profile_cv_url'

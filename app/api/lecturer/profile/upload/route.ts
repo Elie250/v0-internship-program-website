@@ -6,7 +6,7 @@ import {
   uploadObject,
 } from '@/lib/storage/object-storage'
 
-const TEAM_ROLES = new Set(['lecturer', 'instructor', 'support_staff'])
+const TEAM_ROLES = new Set(['lecturer', 'instructor', 'support_staff', 'mentor'])
 const MAX_BYTES = 8 * 1024 * 1024
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const CV_TYPES = ['application/pdf']

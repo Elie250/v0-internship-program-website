@@ -2,7 +2,7 @@ import { requireAdminPermission, type AdminSession } from '@/app/actions/admin-c
 import { PERMISSIONS } from '@/lib/admin/permissions'
 
 /** Roles that deliver programmes via /lecturer — never the full admin console. */
-export const DELIVERY_ROLES = new Set(['lecturer', 'instructor'])
+export const DELIVERY_ROLES = new Set(['lecturer', 'instructor', 'mentor'])
 
 export function isDeliveryRole(role: string | undefined): boolean {
   return Boolean(role && DELIVERY_ROLES.has(role))

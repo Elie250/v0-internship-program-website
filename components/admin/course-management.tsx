@@ -28,6 +28,7 @@ import { TRAINING_PROGRAMS } from '@/lib/company/constants'
 import {
   PROGRAM_TYPE_LABELS,
   PROGRAM_TYPES,
+  isMentorManagedProgramType,
   programTypeNeedsLocation,
   programTypeNeedsMeetingLink,
   programTypeNeedsSchedule,
@@ -87,11 +88,12 @@ const emptyForm = {
   instructor_id: 'none',
 }
 
-type LecturerOption = { id: string; name: string; email: string }
+type AssigneeOption = { id: string; name: string; email: string }
 
 export default function CourseManagementTab() {
   const [courses, setCourses] = useState<Course[]>([])
-  const [lecturers, setLecturers] = useState<LecturerOption[]>([])
+  const [lecturers, setLecturers] = useState<AssigneeOption[]>([])
+  const [mentors, setMentors] = useState<AssigneeOption[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
@@ -105,7 +107,7 @@ export default function CourseManagementTab() {
 
   const loadLecturers = async () => {
     try {
-      const res = await fetch('/api/admin/lecturers', { credentials: 'same-origin' })
+      const res = await fetch('/api/admin/lecturers?assignable=1', { credentials: 'same-origin' })
       const data = await res.json()
       if (!res.ok) {
         console.error('Failed to load lecturers:', data.error)
@@ -115,6 +117,21 @@ export default function CourseManagementTab() {
       setLecturers(Array.isArray(data) ? data : [])
     } catch {
       setLecturers([])
+    }
+  }
+
+  const loadMentors = async () => {
+    try {
+      const res = await fetch('/api/admin/mentors?assignable=1', { credentials: 'same-origin' })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('Failed to load mentors:', data.error)
+        setMentors([])
+        return
+      }
+      setMentors(Array.isArray(data) ? data : [])
+    } catch {
+      setMentors([])
     }
   }
 
@@ -140,6 +157,7 @@ export default function CourseManagementTab() {
   useEffect(() => {
     load()
     loadLecturers()
+    loadMentors()
   }, [])
 
   const handleCreate = async () => {
@@ -206,6 +224,7 @@ export default function CourseManagementTab() {
     setEditing(course)
     setEditError('')
     void loadLecturers()
+    void loadMentors()
     const instructorId = course.instructor_id || 'none'
     setEditForm({
       title: course.title,
@@ -346,7 +365,7 @@ export default function CourseManagementTab() {
           <DialogHeader className="border-b border-slate-200 pb-4">
             <DialogTitle className="text-slate-950 text-xl font-bold">Create program</DialogTitle>
           </DialogHeader>
-          <CourseForm form={form} setForm={setForm} lecturers={lecturers} />
+          <CourseForm form={form} setForm={setForm} lecturers={lecturers} mentors={mentors} />
           {createError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{createError}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
@@ -425,11 +444,15 @@ export default function CourseManagementTab() {
                 ) : null}
                 {course.instructor_id ? (
                   <p className="text-xs text-slate-600">
-                    Lecturer:{' '}
-                    {lecturers.find((l) => l.id === course.instructor_id)?.name ?? 'Assigned'}
+                    {isMentorManagedProgramType(course.program_type) ? 'Mentor' : 'Lecturer'}:{' '}
+                    {(
+                      isMentorManagedProgramType(course.program_type) ? mentors : lecturers
+                    ).find((person) => person.id === course.instructor_id)?.name ?? 'Assigned'}
                   </p>
                 ) : (
-                  <p className="text-xs text-amber-700">No lecturer assigned</p>
+                  <p className="text-xs text-amber-700">
+                    No {isMentorManagedProgramType(course.program_type) ? 'mentor' : 'lecturer'} assigned
+                  </p>
                 )}
                 <p className="text-sm font-medium text-[var(--brand-navy)]">
                   {Number(course.pricing ?? 0) > 0
@@ -462,7 +485,7 @@ export default function CourseManagementTab() {
           <DialogHeader className="border-b border-slate-200 pb-4">
             <DialogTitle className="text-slate-950 text-xl font-bold">Edit program</DialogTitle>
           </DialogHeader>
-          <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
+          <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           <DialogFooter>
@@ -479,15 +502,30 @@ function CourseForm({
   form,
   setForm,
   lecturers,
+  mentors,
 }: {
   form: typeof emptyForm
   setForm: (value: typeof emptyForm) => void
-  lecturers: LecturerOption[]
+  lecturers: AssigneeOption[]
+  mentors: AssigneeOption[]
 }) {
   const programType = form.program_type
+  const mentorProgram = isMentorManagedProgramType(programType)
+  const assignees = mentorProgram ? mentors : lecturers
   const showSchedule = programTypeNeedsSchedule(programType)
   const showLocation = programTypeNeedsLocation(programType)
   const showMeeting = programTypeNeedsMeetingLink(programType)
+
+  const handleProgramTypeChange = (nextType: ProgramType) => {
+    const switchingAssignmentPool =
+      isMentorManagedProgramType(nextType) !== isMentorManagedProgramType(programType)
+    setForm({
+      ...form,
+      program_type: nextType,
+      instructor_id:
+        switchingAssignmentPool && form.instructor_id !== 'none' ? 'none' : form.instructor_id,
+    })
+  }
 
   return (
     <div className="space-y-4 course-form-high-contrast">
@@ -495,7 +533,7 @@ function CourseForm({
         <Label className="text-slate-950">Program type</Label>
         <Select
           value={programType}
-          onValueChange={(v) => setForm({ ...form, program_type: v as ProgramType })}
+          onValueChange={(v) => handleProgramTypeChange(v as ProgramType)}
         >
           <SelectTrigger className="mt-1">
             <SelectValue />
@@ -562,34 +600,37 @@ function CourseForm({
         </div>
       </div>
       <div>
-        <Label>Assigned lecturer</Label>
+        <Label>{mentorProgram ? 'Assigned mentor' : 'Assigned lecturer'}</Label>
         <Select
           value={
-            lecturers.some((l) => l.id === form.instructor_id) || form.instructor_id === 'none'
+            assignees.some((person) => person.id === form.instructor_id) || form.instructor_id === 'none'
               ? form.instructor_id || 'none'
               : 'none'
           }
           onValueChange={(v) => setForm({ ...form, instructor_id: v })}
         >
           <SelectTrigger className="mt-1">
-            <SelectValue placeholder="Select approved lecturer" />
+            <SelectValue placeholder={mentorProgram ? 'Select active mentor' : 'Select approved lecturer'} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">— Not assigned —</SelectItem>
-            {lecturers.map((lecturer) => (
-              <SelectItem key={lecturer.id} value={lecturer.id}>
-                {lecturer.name} ({lecturer.email})
+            {assignees.map((person) => (
+              <SelectItem key={person.id} value={person.id}>
+                {person.name} ({person.email})
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-slate-500 mt-1">
-          Only admin-approved lecturer accounts appear here. Pending registrations must be approved
-          under User Management first.
+          {mentorProgram
+            ? 'Career guidance and mentorship programmes are delivered by mentor accounts created in User Management.'
+            : 'Only admin-approved lecturer accounts appear here. Pending registrations must be approved under User Management first.'}
         </p>
-        {lecturers.length === 0 ? (
+        {assignees.length === 0 ? (
           <p className="text-xs text-amber-700 mt-1">
-            No active lecturers yet — approve lecturer registrations in User Management.
+            {mentorProgram
+              ? 'No active mentors yet — create mentor accounts in User Management.'
+              : 'No active lecturers yet — approve lecturer registrations in User Management.'}
           </p>
         ) : null}
       </div>

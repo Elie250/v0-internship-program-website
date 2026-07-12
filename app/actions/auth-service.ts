@@ -19,7 +19,7 @@ import {
 import { verifyTotpCode } from '@/lib/auth/totp'
 import { clearAuthCookies } from '@/lib/auth/session-cookies'
 
-type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin'
+type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
 
 export type AuthResult = {
   success: boolean
@@ -75,7 +75,7 @@ function pgrst125Hint(): string {
 function dashboardPathForRole(role: string): string {
   if (role === 'admin') return '/admin/dashboard'
   if (role === 'student' || role === 'registered') return '/student/dashboard'
-  if (role === 'lecturer' || role === 'instructor') return '/lecturer/dashboard'
+  if (role === 'lecturer' || role === 'instructor' || role === 'mentor') return '/lecturer/dashboard'
   if (role === 'engineer') return '/engineer/dashboard'
   return '/dashboard'
 }

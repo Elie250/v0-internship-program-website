@@ -155,7 +155,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Course title is required' }, { status: 400 })
     }
 
-    const instructor = await validateInstructorId(body.instructor_id)
+    const instructor = await validateInstructorId(body.instructor_id, body.program_type)
     if (instructor.error) {
       return NextResponse.json({ error: instructor.error }, { status: 400 })
     }

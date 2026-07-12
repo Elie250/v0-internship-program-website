@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { isDeliveryPortalRole, deliveryLoginRoleForUser } from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,11 +66,12 @@ export function LecturerLibraryPanel() {
   useEffect(() => {
     const init = async () => {
       const currentUser = await getCurrentUser()
-      if (
-        !currentUser ||
-        (currentUser.role !== 'lecturer' && currentUser.role !== 'instructor')
-      ) {
-        router.push('/auth/login?role=lecturer')
+      if (!currentUser || !isDeliveryPortalRole(currentUser.role) || currentUser.role === 'mentor') {
+        router.push(
+          currentUser?.role === 'mentor'
+            ? '/lecturer/dashboard'
+            : `/auth/login?role=${deliveryLoginRoleForUser(currentUser?.role ?? 'lecturer')}`
+        )
         return
       }
 

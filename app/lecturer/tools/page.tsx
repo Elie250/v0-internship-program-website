@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { isDeliveryPortalRole, deliveryLoginRoleForUser } from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { EngineeringToolsPanel } from '@/components/tools/engineering-tools-panel'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,8 +16,12 @@ export default function LecturerToolsPage() {
 
   useEffect(() => {
     getCurrentUser().then((user) => {
-      if (!user || (user.role !== 'lecturer' && user.role !== 'instructor')) {
-        router.push('/auth/login?role=lecturer&redirect=/lecturer/tools')
+      if (!user || !isDeliveryPortalRole(user.role) || user.role === 'mentor') {
+        router.push(
+          user?.role === 'mentor'
+            ? '/lecturer/dashboard'
+            : `/auth/login?role=${deliveryLoginRoleForUser(user?.role ?? 'lecturer')}&redirect=/lecturer/tools`
+        )
         return
       }
       setUserName(

@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import {
+  isDeliveryPortalRole,
+  deliveryLoginRoleForUser,
+  isMentorDeliveryRole,
+} from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +33,7 @@ type StudentRow = {
 
 export function LecturerStudentsView() {
   const router = useRouter()
+  const [userRole, setUserRole] = useState('lecturer')
   const [userName, setUserName] = useState('')
   const [students, setStudents] = useState<StudentRow[]>([])
   const [filter, setFilter] = useState<'all' | 'at-risk'>('all')
@@ -44,12 +50,15 @@ export function LecturerStudentsView() {
   useEffect(() => {
     const init = async () => {
       const user = await getCurrentUser()
-      if (!user || (user.role !== 'lecturer' && user.role !== 'instructor')) {
-        router.push('/auth/login?role=lecturer')
+      if (!user || !isDeliveryPortalRole(user.role)) {
+        router.push(`/auth/login?role=${deliveryLoginRoleForUser(user?.role ?? 'lecturer')}`)
         return
       }
+      setUserRole(user.role)
       setUserName(
-        [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Lecturer'
+        [user.firstName, user.lastName].filter(Boolean).join(' ') ||
+          user.email ||
+          (isMentorDeliveryRole(user.role) ? 'Mentor' : 'Lecturer')
       )
       try {
         await load()
@@ -74,7 +83,7 @@ export function LecturerStudentsView() {
   const visible = filter === 'at-risk' ? students.filter((s) => s.atRisk) : students
 
   return (
-    <LecturerPortalShell userName={userName}>
+    <LecturerPortalShell userName={userName} userRole={userRole}>
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">All students</h1>

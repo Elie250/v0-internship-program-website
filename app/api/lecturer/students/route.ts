@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireLecturerSession } from '@/lib/lecturer/access'
+import { requireLecturerSession, applyDeliveryProgramScope } from '@/lib/lecturer/access'
 import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
 
 /** All admitted students across programmes assigned to the logged-in lecturer. */
@@ -11,11 +11,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    const { data: courses, error: coursesError } = await supabaseAdmin
+    let coursesQuery = supabaseAdmin
       .from('courses')
       .select('id, title')
       .eq('instructor_id', user.id)
-      .order('title', { ascending: true })
+
+    coursesQuery = applyDeliveryProgramScope(coursesQuery, user.role)
+
+    const { data: courses, error: coursesError } = await coursesQuery.order('title', { ascending: true })
 
     if (coursesError) {
       return NextResponse.json({ error: coursesError.message }, { status: 500 })

@@ -4,6 +4,11 @@ import { useCallback, useEffect, useState, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getCurrentUser } from '@/app/actions/auth-service'
+import {
+  isDeliveryPortalRole,
+  deliveryLoginRoleForUser,
+  isMentorDeliveryRole,
+} from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -151,6 +156,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const initialTab = searchParams.get('tab') ?? 'overview'
   const validTabs = ['overview', 'lessons', 'classroom', 'labs', 'qa', 'gradebook', 'students', 'assessments', 'reports']
   const defaultTab = validTabs.includes(initialTab) ? initialTab : 'overview'
+  const [userRole, setUserRole] = useState('lecturer')
   const [userName, setUserName] = useState('')
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
@@ -199,17 +205,15 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   useEffect(() => {
     const init = async () => {
       const currentUser = await getCurrentUser()
-      if (
-        !currentUser ||
-        (currentUser.role !== 'lecturer' && currentUser.role !== 'instructor')
-      ) {
-        router.push('/auth/login?role=lecturer')
+      if (!currentUser || !isDeliveryPortalRole(currentUser.role)) {
+        router.push(`/auth/login?role=${deliveryLoginRoleForUser(currentUser?.role ?? 'lecturer')}`)
         return
       }
+      setUserRole(currentUser.role)
       setUserName(
         [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') ||
           currentUser.email ||
-          'Lecturer'
+          (isMentorDeliveryRole(currentUser.role) ? 'Mentor' : 'Lecturer')
       )
       await load()
     }
@@ -257,7 +261,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
       : 0
 
   return (
-    <LecturerPortalShell userName={userName}>
+    <LecturerPortalShell userName={userName} userRole={userRole}>
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="min-w-0">
           <Link

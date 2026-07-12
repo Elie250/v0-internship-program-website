@@ -26,8 +26,11 @@ function portalForRole(role: string): HomePortalLink | null {
   if (role === 'student' || role === 'registered') {
     return { label: 'Student portal', href: '/student/dashboard' }
   }
-  if (role === 'lecturer' || role === 'instructor' || role === 'support_staff') {
+  if (role === 'lecturer' || role === 'instructor') {
     return { label: 'Lecturer portal', href: '/lecturer/dashboard' }
+  }
+  if (role === 'mentor') {
+    return { label: 'Career portal', href: '/lecturer/dashboard' }
   }
   if (role === 'engineer') return { label: 'Engineer portal', href: '/engineer/dashboard' }
   return null

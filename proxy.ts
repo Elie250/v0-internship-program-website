@@ -53,7 +53,8 @@ export function proxy(request: NextRequest) {
 
   if (pathname.startsWith('/lecturer') && !user) {
     const loginUrl = new URL('/auth/login', request.url)
-    loginUrl.searchParams.set('role', 'lecturer')
+    const roleParam = request.nextUrl.searchParams.get('role')
+    loginUrl.searchParams.set('role', roleParam === 'mentor' ? 'mentor' : 'lecturer')
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }

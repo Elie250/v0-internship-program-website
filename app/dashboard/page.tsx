@@ -88,8 +88,10 @@ export default function DashboardPage() {
 
         {isMentor && (
           <Card>
-            <CardHeader><CardTitle>Mentorship</CardTitle></CardHeader>
-            <CardContent className="text-sm text-muted-foreground">Manage mentees and sessions from the Career portal.</CardContent>
+            <CardHeader><CardTitle>Mentor portal</CardTitle></CardHeader>
+            <CardContent>
+              <Link href="/lecturer/dashboard"><Button size="sm">Career programmes</Button></Link>
+            </CardContent>
           </Card>
         )}
 
