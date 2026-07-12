@@ -24,8 +24,6 @@ const learningLinks = [
   { href: '/learning', label: 'All courses & programmes' },
   { href: '/learning?module=training', label: 'Training' },
   { href: '/internship', label: 'Internship' },
-  { href: '/subscriber', label: 'Subscriber Hub' },
-  { href: '/engineering-support', label: 'Engineering Support' },
 ]
 
 const careerLinks = [
@@ -131,7 +129,6 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
     { href: '/', label: 'Home' },
     { href: '/tools', label: 'Tools' },
     { href: '/shop', label: 'Products' },
-    { href: '/engineering-support', label: 'Engineering Support' },
   ]
 
   return (
