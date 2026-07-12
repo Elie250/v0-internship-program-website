@@ -7,7 +7,7 @@ import {
   uploadObject,
 } from '@/lib/storage/object-storage'
 
-const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero', 'engineering'] as const
+const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero', 'engineering', 'engineering-docs'] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
   brand: PERMISSIONS.SETTINGS_MANAGE,
@@ -16,6 +16,7 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
   services: PERMISSIONS.CONTENT_SERVICES,
   announcements: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   engineering: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+  'engineering-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   courses: PERMISSIONS.LEARNING_PROGRAMS,
 }
 
@@ -39,11 +40,16 @@ export async function POST(request: Request) {
 
     await requireAdminPermission(FOLDER_PERMISSIONS[folder as (typeof ALLOWED_FOLDERS)[number]])
 
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    const isPdfDoc = folder === 'engineering-docs'
+    if (isPdfDoc) {
+      if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+        return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })
+      }
+    } else if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
       return NextResponse.json({ error: 'File must be an image or video' }, { status: 400 })
     }
 
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const ext = file.name.split('.').pop()?.toLowerCase() || (isPdfDoc ? 'pdf' : 'jpg')
     const fixedName = String(formData.get('filename') ?? '').trim()
     const path =
       folder === 'hero' && fixedName && /^[\w.-]+$/.test(fixedName)
@@ -51,7 +57,7 @@ export async function POST(request: Request) {
         : `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    const result = await uploadObject(path, buffer, file.type, {
+    const result = await uploadObject(path, buffer, isPdfDoc ? 'application/pdf' : file.type, {
       upsert: folder === 'hero' && Boolean(fixedName),
     })
 

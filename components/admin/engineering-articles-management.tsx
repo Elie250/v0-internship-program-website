@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { ENGINEERING_ARTICLE_TAGS, slugifyArticleTitle, type EngineeringArticle } from '@/lib/engineering/articles'
+import type { EngineeringArticleSeries } from '@/lib/engineering/series'
 import { Edit2, ExternalLink, Plus, Trash2 } from 'lucide-react'
 
 type ArticleForm = {
@@ -37,6 +38,8 @@ type ArticleForm = {
   status: 'draft' | 'published' | 'archived'
   is_featured: boolean
   author_name: string
+  series_id: string
+  series_sort_order: string
 }
 
 const emptyForm: ArticleForm = {
@@ -50,6 +53,8 @@ const emptyForm: ArticleForm = {
   status: 'draft',
   is_featured: false,
   author_name: '',
+  series_id: '',
+  series_sort_order: '',
 }
 
 function toForm(article: EngineeringArticle): ArticleForm {
@@ -64,15 +69,19 @@ function toForm(article: EngineeringArticle): ArticleForm {
     status: article.status,
     is_featured: article.is_featured,
     author_name: article.author_name ?? '',
+    series_id: article.series_id ?? '',
+    series_sort_order: article.series_sort_order != null ? String(article.series_sort_order) : '',
   }
 }
 
 function ArticleFormFields({
   form,
   setForm,
+  series,
 }: {
   form: ArticleForm
   setForm: React.Dispatch<React.SetStateAction<ArticleForm>>
+  series: EngineeringArticleSeries[]
 }) {
   return (
     <div className="space-y-4">
@@ -151,6 +160,38 @@ function ArticleFormFields({
           </Select>
         </div>
       </div>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Series (optional)</Label>
+          <Select
+            value={form.series_id || 'none'}
+            onValueChange={(value) =>
+              setForm((f) => ({ ...f, series_id: value === 'none' ? '' : value }))
+            }
+          >
+            <SelectTrigger><SelectValue placeholder="No series" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No series</SelectItem>
+              {series.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Part number in series</Label>
+          <Input
+            type="number"
+            min={1}
+            value={form.series_sort_order}
+            onChange={(e) => setForm((f) => ({ ...f, series_sort_order: e.target.value }))}
+            placeholder="1"
+            disabled={!form.series_id}
+          />
+        </div>
+      </div>
       <ImageUploadField
         label="Cover image"
         value={form.cover_image_url}
@@ -200,11 +241,14 @@ function payloadFromForm(form: ArticleForm) {
     status: form.status,
     is_featured: form.is_featured,
     author_name: form.author_name || null,
+    series_id: form.series_id || null,
+    series_sort_order: form.series_sort_order ? Number(form.series_sort_order) : null,
   }
 }
 
 export default function EngineeringArticlesManagement() {
   const [articles, setArticles] = useState<EngineeringArticle[]>([])
+  const [series, setSeries] = useState<EngineeringArticleSeries[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -214,9 +258,14 @@ export default function EngineeringArticlesManagement() {
   const [editForm, setEditForm] = useState<ArticleForm>(emptyForm)
 
   const load = async () => {
-    const res = await fetch('/api/admin/engineering-articles')
-    const data = await res.json()
+    const [articlesRes, seriesRes] = await Promise.all([
+      fetch('/api/admin/engineering-articles'),
+      fetch('/api/admin/engineering-series'),
+    ])
+    const data = await articlesRes.json()
+    const seriesData = await seriesRes.json()
     setArticles(Array.isArray(data) ? data : [])
+    setSeries(Array.isArray(seriesData) ? seriesData : [])
     setLoading(false)
   }
 
@@ -298,7 +347,7 @@ export default function EngineeringArticlesManagement() {
           <DialogHeader>
             <DialogTitle>Create field note</DialogTitle>
           </DialogHeader>
-          <ArticleFormFields form={form} setForm={setForm} />
+          <ArticleFormFields form={form} setForm={setForm} series={series} />
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -314,7 +363,7 @@ export default function EngineeringArticlesManagement() {
           <DialogHeader>
             <DialogTitle>Edit field note</DialogTitle>
           </DialogHeader>
-          <ArticleFormFields form={editForm} setForm={setEditForm} />
+          <ArticleFormFields form={editForm} setForm={setEditForm} series={series} />
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
@@ -341,6 +390,7 @@ export default function EngineeringArticlesManagement() {
                     <CardTitle className="text-lg text-slate-900">{article.title}</CardTitle>
                     <p className="text-sm text-slate-500 mt-1">
                       {article.author_name || 'Unknown author'} · /engineering/{article.slug}
+                      {article.view_count > 0 ? ` · ${article.view_count.toLocaleString()} views` : ''}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">

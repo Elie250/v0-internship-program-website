@@ -14,6 +14,9 @@ export type EngineeringArticle = {
   access_tier: EngineeringArticleTier
   status: EngineeringArticleStatus
   is_featured: boolean
+  series_id: string | null
+  series_sort_order: number | null
+  view_count: number
   published_at: string | null
   digest_sent_at: string | null
   created_at: string
@@ -60,6 +63,9 @@ export function normalizeEngineeringArticle(row: Record<string, unknown>): Engin
     access_tier: (row.access_tier as EngineeringArticleTier) ?? 'free',
     status: (row.status as EngineeringArticleStatus) ?? 'draft',
     is_featured: Boolean(row.is_featured),
+    series_id: row.series_id != null ? String(row.series_id) : null,
+    series_sort_order: row.series_sort_order != null ? Number(row.series_sort_order) : null,
+    view_count: Number(row.view_count ?? 0),
     published_at: row.published_at != null ? String(row.published_at) : null,
     digest_sent_at: row.digest_sent_at != null ? String(row.digest_sent_at) : null,
     created_at: String(row.created_at ?? new Date().toISOString()),
@@ -81,6 +87,15 @@ export function articlePayloadFromBody(body: Record<string, unknown>, author?: {
     status,
     is_featured: Boolean(body.is_featured),
     updated_at: new Date().toISOString(),
+  }
+
+  if (body.series_id !== undefined) {
+    payload.series_id = String(body.series_id ?? '').trim() || null
+  }
+  if (body.series_sort_order !== undefined) {
+    const order = body.series_sort_order
+    payload.series_sort_order =
+      order === null || order === '' ? null : Number(order)
   }
 
   if (author) {
