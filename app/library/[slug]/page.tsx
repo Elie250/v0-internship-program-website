@@ -5,6 +5,8 @@ import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { LibraryViewTracker } from '@/components/library/library-view-tracker'
+import { PublicCommentPanel } from '@/components/engineering/public-comment-panel'
+import { getSessionUser } from '@/lib/auth/session-user'
 import {
   cultureTypeLabel,
   pillarLabel,
@@ -32,6 +34,7 @@ export default async function LibraryItemPage({ params }: PageProps) {
   const item = await loadPublishedLibraryItemBySlug(slug)
   if (!item) notFound()
 
+  const user = await getSessionUser()
   const cultureLabelText = cultureTypeLabel(item.culture_type)
 
   return (
@@ -140,6 +143,16 @@ export default async function LibraryItemPage({ params }: PageProps) {
 
         {item.pillar === 'culture' && !item.body && !item.file_url ? (
           <p className="text-slate-600">Culture content will appear here when published.</p>
+        ) : null}
+
+        {item.pillar === 'culture' ? (
+          <PublicCommentPanel
+            fetchUrl={`/api/library/${slug}/comments`}
+            postUrl={`/api/library/${slug}/comments`}
+            title="Reader comments"
+            emptyLabel="No comments yet. Sign in to share your thoughts on this piece."
+            isSignedIn={Boolean(user?.id)}
+          />
         ) : null}
       </div>
       <SiteFooter />

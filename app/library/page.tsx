@@ -171,29 +171,6 @@ export default async function LibraryPage({ searchParams }: PageProps) {
           </section>
         ) : null}
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="font-semibold text-slate-900">Share your writing</p>
-            <p className="text-sm text-slate-600 mt-1">
-              Students can submit Inkuru, ibisigo, imivugo, and creative pieces for the library.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/student/library"
-              className="inline-flex items-center justify-center rounded-md bg-[var(--brand-navy)] px-4 py-2 text-sm font-semibold text-white no-underline hover:no-underline hover:bg-[var(--brand-navy)]/90"
-            >
-              Submit your writing
-            </Link>
-            <Link
-              href="/auth/register"
-              className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 no-underline hover:no-underline hover:bg-slate-50"
-            >
-              Create account
-            </Link>
-          </div>
-        </section>
-
         <section className="space-y-4">
           <div className="flex flex-wrap gap-2">
             <Link

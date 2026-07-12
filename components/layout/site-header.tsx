@@ -162,11 +162,11 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="space-y-1">
-        <Link href="/engineering" onClick={onNavigate} className={mobileNavLinkClass}>
-          Blog
-        </Link>
         <Link href="/library" onClick={onNavigate} className={mobileNavLinkClass}>
           Library
+        </Link>
+        <Link href="/engineering" onClick={onNavigate} className={mobileNavLinkClass}>
+          Blog
         </Link>
         <Link href="/about" onClick={onNavigate} className={mobileNavLinkClass}>
           About
@@ -276,15 +276,15 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Link href="/engineering">
-            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-              Blog
-            </Button>
-          </Link>
-
           <Link href="/library">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               Library
+            </Button>
+          </Link>
+
+          <Link href="/engineering">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Blog
             </Button>
           </Link>
 
