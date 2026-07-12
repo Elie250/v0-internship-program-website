@@ -1,198 +1,180 @@
 'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { getCurrentUser, logoutUser } from '@/app/actions/auth-service';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { LogOut, Home, Users, Bot, Headphones, Wrench, BookOpen } from 'lucide-react';
-import type { SupportAccessSummary } from '@/lib/support/types';
-import { EngineerCommunityPanel } from '@/components/engineer/engineer-community';
-import { EngineerAiAssistant } from '@/components/engineer/engineer-ai-assistant';
-import { EngineerFieldNotesPanel } from '@/components/engineer/engineer-field-notes-panel';
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { EngineerPageFrame } from '@/components/engineer/engineer-page-frame'
+import { EngineerMembershipCard } from '@/components/engineer/engineer-membership-card'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import type { SupportAccessSummary } from '@/lib/support/types'
+import {
+  Bot,
+  BookOpen,
+  Calculator,
+  Headphones,
+  PenLine,
+  Sparkles,
+  Users,
+} from 'lucide-react'
 
-export default function EngineerDashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [supportAccess, setSupportAccess] = useState<SupportAccessSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+const quickLinks = [
+  {
+    href: '/engineer/community',
+    title: 'Community',
+    description: 'Discuss field fixes and share knowledge with other engineers.',
+    icon: Users,
+    color: 'bg-blue-50 text-blue-700 border-blue-100',
+  },
+  {
+    href: '/engineer/ai',
+    title: 'AI assistant',
+    description: 'Get quick answers on wiring, PLC, and troubleshooting.',
+    icon: Bot,
+    color: 'bg-violet-50 text-violet-700 border-violet-100',
+  },
+  {
+    href: '/engineer/support',
+    title: 'Human support',
+    description: 'Open engineer-reviewed tickets on paid plans.',
+    icon: Headphones,
+    color: 'bg-amber-50 text-amber-800 border-amber-100',
+  },
+  {
+    href: '/engineer/field-notes',
+    title: 'Field Notes',
+    description: 'Draft practical articles for the public blog.',
+    icon: PenLine,
+    color: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  },
+  {
+    href: '/engineer/tools',
+    title: 'Engineering tools',
+    description: 'Calculators for electrical, PLC, solar, and more.',
+    icon: Calculator,
+    color: 'bg-slate-100 text-slate-800 border-slate-200',
+  },
+  {
+    href: '/subscriber',
+    title: 'Subscriber hub',
+    description: 'Saved articles, recommendations, and digest preferences.',
+    icon: Sparkles,
+    color: 'bg-rose-50 text-rose-700 border-rose-100',
+  },
+]
+
+export default function EngineerDashboardPage() {
+  const [access, setAccess] = useState<SupportAccessSummary | null>(null)
+  const [articleCount, setArticleCount] = useState(0)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const currentUser = await getCurrentUser();
-
-      if (!currentUser || currentUser.role !== 'engineer') {
-        router.push('/auth/login?redirect=/engineer/dashboard');
-        return;
-      }
-
-      setUser(currentUser);
-
-      try {
-        const accessRes = await fetch('/api/support/subscribe', { credentials: 'same-origin' });
-        if (accessRes.ok) {
-          setSupportAccess(await accessRes.json());
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  const handleLogout = async () => {
-    await logoutUser();
-    router.push('/');
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user) return null;
+    void Promise.all([
+      fetch('/api/support/subscribe', { credentials: 'same-origin' }).then((r) =>
+        r.ok ? r.json() : null
+      ),
+      fetch('/api/engineer/articles', { credentials: 'same-origin' }).then((r) =>
+        r.ok ? r.json() : []
+      ),
+    ]).then(([accessData, articles]) => {
+      setAccess(accessData)
+      setArticleCount(Array.isArray(articles) ? articles.length : 0)
+    })
+  }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
-          <div>
-            <h1 className="text-2xl font-bold text-primary">Engineer Community Hub</h1>
-            <p className="text-sm text-muted-foreground">
-              Welcome, {user.firstName} {user.lastName}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => router.push('/')}>
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <Button variant="ghost" onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+    <EngineerPageFrame
+      title="Overview"
+      description="Your engineering workspace"
+    >
+      <div className="space-y-6 max-w-5xl">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
+          <h2 className="text-xl font-bold text-slate-900">Engineer Community Hub</h2>
+          <p className="text-sm text-slate-600 mt-2 max-w-2xl">
+            Community discussions, AI assist, support tickets, Field Notes authoring, and
+            calculators — all in one place. Use the sidebar to jump between sections.
+          </p>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <Card className="bg-gradient-to-r from-primary/10 to-secondary/10">
-          <CardContent className="pt-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-primary mb-1">Your membership</h2>
-              {supportAccess?.hasActiveSubscription ? (
-                <p className="text-sm text-slate-700">
-                  <strong>{supportAccess.subscription?.plan?.name}</strong>
-                  {supportAccess.planTier === 'free' ? ' (Free)' : ' (Paid)'}
-                  {supportAccess.subscription?.ends_at
-                    ? ` · until ${new Date(supportAccess.subscription.ends_at).toLocaleDateString()}`
-                    : ''}
-                </p>
-              ) : (
-                <p className="text-sm text-slate-600">
-                  Join the free community plan or upgrade for tickets, AI, and posting.
-                </p>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2 items-center">
-              {supportAccess?.hasActiveSubscription ? (
-                <Badge className={supportAccess.planTier === 'paid' ? 'bg-green-100 text-green-800' : 'bg-slate-200 text-slate-800'}>
-                  {supportAccess.planTier === 'paid' ? 'Paid member' : 'Free member'}
-                </Badge>
-              ) : null}
-              <Button variant="outline" asChild>
-                <Link href="/subscriber">Open subscriber hub</Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/engineering-support">
-                  {supportAccess?.hasActiveSubscription ? 'Manage plan' : 'Choose a plan'}
+        <EngineerMembershipCard access={access} />
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-slate-200">
+            <CardContent className="pt-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Plan</p>
+              <p className="text-lg font-semibold text-slate-900 mt-1">
+                {access?.hasActiveSubscription
+                  ? access.subscription?.plan?.name ?? 'Active'
+                  : 'Not subscribed'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200">
+            <CardContent className="pt-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Community posts</p>
+              <p className="text-lg font-semibold text-slate-900 mt-1">
+                {access?.canPostCommunity ? 'Enabled' : 'Upgrade to post'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200">
+            <CardContent className="pt-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Support tickets</p>
+              <p className="text-lg font-semibold text-slate-900 mt-1">
+                {access?.canSubmitTicket ? 'Available' : 'Paid plans only'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200">
+            <CardContent className="pt-5">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Your drafts</p>
+              <p className="text-lg font-semibold text-slate-900 mt-1">{articleCount}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-semibold text-slate-900">Quick access</h3>
+            <Link href="/engineering" className="text-sm text-[var(--brand-navy)] underline">
+              Public Field Notes
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quickLinks.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-xl border bg-white p-5 hover:shadow-md transition-shadow no-underline"
+                >
+                  <div
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border ${item.color}`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <p className="font-semibold text-slate-900 mt-3">{item.title}</p>
+                  <p className="text-sm text-slate-600 mt-1">{item.description}</p>
                 </Link>
-              </Button>
+              )
+            })}
+          </div>
+        </section>
+
+        <Card className="border-slate-200 bg-slate-50">
+          <CardContent className="py-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <BookOpen className="h-5 w-5 text-[var(--brand-navy)]" />
+              <div>
+                <p className="font-medium text-slate-900">New to the hub?</p>
+                <p className="text-sm text-slate-600">
+                  Start with Community, try the AI assistant, or browse calculators in Tools.
+                </p>
+              </div>
             </div>
+            <Badge variant="outline">Engineer portal</Badge>
           </CardContent>
         </Card>
-
-        <Tabs defaultValue="community" className="space-y-4">
-          <TabsList className="bg-card border border-border flex flex-wrap h-auto">
-            <TabsTrigger value="community" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Users className="w-4 h-4 mr-2" />
-              Community
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Bot className="w-4 h-4 mr-2" />
-              AI assistant
-            </TabsTrigger>
-            <TabsTrigger value="support" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Headphones className="w-4 h-4 mr-2" />
-              Human support
-            </TabsTrigger>
-            <TabsTrigger value="field-notes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BookOpen className="w-4 h-4 mr-2" />
-              Field Notes
-            </TabsTrigger>
-            <TabsTrigger value="tools" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Wrench className="w-4 h-4 mr-2" />
-              Resources
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="community">
-            <EngineerCommunityPanel access={supportAccess} />
-          </TabsContent>
-
-          <TabsContent value="ai">
-            <EngineerAiAssistant access={supportAccess} />
-          </TabsContent>
-
-          <TabsContent value="support">
-            <Card>
-              <CardContent className="py-8 space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900">Engineer support tickets</h3>
-                {supportAccess?.canSubmitTicket ? (
-                  <>
-                    <p className="text-sm text-slate-600">
-                      Paid plans include human engineer review with SLA. Open tickets on the support portal.
-                    </p>
-                    <Button asChild className="bg-primary">
-                      <Link href="/engineering-support">Open support portal</Link>
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-slate-600">
-                      Support tickets require a paid plan. Free members can use the community and AI assistant.
-                    </p>
-                    <Button asChild variant="outline">
-                      <Link href="/engineering-support">Upgrade plan</Link>
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="field-notes">
-            <EngineerFieldNotesPanel />
-          </TabsContent>
-
-          <TabsContent value="tools">
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Technical resources and project library — coming soon.
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
-  );
+      </div>
+    </EngineerPageFrame>
+  )
 }
