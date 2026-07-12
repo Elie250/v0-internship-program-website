@@ -267,6 +267,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         description: 'Article view counts',
       },
       {
+        id: 'engineering-editorial',
+        label: 'Field Notes editorial',
+        href: '/admin/dashboard/engineering-editorial',
+        icon: 'clipboard-list',
+        permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+        description: 'Draft queue, scheduled posts, digest reach',
+      },
+      {
         id: 'services',
         label: 'Services',
         href: '/admin/dashboard/services',

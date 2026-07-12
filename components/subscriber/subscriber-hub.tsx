@@ -8,12 +8,35 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { BookOpen, Users, Bot, Headphones, Home } from 'lucide-react'
+import { BookOpen, Users, Bot, Headphones, Home, Bookmark, History, Sparkles } from 'lucide-react'
 import type { SupportAccessSummary } from '@/lib/support/types'
 import { EngineerCommunityPanel } from '@/components/engineer/engineer-community'
 import { EngineerAiAssistant } from '@/components/engineer/engineer-ai-assistant'
 import { FieldNotesArticleCard } from '@/components/engineering/field-notes-article'
 import type { EngineeringArticlePublic } from '@/lib/engineering/articles'
+
+function ArticleGrid({
+  articles,
+  emptyMessage,
+}: {
+  articles: EngineeringArticlePublic[]
+  emptyMessage: string
+}) {
+  if (articles.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-slate-600">{emptyMessage}</CardContent>
+      </Card>
+    )
+  }
+  return (
+    <div className="grid sm:grid-cols-2 gap-5">
+      {articles.map((article) => (
+        <FieldNotesArticleCard key={article.id} article={article} />
+      ))}
+    </div>
+  )
+}
 
 export function SubscriberHub({
   initialAccess,
@@ -25,8 +48,13 @@ export function SubscriberHub({
   const router = useRouter()
   const searchParams = useSearchParams()
   const tab = searchParams.get('tab') ?? 'articles'
+  const notesSection = searchParams.get('notes') ?? 'browse'
   const [userName, setUserName] = useState('')
   const [access, setAccess] = useState<SupportAccessSummary | null>(initialAccess)
+  const [history, setHistory] = useState<EngineeringArticlePublic[]>([])
+  const [bookmarks, setBookmarks] = useState<EngineeringArticlePublic[]>([])
+  const [recommendations, setRecommendations] = useState<EngineeringArticlePublic[]>([])
+  const [personalLoading, setPersonalLoading] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -44,8 +72,34 @@ export function SubscriberHub({
     void init()
   }, [router])
 
+  useEffect(() => {
+    if (tab !== 'articles') return
+    setPersonalLoading(true)
+    void Promise.all([
+      fetch('/api/engineering/engagements?section=history', { credentials: 'same-origin' }).then(
+        (r) => r.json()
+      ),
+      fetch('/api/engineering/engagements?section=bookmarks', { credentials: 'same-origin' }).then(
+        (r) => r.json()
+      ),
+      fetch('/api/engineering/engagements?section=recommendations', {
+        credentials: 'same-origin',
+      }).then((r) => r.json()),
+    ])
+      .then(([historyData, bookmarksData, recsData]) => {
+        setHistory(Array.isArray(historyData.articles) ? historyData.articles : [])
+        setBookmarks(Array.isArray(bookmarksData.articles) ? bookmarksData.articles : [])
+        setRecommendations(Array.isArray(recsData.articles) ? recsData.articles : [])
+      })
+      .finally(() => setPersonalLoading(false))
+  }, [tab])
+
   const setTab = (value: string) => {
     router.replace(`/subscriber?tab=${value}`)
+  }
+
+  const setNotesSection = (value: string) => {
+    router.replace(`/subscriber?tab=articles&notes=${value}`)
   }
 
   return (
@@ -107,21 +161,67 @@ export function SubscriberHub({
           </TabsList>
 
           <TabsContent value="articles" className="space-y-4">
-            <p className="text-sm text-slate-600">
-              Articles matched to your subscription tier.{' '}
-              <Link href="/engineering" className="text-[var(--brand-navy)] underline">Browse all</Link>
-              {' · '}
-              <Link href="/engineering/authors" className="text-[var(--brand-navy)] underline">Authors</Link>
-            </p>
-            {articles.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-slate-600">No articles yet.</CardContent></Card>
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-5">
-                {articles.map((article) => (
-                  <FieldNotesArticleCard key={article.id} article={article} />
-                ))}
-              </div>
-            )}
+            <Tabs value={notesSection} onValueChange={setNotesSection}>
+              <TabsList className="bg-slate-100 flex flex-wrap h-auto">
+                <TabsTrigger value="continue">
+                  <History className="h-4 w-4 mr-2" />Continue reading
+                </TabsTrigger>
+                <TabsTrigger value="saved">
+                  <Bookmark className="h-4 w-4 mr-2" />Saved
+                </TabsTrigger>
+                <TabsTrigger value="foryou">
+                  <Sparkles className="h-4 w-4 mr-2" />For you
+                </TabsTrigger>
+                <TabsTrigger value="browse">Browse all</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="continue" className="pt-4">
+                {personalLoading ? (
+                  <p className="text-sm text-slate-600">Loading your reading history…</p>
+                ) : (
+                  <ArticleGrid
+                    articles={history}
+                    emptyMessage="Articles you open while logged in appear here."
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="saved" className="pt-4">
+                {personalLoading ? (
+                  <p className="text-sm text-slate-600">Loading saved articles…</p>
+                ) : (
+                  <ArticleGrid
+                    articles={bookmarks}
+                    emptyMessage="Save articles from Field Notes to find them here."
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="foryou" className="pt-4">
+                {personalLoading ? (
+                  <p className="text-sm text-slate-600">Building recommendations…</p>
+                ) : (
+                  <ArticleGrid
+                    articles={recommendations}
+                    emptyMessage="Read a few articles to get personalized picks."
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="browse" className="pt-4 space-y-4">
+                <p className="text-sm text-slate-600">
+                  Articles matched to your subscription tier.{' '}
+                  <Link href="/engineering" className="text-[var(--brand-navy)] underline">Browse all</Link>
+                  {' · '}
+                  <Link href="/engineering/authors" className="text-[var(--brand-navy)] underline">Authors</Link>
+                  {' · '}
+                  <Link href="/engineering/digest/manage" className="text-[var(--brand-navy)] underline">
+                    Digest preferences
+                  </Link>
+                </p>
+                <ArticleGrid articles={articles} emptyMessage="No articles yet." />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="community">

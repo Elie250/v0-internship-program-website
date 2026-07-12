@@ -40,6 +40,7 @@ type ArticleForm = {
   author_name: string
   series_id: string
   series_sort_order: string
+  scheduled_publish_at: string
 }
 
 const emptyForm: ArticleForm = {
@@ -55,6 +56,14 @@ const emptyForm: ArticleForm = {
   author_name: '',
   series_id: '',
   series_sort_order: '',
+  scheduled_publish_at: '',
+}
+
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function toForm(article: EngineeringArticle): ArticleForm {
@@ -71,6 +80,7 @@ function toForm(article: EngineeringArticle): ArticleForm {
     author_name: article.author_name ?? '',
     series_id: article.series_id ?? '',
     series_sort_order: article.series_sort_order != null ? String(article.series_sort_order) : '',
+    scheduled_publish_at: toDatetimeLocal(article.scheduled_publish_at),
   }
 }
 
@@ -222,6 +232,18 @@ function ArticleFormFields({
           placeholder={ENGINEERING_ARTICLE_TAGS.join(', ')}
         />
       </div>
+      <div className="space-y-2">
+        <Label>Schedule publish (optional)</Label>
+        <Input
+          type="datetime-local"
+          value={form.scheduled_publish_at}
+          onChange={(e) => setForm((f) => ({ ...f, scheduled_publish_at: e.target.value }))}
+        />
+        <p className="text-xs text-slate-500">
+          Future dates keep the article as draft until the scheduled time. Leave empty to publish
+          immediately when status is Published.
+        </p>
+      </div>
     </div>
   )
 }
@@ -243,6 +265,9 @@ function payloadFromForm(form: ArticleForm) {
     author_name: form.author_name || null,
     series_id: form.series_id || null,
     series_sort_order: form.series_sort_order ? Number(form.series_sort_order) : null,
+    scheduled_publish_at: form.scheduled_publish_at
+      ? new Date(form.scheduled_publish_at).toISOString()
+      : null,
   }
 }
 
@@ -396,6 +421,12 @@ export default function EngineeringArticlesManagement() {
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">{article.status}</Badge>
                     <Badge variant="outline">{article.access_tier}</Badge>
+                    {article.scheduled_publish_at &&
+                    new Date(article.scheduled_publish_at).getTime() > Date.now() ? (
+                      <Badge className="bg-violet-100 text-violet-900">
+                        Scheduled {new Date(article.scheduled_publish_at).toLocaleString()}
+                      </Badge>
+                    ) : null}
                     {article.is_featured ? <Badge className="bg-amber-100 text-amber-900">Featured</Badge> : null}
                   </div>
                 </div>
