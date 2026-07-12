@@ -1,63 +1,58 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAdminStats } from '@/app/actions/admin-context'
+import { getAdminReportData } from '@/app/actions/admin-context'
+import type { AdminReportData } from '@/lib/admin/data/admin-reports'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { BarChart3, Users, BookOpen, TrendingUp, Download } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import {
+  BarChart3,
+  Users,
+  BookOpen,
+  TrendingUp,
+  Download,
+  ClipboardList,
+  Zap,
+  FileText,
+} from 'lucide-react'
 
-interface ReportData {
-  totalUsers: number;
-  students: number;
-  totalCourses: number;
-  publishedCourses: number;
-  totalAnnouncements: number;
-  courseEnrollments: number;
-  admittedEnrollments: number;
-  pendingEnrollments: number;
-  pendingPayments: number;
-  approvedPaymentsTotal: number;
-  applications: number;
+function StatRow({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
+  return (
+    <li className="flex justify-between gap-4">
+      <span className="text-slate-600">{label}</span>
+      <span className={`font-semibold shrink-0 ${accent ?? ''}`}>{value}</span>
+    </li>
+  )
+}
+
+function StatusBar({ label, count, total, colorClass }: { label: string; count: number; total: number; colorClass: string }) {
+  const pct = total > 0 ? (count / total) * 100 : 0
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <p className="text-sm">{label}</p>
+        <p className="font-semibold">{count}</p>
+      </div>
+      <div className="w-full bg-muted rounded-full h-2">
+        <div className={`${colorClass} h-2 rounded-full`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
 }
 
 export default function ReportsTab() {
-  const [reportData, setReportData] = useState<ReportData>({
-    totalUsers: 0,
-    students: 0,
-    totalCourses: 0,
-    publishedCourses: 0,
-    totalAnnouncements: 0,
-    courseEnrollments: 0,
-    admittedEnrollments: 0,
-    pendingEnrollments: 0,
-    pendingPayments: 0,
-    approvedPaymentsTotal: 0,
-    applications: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  const [report, setReport] = useState<AdminReportData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetchReportData();
-  }, []);
+    fetchReportData()
+  }, [])
 
   const fetchReportData = async () => {
     try {
-      const stats = await getAdminStats()
-
-      setReportData({
-        totalUsers: stats.users,
-        students: stats.students,
-        totalCourses: stats.courses,
-        publishedCourses: stats.publishedCourses,
-        totalAnnouncements: stats.announcements,
-        courseEnrollments: stats.courseEnrollments,
-        admittedEnrollments: stats.admittedEnrollments,
-        pendingEnrollments: stats.pendingEnrollments,
-        pendingPayments: stats.pendingPayments,
-        approvedPaymentsTotal: stats.approvedPaymentsTotal,
-        applications: stats.applications,
-      })
+      const data = await getAdminReportData()
+      setReport(data)
     } catch (error) {
       console.error('Failed to fetch report data:', error)
     } finally {
@@ -66,51 +61,96 @@ export default function ReportsTab() {
   }
 
   const handleDownloadReport = () => {
+    if (!report) return
+    const { stats, coursesByStatus, programmeNotifications, content } = report
+
     const reportContent = `
 Energy & Logics Academy - Admin Report
 Generated: ${new Date().toLocaleString()}
 
 USER STATISTICS
 ===============
-Total Users: ${reportData.totalUsers}
-Students: ${reportData.students}
+Total Users: ${stats.users}
+Students: ${stats.students}
+Lecturers: ${stats.lecturers}
+Engineers: ${stats.engineers}
+Staff awaiting approval: ${stats.pendingStaffApprovals}
 
 COURSE STATISTICS
-================
-Total Courses: ${reportData.totalCourses}
-Published Courses: ${reportData.publishedCourses}
+=================
+Total Courses: ${stats.courses}
+Published: ${coursesByStatus.published}
+Pending review: ${coursesByStatus.pendingReview}
+Draft: ${coursesByStatus.draft}
+Archived: ${coursesByStatus.archived}
+
+PROGRAMME ACTION ITEMS
+======================
+Programmes needing attention: ${programmeNotifications.coursesNeedingAttention}
+Total notification items: ${programmeNotifications.total}
+Pending enrollments (by programme): ${programmeNotifications.pendingEnrollments}
+Pending certificates (by programme): ${programmeNotifications.pendingCertificates}
 
 ENROLLMENTS & PAYMENTS
 ======================
-Course Enrollments: ${reportData.courseEnrollments}
-Admitted: ${reportData.admittedEnrollments}
-Pending payment review: ${reportData.pendingEnrollments}
-Pending payment receipts: ${reportData.pendingPayments}
-Verified revenue (RWF): ${reportData.approvedPaymentsTotal.toLocaleString()}
-Internship applications: ${reportData.applications}
+Course Enrollments: ${stats.courseEnrollments}
+Admitted: ${stats.admittedEnrollments}
+Pending payment review: ${stats.pendingEnrollments}
+Pending payment receipts: ${stats.pendingPayments}
+Pending certificates: ${stats.pendingCertificates}
+Verified revenue (RWF): ${stats.approvedPaymentsTotal.toLocaleString()}
+Internship applications: ${stats.applications}
 
-ANNOUNCEMENTS
-=============
-Total Announcements: ${reportData.totalAnnouncements}
-`;
+OPERATIONS
+==========
+Products: ${stats.products}
+Low-stock products: ${stats.lowStockProducts}
+Support tickets: ${stats.supportTickets}
+Announcements: ${stats.announcements}
 
-    const element = document.createElement('a');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportContent));
-    element.setAttribute('download', `admin-report-${new Date().toISOString().split('T')[0]}.txt`);
-    element.style.display = 'none';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
+CONTENT
+=======
+Energy Library items: ${content.libraryTotal} (${content.libraryPublished} published, ${content.libraryPendingReview} pending review)
+Field Notes articles: ${content.engineeringArticlesTotal} (${content.engineeringArticlesPublished} published)
+`
+
+    const element = document.createElement('a')
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportContent))
+    element.setAttribute('download', `admin-report-${new Date().toISOString().split('T')[0]}.txt`)
+    element.style.display = 'none'
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
 
   if (isLoading) {
-    return <p className="text-slate-600">Loading reports...</p>;
+    return <p className="text-slate-600">Loading reports...</p>
   }
+
+  if (!report) {
+    return <p className="text-slate-600">Unable to load reports. Check your permissions and try again.</p>
+  }
+
+  const { stats, coursesByStatus, programmeNotifications, content } = report
+  const staffAndOther = stats.users - stats.students
+  const admissionRate =
+    stats.courseEnrollments > 0
+      ? Math.round((stats.admittedEnrollments / stats.courseEnrollments) * 100)
+      : 0
+  const publicationRate =
+    stats.courses > 0 ? Math.round((coursesByStatus.published / stats.courses) * 100) : 0
+  const enrollmentsAligned =
+    programmeNotifications.pendingEnrollments === stats.pendingEnrollments
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Admin Reports & Analytics</h3>
+      <div className="flex justify-between items-center gap-4 flex-wrap">
+        <div>
+          <h3 className="text-lg font-semibold">Admin Reports & Analytics</h3>
+          <p className="text-sm text-slate-600 mt-1">
+            Metrics aligned with the dashboard overview and per-programme notifications.
+          </p>
+        </div>
         <Button onClick={handleDownloadReport} variant="outline">
           <Download className="w-4 h-4 mr-2" />
           Download Report
@@ -118,7 +158,7 @@ Total Announcements: ${reportData.totalAnnouncements}
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-card border border-border">
+        <TabsList className="bg-card border border-border flex-wrap h-auto">
           <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <BarChart3 className="w-4 h-4 mr-2" />
             Overview
@@ -129,11 +169,18 @@ Total Announcements: ${reportData.totalAnnouncements}
           </TabsTrigger>
           <TabsTrigger value="courses" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <BookOpen className="w-4 h-4 mr-2" />
-            Courses
+            Programmes
+          </TabsTrigger>
+          <TabsTrigger value="operations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <ClipboardList className="w-4 h-4 mr-2" />
+            Operations
+          </TabsTrigger>
+          <TabsTrigger value="content" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <FileText className="w-4 h-4 mr-2" />
+            Content
           </TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid md:grid-cols-3 gap-6">
             <Card>
@@ -142,8 +189,10 @@ Total Announcements: ${reportData.totalAnnouncements}
                 <Users className="w-4 h-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reportData.totalUsers}</div>
-                <p className="text-xs text-slate-600 mt-1">{reportData.students} students</p>
+                <div className="text-2xl font-bold">{stats.users}</div>
+                <p className="text-xs text-slate-600 mt-1">
+                  {stats.students} students · {stats.lecturers} lecturers · {stats.engineers} engineers
+                </p>
               </CardContent>
             </Card>
 
@@ -153,9 +202,9 @@ Total Announcements: ${reportData.totalAnnouncements}
                 <TrendingUp className="w-4 h-4 text-accent" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reportData.courseEnrollments}</div>
+                <div className="text-2xl font-bold">{stats.courseEnrollments}</div>
                 <p className="text-xs text-slate-600 mt-1">
-                  {reportData.admittedEnrollments} admitted · {reportData.pendingEnrollments} pending
+                  {stats.admittedEnrollments} admitted · {stats.pendingEnrollments} pending review
                 </p>
               </CardContent>
             </Card>
@@ -166,8 +215,8 @@ Total Announcements: ${reportData.totalAnnouncements}
                 <BookOpen className="w-4 h-4 text-secondary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reportData.approvedPaymentsTotal.toLocaleString()} RWF</div>
-                <p className="text-xs text-slate-600 mt-1">{reportData.pendingPayments} receipts awaiting review</p>
+                <div className="text-2xl font-bold">{stats.approvedPaymentsTotal.toLocaleString()} RWF</div>
+                <p className="text-xs text-slate-600 mt-1">{stats.pendingPayments} receipts awaiting review</p>
               </CardContent>
             </Card>
           </div>
@@ -177,28 +226,28 @@ Total Announcements: ${reportData.totalAnnouncements}
               <CardTitle>Key Metrics</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm text-slate-600 mb-1">Admission rate</p>
-                  <p className="text-2xl font-bold">
-                    {reportData.courseEnrollments > 0
-                      ? Math.round((reportData.admittedEnrollments / reportData.courseEnrollments) * 100)
-                      : 0}
-                    %
-                  </p>
+                  <p className="text-2xl font-bold">{admissionRate}%</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-slate-600 mb-1">Course Publication Rate</p>
-                  <p className="text-2xl font-bold">
-                    {reportData.totalCourses > 0 ? Math.round((reportData.publishedCourses / reportData.totalCourses) * 100) : 0}%
-                  </p>
+                  <p className="text-sm text-slate-600 mb-1">Publication rate</p>
+                  <p className="text-2xl font-bold">{publicationRate}%</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-slate-600 mb-1">Programme action items</p>
+                  <p className="text-2xl font-bold">{programmeNotifications.total}</p>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-slate-600 mb-1">Certificates to approve</p>
+                  <p className="text-2xl font-bold">{stats.pendingCertificates}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -206,30 +255,8 @@ Total Announcements: ${reportData.totalAnnouncements}
                 <CardTitle>User Distribution</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm">Students</p>
-                    <p className="font-semibold">{reportData.students}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalUsers > 0 ? (reportData.students / reportData.totalUsers) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm">Staff & other roles</p>
-                    <p className="font-semibold">{reportData.totalUsers - reportData.students}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-secondary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalUsers > 0 ? ((reportData.totalUsers - reportData.students) / reportData.totalUsers) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
+                <StatusBar label="Students" count={stats.students} total={stats.users} colorClass="bg-primary" />
+                <StatusBar label="Staff & other roles" count={staffAndOther} total={stats.users} colorClass="bg-secondary" />
               </CardContent>
             </Card>
 
@@ -239,25 +266,17 @@ Total Announcements: ${reportData.totalAnnouncements}
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Total Registered</span>
-                    <span className="font-semibold">{reportData.totalUsers}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Students</span>
-                    <span className="font-semibold text-green-600">{reportData.students}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Other roles</span>
-                    <span className="font-semibold text-yellow-600">{reportData.totalUsers - reportData.students}</span>
-                  </li>
+                  <StatRow label="Total registered" value={stats.users} />
+                  <StatRow label="Students" value={stats.students} accent="text-green-600" />
+                  <StatRow label="Lecturers" value={stats.lecturers} />
+                  <StatRow label="Engineers" value={stats.engineers} />
+                  <StatRow label="Staff awaiting approval" value={stats.pendingStaffApprovals} accent="text-amber-600" />
                 </ul>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Courses Tab */}
         <TabsContent value="courses" className="space-y-4">
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
@@ -265,55 +284,116 @@ Total Announcements: ${reportData.totalAnnouncements}
                 <CardTitle>Course Status</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm">Published</p>
-                    <p className="font-semibold">{reportData.publishedCourses}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalCourses > 0 ? (reportData.publishedCourses / reportData.totalCourses) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm">Draft</p>
-                    <p className="font-semibold">{reportData.totalCourses - reportData.publishedCourses}</p>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-secondary h-2 rounded-full" 
-                      style={{ width: `${reportData.totalCourses > 0 ? ((reportData.totalCourses - reportData.publishedCourses) / reportData.totalCourses) * 100 : 0}%` }}
-                    ></div>
-                  </div>
-                </div>
+                <StatusBar label="Published" count={coursesByStatus.published} total={stats.courses} colorClass="bg-primary" />
+                <StatusBar
+                  label="Pending review"
+                  count={coursesByStatus.pendingReview}
+                  total={stats.courses}
+                  colorClass="bg-blue-500"
+                />
+                <StatusBar label="Draft" count={coursesByStatus.draft} total={stats.courses} colorClass="bg-secondary" />
+                <StatusBar label="Archived" count={coursesByStatus.archived} total={stats.courses} colorClass="bg-slate-400" />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Course Statistics</CardTitle>
+                <CardTitle>Programme Action Items</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3">
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Total Courses</span>
-                    <span className="font-semibold">{reportData.totalCourses}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Published</span>
-                    <span className="font-semibold text-green-600">{reportData.publishedCourses}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Draft</span>
-                    <span className="font-semibold text-yellow-600">{reportData.totalCourses - reportData.publishedCourses}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-600">Total Enrollments</span>
-                    <span className="font-semibold">{reportData.courseEnrollments}</span>
-                  </li>
+                  <StatRow label="Programmes needing attention" value={programmeNotifications.coursesNeedingAttention} />
+                  <StatRow label="Lecturer submissions (pending review)" value={coursesByStatus.pendingReview} />
+                  <StatRow label="Draft programmes" value={coursesByStatus.draft} />
+                  <StatRow label="Pending enrollments (sum by programme)" value={programmeNotifications.pendingEnrollments} />
+                  <StatRow label="Pending certificates (sum by programme)" value={programmeNotifications.pendingCertificates} />
+                  <StatRow label="Total notification items" value={programmeNotifications.total} accent="text-red-600" />
+                </ul>
+                {!enrollmentsAligned ? (
+                  <p className="text-xs text-amber-700 mt-4">
+                    Note: global pending enrollments ({stats.pendingEnrollments}) differs from per-programme sum (
+                    {programmeNotifications.pendingEnrollments}). Refresh after payment repairs complete.
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Enrollment Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
+                <StatRow label="Total enrollments" value={stats.courseEnrollments} />
+                <StatRow label="Admitted" value={stats.admittedEnrollments} accent="text-green-600" />
+                <StatRow label="Pending payment review" value={stats.pendingEnrollments} accent="text-amber-600" />
+                <StatRow label="Certificates awaiting admin" value={stats.pendingCertificates} accent="text-amber-600" />
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="operations" className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payments & Admissions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <StatRow label="Pending payment receipts" value={stats.pendingPayments} />
+                  <StatRow
+                    label="Verified revenue (RWF)"
+                    value={stats.approvedPaymentsTotal.toLocaleString()}
+                    accent="text-green-600"
+                  />
+                  <StatRow label="Internship applications" value={stats.applications} />
+                  <StatRow label="Support tickets" value={stats.supportTickets} />
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Shop & Inventory</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <StatRow label="Active products" value={stats.products} />
+                  <StatRow label="Low-stock alerts" value={stats.lowStockProducts} accent="text-amber-600" />
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="content" className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Energy Library</CardTitle>
+                <Zap className="w-4 h-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <StatRow label="Total items" value={content.libraryTotal} />
+                  <StatRow label="Published" value={content.libraryPublished} accent="text-green-600" />
+                  <StatRow label="Pending review" value={content.libraryPendingReview} accent="text-amber-600" />
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <CardTitle>Field Notes</CardTitle>
+                <FileText className="w-4 h-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  <StatRow label="Total articles" value={content.engineeringArticlesTotal} />
+                  <StatRow label="Published" value={content.engineeringArticlesPublished} accent="text-green-600" />
+                  <StatRow label="Announcements (public site)" value={stats.announcements} />
                 </ul>
               </CardContent>
             </Card>
@@ -321,5 +401,5 @@ Total Announcements: ${reportData.totalAnnouncements}
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }

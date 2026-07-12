@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getAdminSession } from '@/app/actions/admin-context'
+import { getAdminSession, getAdminNavBadges } from '@/app/actions/admin-context'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { isDeliveryRole } from '@/lib/admin/access-control'
 import { AdminShell } from '@/components/admin/admin-shell'
@@ -20,9 +20,10 @@ export default async function AdminDashboardLayout({
   }
 
   const logoUrl = await getCompanyLogoUrl()
+  const navBadges = await getAdminNavBadges(session.user.permissions)
 
   return (
-    <AdminShell session={session} logoUrl={logoUrl}>
+    <AdminShell session={session} logoUrl={logoUrl} navBadges={navBadges}>
       {children}
     </AdminShell>
   )

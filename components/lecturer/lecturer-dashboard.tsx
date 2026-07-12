@@ -10,13 +10,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
-import { BookOpen, Users, FileBarChart, Calculator, AlertTriangle } from 'lucide-react'
+import { BookOpen, Users, FileBarChart, Calculator } from 'lucide-react'
 import { LecturerBroadcastPanel } from '@/components/lecturer/lecturer-broadcast-panel'
 import {
   LecturerCreateCourseDialog,
   courseStatusLabel,
   lecturerCourseStatusBadgeClass,
 } from '@/components/lecturer/lecturer-create-course-dialog'
+import { NotificationBadge } from '@/components/ui/notification-badge'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -32,6 +33,8 @@ type LecturerCourse = {
   location?: string | null
   meeting_link?: string | null
   enrollment_stats: EnrollmentStats
+  pending_certificates?: number
+  notification_count?: number
 }
 
 export function LecturerDashboardView() {
@@ -81,6 +84,7 @@ export function LecturerDashboardView() {
   }, [router, loadCourses])
 
   const totalStudents = courses.reduce((sum, c) => sum + c.enrollment_stats.admitted, 0)
+  const totalNotifications = courses.reduce((sum, c) => sum + (c.notification_count ?? 0), 0)
 
   if (isLoading) {
     return (
@@ -95,40 +99,29 @@ export function LecturerDashboardView() {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">My programmes</h1>
-            <p className="text-sm text-slate-600 mt-1">
-              Open a classroom to manage lessons, students, assessments, and reports. New programmes
-              need admin approval before students can enroll.
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold text-slate-950">My programmes</h1>
+              {totalNotifications > 0 ? <NotificationBadge count={totalNotifications} /> : null}
+              {atRiskCount > 0 ? (
+                <Link href="/lecturer/students" className="inline-flex items-center gap-2 no-underline">
+                  <NotificationBadge count={atRiskCount} size="sm" />
+                  <span className="text-sm font-medium text-slate-700">at-risk students</span>
+                </Link>
+              ) : null}
+            </div>
+            <p className="text-sm text-slate-700 mt-1">
+              Open a classroom to manage lessons, students, assessments, and reports.
             </p>
           </div>
           <LecturerCreateCourseDialog onCreated={loadCourses} />
         </div>
 
         {error ? (
-          <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
-        ) : null}
-
-        {atRiskCount > 0 ? (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardContent className="pt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-amber-900 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span>
-                  <strong>{atRiskCount}</strong> student(s) inactive for 7+ days across your
-                  programmes.
-                </span>
-              </p>
-              <Link href="/lecturer/students">
-                <Button size="sm" variant="outline" className="border-amber-400 text-amber-900">
-                  View all students
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <p className="text-sm text-red-800 bg-red-50 border border-red-300 rounded-md p-3 font-medium">{error}</p>
         ) : null}
 
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">Broadcast to students</h2>
+          <h2 className="text-lg font-semibold text-slate-950 mb-3">Broadcast to students</h2>
           <LecturerBroadcastPanel />
         </div>
 
@@ -191,8 +184,13 @@ export function LecturerDashboardView() {
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
             {courses.map((course) => (
-              <Card key={course.id} className="border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
+              <Card key={course.id} className="border-slate-300 overflow-hidden hover:shadow-md transition-shadow relative">
+                {(course.notification_count ?? 0) > 0 ? (
+                  <div className="absolute top-3 right-3 z-10">
+                    <NotificationBadge count={course.notification_count ?? 0} />
+                  </div>
+                ) : null}
+                <CardHeader className="pb-2 pr-12">
                   <div className="flex flex-wrap gap-2 mb-2">
                     <Badge variant="outline" className="text-slate-800 border-slate-300">
                       {PROGRAM_TYPE_LABELS[course.program_type ?? 'training']}
@@ -201,10 +199,13 @@ export function LecturerDashboardView() {
                       {courseStatusLabel(course.status)}
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg text-slate-900">{course.title}</CardTitle>
-                  <p className="text-xs text-slate-600 mt-1">
+                  <CardTitle className="text-lg text-slate-950 font-bold">{course.title}</CardTitle>
+                  <p className="text-xs text-slate-700 mt-1">
                     {course.enrollment_stats.admitted} admitted · {course.enrollment_stats.pending}{' '}
                     pending
+                    {(course.pending_certificates ?? 0) > 0
+                      ? ` · ${course.pending_certificates} certificates`
+                      : ''}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">

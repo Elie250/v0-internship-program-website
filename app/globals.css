@@ -281,6 +281,24 @@
     color: inherit;
   }
 
+  .lecturer-portal-sidebar h1,
+  .lecturer-portal-sidebar h2,
+  .lecturer-portal-sidebar h3,
+  .lecturer-portal-sidebar h4,
+  .lecturer-portal-sidebar p,
+  .lecturer-portal-sidebar span {
+    color: inherit;
+  }
+
+  .lecturer-portal-sidebar button {
+    color: inherit;
+  }
+
+  .notification-badge,
+  .admin-notification-badge {
+    line-height: 1;
+  }
+
   /* Admin console — navy sidebar like student portal */
   .admin-portal-sidebar {
     background: var(--brand-navy) !important;
@@ -291,6 +309,26 @@
     background: var(--brand-navy);
   }
 
+  .admin-portal-sidebar [data-sidebar='menu-button'] {
+    color: #ffffff;
+  }
+
+  .admin-portal-sidebar [data-sidebar='menu-button']:hover {
+    background-color: rgb(255 255 255 / 0.15);
+    color: #ffffff;
+  }
+
+  .admin-portal-sidebar [data-sidebar='menu-button'][data-active='true'] {
+    background-color: #ffffff;
+    color: var(--brand-navy);
+    font-weight: 600;
+  }
+
+  .admin-portal-sidebar [data-sidebar='group-label'] {
+    color: rgb(255 255 255 / 0.88);
+    font-weight: 700;
+  }
+
   .admin-portal-sidebar h1,
   .admin-portal-sidebar h2,
   .admin-portal-sidebar h3,
@@ -298,6 +336,14 @@
   .admin-portal-sidebar span,
   .admin-portal-sidebar button {
     color: inherit;
+  }
+
+  .admin-courses-page [data-slot='card'] {
+    border-color: #cbd5e1;
+  }
+
+  .admin-notification-badge {
+    line-height: 1;
   }
 
   .admin-portal-main {
@@ -439,33 +485,42 @@
 
   /* Stronger contrast for course creation / account forms */
   .course-form-high-contrast [data-slot='label'] {
-    color: #0f172a;
+    color: #020617;
     font-weight: 700;
+    letter-spacing: 0.01em;
   }
 
   .course-form-high-contrast [data-slot='input'],
   .course-form-high-contrast [data-slot='textarea'],
   .course-form-high-contrast [data-slot='select-trigger'] {
     background-color: #ffffff;
-    color: #0f172a;
-    border-color: #64748b;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    color: #020617;
+    border-color: #475569;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .course-form-high-contrast [data-slot='input']::placeholder,
+  .course-form-high-contrast [data-slot='textarea']::placeholder {
+    color: #64748b;
   }
 
   .course-form-high-contrast [data-slot='input']:focus-visible,
   .course-form-high-contrast [data-slot='textarea']:focus-visible,
   .course-form-high-contrast [data-slot='select-trigger']:focus-visible {
     border-color: var(--brand-navy);
-    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2);
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.25);
   }
 
   .course-form-high-contrast [data-slot='select-content'] {
-    border-color: #64748b;
+    border-color: #475569;
+    background-color: #ffffff;
+    color: #020617;
   }
 
   .course-form-high-contrast p.text-slate-600,
   .course-form-high-contrast .text-slate-500 {
     color: #334155;
+    font-weight: 500;
   }
 
   /* Shop portal — category filters, catalog cards, checkout sheet */

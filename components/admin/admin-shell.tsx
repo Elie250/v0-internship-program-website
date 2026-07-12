@@ -35,14 +35,17 @@ import {
 } from '@/lib/admin/nav'
 import { ROLE_LABELS } from '@/types/platform'
 import { COMPANY } from '@/lib/company/constants'
+import { AdminNotificationBadge } from '@/components/admin/admin-notification-badge'
 
 export function AdminShell({
   session,
   logoUrl,
+  navBadges = {},
   children,
 }: {
   session: AdminSession
   logoUrl: string
+  navBadges?: Record<string, number>
   children: React.ReactNode
 }) {
   const pathname = usePathname()
@@ -69,15 +72,15 @@ export function AdminShell({
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="admin-portal-sidebar border-r-0">
-        <SidebarHeader className="border-b border-white/15 p-4">
+      <Sidebar collapsible="icon" className="admin-portal-sidebar border-r border-white/20">
+        <SidebarHeader className="border-b border-white/25 p-4">
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10 shrink-0 rounded-md border border-white/25 bg-white overflow-hidden">
               <Image src={logoUrl} alt="Company logo" fill className="object-contain p-0.5" unoptimized />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="font-bold text-sm leading-tight truncate text-white">{COMPANY.platformName}</p>
-              <p className="text-xs text-white/80">Administration</p>
+              <p className="text-xs text-white/90 font-medium">Administration</p>
             </div>
           </div>
         </SidebarHeader>
@@ -85,7 +88,7 @@ export function AdminShell({
         <SidebarContent className="gap-0">
           {nav.map((group) => (
             <SidebarGroup key={group.id}>
-              <SidebarGroupLabel className="text-white/70 uppercase text-[10px] tracking-wider font-semibold px-2">
+              <SidebarGroupLabel className="text-white/85 uppercase text-[10px] tracking-wider font-bold px-2">
                 {group.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -96,6 +99,8 @@ export function AdminShell({
                       pathname === item.href ||
                       (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
 
+                    const badgeCount = navBadges[item.id] ?? 0
+
                     return (
                       <SidebarMenuItem key={item.id}>
                         <SidebarMenuButton
@@ -104,13 +109,20 @@ export function AdminShell({
                           tooltip={item.label}
                           className={
                             isActive
-                              ? 'bg-white text-[var(--brand-navy)] font-semibold hover:bg-white hover:text-[var(--brand-navy)]'
-                              : 'text-white/90 hover:bg-white/12 hover:text-white'
+                              ? 'bg-white text-[var(--brand-navy)] font-semibold hover:bg-white hover:text-[var(--brand-navy)] shadow-sm'
+                              : 'text-white hover:bg-white/15 hover:text-white font-medium'
                           }
                         >
-                          <Link href={item.href}>
-                            {Icon ? <Icon className={isActive ? 'text-[var(--brand-navy)]' : undefined} /> : null}
+                          <Link href={item.href} className="relative">
+                            {Icon ? <Icon className={isActive ? 'text-[var(--brand-navy)]' : 'text-white'} /> : null}
                             <span>{item.label}</span>
+                            {badgeCount > 0 ? (
+                              <AdminNotificationBadge
+                                count={badgeCount}
+                                size="sm"
+                                className="ml-auto shrink-0 ring-[var(--brand-navy)]/20"
+                              />
+                            ) : null}
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -122,17 +134,17 @@ export function AdminShell({
           ))}
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-white/15 p-3">
-          <div className="rounded-lg bg-white/12 p-3 text-xs group-data-[collapsible=icon]:hidden">
+        <SidebarFooter className="border-t border-white/25 p-3">
+          <div className="rounded-lg bg-white/15 border border-white/20 p-3 text-xs group-data-[collapsible=icon]:hidden">
             <p className="font-semibold truncate text-white">{userName}</p>
-            <p className="text-white/80 truncate">{user.email}</p>
-            <p className="text-white/65 mt-1">{ROLE_LABELS[user.role] ?? user.role}</p>
+            <p className="text-white/90 truncate">{user.email}</p>
+            <p className="text-white/75 mt-1">{ROLE_LABELS[user.role] ?? user.role}</p>
           </div>
           <Link href="/" className="mt-2 block group-data-[collapsible=icon]:hidden">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-white/90 hover:text-white hover:bg-white/12"
+              className="w-full justify-start text-white hover:text-white hover:bg-white/15 font-medium"
             >
               <Home className="h-4 w-4 mr-2" />
               Public site
@@ -141,7 +153,7 @@ export function AdminShell({
           <Button
             variant="ghost"
             size="sm"
-            className="mt-2 w-full justify-start text-white/90 hover:text-white hover:bg-white/12"
+            className="mt-2 w-full justify-start text-white hover:text-white hover:bg-white/15 font-medium"
             onClick={handleLogout}
             disabled={isLoggingOut}
           >

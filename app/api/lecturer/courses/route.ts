@@ -25,14 +25,22 @@ export async function GET() {
 
     const courseIds = courses.map((c) => c.id)
     let enrollmentStats = new Map<string, { total: number; admitted: number; pending: number }>()
+    let certStats = new Map<string, number>()
 
     if (courseIds.length) {
-      const { data: enrollments } = await supabaseAdmin
-        .from('course_enrollments')
-        .select('course_id, status')
-        .in('course_id', courseIds)
+      const [enrollmentsResult, certsResult] = await Promise.all([
+        supabaseAdmin
+          .from('course_enrollments')
+          .select('course_id, status')
+          .in('course_id', courseIds),
+        supabaseAdmin
+          .from('student_certificates')
+          .select('course_id')
+          .in('course_id', courseIds)
+          .eq('status', 'pending_admin'),
+      ])
 
-      for (const row of enrollments ?? []) {
+      for (const row of enrollmentsResult.data ?? []) {
         const courseId = String(row.course_id)
         const current = enrollmentStats.get(courseId) ?? { total: 0, admitted: 0, pending: 0 }
         current.total += 1
@@ -40,13 +48,26 @@ export async function GET() {
         if (row.status === 'payment_pending_review') current.pending += 1
         enrollmentStats.set(courseId, current)
       }
+
+      for (const row of certsResult.data ?? []) {
+        const courseId = String(row.course_id)
+        certStats.set(courseId, (certStats.get(courseId) ?? 0) + 1)
+      }
     }
 
     return NextResponse.json(
-      courses.map((course) => ({
-        ...course,
-        enrollment_stats: enrollmentStats.get(course.id) ?? { total: 0, admitted: 0, pending: 0 },
-      }))
+      courses.map((course) => {
+        const stats = enrollmentStats.get(course.id) ?? { total: 0, admitted: 0, pending: 0 }
+        const pendingCerts = certStats.get(course.id) ?? 0
+        const notification_count =
+          (course.status === 'pending_review' ? 1 : 0) + stats.pending + pendingCerts
+        return {
+          ...course,
+          enrollment_stats: stats,
+          pending_certificates: pendingCerts,
+          notification_count,
+        }
+      })
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load courses'

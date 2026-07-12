@@ -13,6 +13,12 @@ import {
 } from '@/lib/admin/permissions'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { repairEnrollmentsWithApprovedPayments } from '@/lib/enrollment/repair-approved-payments'
+import { countActionablePendingEnrollments } from '@/lib/enrollment/actionable-pending'
+import {
+  queryCourseNotificationRows,
+  type CourseNotificationRow,
+} from '@/lib/admin/data/course-notification-counts'
+import { queryAdminReportData, type AdminReportData } from '@/lib/admin/data/admin-reports'
 
 export type AdminStats = {
   users: number
@@ -77,30 +83,7 @@ async function countEnrollmentsByStatus(status?: string): Promise<number> {
 }
 
 async function countPendingEnrollments(): Promise<number> {
-  if (!supabaseAdmin) return 0
-
-  const { data: rows, error } = await supabaseAdmin
-    .from('course_enrollments')
-    .select('id, payment_id')
-    .eq('status', 'payment_pending_review')
-
-  if (error || !rows?.length) return 0
-
-  const paymentIds = rows.map((r) => r.payment_id).filter(Boolean) as string[]
-  if (!paymentIds.length) return rows.length
-
-  const { data: payments } = await supabaseAdmin
-    .from('payments')
-    .select('id, status')
-    .in('id', paymentIds)
-
-  const approvedIds = new Set(
-    (payments ?? [])
-      .filter((p) => p.status === 'approved' || p.status === 'Paid')
-      .map((p) => p.id)
-  )
-
-  return rows.filter((row) => !row.payment_id || !approvedIds.has(row.payment_id as string)).length
+  return countActionablePendingEnrollments()
 }
 
 async function countPendingPayments(): Promise<number> {
@@ -305,13 +288,34 @@ export async function getAdminStats(): Promise<AdminStats> {
   return fetchAdminStats()
 }
 
+/** Batched report payload aligned with dashboard stats and programme notifications. */
+export async function getAdminReportData(): Promise<AdminReportData | null> {
+  const session = await getAdminSession()
+  if (!session || !supabaseAdmin) return null
+  if (!hasPermission(session.user.permissions, PERMISSIONS.REPORTS_VIEW)) return null
+
+  const stats = await fetchAdminStats()
+  return queryAdminReportData(stats)
+}
+
 /** Overview payload: auth + nav + stats (stats load even for legacy admin session). */
 export async function getAdminOverview() {
   const session = await getAdminSession()
   if (!session || !supabaseAdmin) return null
 
-  const stats = await fetchAdminStats()
-  return { ...session, stats }
+  const [stats, courseNotifications] = await Promise.all([
+    fetchAdminStats(),
+    hasPermission(session.user.permissions, PERMISSIONS.LEARNING_PROGRAMS)
+      ? queryCourseNotificationRows()
+      : Promise.resolve({ rows: [] as CourseNotificationRow[], totalNotifications: 0 }),
+  ])
+
+  return {
+    ...session,
+    stats,
+    courseNotifications: courseNotifications.rows,
+    courseNotificationTotal: courseNotifications.totalNotifications,
+  }
 }
 
 export async function requireAdminPermission(
@@ -325,6 +329,19 @@ export async function requireAdminPermission(
     throw new Error('Forbidden')
   }
   return session
+}
+
+export async function getAdminNavBadges(permissions: string[]): Promise<Record<string, number>> {
+  const badges: Record<string, number> = {}
+
+  if (hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)) {
+    const { totalNotifications } = await queryCourseNotificationRows()
+    if (totalNotifications > 0) {
+      badges.courses = totalNotifications
+    }
+  }
+
+  return badges
 }
 
 export async function requireAdminAccess(): Promise<AdminSession> {

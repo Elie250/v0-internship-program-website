@@ -34,6 +34,8 @@ import {
   type ProgramType,
 } from '@/lib/enrollment/program-types'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
+import { AdminNotificationBadge } from '@/components/admin/admin-notification-badge'
+import { courseNotificationLabel } from '@/lib/admin/course-notifications'
 
 function courseStatusLabel(status: string) {
   if (status === 'published') return 'Published'
@@ -64,6 +66,9 @@ type Course = {
   meeting_link?: string | null
   program_end_date?: string | null
   created_at: string
+  notification_count?: number
+  pending_enrollments?: number
+  pending_certificates?: number
 }
 
 const emptyForm = {
@@ -295,21 +300,23 @@ export default function CourseManagementTab() {
   }
 
   const publishedCount = courses.filter((c) => c.status === 'published').length
-  const pendingCount = courses.filter((c) => c.status === 'pending_review').length
+  const totalNotifications = courses.reduce((sum, c) => sum + (c.notification_count ?? 0), 0)
 
   if (isLoading) {
-    return <p className="text-slate-600">Loading courses...</p>
+    return <p className="text-slate-700 font-medium">Loading courses...</p>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 admin-courses-page">
       <div className="flex flex-wrap justify-between items-start gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Programs</h1>
-          <p className="text-slate-600 mt-1">
-            Create training, internship, mentorship, career guidance, workshops, webinars, and events.
-            Set price to <strong>0</strong> for free programmes (instant student access). Paid programmes
-            require MoMo verification.
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-950">Programs</h1>
+            {totalNotifications > 0 ? <AdminNotificationBadge count={totalNotifications} /> : null}
+          </div>
+          <p className="text-slate-700 mt-1 max-w-2xl">
+            {publishedCount} published · {courses.length} total
+            {totalNotifications > 0 ? ` · ${courseNotificationLabel(totalNotifications)}` : ''}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -325,29 +332,8 @@ export default function CourseManagementTab() {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{error}</p> : null}
-      {success ? <p className="text-sm text-green-700">{success}</p> : null}
-
-      {pendingCount > 0 ? (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-4 text-sm text-blue-950">
-            <strong>{pendingCount}</strong> programme{pendingCount === 1 ? '' : 's'} submitted by
-            lecturers awaiting your review. Click <strong>Approve &amp; publish</strong> on each card
-            below.
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {courses.length > 0 && publishedCount === 0 && pendingCount === 0 ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-4 text-sm text-amber-900">
-            You have {courses.length} course(s) in the database, but none are <strong>Published</strong>.
-            Draft courses are hidden from the public{' '}
-            <a href="/learning" target="_blank" rel="noopener noreferrer" className="underline">/learning</a> page.
-            Click <strong>Publish</strong> on each course card below.
-          </CardContent>
-        </Card>
-      ) : null}
+      {error ? <p className="text-sm text-red-800 bg-red-50 border border-red-300 rounded-md p-2 font-medium">{error}</p> : null}
+      {success ? <p className="text-sm text-green-800 font-medium">{success}</p> : null}
 
       <Dialog
         open={isCreateOpen}
@@ -356,9 +342,9 @@ export default function CourseManagementTab() {
           if (!open) setCreateError('')
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast">
-          <DialogHeader>
-            <DialogTitle className="text-slate-900">Create program</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-300">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="text-slate-950 text-xl font-bold">Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} lecturers={lecturers} />
           {createError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{createError}</p> : null}
@@ -381,20 +367,27 @@ export default function CourseManagementTab() {
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <Card key={course.id} className="overflow-hidden">
-              {course.thumbnail ? (
-                <div className="relative h-40">
-                  <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
-                </div>
-              ) : (
-                <div className="h-40 bg-muted flex items-center justify-center text-sm text-slate-600">
-                  No thumbnail
-                </div>
-              )}
+            <Card key={course.id} className="overflow-hidden border-slate-300 bg-white shadow-sm">
+              <div className="relative">
+                {course.thumbnail ? (
+                  <div className="relative h-40">
+                    <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
+                  </div>
+                ) : (
+                  <div className="h-40 bg-slate-100 flex items-center justify-center text-sm text-slate-700 font-medium">
+                    No thumbnail
+                  </div>
+                )}
+                {(course.notification_count ?? 0) > 0 ? (
+                  <div className="absolute top-3 right-3">
+                    <AdminNotificationBadge count={course.notification_count ?? 0} />
+                  </div>
+                ) : null}
+              </div>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <CardTitle className="text-lg text-slate-900">{course.title}</CardTitle>
+                    <CardTitle className="text-lg text-slate-950 font-bold">{course.title}</CardTitle>
                     <div className="flex flex-wrap gap-2 mt-2">
                       <Badge variant="outline" className="text-slate-700">
                         {PROGRAM_TYPE_LABELS[course.program_type ?? 'training']}
@@ -413,7 +406,18 @@ export default function CourseManagementTab() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-slate-600 line-clamp-3">{course.description}</p>
+                <p className="text-sm text-slate-700 line-clamp-3">{course.description}</p>
+                {(course.notification_count ?? 0) > 0 ? (
+                  <p className="text-xs font-medium text-red-700">
+                    {courseNotificationLabel(course.notification_count ?? 0)}
+                    {(course.pending_enrollments ?? 0) > 0
+                      ? ` · ${course.pending_enrollments} enrollment${course.pending_enrollments === 1 ? '' : 's'}`
+                      : ''}
+                    {(course.pending_certificates ?? 0) > 0
+                      ? ` · ${course.pending_certificates} certificate${course.pending_certificates === 1 ? '' : 's'}`
+                      : ''}
+                  </p>
+                ) : null}
                 {course.duration ? (
                   <p className="text-sm">
                     <span className="font-semibold text-slate-800">Duration:</span> {course.duration}
@@ -454,9 +458,9 @@ export default function CourseManagementTab() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast">
-          <DialogHeader>
-            <DialogTitle className="text-slate-900">Edit program</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-300">
+          <DialogHeader className="border-b border-slate-200 pb-4">
+            <DialogTitle className="text-slate-950 text-xl font-bold">Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
@@ -486,9 +490,9 @@ function CourseForm({
   const showMeeting = programTypeNeedsMeetingLink(programType)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 course-form-high-contrast">
       <div>
-        <Label>Program type</Label>
+        <Label className="text-slate-950">Program type</Label>
         <Select
           value={programType}
           onValueChange={(v) => setForm({ ...form, program_type: v as ProgramType })}

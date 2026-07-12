@@ -15,7 +15,6 @@ import {
   Calculator,
   Clock,
   ExternalLink,
-  Lock,
   PlayCircle,
   Video,
 } from 'lucide-react'
@@ -24,6 +23,7 @@ import { AccessCountdown } from '@/components/student/access-countdown'
 import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
 import { StudentAnnouncementsPanel } from '@/components/student/student-announcements-panel'
 import { StudentGradesPanel } from '@/components/student/student-grades-panel'
+import { NotificationBadge } from '@/components/ui/notification-badge'
 
 export default function StudentDashboardInner() {
   const router = useRouter()
@@ -73,71 +73,68 @@ export default function StudentDashboardInner() {
   const totalLessons = portal.activeCourses.reduce((n, c) => n + c.lessons.length, 0)
   const completedLessons = portal.activeCourses.reduce((n, c) => n + c.progress.completedCount, 0)
 
+  const notificationItems = [
+    ...portal.pendingEnrollments.map((p) => ({
+      id: `pending-${p.id}`,
+      title: p.courseTitle,
+      detail: `${p.statusLabel} — unlocks after MoMo verification`,
+      href: '/payment-instructions',
+      count: 1,
+    })),
+    ...portal.rejectedEnrollments.map((p) => ({
+      id: `rejected-${p.id}`,
+      title: p.courseTitle,
+      detail: p.rejectionReason ? `Not verified — ${p.rejectionReason}` : 'Payment not verified — resubmit',
+      href: `/student/courses/${p.courseId}/enroll`,
+      count: 1,
+    })),
+    ...portal.upcomingCourses.map((c) => ({
+      id: `upcoming-${c.enrollmentId}`,
+      title: c.title,
+      detail: c.accessStartsAt
+        ? `Access opens ${new Date(c.accessStartsAt).toLocaleString()}`
+        : 'Access starts soon',
+      href: `/student/courses/${c.id}`,
+      count: 0,
+      countdown: c.accessStartsAt,
+    })),
+  ]
+  const actionCount = portal.pendingEnrollments.length + portal.rejectedEnrollments.length
+
   return (
     <StudentPortalShell userName={userName}>
-      {portal.pendingEnrollments.length > 0 ? (
-        <Card className="mb-6 border-amber-200 bg-amber-50">
-          <CardContent className="pt-4 space-y-2">
-            <p className="font-medium text-amber-900 flex items-center gap-2">
-              <Lock className="h-4 w-4" />
-              Payment under review
-            </p>
-            {portal.pendingEnrollments.map((p) => (
-              <p key={p.id} className="text-sm text-amber-800">
-                <strong>{p.courseTitle}</strong> — {p.statusLabel}. Materials unlock after admin approves your MoMo
-                receipt (usually within 1 business day).
+      {notificationItems.length > 0 ? (
+        <Card className="mb-6 border-slate-200 bg-white shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                Programme status
               </p>
-            ))}
-            <Link href="/payment-instructions">
-              <Button size="sm" variant="outline" className="mt-1">Payment instructions</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {portal.rejectedEnrollments.length > 0 ? (
-        <Card className="mb-6 border-red-200 bg-red-50">
-          <CardContent className="pt-4 space-y-2">
-            <p className="font-medium text-red-900">Payment not verified</p>
-            {portal.rejectedEnrollments.map((p) => (
-              <p key={p.id} className="text-sm text-red-800">
-                {p.courseTitle}
-                {p.rejectionReason ? ` — ${p.rejectionReason}` : ''} —{' '}
+              {actionCount > 0 ? <NotificationBadge count={actionCount} size="sm" /> : null}
+            </div>
+            <div className="divide-y divide-slate-100">
+              {notificationItems.map((item) => (
                 <Link
-                  href={`/student/courses/${p.courseId}/enroll`}
-                  className="font-medium text-red-900 underline underline-offset-2"
+                  key={item.id}
+                  href={item.href}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 no-underline"
                 >
-                  Resubmit payment
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-slate-950 truncate">{item.title}</p>
+                    <p className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-2">
+                      <span>{item.detail}</span>
+                      {'countdown' in item && item.countdown ? (
+                        <>
+                          <Clock className="h-3 w-3" />
+                          <AccessCountdown targetIso={item.countdown as string} />
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                  {item.count > 0 ? <NotificationBadge count={item.count} size="sm" /> : null}
                 </Link>
-              </p>
-            ))}
-            <Link href="/student/courses?track=training">
-              <Button size="sm" variant="outline" className="mt-1 border-red-300 text-red-900">
-                Browse programmes
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {portal.upcomingCourses.length > 0 ? (
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="pt-4 space-y-2">
-            <p className="font-medium text-blue-900 flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Enrolled — access starts soon
-            </p>
-            {portal.upcomingCourses.map((c) => (
-              <div key={c.enrollmentId} className="text-sm text-blue-800 flex flex-wrap items-center gap-2">
-                <span>{c.title} — opens {c.accessStartsAt ? new Date(c.accessStartsAt).toLocaleString() : 'soon'}</span>
-                {c.accessStartsAt ? (
-                  <>
-                    <span className="text-blue-700">Countdown:</span>
-                    <AccessCountdown targetIso={c.accessStartsAt} />
-                  </>
-                ) : null}
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
       ) : null}

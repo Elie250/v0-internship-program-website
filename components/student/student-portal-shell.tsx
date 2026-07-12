@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import {
   Award,
   BarChart3,
@@ -20,26 +20,32 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { NotificationBadge } from '@/components/ui/notification-badge'
 import { cn } from '@/lib/utils'
 import { logoutUser } from '@/app/actions/auth-service'
-import { useRouter } from 'next/navigation'
 import { COMPANY } from '@/lib/company/constants'
 
 const nav = [
-  { href: '/student/dashboard', label: 'My learning', icon: GraduationCap, tab: 'courses' },
-  { href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
-  { href: '/student/calendar', label: 'Calendar', icon: CalendarClock },
-  { href: '/student/dashboard?tab=grades', label: 'Grades', icon: BarChart3, tab: 'grades' },
-  { href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
-  { href: '/student/tools', label: 'Tools', icon: Calculator },
-  { href: '/student/library', label: 'Library', icon: Library },
-  { href: '/student/dashboard?tab=announcements', label: 'Announcements', icon: Megaphone, tab: 'announcements' },
-  { href: '/student/certificates', label: 'Certificates', icon: Award },
-  { href: '/student/profile', label: 'Profile', icon: User },
-]
+  { id: 'courses', href: '/student/dashboard', label: 'My learning', icon: GraduationCap, tab: 'courses' },
+  { id: 'programs', href: '/student/courses?track=training', label: 'Programs', icon: BookOpen },
+  { id: 'calendar', href: '/student/calendar', label: 'Calendar', icon: CalendarClock },
+  { id: 'grades', href: '/student/dashboard?tab=grades', label: 'Grades', icon: BarChart3, tab: 'grades' },
+  { id: 'webinars', href: '/student/dashboard?tab=webinars', label: 'Webinars', icon: Video, tab: 'webinars' },
+  { id: 'tools', href: '/student/tools', label: 'Tools', icon: Calculator },
+  { id: 'library', href: '/student/library', label: 'Library', icon: Library },
+  {
+    id: 'announcements',
+    href: '/student/dashboard?tab=announcements',
+    label: 'Announcements',
+    icon: Megaphone,
+    tab: 'announcements',
+  },
+  { id: 'certificates', href: '/student/certificates', label: 'Certificates', icon: Award },
+  { id: 'profile', href: '/student/profile', label: 'Profile', icon: User },
+] as const
 
 function useStudentNavActive(pathname: string, tab: string) {
-  return (item: (typeof nav)[0]) => {
+  return (item: (typeof nav)[number]) => {
     if (item.href.startsWith('/student/courses')) {
       return pathname.startsWith('/student/courses')
     }
@@ -48,7 +54,7 @@ function useStudentNavActive(pathname: string, tab: string) {
     if (item.href === '/student/calendar') return pathname.startsWith('/student/calendar')
     if (item.href === '/student/certificates') return pathname.startsWith('/student/certificates')
     if (item.href === '/student/profile') return pathname.startsWith('/student/profile')
-    if (item.tab && item.href.startsWith('/student/dashboard')) {
+    if ('tab' in item && item.tab && item.href.startsWith('/student/dashboard')) {
       if (pathname.startsWith('/student/courses/') && !pathname.endsWith('/enroll')) return false
       if (pathname.startsWith('/student/courses')) return false
       return pathname === '/student/dashboard' && tab === item.tab
@@ -66,11 +72,13 @@ function useStudentNavActive(pathname: string, tab: string) {
 function StudentSidebarNav({
   pathname,
   tab,
+  badges,
   onNavigate,
   onLogout,
 }: {
   pathname: string
   tab: string
+  badges: Record<string, number>
   onNavigate?: () => void
   onLogout: () => void
 }) {
@@ -82,6 +90,7 @@ function StudentSidebarNav({
         {nav.map((item) => {
           const Icon = item.icon
           const active = isActive(item)
+          const count = badges[item.id] ?? 0
           return (
             <Link
               key={item.href}
@@ -90,22 +99,29 @@ function StudentSidebarNav({
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-3 text-sm transition no-underline hover:no-underline min-h-[44px]',
                 active
-                  ? 'bg-white/15 font-medium text-white'
-                  : 'hover:bg-white/10 text-white/90 hover:text-white'
+                  ? 'bg-white text-[var(--brand-navy)] font-semibold shadow-sm'
+                  : 'hover:bg-white/15 text-white font-medium hover:text-white'
               )}
             >
-              <Icon className="h-5 w-5 shrink-0" />
-              {item.label}
+              <Icon className={cn('h-5 w-5 shrink-0', active ? 'text-[var(--brand-navy)]' : 'text-white')} />
+              <span className="flex-1">{item.label}</span>
+              {count > 0 ? (
+                <NotificationBadge
+                  count={count}
+                  size="sm"
+                  className={active ? 'ring-[var(--brand-navy)]/20' : 'ring-[var(--brand-navy)]'}
+                />
+              ) : null}
             </Link>
           )
         })}
       </nav>
-      <div className="p-3 border-t border-white/10 space-y-1">
+      <div className="p-3 border-t border-white/25 space-y-1">
         <Link href="/" onClick={onNavigate} className="no-underline hover:no-underline">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-white hover:text-white hover:bg-white/10 min-h-[44px] text-sm"
+            className="w-full justify-start text-white hover:text-white hover:bg-white/15 min-h-[44px] text-sm font-medium"
           >
             <Home className="h-5 w-5 mr-2" />
             Public site
@@ -114,7 +130,7 @@ function StudentSidebarNav({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10 min-h-[44px] text-sm"
+          className="w-full justify-start text-white hover:text-white hover:bg-white/15 min-h-[44px] text-sm font-medium"
           onClick={() => {
             onNavigate?.()
             onLogout()
@@ -140,6 +156,20 @@ export function StudentPortalShell({
   const tab = searchParams.get('tab') ?? 'courses'
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [badges, setBadges] = useState<Record<string, number>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/student/nav-badges', { credentials: 'same-origin' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data?.badges) setBadges(data.badges)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [pathname])
 
   const handleLogout = async () => {
     await logoutUser()
@@ -148,42 +178,52 @@ export function StudentPortalShell({
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <aside className="student-portal-sidebar text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0">
-        <div className="p-5 border-b border-white/10">
+      <aside className="student-portal-sidebar text-on-dark hidden md:flex w-64 flex-col bg-[var(--brand-navy)] shrink-0 border-r border-white/20">
+        <div className="p-5 border-b border-white/25">
           <p className="font-bold text-lg text-white">{COMPANY.platformName}</p>
-          <p className="text-xs text-white/75 mt-1">Student portal</p>
+          <p className="text-xs text-white/90 font-medium mt-1">Student portal</p>
         </div>
-        <StudentSidebarNav pathname={pathname} tab={tab} onLogout={handleLogout} />
+        <StudentSidebarNav pathname={pathname} tab={tab} badges={badges} onLogout={handleLogout} />
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="font-semibold text-slate-900 text-sm truncate">{COMPANY.platformName}</p>
-            <p className="text-xs text-slate-600 truncate">{userName}</p>
+            <p className="text-xs text-slate-700 truncate">{userName}</p>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0 text-slate-900 border-slate-300"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="relative shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-slate-900 border-slate-300"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            {(badges.courses ?? 0) + (badges.certificates ?? 0) > 0 ? (
+              <NotificationBadge
+                count={(badges.courses ?? 0) + (badges.certificates ?? 0)}
+                size="sm"
+                className="absolute -top-1.5 -right-1.5 ring-white"
+              />
+            ) : null}
+          </div>
         </header>
 
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetContent side="left" className="w-[min(100%,280px)] p-0 bg-[var(--brand-navy)] border-none text-white">
-            <SheetHeader className="p-5 border-b border-white/10 text-left">
+            <SheetHeader className="p-5 border-b border-white/25 text-left">
               <SheetTitle className="text-white">{COMPANY.platformName}</SheetTitle>
-              <p className="text-xs text-white/75">Student portal</p>
+              <p className="text-xs text-white/90 font-medium">Student portal</p>
             </SheetHeader>
             <div className="flex flex-col h-[calc(100%-5rem)]">
               <StudentSidebarNav
                 pathname={pathname}
                 tab={tab}
+                badges={badges}
                 onNavigate={() => setMenuOpen(false)}
                 onLogout={handleLogout}
               />
@@ -193,8 +233,8 @@ export function StudentPortalShell({
 
         <header className="hidden md:flex bg-white border-b border-slate-200 px-6 py-4 items-center justify-between">
           <div>
-            <p className="text-sm text-slate-600">Welcome back</p>
-            <p className="font-semibold text-slate-900">{userName}</p>
+            <p className="text-sm text-slate-700">Welcome back</p>
+            <p className="font-semibold text-slate-950">{userName}</p>
           </div>
           <Link href="/student/courses">
             <Button size="sm" className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">

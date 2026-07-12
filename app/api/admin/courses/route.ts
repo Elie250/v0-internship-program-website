@@ -7,6 +7,8 @@ import { TRAINING_PROGRAMS } from '@/lib/company/constants'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 import { validateInstructorId } from '@/lib/admin/instructor-assignment'
+import { courseNotificationCount } from '@/lib/admin/course-notifications'
+import { filterActionablePendingEnrollments } from '@/lib/enrollment/actionable-pending'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
@@ -55,7 +57,62 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json((data ?? []).map(normalizeCourse))
+
+    const courses = (data ?? []).map(normalizeCourse)
+    const courseIds = courses.map((c) => String(c.id))
+
+    const pendingEnrollmentsByCourse = new Map<string, number>()
+    const pendingCertsByCourse = new Map<string, number>()
+
+    if (courseIds.length > 0) {
+      const [enrollmentsResult, certsResult] = await Promise.all([
+        supabaseAdmin
+          .from('course_enrollments')
+          .select('course_id, payment_id')
+          .in('course_id', courseIds)
+          .eq('status', 'payment_pending_review'),
+        supabaseAdmin
+          .from('student_certificates')
+          .select('course_id')
+          .in('course_id', courseIds)
+          .eq('status', 'pending_admin'),
+      ])
+
+      if (!enrollmentsResult.error) {
+        const actionable = await filterActionablePendingEnrollments(enrollmentsResult.data ?? [])
+        for (const row of actionable) {
+          const id = String(row.course_id)
+          pendingEnrollmentsByCourse.set(id, (pendingEnrollmentsByCourse.get(id) ?? 0) + 1)
+        }
+      }
+
+      if (!certsResult.error) {
+        for (const row of certsResult.data ?? []) {
+          const id = String(row.course_id)
+          pendingCertsByCourse.set(id, (pendingCertsByCourse.get(id) ?? 0) + 1)
+        }
+      }
+    }
+
+    return NextResponse.json(
+      courses.map((course) => {
+        const courseId = String(course.id)
+        const pendingEnrollments = pendingEnrollmentsByCourse.get(courseId) ?? 0
+        const pendingCertificates = pendingCertsByCourse.get(courseId) ?? 0
+        const notification_count = courseNotificationCount({
+          status: String(course.status ?? 'draft'),
+          pendingEnrollments,
+          pendingCertificates,
+        })
+
+        return {
+          ...course,
+          pending_enrollments: pendingEnrollments,
+          pending_certificates: pendingCertificates,
+          notification_count,
+        }
+      })
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load courses'
     return NextResponse.json({ error: message }, { status: 403 })

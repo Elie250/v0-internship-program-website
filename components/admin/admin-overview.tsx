@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import {
-  AlertTriangle,
   ArrowRight,
   Award,
   BookOpen,
@@ -23,6 +21,9 @@ import {
 } from 'lucide-react'
 import type { AdminStats } from '@/app/actions/admin-context'
 import { AdminSectionHeader } from '@/components/admin/admin-section-header'
+import { AdminNotificationBadge } from '@/components/admin/admin-notification-badge'
+import { AdminProgrammeNotifications } from '@/components/admin/admin-programme-notifications'
+import type { CourseNotificationRow } from '@/lib/admin/data/course-notification-counts'
 import { PERMISSIONS, hasPermission } from '@/lib/admin/permissions'
 
 type ActionAlert = {
@@ -69,17 +70,6 @@ function buildActionAlerts(stats: AdminStats, permissions: string[]): ActionAler
     })
   }
 
-  if (stats.pendingEnrollments > 0 && hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)) {
-    alerts.push({
-      id: 'enrollments',
-      title: 'Enrollments pending payment',
-      description: 'Paid programmes with submitted receipts still need enrollment admission.',
-      count: stats.pendingEnrollments,
-      href: '/admin/dashboard/enrollments',
-      cta: 'Manage enrollments',
-    })
-  }
-
   if (stats.lowStockProducts > 0 && hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)) {
     alerts.push({
       id: 'stock',
@@ -91,21 +81,14 @@ function buildActionAlerts(stats: AdminStats, permissions: string[]): ActionAler
     })
   }
 
-  if (stats.pendingCertificates > 0 && hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)) {
-    alerts.push({
-      id: 'certificates',
-      title: 'Certificates awaiting approval',
-      description: 'Lecturers confirmed passing scores — final admin approval is required to issue.',
-      count: stats.pendingCertificates,
-      href: '/admin/dashboard/certificates',
-      cta: 'Review certificates',
-    })
-  }
-
   return alerts
 }
 
-function buildHubs(stats: AdminStats, permissions: string[]): HubCard[] {
+function buildHubs(
+  stats: AdminStats,
+  permissions: string[],
+  courseNotificationTotal?: number
+): HubCard[] {
   return [
     hasPermission(permissions, PERMISSIONS.LEARNING_STUDENTS)
       ? {
@@ -165,6 +148,7 @@ function buildHubs(stats: AdminStats, permissions: string[]): HubCard[] {
           icon: BookOpen,
           href: '/admin/dashboard/courses',
           stat: `${stats.publishedCourses} published`,
+          alert: courseNotificationTotal && courseNotificationTotal > 0 ? courseNotificationTotal : undefined,
         }
       : null,
     hasPermission(permissions, PERMISSIONS.LEARNING_PROGRAMS)
@@ -238,12 +222,18 @@ type MetricCard = {
 export function AdminOverview({
   stats,
   permissions = [],
+  courseNotifications = [],
 }: {
   stats: AdminStats
   permissions?: string[]
+  courseNotifications?: CourseNotificationRow[]
 }) {
   const actionAlerts = buildActionAlerts(stats, permissions)
-  const hubs = buildHubs(stats, permissions)
+  const courseNotificationTotal = courseNotifications.reduce(
+    (sum, row) => sum + row.notificationCount,
+    0
+  )
+  const hubs = buildHubs(stats, permissions, courseNotificationTotal)
 
   const cards: MetricCard[] = [
     hasPermission(permissions, PERMISSIONS.USERS_VIEW)
@@ -303,48 +293,46 @@ export function AdminOverview({
 
       {actionAlerts.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
-            Needs attention
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+            Platform alerts
           </h2>
-          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
-            {actionAlerts.map((alert) => (
-              <Card key={alert.id} className="border-amber-300 bg-amber-50 shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-800" />
-                      <CardTitle className="text-base font-semibold text-slate-900">
-                        {alert.title}
-                      </CardTitle>
-                    </div>
-                    <span className="rounded-full bg-amber-200 px-2.5 py-0.5 text-sm font-bold text-amber-950 shrink-0">
-                      {alert.count}
-                    </span>
+          <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+            <CardContent className="p-0 divide-y divide-slate-100">
+              {actionAlerts.map((alert) => (
+                <Link
+                  key={alert.id}
+                  href={alert.href}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 transition-colors no-underline"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-slate-900">{alert.title}</p>
+                    <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{alert.description}</p>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-slate-800">{alert.description}</p>
-                  <Button asChild size="sm" variant="outline" className="border-amber-400 bg-white text-slate-900">
-                    <Link href={alert.href}>
-                      {alert.cta}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <AdminNotificationBadge count={alert.count} size="sm" />
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
         </section>
-      ) : (
-        <Card className="border-emerald-300 bg-emerald-50/80 shadow-sm">
+      ) : null}
+
+      {courseNotifications.length > 0 ? (
+        <AdminProgrammeNotifications rows={courseNotifications} />
+      ) : null}
+
+      {actionAlerts.length === 0 && courseNotificationTotal === 0 ? (
+        <Card className="border-emerald-200 bg-emerald-50/80 shadow-sm">
           <CardContent className="flex items-center gap-3 py-4">
             <ShieldCheck className="h-5 w-5 text-emerald-800 shrink-0" />
             <p className="text-sm text-slate-900">
-              No pending staff approvals, payment verifications, enrollment holds, or stock alerts.
+              No pending staff approvals, payment verifications, or programme actions.
             </p>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {hubs.length > 0 ? (
         <section className="space-y-3">
@@ -363,9 +351,7 @@ export function AdminOverview({
                           <Icon className="h-5 w-5 text-[var(--brand-navy)]" />
                         </div>
                         {hub.alert ? (
-                          <span className="rounded-full bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-950">
-                            {hub.alert}
-                          </span>
+                          <AdminNotificationBadge count={hub.alert} size="sm" />
                         ) : null}
                       </div>
                       <CardTitle className="text-base font-semibold text-slate-900 group-hover:text-[var(--brand-navy)]">
