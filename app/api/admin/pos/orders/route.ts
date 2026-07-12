@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const customerName = String(body.customerName ?? 'Walk-in customer').trim()
     const customerPhone = String(body.customerPhone ?? '').trim()
     const customerEmail = String(body.customerEmail ?? 'pos@energyandlogics.com').trim()
-    const paymentMethod = ['cash', 'momo', 'irembopay'].includes(body.paymentMethod)
+    const paymentMethod = ['cash', 'momo'].includes(body.paymentMethod)
       ? body.paymentMethod
       : 'cash'
     const notes = String(body.notes ?? '').trim()
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
           notes: notes || 'POS sale',
           total_amount: totalAmount,
           status: isPaidNow ? 'confirmed' : 'pending',
-          payment_status: isPaidNow ? 'paid' : paymentMethod === 'momo' ? 'pending_review' : 'gateway_pending',
+          payment_status: isPaidNow ? 'paid' : 'pending_review',
           payment_method: paymentMethod,
           channel: 'pos',
           created_by: session.user.id,
@@ -96,11 +96,9 @@ export async function POST(request: Request) {
           payment_method:
             paymentMethod === 'cash'
               ? 'Cash (POS)'
-              : paymentMethod === 'momo'
-                ? 'MTN MoMo (POS)'
-                : 'IremboPay (POS)',
+              : 'MTN MoMo (POS)',
           order_id: order.id,
-          status: isPaidNow ? 'approved' : paymentMethod === 'momo' ? 'pending_review' : 'gateway_pending',
+          status: isPaidNow ? 'approved' : 'pending_review',
           currency: 'RWF',
           paid_at: isPaidNow ? now : null,
         },

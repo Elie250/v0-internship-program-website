@@ -67,13 +67,10 @@ export const TRAINING_PROGRAMS = [
 
 export const PAYMENT = {
   method: 'MTN Mobile Money (MoMo Pay)',
-  internationalMethod: 'IremboPay (MTN MoMo, Airtel & cards)',
   momoPayCode: '4402091',
   accountName: 'Energy and Logics Ltd',
   workflow:
-    'Pay via MTN MoMo using the Pay Code below, then upload your payment receipt so our team can verify and confirm your enrollment. For instant access, use IremboPay at checkout (MTN MoMo, Airtel, or card).',
-  internationalWorkflow:
-    'Pay securely via IremboPay with MTN MoMo, Airtel Money, Visa, Mastercard, or other supported methods. Access is unlocked automatically after successful payment.',
+    'Pay via MTN MoMo using the Pay Code below, then upload your payment receipt so our team can verify and confirm your enrollment.',
   steps: [
     'Dial MTN MoMo or use the MoMo app and select Pay Code / Merchant payment.',
     'Enter Pay Code 4402091 — account name: Energy and Logics Ltd.',

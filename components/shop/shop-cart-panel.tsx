@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { Globe, Minus, Plus, ShoppingCart, Smartphone, Trash2 } from 'lucide-react'
+import { Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,8 +24,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useShopCart } from '@/lib/shop/cart-context'
-import { COMPANY, PAYMENT } from '@/lib/company/constants'
-import { useEffect, useState } from 'react'
+import { COMPANY } from '@/lib/company/constants'
+import { useState } from 'react'
 
 type Step = 'cart' | 'checkout' | 'payment' | 'success'
 
@@ -37,8 +37,6 @@ export function ShopCartPanel() {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [orderNumber, setOrderNumber] = useState('')
-  const [irembopayEnabled, setIrembopayEnabled] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'irembopay'>('momo')
   const [form, setForm] = useState({
     customerName: '',
     customerEmail: '',
@@ -50,23 +48,10 @@ export function ShopCartPanel() {
     receiptNumber: '',
   })
 
-  useEffect(() => {
-    fetch('/api/payments/irembopay/status')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.enabled) {
-          setIrembopayEnabled(true)
-          setPaymentMethod('irembopay')
-        }
-      })
-      .catch(() => undefined)
-  }, [])
-
   const resetCheckout = () => {
     setStep('cart')
     setError('')
     setOrderNumber('')
-    setPaymentMethod(irembopayEnabled ? 'irembopay' : 'momo')
     setForm({
       customerName: '',
       customerEmail: '',
@@ -103,7 +88,7 @@ export function ShopCartPanel() {
       const payload = {
         items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
         ...form,
-        paymentMethod,
+        paymentMethod: 'momo',
       }
 
       const res = await fetch('/api/shop/orders', {
@@ -113,23 +98,6 @@ export function ShopCartPanel() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Order failed')
-
-      if (paymentMethod === 'irembopay' && data.requiresIremboPay) {
-        const payRes = await fetch('/api/payments/irembopay/initiate-shop', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, orderId: data.orderId }),
-        })
-        const payData = await payRes.json()
-        if (!payRes.ok) throw new Error(payData.error || 'Could not start IremboPay')
-
-        if (payData.paymentLinkUrl) {
-          clearCart()
-          window.location.href = payData.paymentLinkUrl
-          return
-        }
-        throw new Error('No payment link returned')
-      }
 
       setOrderNumber(data.orderNumber)
       clearCart()
@@ -148,8 +116,7 @@ export function ShopCartPanel() {
     (form.fulfillmentType !== 'delivery' || form.deliveryAddress.trim())
 
   const canSubmitPayment =
-    canProceedCheckout &&
-    (paymentMethod === 'irembopay' || form.receiptUrl.trim() || form.receiptNumber.trim())
+    canProceedCheckout && (form.receiptUrl.trim() || form.receiptNumber.trim())
 
   return (
     <Sheet
@@ -179,7 +146,7 @@ export function ShopCartPanel() {
             {step === 'success'
               ? 'Order submitted'
               : step === 'payment'
-                ? 'Choose payment'
+                ? 'MoMo payment'
                 : step === 'checkout'
                   ? 'Checkout'
                   : 'Your cart'}
@@ -188,7 +155,7 @@ export function ShopCartPanel() {
             {step === 'success'
               ? 'Thank you — our team will contact you shortly.'
               : step === 'payment'
-                ? 'Select MTN MoMo (manual receipt) or IremboPay for instant payment.'
+                ? 'Pay with MTN MoMo and upload your receipt.'
                 : step === 'checkout'
                   ? 'Provide contact details for delivery or local pickup in Kigali.'
                   : 'Review items before checkout.'}
@@ -216,69 +183,30 @@ export function ShopCartPanel() {
           </div>
         ) : step === 'payment' ? (
           <div className="mt-6 space-y-4 px-1">
-            <div className="grid grid-cols-2 gap-2">
-              {irembopayEnabled ? (
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('irembopay')}
-                  className={`rounded-lg border p-3 text-left ${
-                    paymentMethod === 'irembopay'
-                      ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600'
-                      : 'border-slate-200'
-                  }`}
-                >
-                  <Globe className="h-4 w-4 text-indigo-700 mb-1" />
-                  <p className="text-sm font-semibold text-slate-900">IremboPay</p>
-                  <p className="text-xs text-slate-600">Instant · MoMo &amp; cards</p>
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('momo')}
-                className={`rounded-lg border p-3 text-left ${
-                  paymentMethod === 'momo'
-                    ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-1 ring-[var(--brand-navy)]'
-                    : 'border-slate-200'
-                }`}
-              >
-                <Smartphone className="h-4 w-4 text-[var(--brand-navy)] mb-1" />
-                <p className="text-sm font-semibold text-slate-900">Manual MoMo</p>
-                <p className="text-xs text-slate-600">Pay Code + receipt</p>
-              </button>
+            <MomoPayCard amountLabel={`Order total: ${subtotal.toLocaleString()} RWF`} />
+            <div>
+              <Label htmlFor="receipt">MoMo receipt *</Label>
+              <Input
+                id="receipt"
+                type="file"
+                accept="image/*,application/pdf"
+                className="mt-1"
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleReceiptUpload(file)
+                }}
+              />
             </div>
-
-            {paymentMethod === 'momo' ? (
-              <>
-                <MomoPayCard amountLabel={`Order total: ${subtotal.toLocaleString()} RWF`} />
-                <div>
-                  <Label htmlFor="receipt">MoMo receipt *</Label>
-                  <Input
-                    id="receipt"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    className="mt-1"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleReceiptUpload(file)
-                    }}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="receiptNumber">Transaction reference (optional)</Label>
-                  <Input
-                    id="receiptNumber"
-                    className="mt-1 border-slate-300"
-                    value={form.receiptNumber}
-                    onChange={(e) => setForm({ ...form, receiptNumber: e.target.value })}
-                  />
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-slate-600 rounded-lg border border-indigo-200 bg-indigo-50 p-3">
-                {PAYMENT.internationalWorkflow}
-              </p>
-            )}
+            <div>
+              <Label htmlFor="receiptNumber">Transaction reference (optional)</Label>
+              <Input
+                id="receiptNumber"
+                className="mt-1 border-slate-300"
+                value={form.receiptNumber}
+                onChange={(e) => setForm({ ...form, receiptNumber: e.target.value })}
+              />
+            </div>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
               <div className="flex justify-between font-semibold text-slate-900">
@@ -302,13 +230,7 @@ export function ShopCartPanel() {
                 disabled={submitting || uploading || !canSubmitPayment}
                 onClick={handleSubmitOrder}
               >
-                {submitting
-                  ? paymentMethod === 'irembopay'
-                    ? 'Redirecting…'
-                    : 'Submitting…'
-                  : paymentMethod === 'irembopay'
-                    ? 'Pay with IremboPay'
-                    : 'Submit order'}
+                {submitting ? 'Submitting…' : 'Submit order'}
               </Button>
             </div>
           </div>

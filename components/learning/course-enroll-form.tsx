@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,17 +9,14 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { EnrollmentSteps } from '@/components/learning/enrollment-steps'
 import { MomoPayCard } from '@/components/payment/momo-pay-card'
-import { IremboPayPayCard } from '@/components/payment/irembopay-pay-card'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
 import {
   CheckCircle2,
   Clock,
   CreditCard,
-  Globe,
   Loader2,
   ShieldCheck,
-  Smartphone,
   User,
 } from 'lucide-react'
 import Image from 'next/image'
@@ -46,26 +43,9 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'irembopay'>('irembopay')
-  const [irembopayEnabled, setIrembopayEnabled] = useState(false)
 
   const price = Number(course.pricing ?? 0)
   const isFree = isFreeProgram(price)
-
-  useEffect(() => {
-    if (isFree) return
-    fetch('/api/payments/irembopay/status', { credentials: 'same-origin' })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.enabled) {
-          setIrembopayEnabled(true)
-          setPaymentMethod('irembopay')
-        } else {
-          setPaymentMethod('momo')
-        }
-      })
-      .catch(() => setPaymentMethod('momo'))
-  }, [isFree])
 
   const handleReceiptUpload = async (file: File) => {
     setUploading(true)
@@ -203,7 +183,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
                   value={form.applicantPhone}
                   onChange={(e) => setForm({ ...form, applicantPhone: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground mt-1">Used for MoMo or IremboPay checkout</p>
+                <p className="text-xs text-muted-foreground mt-1">Used for MoMo payment verification</p>
               </div>
               <div className="md:col-span-2">
                 <Label htmlFor="motivation">Why this programme? (optional)</Label>
@@ -241,82 +221,25 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
               <CardTitle>Choose payment method</CardTitle>
             </div>
             <CardDescription>
-              Pay online with IremboPay (MTN MoMo, Airtel, cards) or use manual MoMo Pay Code + receipt upload.
+              Pay with MTN MoMo using our Pay Code, then upload your receipt for admin verification.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-3">
-              {irembopayEnabled ? (
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('irembopay')}
-                  className={`rounded-lg border p-4 text-left transition-colors ${
-                    paymentMethod === 'irembopay'
-                      ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <Globe className="h-5 w-5 text-indigo-700 mb-2" />
-                  <p className="font-semibold text-slate-900">IremboPay (recommended)</p>
-                  <p className="text-xs text-slate-600 mt-1">MTN, Airtel &amp; cards · instant access</p>
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('momo')}
-                className={`rounded-lg border p-4 text-left transition-colors ${
-                  paymentMethod === 'momo'
-                    ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-1 ring-[var(--brand-navy)]'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <Smartphone className="h-5 w-5 text-[var(--brand-navy)] mb-2" />
-                <p className="font-semibold text-slate-900">Manual MTN MoMo</p>
-                <p className="text-xs text-slate-600 mt-1">Pay Code + receipt upload</p>
-              </button>
+            <MomoPayCard amountLabel={`Amount due — ${course.title}: ${price.toLocaleString()} RWF`} />
+            <ol className="text-sm space-y-2 text-muted-foreground list-decimal list-inside">
+              {PAYMENT.steps.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ol>
+            <Link href="/payment-instructions" className="text-sm text-[var(--brand-navy)] underline inline-block">
+              Full payment instructions →
+            </Link>
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button className="flex-1 bg-[var(--brand-navy)]" onClick={() => setStep(3)}>
+                I have paid — upload receipt
+              </Button>
             </div>
-
-            {paymentMethod === 'momo' ? (
-              <>
-                <MomoPayCard amountLabel={`Amount due — ${course.title}: ${price.toLocaleString()} RWF`} />
-                <ol className="text-sm space-y-2 text-muted-foreground list-decimal list-inside">
-                  {PAYMENT.steps.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ol>
-                <Link href="/payment-instructions" className="text-sm text-[var(--brand-navy)] underline inline-block">
-                  Full payment instructions →
-                </Link>
-                <div className="flex gap-3 pt-2">
-                  <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                  <Button className="flex-1 bg-[var(--brand-navy)]" onClick={() => setStep(3)}>
-                    I have paid — upload receipt
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <IremboPayPayCard
-                  courseId={course.id}
-                  courseTitle={course.title}
-                  amount={price}
-                  currency="RWF"
-                  applicantPhone={form.applicantPhone}
-                  motivation={form.motivation}
-                  disabled={!form.applicantPhone.trim()}
-                  onFallback={() => setPaymentMethod('momo')}
-                />
-                <p className="text-xs text-slate-600">
-                  {PAYMENT.internationalWorkflow} See{' '}
-                  <Link href="/terms" className="underline text-[var(--brand-navy)]">Terms</Link>,{' '}
-                  <Link href="/privacy" className="underline text-[var(--brand-navy)]">Privacy</Link>, and{' '}
-                  <Link href="/refund-policy" className="underline text-[var(--brand-navy)]">Refunds</Link>.
-                </p>
-                <div className="flex gap-3 pt-2">
-                  <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
       ) : null}

@@ -1,5 +1,5 @@
 -- Shop financial tracking, payment linkage, and POS support
--- Run after scripts/40-irembopay-gateway.sql
+-- Run after scripts/07-manual-payment-verification.sql
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS cost_price NUMERIC(10,2) DEFAULT 0;
 

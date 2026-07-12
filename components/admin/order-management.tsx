@@ -155,7 +155,7 @@ export default function OrderManagement() {
       return <Badge className="bg-red-100 text-red-700">Payment rejected</Badge>
     }
     if (status === 'gateway_pending') {
-      return <Badge className="bg-blue-100 text-blue-700">Awaiting IremboPay</Badge>
+      return <Badge className="bg-blue-100 text-blue-700">Gateway pending</Badge>
     }
     return <Badge className="bg-amber-100 text-amber-900">Receipt pending review</Badge>
   }

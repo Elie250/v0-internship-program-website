@@ -17,7 +17,7 @@ export const privacyPolicySections = [
   },
   {
     title: '4. Payment data',
-    body: `MTN MoMo manual payments are verified using receipts you upload. Online payments (MTN MoMo, Airtel, cards) are processed by IremboPay — we do not store full card numbers on our servers. IremboPay handles payment data according to their privacy policy and security standards. We store transaction references, amounts, and approval status.`,
+    body: `MTN MoMo manual payments are verified using receipts you upload. We do not store full card numbers on our servers. We store transaction references, amounts, and approval status.`,
   },
   {
     title: '5. Legal basis & consent',
@@ -25,7 +25,7 @@ export const privacyPolicySections = [
   },
   {
     title: '6. Sharing with third parties',
-    body: `We may share data with: Supabase (hosting/database); Vercel (application hosting); Resend (transactional email); IremboPay (online payments); and authorities when required by law. We do not sell your personal data.`,
+    body: `We may share data with: Supabase (hosting/database); Vercel (application hosting); Resend (transactional email); and authorities when required by law. We do not sell your personal data.`,
   },
   {
     title: '7. Data retention',
@@ -68,11 +68,11 @@ export const termsSections = [
   },
   {
     title: '4. Enrollments & access',
-    body: `Paid programmes require successful payment verification (MTN MoMo receipt approval or successful IremboPay payment). Free programmes may grant instant access. Access periods, cohort limits, and drip-release rules are defined per programme. Sharing login credentials or course materials without permission is prohibited.`,
+    body: `Paid programmes require successful MoMo receipt verification. Free programmes may grant instant access. Access periods, cohort limits, and drip-release rules are defined per programme. Sharing login credentials or course materials without permission is prohibited.`,
   },
   {
     title: '5. Payments',
-    body: `Prices are shown in Rwandan Francs (RWF) unless stated otherwise. MTN MoMo manual payments use Pay Code ${PAYMENT.momoPayCode} to ${COMPANY.legalName}. Online payments via IremboPay support MTN MoMo, Airtel, and international cards in RWF. Failed or disputed payments do not grant access until resolved.`,
+    body: `Prices are shown in Rwandan Francs (RWF) unless stated otherwise. MTN MoMo manual payments use Pay Code ${PAYMENT.momoPayCode} to ${COMPANY.legalName}. Failed or disputed payments do not grant access until resolved.`,
   },
   {
     title: '6. Refunds',
@@ -107,26 +107,22 @@ export const termsSections = [
 export const refundPolicySections = [
   {
     title: '1. Overview',
-    body: `${COMPANY.brandName} offers both free and paid programmes. This Refund Policy explains when refunds may apply for MoMo and IremboPay payments.`,
+    body: `${COMPANY.brandName} offers both free and paid programmes. This Refund Policy explains when refunds may apply for MoMo payments.`,
   },
   {
     title: '2. MTN MoMo (manual verification)',
     body: `If your receipt was rejected in error, re-submit a clear screenshot or contact support. If you paid the wrong amount, we will work with you to top up or refund the difference at our discretion. Refunds for MoMo are sent back to the same number when approved.`,
   },
   {
-    title: '3. IremboPay (online — MoMo, Airtel & cards)',
-    body: `Successful IremboPay payments that grant immediate access are generally non-refundable once course materials are unlocked, except where required by law or in cases of duplicate billing or proven technical failure on our side. Chargebacks without contacting us first may result in account suspension.`,
-  },
-  {
-    title: '4. Before programme start',
+    title: '3. Before programme start',
     body: `If you cancel at least 48 hours before the official programme start date and have not accessed paid materials, you may request a full refund within 7 days of payment.`,
   },
   {
-    title: '5. Shop orders',
+    title: '4. Shop orders',
     body: `Physical or digital shop products follow separate fulfilment terms communicated at checkout. Defective or undelivered items may be replaced or refunded after investigation.`,
   },
   {
-    title: '6. How to request',
+    title: '5. How to request',
     body: `Email ${COMPANY.email} with your name, payment reference, programme or order details, and reason. We respond within 3–5 business days.`,
   },
 ]

@@ -38,7 +38,7 @@ export default function PosTerminal() {
   const [cart, setCart] = useState<CartLine[]>([])
   const [customerName, setCustomerName] = useState('Walk-in customer')
   const [customerPhone, setCustomerPhone] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'irembopay'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo'>('cash')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -223,7 +223,6 @@ export default function PosTerminal() {
                 <SelectContent>
                   <SelectItem value="cash">Cash — instant</SelectItem>
                   <SelectItem value="momo">MTN MoMo — pending verification</SelectItem>
-                  <SelectItem value="irembopay">IremboPay — pending gateway</SelectItem>
                 </SelectContent>
               </Select>
             </div>

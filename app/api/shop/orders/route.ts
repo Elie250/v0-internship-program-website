@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     const fulfillmentType = body.fulfillmentType === 'delivery' ? 'delivery' : 'pickup'
     const deliveryAddress = String(body.deliveryAddress ?? '').trim()
     const notes = String(body.notes ?? '').trim()
-    const paymentMethod = body.paymentMethod === 'irembopay' ? 'irembopay' : 'momo'
+    const paymentMethod = 'momo'
     const receiptUrl = String(body.receiptUrl ?? '').trim()
     const receiptNumber = String(body.receiptNumber ?? '').trim()
 
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
           notes: notes || null,
           total_amount: totalAmount,
           status: 'pending',
-          payment_status: paymentMethod === 'irembopay' ? 'gateway_pending' : 'pending_review',
+          payment_status: 'pending_review',
           payment_method: paymentMethod,
           channel: 'online',
           order_date: now,
@@ -92,17 +92,6 @@ export async function POST(request: Request) {
     if (itemsError) {
       await supabaseAdmin.from('orders').delete().eq('id', order.id)
       return NextResponse.json({ error: itemsError.message }, { status: 500 })
-    }
-
-    if (paymentMethod === 'irembopay') {
-      return NextResponse.json({
-        success: true,
-        orderId: order.id,
-        orderNumber,
-        totalAmount,
-        requiresIremboPay: true,
-        message: 'Order created — redirecting to IremboPay checkout.',
-      })
     }
 
     const { data: payment, error: paymentError } = await supabaseAdmin

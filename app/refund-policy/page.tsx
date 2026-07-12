@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: `Refund Policy | ${COMPANY.brandName}`,
-  description: `Refund rules for MTN MoMo and IremboPay payments on ${COMPANY.platformName}.`,
+  description: `Refund rules for MTN MoMo payments on ${COMPANY.platformName}.`,
 }
 
 export default function RefundPolicyPage() {
