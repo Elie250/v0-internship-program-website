@@ -15,14 +15,13 @@ export async function SiteFooter() {
           </p>
         </div>
         <div>
-          <h4 className="font-semibold mb-3 text-white">Portals</h4>
+          <h4 className="font-semibold mb-3 text-white">Explore</h4>
           <ul className="space-y-2 text-sm text-slate-200">
             <li><Link href="/learning">Learning</Link></li>
             <li><Link href="/shop">Products</Link></li>
             <li><Link href="/career">Career</Link></li>
             <li><Link href="/internship">Internship</Link></li>
-            <li><Link href="/engineering">Field Notes</Link></li>
-            <li><Link href="/subscriber">Subscriber Hub</Link></li>
+            <li><Link href="/engineering">Blog</Link></li>
             <li><Link href="/engineering-support">Engineering Support</Link></li>
           </ul>
         </div>
