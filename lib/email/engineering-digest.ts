@@ -8,39 +8,12 @@ import {
 } from '@/lib/email/core'
 import { COMPANY } from '@/lib/company/constants'
 import type { EngineeringArticle } from '@/lib/engineering/articles'
+import {
+  subscribeToEngineeringDigest,
+} from '@/lib/engineering/digest-subscribers'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-export async function subscribeToEngineeringDigest(input: {
-  email: string
-  name?: string | null
-}): Promise<{ success: boolean; error?: string }> {
-  if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
-
-  const email = input.email.trim().toLowerCase()
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { success: false, error: 'Enter a valid email address' }
-  }
-
-  const { error } = await supabaseAdmin.from('engineering_digest_subscribers').upsert(
-    {
-      email,
-      name: input.name?.trim() || null,
-      status: 'active',
-      subscribed_at: new Date().toISOString(),
-      unsubscribed_at: null,
-    },
-    { onConflict: 'email' }
-  )
-
-  if (error?.message?.includes('engineering_digest_subscribers')) {
-    return {
-      success: false,
-      error: 'Digest table not ready. Run scripts/47-engineering-blog.sql in Supabase.',
-    }
-  }
-  if (error) return { success: false, error: error.message }
-  return { success: true }
-}
+export { subscribeToEngineeringDigest }
 
 function articleDigestItem(article: EngineeringArticle): string {
   const url = `${getAppUrl()}/engineering/${article.slug}`
@@ -54,6 +27,31 @@ function articleDigestItem(article: EngineeringArticle): string {
       <a href="${url}" style="font-size:13px;color:#1e3a5f;font-weight:600">Read article →</a>
     </div>
   `
+}
+
+function articleMatchesTags(article: EngineeringArticle, preferredTags: string[]): boolean {
+  if (!preferredTags.length) return true
+  return article.tags.some((tag) => preferredTags.includes(tag))
+}
+
+function manageDigestUrl(token: string | null): string {
+  const appUrl = getAppUrl()
+  if (token) return `${appUrl}/engineering/digest/manage?token=${encodeURIComponent(token)}`
+  return `${appUrl}/engineering/digest/manage`
+}
+
+function unsubscribeUrl(token: string | null): string {
+  const appUrl = getAppUrl()
+  if (token) return `${appUrl}/api/engineering/digest/unsubscribe?token=${encodeURIComponent(token)}`
+  return `${appUrl}/engineering/digest/manage`
+}
+
+type DigestSubscriberRow = {
+  email: string
+  name: string | null
+  preferred_tags?: string[] | null
+  frequency?: string | null
+  unsubscribe_token?: string | null
 }
 
 export async function sendEngineeringWeeklyDigest(): Promise<{
@@ -77,17 +75,32 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
   }
   if (!articles?.length) return { sent: 0, articles: 0, skipped: 'No new articles this week' }
 
-  const { data: subscribers, error: subError } = await supabaseAdmin
+  const subscriberResult = await supabaseAdmin
     .from('engineering_digest_subscribers')
-    .select('email, name')
+    .select('email, name, preferred_tags, frequency, unsubscribe_token')
     .eq('status', 'active')
 
-  if (subError?.message?.includes('engineering_digest_subscribers')) {
+  let subscribers = subscriberResult.data as DigestSubscriberRow[] | null
+  let subError = subscriberResult.error
+  if (
+    subError?.message.includes('preferred_tags') ||
+    subError?.message.includes('frequency') ||
+    subError?.message.includes('unsubscribe_token')
+  ) {
+    const legacyResult = await supabaseAdmin
+      .from('engineering_digest_subscribers')
+      .select('email, name')
+      .eq('status', 'active')
+    subscribers = legacyResult.data as DigestSubscriberRow[] | null
+    subError = legacyResult.error
+  }
+
+  if (subError) {
     return { sent: 0, articles: articles.length, skipped: 'Subscribers table missing' }
   }
   if (!subscribers?.length) return { sent: 0, articles: articles.length, skipped: 'No subscribers' }
 
-  const normalized = articles.map((row) => ({
+  const normalizedArticles: EngineeringArticle[] = articles.map((row) => ({
     id: String(row.id),
     title: String(row.title),
     slug: String(row.slug),
@@ -104,19 +117,36 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
     series_sort_order: null,
     view_count: 0,
     published_at: row.published_at != null ? String(row.published_at) : null,
+    scheduled_publish_at: null,
     digest_sent_at: null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   }))
 
-  const itemsHtml = normalized.map(articleDigestItem).join('')
   const appUrl = getAppUrl()
   let sent = 0
+  const includedArticleIds = new Set<string>()
 
   for (const sub of subscribers) {
+    const frequency = String(sub.frequency ?? 'weekly')
+    if (frequency === 'off') continue
+
+    const preferredTags = Array.isArray(sub.preferred_tags)
+      ? sub.preferred_tags.map(String)
+      : []
+    const matched = normalizedArticles.filter((article) =>
+      articleMatchesTags(article, preferredTags)
+    )
+    if (!matched.length) continue
+
+    const itemsHtml = matched.map(articleDigestItem).join('')
+    const token = sub.unsubscribe_token ?? null
+    const manageLink = manageDigestUrl(token)
+    const unsubLink = unsubscribeUrl(token)
+
     const result: SendEmailResult = await sendEmail({
       to: sub.email,
-      subject: `The Weekly Circuit — ${normalized.length} new field note${normalized.length === 1 ? '' : 's'}`,
+      subject: `The Weekly Circuit — ${matched.length} new field note${matched.length === 1 ? '' : 's'}`,
       html: emailLayout({
         title: 'The Weekly Circuit',
         subtitle: `${COMPANY.brandName} Field Notes`,
@@ -126,21 +156,29 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
           <p>Here are this week&apos;s practical engineering articles from <strong>Field Notes</strong>:</p>
           ${itemsHtml}
           ${ctaButton('Browse all Field Notes', `${appUrl}/engineering`)}
-          <p style="font-size:12px;color:#64748b">You subscribed to engineering field notes at ${escapeHtml(appUrl)}.</p>
+          <p style="font-size:12px;color:#64748b;margin-top:24px">
+            <a href="${manageLink}" style="color:#64748b">Manage digest preferences</a>
+            ·
+            <a href="${unsubLink}" style="color:#64748b">Unsubscribe</a>
+          </p>
         `,
       }),
     })
-    if (result.success) sent += 1
+    if (result.success) {
+      sent += 1
+      matched.forEach((a) => includedArticleIds.add(a.id))
+    }
+  }
+
+  if (includedArticleIds.size === 0) {
+    return { sent: 0, articles: normalizedArticles.length, skipped: 'No matching subscribers' }
   }
 
   const now = new Date().toISOString()
   await supabaseAdmin
     .from('engineering_articles')
     .update({ digest_sent_at: now })
-    .in(
-      'id',
-      normalized.map((a) => a.id)
-    )
+    .in('id', [...includedArticleIds])
 
-  return { sent, articles: normalized.length }
+  return { sent, articles: includedArticleIds.size }
 }

@@ -1,17 +1,20 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { getCurrentUser } from '@/app/actions/auth-service'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { FieldNotesArticleBody } from '@/components/engineering/field-notes-article'
 import { ArticleSubscriberExtras } from '@/components/engineering/article-subscriber-extras'
 import { ArticleViewTracker } from '@/components/engineering/article-view-tracker'
+import { ArticleBookmarkButton } from '@/components/engineering/article-bookmark-button'
 import { DigestSubscribeForm } from '@/components/engineering/digest-subscribe-form'
+import { isArticleBookmarked } from '@/lib/engineering/engagements'
+import { loadRecommendedArticles } from '@/lib/engineering/recommendations'
 import {
+  getReaderAccessLevel,
   loadPublishedArticleBySlug,
-  loadPublishedArticles,
   loadSeriesById,
 } from '@/lib/engineering/queries'
-import { COMPANY } from '@/lib/company/constants'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,11 +37,16 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
   const article = await loadPublishedArticleBySlug(slug)
   if (!article) notFound()
 
-  const series = article.series_id ? await loadSeriesById(article.series_id) : null
+  const user = await getCurrentUser()
+  const accessLevel = await getReaderAccessLevel()
+  const bookmarked = user?.id ? await isArticleBookmarked(user.id, article.id) : false
+  const related = await loadRecommendedArticles(user?.id ?? null, {
+    excludeSlug: slug,
+    limit: 3,
+    accessLevel,
+  })
 
-  const related = (await loadPublishedArticles({ limit: 4 }))
-    .filter((item) => item.slug !== slug)
-    .slice(0, 3)
+  const series = article.series_id ? await loadSeriesById(article.series_id) : null
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -61,6 +69,9 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
             </>
           ) : null}
         </nav>
+        <div className="flex flex-wrap items-center gap-3">
+          <ArticleBookmarkButton articleId={article.id} initialBookmarked={bookmarked} />
+        </div>
         <FieldNotesArticleBody article={article} />
 
         <ArticleSubscriberExtras
@@ -72,7 +83,7 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
 
         {related.length > 0 ? (
           <section className="space-y-3 border-t border-slate-200 pt-8">
-            <h2 className="text-lg font-semibold text-slate-900">More from {COMPANY.brandName}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Recommended for you</h2>
             <ul className="space-y-2">
               {related.map((item) => (
                 <li key={item.id}>

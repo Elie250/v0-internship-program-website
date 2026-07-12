@@ -18,6 +18,7 @@ export type EngineeringArticle = {
   series_sort_order: number | null
   view_count: number
   published_at: string | null
+  scheduled_publish_at: string | null
   digest_sent_at: string | null
   created_at: string
   updated_at: string
@@ -73,6 +74,8 @@ export function normalizeEngineeringArticle(row: Record<string, unknown>): Engin
     series_sort_order: row.series_sort_order != null ? Number(row.series_sort_order) : null,
     view_count: Number(row.view_count ?? 0),
     published_at: row.published_at != null ? String(row.published_at) : null,
+    scheduled_publish_at:
+      row.scheduled_publish_at != null ? String(row.scheduled_publish_at) : null,
     digest_sent_at: row.digest_sent_at != null ? String(row.digest_sent_at) : null,
     created_at: String(row.created_at ?? new Date().toISOString()),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
@@ -112,10 +115,25 @@ export function articlePayloadFromBody(body: Record<string, unknown>, author?: {
     payload.author_name = String(body.author_name ?? '').trim() || null
   }
 
-  if (status === 'published') {
+  const scheduledRaw = body.scheduled_publish_at
+  const scheduledAt =
+    scheduledRaw != null && String(scheduledRaw).trim()
+      ? new Date(String(scheduledRaw)).toISOString()
+      : null
+  const scheduledFuture = scheduledAt != null && new Date(scheduledAt).getTime() > Date.now()
+
+  if (scheduledFuture) {
+    payload.status = 'draft'
+    payload.scheduled_publish_at = scheduledAt
+    payload.published_at = null
+  } else if (status === 'published') {
     payload.published_at = body.published_at ?? new Date().toISOString()
+    payload.scheduled_publish_at = null
   } else if (status === 'draft') {
     payload.published_at = null
+    payload.scheduled_publish_at = scheduledAt
+  } else {
+    payload.scheduled_publish_at = null
   }
 
   return payload

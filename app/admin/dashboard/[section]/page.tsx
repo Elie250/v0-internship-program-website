@@ -32,6 +32,7 @@ const SECTIONS: Record<string, ComponentType> = {
   'engineering-series': dynamic(() => import('@/components/admin/engineering-series-management')),
   'engineering-lead-magnets': dynamic(() => import('@/components/admin/engineering-lead-magnets-management')),
   'engineering-analytics': dynamic(() => import('@/components/admin/engineering-analytics-management')),
+  'engineering-editorial': dynamic(() => import('@/components/admin/engineering-editorial-management')),
   services: dynamic(() => import('@/components/admin/service-management')),
   reviews: dynamic(() => import('@/components/admin/review-management')),
   settings: dynamic(() => import('@/components/admin/settings-panel')),

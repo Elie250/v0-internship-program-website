@@ -19,6 +19,7 @@ import {
   normalizeLeadMagnet,
   type EngineeringLeadMagnet,
 } from '@/lib/engineering/lead-magnets'
+import { subscribeToEngineeringDigest } from '@/lib/engineering/digest-subscribers'
 import { getUserSupportAccess } from '@/lib/support/subscription-access'
 
 const MISSING_TABLE = /engineering_articles|engineering_article_series|engineering_lead_magnets|could not find the table/i
@@ -38,6 +39,8 @@ function applyAccessGate(
     lockReason: articleLockReason(article.access_tier),
   }
 }
+
+export { applyAccessGate as applyAccessGateForLevel }
 
 export async function getReaderAccessLevel(): Promise<ArticleAccessLevel> {
   const raw = (await cookies()).get('user_session')?.value
@@ -334,16 +337,10 @@ export async function recordLeadMagnetDownload(input: {
     })
     .eq('id', magnet.id)
 
-  await supabaseAdmin.from('engineering_digest_subscribers').upsert(
-    {
-      email,
-      name: input.name?.trim() || null,
-      status: 'active',
-      subscribed_at: new Date().toISOString(),
-      unsubscribed_at: null,
-    },
-    { onConflict: 'email' }
-  )
+  await subscribeToEngineeringDigest({
+    email,
+    name: input.name?.trim() || null,
+  })
 
   return { success: true, fileUrl: magnet.file_url }
 }
@@ -418,4 +415,99 @@ export async function loadArticlesForDigest(): Promise<EngineeringArticle[]> {
     throw error
   }
   return (data ?? []).map((row) => normalizeEngineeringArticle(row as Record<string, unknown>))
+}
+
+export async function publishScheduledArticles(): Promise<{ published: number }> {
+  if (!supabaseAdmin) return { published: 0 }
+
+  const now = new Date().toISOString()
+  const { data, error } = await supabaseAdmin
+    .from('engineering_articles')
+    .select('id, scheduled_publish_at')
+    .eq('status', 'draft')
+    .not('scheduled_publish_at', 'is', null)
+    .lte('scheduled_publish_at', now)
+
+  if (error) {
+    if (MISSING_TABLE.test(error.message) || error.message.includes('scheduled_publish_at')) {
+      return { published: 0 }
+    }
+    throw error
+  }
+
+  if (!data?.length) return { published: 0 }
+
+  for (const row of data) {
+    const publishedAt = row.scheduled_publish_at
+      ? String(row.scheduled_publish_at)
+      : now
+    await supabaseAdmin
+      .from('engineering_articles')
+      .update({
+        status: 'published',
+        published_at: publishedAt,
+        scheduled_publish_at: null,
+        updated_at: now,
+      })
+      .eq('id', row.id)
+  }
+
+  return { published: data.length }
+}
+
+export async function loadEditorialSummary(): Promise<{
+  drafts: EngineeringArticle[]
+  scheduled: EngineeringArticle[]
+  recentPublished: EngineeringArticle[]
+  activeSubscribers: number
+}> {
+  if (!supabaseAdmin) {
+    return { drafts: [], scheduled: [], recentPublished: [], activeSubscribers: 0 }
+  }
+
+  const [draftsRes, scheduledRes, publishedRes, subCount] = await Promise.all([
+    supabaseAdmin
+      .from('engineering_articles')
+      .select('*')
+      .eq('status', 'draft')
+      .is('scheduled_publish_at', null)
+      .order('updated_at', { ascending: false })
+      .limit(8),
+    supabaseAdmin
+      .from('engineering_articles')
+      .select('*')
+      .eq('status', 'draft')
+      .not('scheduled_publish_at', 'is', null)
+      .order('scheduled_publish_at', { ascending: true })
+      .limit(8),
+    supabaseAdmin
+      .from('engineering_articles')
+      .select('*')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(8),
+    supabaseAdmin
+      .from('engineering_digest_subscribers')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+  ])
+
+  const normalize = (rows: Record<string, unknown>[] | null) =>
+    (rows ?? []).map((row) => normalizeEngineeringArticle(row))
+
+  if (scheduledRes.error?.message?.includes('scheduled_publish_at')) {
+    return {
+      drafts: normalize(draftsRes.data as Record<string, unknown>[] | null),
+      scheduled: [],
+      recentPublished: normalize(publishedRes.data as Record<string, unknown>[] | null),
+      activeSubscribers: subCount.count ?? 0,
+    }
+  }
+
+  return {
+    drafts: normalize(draftsRes.data as Record<string, unknown>[] | null),
+    scheduled: normalize(scheduledRes.data as Record<string, unknown>[] | null),
+    recentPublished: normalize(publishedRes.data as Record<string, unknown>[] | null),
+    activeSubscribers: subCount.count ?? 0,
+  }
 }
