@@ -22,7 +22,7 @@ type TeamUserRow = {
   profile_title: string | null
   profile_bio: string | null
   profile_photo_url: string | null
-  show_on_team: boolean
+  show_on_team?: boolean
   profile_education?: string | null
   profile_experience?: string | null
   profile_qualifications?: string | null
@@ -31,50 +31,49 @@ type TeamUserRow = {
 
 const TEAM_ROLES = ['lecturer', 'instructor', 'support_staff'] as const
 
-const PROFILE_COLUMNS =
-  'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url, show_on_team, profile_education, profile_experience, profile_qualifications, profile_cv_url'
+const TEAM_SELECT_ATTEMPTS = [
+  'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url, show_on_team, profile_education, profile_experience, profile_qualifications, profile_cv_url',
+  'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url, show_on_team',
+  'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url',
+]
 
-const PROFILE_COLUMNS_NO_CV =
-  'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url, show_on_team'
+function isVisibleTeamMember(user: TeamUserRow): boolean {
+  const title = String(user.profile_title ?? '').trim()
+  const bio = String(user.profile_bio ?? '').trim()
+  if (!title || !bio) return false
+  return user.show_on_team === true
+}
 
 export async function loadPublicTeamMembers(): Promise<PublicTeamMember[]> {
   if (!supabaseAdmin) return []
 
   let users: TeamUserRow[] | null = null
-  let { data, error } = await supabaseAdmin
-    .from('users')
-    .select(PROFILE_COLUMNS)
-    .in('role', [...TEAM_ROLES])
-    .eq('status', 'active')
-    .eq('show_on_team', true)
-    .order('first_name', { ascending: true })
 
-  if (
-    error?.message?.includes('profile_education') ||
-    error?.message?.includes('profile_experience') ||
-    error?.message?.includes('profile_qualifications') ||
-    error?.message?.includes('profile_cv_url')
-  ) {
-    const fallback = await supabaseAdmin
+  for (const select of TEAM_SELECT_ATTEMPTS) {
+    const query = supabaseAdmin
       .from('users')
-      .select(PROFILE_COLUMNS_NO_CV)
+      .select(select)
       .in('role', [...TEAM_ROLES])
       .eq('status', 'active')
-      .eq('show_on_team', true)
       .order('first_name', { ascending: true })
-    users = (fallback.data as TeamUserRow[] | null) ?? null
-    error = fallback.error
-  } else {
-    users = (data as TeamUserRow[] | null) ?? null
+
+    const withTeamFlag = select.includes('show_on_team')
+      ? query.eq('show_on_team', true)
+      : query
+
+    const { data, error } = await withTeamFlag
+    if (!error && data) {
+      users = data as unknown as TeamUserRow[]
+      break
+    }
   }
 
-  if (error?.message?.includes('show_on_team') || error?.message?.includes('profile_')) {
-    return []
-  }
+  if (!users?.length) return []
 
-  if (error || !users?.length) return []
+  const visible = users.filter(isVisibleTeamMember)
+  if (!visible.length) return []
 
-  const userIds = users.map((u) => u.id)
+  const userIds = visible.map((u) => u.id)
   const programmesByUser = new Map<string, string[]>()
 
   const { data: courses } = await supabaseAdmin
@@ -92,7 +91,7 @@ export async function loadPublicTeamMembers(): Promise<PublicTeamMember[]> {
     programmesByUser.set(instructorId, list)
   }
 
-  return users.map((user) => {
+  return visible.map((user) => {
     const firstName = String(user.first_name ?? '')
     const lastName = String(user.last_name ?? '')
     return {
