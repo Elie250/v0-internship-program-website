@@ -24,6 +24,7 @@ const learningLinks = [
   { href: '/learning', label: 'All courses & programmes' },
   { href: '/learning?module=training', label: 'Training' },
   { href: '/internship', label: 'Internship' },
+  { href: '/engineering', label: 'Field Notes' },
   { href: '/engineering-support', label: 'Engineering Support' },
 ]
 

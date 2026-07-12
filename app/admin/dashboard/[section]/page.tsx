@@ -28,6 +28,7 @@ const SECTIONS: Record<string, ComponentType> = {
   classroom: dynamic(() => import('@/components/admin/classroom-monitor-management')),
   'learning-analytics': dynamic(() => import('@/components/admin/learning-analytics-management')),
   announcements: dynamic(() => import('@/components/admin/announcement-management')),
+  'engineering-articles': dynamic(() => import('@/components/admin/engineering-articles-management')),
   services: dynamic(() => import('@/components/admin/service-management')),
   reviews: dynamic(() => import('@/components/admin/review-management')),
   settings: dynamic(() => import('@/components/admin/settings-panel')),
