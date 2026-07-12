@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireLecturerSession } from '@/lib/lecturer/access'
 import { normalizeCourseRow } from '@/lib/platform/courses'
+import { normalizeProgramType } from '@/lib/enrollment/program-types'
 
 export async function GET() {
   try {
@@ -49,6 +50,64 @@ export async function GET() {
     )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load courses'
+    const status = message === 'Unauthorized' || message.includes('Lecturer') ? 403 : 500
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await requireLecturerSession()
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
+    }
+
+    const body = await request.json()
+    const title = String(body.title ?? '').trim()
+    if (!title) {
+      return NextResponse.json({ error: 'Program title is required' }, { status: 400 })
+    }
+
+    const program = String(body.program || body.difficulty || '').trim()
+    const programType = normalizeProgramType(body.program_type)
+
+    const payload = {
+      title,
+      description: body.description != null ? String(body.description).trim() || null : null,
+      duration: body.duration != null ? String(body.duration).trim() || null : null,
+      thumbnail: body.thumbnail || body.image_url || null,
+      difficulty: program || null,
+      program: program || null,
+      program_type: programType,
+      pricing: body.pricing != null ? Number(body.pricing) : 0,
+      status: 'pending_review',
+      scheduled_at: body.scheduled_at || null,
+      location: body.location || null,
+      meeting_link: body.meeting_link || null,
+      program_end_date: body.program_end_date || null,
+      instructor_id: user.id,
+      updated_at: new Date().toISOString(),
+    }
+
+    const { data, error } = await supabaseAdmin.from('courses').insert([payload]).select().single()
+    if (error) {
+      if (error.message.includes('pending_review') || error.message.includes('courses_status_check')) {
+        return NextResponse.json(
+          {
+            error:
+              'Pending review status is not in the database yet. Run scripts/52-course-pending-review.sql in Supabase.',
+          },
+          { status: 500 }
+        )
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(normalizeCourseRow(data as Record<string, unknown> & { id: string; title: string }), {
+      status: 201,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create programme'
     const status = message === 'Unauthorized' || message.includes('Lecturer') ? 403 : 500
     return NextResponse.json({ error: message }, { status })
   }

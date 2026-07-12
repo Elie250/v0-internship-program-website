@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import { refreshSessionForUser } from '@/app/actions/auth-service'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 const TEAM_ROLES = new Set(['lecturer', 'instructor', 'support_staff'])
@@ -161,6 +162,12 @@ export async function PATCH(request: Request) {
     if (body.profileTitle !== undefined) {
       payload.profile_title = String(body.profileTitle ?? '').trim() || null
     }
+    if (body.firstName !== undefined) {
+      payload.first_name = String(body.firstName ?? '').trim() || ''
+    }
+    if (body.lastName !== undefined) {
+      payload.last_name = String(body.lastName ?? '').trim() || ''
+    }
     if (body.profileBio !== undefined) {
       payload.profile_bio = String(body.profileBio ?? '').trim() || null
     }
@@ -216,6 +223,11 @@ export async function PATCH(request: Request) {
     }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    if (body.firstName !== undefined || body.lastName !== undefined) {
+      await refreshSessionForUser(user.id)
+    }
+
     return NextResponse.json(data as LecturerProfileRow)
   } catch {
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })

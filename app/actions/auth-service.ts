@@ -330,6 +330,21 @@ export async function loginUser(
   }
 }
 
+export async function refreshSessionForUser(userId: string): Promise<void> {
+  try {
+    if (!supabaseAdmin) return
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, email, role, first_name, last_name, permissions')
+      .eq('id', userId)
+      .single()
+    if (!user) return
+    await establishUserSession(user as SessionUser)
+  } catch (error) {
+    console.error('[v0] Refresh session error:', error)
+  }
+}
+
 export async function logoutUser() {
   try {
     await clearAuthCookies()

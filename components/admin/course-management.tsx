@@ -35,6 +35,19 @@ import {
 } from '@/lib/enrollment/program-types'
 import { Edit2, Plus, Trash2 } from 'lucide-react'
 
+function courseStatusLabel(status: string) {
+  if (status === 'published') return 'Published'
+  if (status === 'pending_review') return 'Pending review'
+  if (status === 'archived') return 'Archived'
+  return 'Draft'
+}
+
+function courseStatusBadgeClass(status: string) {
+  if (status === 'published') return 'bg-green-100 text-green-800'
+  if (status === 'pending_review') return 'bg-blue-100 text-blue-900'
+  return 'bg-amber-100 text-amber-900'
+}
+
 type Course = {
   id: string
   title: string
@@ -251,7 +264,12 @@ export default function CourseManagementTab() {
   }
 
   const togglePublish = async (course: Course) => {
-    const nextStatus = course.status === 'published' ? 'draft' : 'published'
+    const nextStatus =
+      course.status === 'published'
+        ? 'draft'
+        : course.status === 'pending_review'
+          ? 'published'
+          : 'published'
     const res = await fetch(`/api/admin/courses/${course.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -277,6 +295,7 @@ export default function CourseManagementTab() {
   }
 
   const publishedCount = courses.filter((c) => c.status === 'published').length
+  const pendingCount = courses.filter((c) => c.status === 'pending_review').length
 
   if (isLoading) {
     return <p className="text-slate-600">Loading courses...</p>
@@ -309,7 +328,17 @@ export default function CourseManagementTab() {
       {error ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{error}</p> : null}
       {success ? <p className="text-sm text-green-700">{success}</p> : null}
 
-      {courses.length > 0 && publishedCount === 0 ? (
+      {pendingCount > 0 ? (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="pt-4 text-sm text-blue-950">
+            <strong>{pendingCount}</strong> programme{pendingCount === 1 ? '' : 's'} submitted by
+            lecturers awaiting your review. Click <strong>Approve &amp; publish</strong> on each card
+            below.
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {courses.length > 0 && publishedCount === 0 && pendingCount === 0 ? (
         <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-4 text-sm text-amber-900">
             You have {courses.length} course(s) in the database, but none are <strong>Published</strong>.
@@ -327,7 +356,7 @@ export default function CourseManagementTab() {
           if (!open) setCreateError('')
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast">
           <DialogHeader>
             <DialogTitle className="text-slate-900">Create program</DialogTitle>
           </DialogHeader>
@@ -378,8 +407,8 @@ export default function CourseManagementTab() {
                       <p className="text-sm text-slate-600 mt-1">{course.program}</p>
                     ) : null}
                   </div>
-                  <Badge className={course.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}>
-                    {course.status === 'published' ? 'Published' : 'Draft'}
+                  <Badge className={courseStatusBadgeClass(course.status)}>
+                    {courseStatusLabel(course.status)}
                   </Badge>
                 </div>
               </CardHeader>
@@ -405,7 +434,11 @@ export default function CourseManagementTab() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => togglePublish(course)}>
-                    {course.status === 'published' ? 'Unpublish' : 'Publish'}
+                    {course.status === 'published'
+                      ? 'Unpublish'
+                      : course.status === 'pending_review'
+                        ? 'Approve & publish'
+                        : 'Publish'}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => openEdit(course)}>
                     <Edit2 className="w-4 h-4" />
@@ -421,7 +454,7 @@ export default function CourseManagementTab() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast">
           <DialogHeader>
             <DialogTitle className="text-slate-900">Edit program</DialogTitle>
           </DialogHeader>
@@ -577,6 +610,7 @@ function CourseForm({
             <SelectContent>
               <SelectItem value="published">Published</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending_review">Pending review</SelectItem>
             </SelectContent>
           </Select>
         </div>

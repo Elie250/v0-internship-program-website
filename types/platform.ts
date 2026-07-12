@@ -20,7 +20,7 @@ export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrator',
 }
 
-export type ContentStatus = 'draft' | 'published' | 'archived'
+export type ContentStatus = 'draft' | 'published' | 'archived' | 'pending_review'
 
 export type TicketStatus =
   | 'open'

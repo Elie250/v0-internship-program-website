@@ -399,6 +399,37 @@
     color: #ffffff;
   }
 
+  /* Stronger contrast for course creation / account forms */
+  .course-form-high-contrast [data-slot='label'] {
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .course-form-high-contrast [data-slot='input'],
+  .course-form-high-contrast [data-slot='textarea'],
+  .course-form-high-contrast [data-slot='select-trigger'] {
+    background-color: #ffffff;
+    color: #0f172a;
+    border-color: #64748b;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+
+  .course-form-high-contrast [data-slot='input']:focus-visible,
+  .course-form-high-contrast [data-slot='textarea']:focus-visible,
+  .course-form-high-contrast [data-slot='select-trigger']:focus-visible {
+    border-color: var(--brand-navy);
+    box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.2);
+  }
+
+  .course-form-high-contrast [data-slot='select-content'] {
+    border-color: #64748b;
+  }
+
+  .course-form-high-contrast p.text-slate-600,
+  .course-form-high-contrast .text-slate-500 {
+    color: #334155;
+  }
+
   /* Shop portal — category filters, catalog cards, checkout sheet */
   .shop-portal .text-muted-foreground {
     color: #475569;
