@@ -34,6 +34,40 @@ export type AdminReportData = {
   content: ContentReportSummary
 }
 
+const EMPTY_COURSE_STATUS: CourseStatusBreakdown = {
+  draft: 0,
+  pendingReview: 0,
+  published: 0,
+  archived: 0,
+  other: 0,
+}
+
+const EMPTY_PROGRAMME_NOTIFICATIONS: ProgrammeNotificationSummary = {
+  total: 0,
+  coursesNeedingAttention: 0,
+  pendingReviewCourses: 0,
+  draftCourses: 0,
+  pendingEnrollments: 0,
+  pendingCertificates: 0,
+}
+
+const EMPTY_CONTENT: ContentReportSummary = {
+  libraryTotal: 0,
+  libraryPublished: 0,
+  libraryPendingReview: 0,
+  engineeringArticlesTotal: 0,
+  engineeringArticlesPublished: 0,
+}
+
+export function emptyAdminReportData(stats: AdminStats): AdminReportData {
+  return {
+    stats,
+    coursesByStatus: { ...EMPTY_COURSE_STATUS },
+    programmeNotifications: { ...EMPTY_PROGRAMME_NOTIFICATIONS },
+    content: { ...EMPTY_CONTENT },
+  }
+}
+
 async function countCoursesByStatus(): Promise<CourseStatusBreakdown> {
   const empty: CourseStatusBreakdown = {
     draft: 0,

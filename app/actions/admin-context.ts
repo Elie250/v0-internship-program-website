@@ -18,7 +18,11 @@ import {
   queryCourseNotificationRows,
   type CourseNotificationRow,
 } from '@/lib/admin/data/course-notification-counts'
-import { queryAdminReportData, type AdminReportData } from '@/lib/admin/data/admin-reports'
+import {
+  emptyAdminReportData,
+  queryAdminReportData,
+  type AdminReportData,
+} from '@/lib/admin/data/admin-reports'
 
 export type AdminStats = {
   users: number
@@ -289,13 +293,48 @@ export async function getAdminStats(): Promise<AdminStats> {
 }
 
 /** Batched report payload aligned with dashboard stats and programme notifications. */
-export async function getAdminReportData(): Promise<AdminReportData | null> {
+export async function getAdminReportData(): Promise<AdminReportData> {
   const session = await getAdminSession()
-  if (!session || !supabaseAdmin) return null
-  if (!hasPermission(session.user.permissions, PERMISSIONS.REPORTS_VIEW)) return null
+  const emptyStats: AdminStats = {
+    users: 0,
+    students: 0,
+    lecturers: 0,
+    engineers: 0,
+    courses: 0,
+    publishedCourses: 0,
+    announcements: 0,
+    applications: 0,
+    products: 0,
+    lowStockProducts: 0,
+    supportTickets: 0,
+    courseEnrollments: 0,
+    admittedEnrollments: 0,
+    pendingEnrollments: 0,
+    pendingPayments: 0,
+    pendingStaffApprovals: 0,
+    pendingCertificates: 0,
+    approvedPaymentsTotal: 0,
+  }
 
-  const stats = await fetchAdminStats()
-  return queryAdminReportData(stats)
+  if (!session) {
+    return emptyAdminReportData(emptyStats)
+  }
+
+  try {
+    const stats = await fetchAdminStats()
+    if (!supabaseAdmin) {
+      return emptyAdminReportData(stats)
+    }
+    return await queryAdminReportData(stats)
+  } catch (error) {
+    console.error('[admin] getAdminReportData failed:', error)
+    try {
+      const stats = await fetchAdminStats()
+      return emptyAdminReportData(stats)
+    } catch {
+      return emptyAdminReportData(emptyStats)
+    }
+  }
 }
 
 /** Overview payload: auth + nav + stats (stats load even for legacy admin session). */

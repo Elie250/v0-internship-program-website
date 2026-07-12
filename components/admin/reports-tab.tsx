@@ -41,20 +41,24 @@ function StatusBar({ label, count, total, colorClass }: { label: string; count: 
   )
 }
 
-export default function ReportsTab() {
-  const [report, setReport] = useState<AdminReportData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export function ReportsTab({ initialData }: { initialData?: AdminReportData }) {
+  const [report, setReport] = useState<AdminReportData | null>(initialData ?? null)
+  const [isLoading, setIsLoading] = useState(!initialData)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (initialData) return
     fetchReportData()
-  }, [])
+  }, [initialData])
 
   const fetchReportData = async () => {
+    setLoadError(null)
     try {
       const data = await getAdminReportData()
       setReport(data)
     } catch (error) {
       console.error('Failed to fetch report data:', error)
+      setLoadError('Failed to refresh report data. Try reloading the page.')
     } finally {
       setIsLoading(false)
     }
@@ -128,7 +132,16 @@ Field Notes articles: ${content.engineeringArticlesTotal} (${content.engineering
   }
 
   if (!report) {
-    return <p className="text-slate-600">Unable to load reports. Check your permissions and try again.</p>
+    return (
+      <div className="space-y-2">
+        <p className="text-slate-600">
+          {loadError ?? 'Unable to load reports. Try reloading the page.'}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => { setIsLoading(true); fetchReportData() }}>
+          Retry
+        </Button>
+      </div>
+    )
   }
 
   const { stats, coursesByStatus, programmeNotifications, content } = report

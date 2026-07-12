@@ -1,7 +1,8 @@
 import { redirect, notFound } from 'next/navigation'
 import type { ComponentType } from 'react'
 import dynamic from 'next/dynamic'
-import { getAdminSession } from '@/app/actions/admin-context'
+import { getAdminReportData, getAdminSession } from '@/app/actions/admin-context'
+import { ReportsTab } from '@/components/admin/reports-tab'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { isDeliveryRole } from '@/lib/admin/access-control'
 import { findNavItem } from '@/lib/admin/nav'
@@ -40,7 +41,6 @@ const SECTIONS: Record<string, ComponentType> = {
   support: dynamic(() => import('@/components/admin/support-management')),
   'engineer-subscriptions': dynamic(() => import('@/components/admin/engineer-subscriptions-management')),
   'support-plans': dynamic(() => import('@/components/admin/support-plan-management')),
-  reports: dynamic(() => import('@/components/admin/reports-tab')),
   communications: dynamic(() => import('@/components/admin/admin-communications')),
 }
 
@@ -62,6 +62,11 @@ export default async function AdminSectionPage({
   const navItem = findNavItem(section)
   if (!navItem || !hasPermission(session.user.permissions, navItem.permission)) {
     notFound()
+  }
+
+  if (section === 'reports') {
+    const reportData = await getAdminReportData()
+    return <ReportsTab initialData={reportData} />
   }
 
   const SectionComponent = SECTIONS[section]
