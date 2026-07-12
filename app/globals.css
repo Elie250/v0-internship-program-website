@@ -326,6 +326,40 @@
     font-weight: 700;
   }
 
+  .home-section {
+    padding-block: 4rem;
+    padding-inline: 1rem;
+  }
+
+  .home-section--white {
+    background-color: #ffffff;
+  }
+
+  .home-section--muted {
+    background-color: #f8fafc;
+    border-block: 1px solid #e2e8f0;
+  }
+
+  .home-tile-link {
+    border-radius: 0.5rem;
+    outline-offset: 2px;
+  }
+
+  .home-tile-link:focus-visible {
+    outline: 2px solid var(--brand-navy);
+  }
+
+  .home-anchor-link:focus-visible {
+    outline: 2px solid var(--brand-navy);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-video-layer {
+      transition: none !important;
+    }
+  }
+
   /* Forms, admin subpages, edit dialogs — readable labels & controls */
   .app-form-surface {
     color: #0f172a;

@@ -7,8 +7,23 @@ import { HERO_CLIP_SECONDS } from '@/lib/media/hero-videos'
 
 const FALLBACK_POSTER = '/hero-laboratory.jpg'
 
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReduced(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  return reduced
+}
+
 export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   const slides = playlist.length > 0 ? playlist : []
+  const prefersReducedMotion = usePrefersReducedMotion()
   const [index, setIndex] = useState(0)
   const [activeLayer, setActiveLayer] = useState<0 | 1>(0)
   const [showPoster, setShowPoster] = useState(true)
@@ -157,7 +172,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     pauseLayer(inactiveLayer(activeLayer))
   }, [activeLayer, pauseLayer])
 
-  if (!slides.length) {
+  if (!slides.length || prefersReducedMotion) {
     return (
       <Image
         src={FALLBACK_POSTER}
@@ -193,7 +208,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
           preload="auto"
           aria-hidden={layer !== activeLayer}
           aria-label={layer === activeLayer ? `Hero background: ${currentSlide?.label}` : undefined}
-          className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
+          className={`hero-video-layer absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
             layer === activeLayer && !showPoster ? 'opacity-100' : 'opacity-0'
           }`}
         />

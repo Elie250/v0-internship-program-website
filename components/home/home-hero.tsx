@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { getActiveHero } from '@/lib/platform/queries'
 import { HeroVideoRotator } from '@/components/home/hero-video-rotator'
@@ -7,16 +8,18 @@ import { getHeroVideoPlaylist } from '@/lib/media/hero-videos'
 import { COMPANY } from '@/lib/company/constants'
 import type { HeroContent } from '@/types/platform'
 
+const HERO_POSTER = '/hero-laboratory.jpg'
+
 const defaultHero: HeroContent = {
   id: 'default',
-  title: `${COMPANY.brandName} — Engineering Training`,
+  title: `${COMPANY.brandName} — ${COMPANY.platformName}`,
   subtitle:
-    'Hands-on programmes in embedded systems, industrial control, and advanced electrical technology. Based in Kigali, Rwanda — training East African engineers for real industry work.',
+    'Hands-on engineering programmes in Kigali, a public Energy Library, and Field Notes from practitioners — learn, read, and build with East Africa\'s engineering community.',
   background_image: '/videos/playlist',
-  cta_primary_label: 'View Programmes',
+  cta_primary_label: 'View programmes',
   cta_primary_url: '/learning',
-  cta_secondary_label: 'About Elie & our team',
-  cta_secondary_url: '/about',
+  cta_secondary_label: 'Explore Library',
+  cta_secondary_url: '/library',
   is_active: true,
 }
 
@@ -40,11 +43,24 @@ export async function HomeHeroSection({ fullViewport = false }: { fullViewport?:
       }`}
     >
       {showPlaylist ? (
-        <HeroVideoRotator playlist={videoPlaylist} />
+        <>
+          <div className="absolute inset-0 md:hidden" aria-hidden>
+            <Image
+              src={HERO_POSTER}
+              alt=""
+              fill
+              className="object-cover object-center"
+              priority
+            />
+          </div>
+          <div className="absolute inset-0 hidden md:block">
+            <HeroVideoRotator playlist={videoPlaylist} />
+          </div>
+        </>
       ) : hero.background_image ? (
         <HeroBackgroundMedia src={hero.background_image} alt={hero.title} />
       ) : null}
-      <div className="absolute inset-0 z-[1] bg-black/40" aria-hidden />
+      <div className="absolute inset-0 z-[1] bg-black/50 md:bg-black/40" aria-hidden />
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-8 pb-10 sm:pb-12 lg:pb-0 pt-24 sm:pt-28 lg:pt-[calc(var(--site-header-h)+2rem)]">
         <div className="max-w-2xl lg:max-w-3xl text-on-dark text-left">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-5 leading-[1.15] tracking-tight">

@@ -3,6 +3,7 @@ import { Check, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getMembershipPlans } from '@/lib/platform/queries'
+import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 const STUDENT_PORTAL_LOGIN = '/auth/login?redirect=%2Fstudent%2Fcourses'
 const ENGINEER_SUPPORT = '/auth/login?redirect=%2Fengineering-support'
@@ -41,17 +42,13 @@ export async function MembershipSection() {
         : DEFAULT_PREMIUM_BENEFITS
 
   return (
-    <section className="py-16 px-4 bg-slate-50/80 border-t border-slate-100">
+    <section id="membership" className="home-section home-section--muted">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-10 max-w-2xl mx-auto">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-navy)] mb-2">
-            Plans
-          </p>
-          <h2 className="text-3xl font-bold text-slate-900 mb-3">Free & premium access</h2>
-          <p className="text-slate-600">
-            Start free with career resources and community. Upgrade for full programmes, engineer support, and AI tools.
-          </p>
-        </div>
+        <HomeSectionHeader
+          eyebrow="Plans"
+          title="Free & premium access"
+          description="Start free with career resources and community. Upgrade for full programmes, engineer support, and AI tools."
+        />
 
         <div className="grid md:grid-cols-2 gap-8">
           <PlanCard
@@ -72,6 +69,14 @@ export async function MembershipSection() {
             badge="Most complete"
           />
         </div>
+
+        <p className="text-center text-sm text-slate-600 mt-8">
+          Paid programmes use{' '}
+          <Link href="/payment-instructions" className="text-[var(--brand-navy)] font-medium underline">
+            MTN MoMo verification
+          </Link>
+          {' '}after enrollment — upload your receipt and our team confirms access.
+        </p>
       </div>
     </section>
   )

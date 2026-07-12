@@ -4,28 +4,39 @@ import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/reviews/review-card'
 import { StarRatingDisplay } from '@/components/reviews/star-rating'
 import { queryPublishedReviews } from '@/lib/reviews/queries'
+import { HomeSectionHeader } from '@/components/home/home-section-header'
 
-export async function ReviewsTrustSection() {
-  const { reviews, stats } = await queryPublishedReviews({ limit: 6, featuredOnly: false })
+export async function ReviewsTrustSection({ compact = false }: { compact?: boolean }) {
+  const limit = compact ? 3 : 6
+  const { reviews, stats } = await queryPublishedReviews({ limit, featuredOnly: false })
 
   const hasReviews = reviews.length > 0
 
   return (
-    <section className="py-16 px-4 bg-slate-50">
+    <section
+      id="reviews"
+      className={`home-section ${compact ? 'home-section--muted' : 'home-section--white'}`}
+    >
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
-          <p className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-navy)] mb-2">
-            Trusted by learners & clients
-          </p>
-          <h2 className="section-title">What people say about us</h2>
-          <p className="text-slate-600 max-w-2xl mx-auto mt-3">
-            Real ratings and reviews from students, interns, and engineering clients help you choose with confidence.
-          </p>
-        </div>
+        <HomeSectionHeader
+          eyebrow="Trusted by learners & clients"
+          title="What people say about us"
+          description={
+            compact
+              ? 'Verified feedback from students and engineering clients.'
+              : 'Real ratings and reviews from students, interns, and engineering clients help you choose with confidence.'
+          }
+          align={compact ? 'left' : 'center'}
+          className={compact ? 'mb-8' : undefined}
+        />
 
         {hasReviews ? (
           <>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-10 p-6 rounded-xl bg-white border border-slate-200 shadow-sm max-w-xl mx-auto">
+            <div
+              className={`flex flex-col sm:flex-row items-center gap-6 mb-8 p-5 rounded-xl bg-white border border-slate-200 shadow-sm ${
+                compact ? 'max-w-full' : 'max-w-xl mx-auto'
+              }`}
+            >
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2">
                   <Star className="h-8 w-8 fill-amber-400 text-amber-400" />
@@ -40,7 +51,13 @@ export async function ReviewsTrustSection() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+            <div
+              className={
+                compact
+                  ? 'grid md:grid-cols-3 gap-4 mb-6'
+                  : 'grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8'
+              }
+            >
               {reviews.map((review) => (
                 <ReviewCard key={review.id} review={review} compact />
               ))}
@@ -55,13 +72,15 @@ export async function ReviewsTrustSection() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Button asChild className="bg-[var(--brand-navy)] text-white">
+        <div className={`flex flex-wrap items-center gap-3 ${compact ? '' : 'justify-center'}`}>
+          <Button asChild size={compact ? 'sm' : 'default'} className="bg-[var(--brand-navy)] text-white">
             <Link href="/reviews">Read all reviews</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/reviews#write-review">Write a review</Link>
-          </Button>
+          {!compact ? (
+            <Button asChild variant="outline">
+              <Link href="/reviews#write-review">Write a review</Link>
+            </Button>
+          ) : null}
         </div>
       </div>
     </section>

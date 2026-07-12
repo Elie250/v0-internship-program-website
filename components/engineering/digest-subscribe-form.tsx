@@ -40,8 +40,8 @@ export function DigestSubscribeForm({ compact = false }: { compact?: boolean }) 
         <div>
           <h3 className="font-semibold text-slate-900">The Weekly Circuit</h3>
           <p className="text-sm text-slate-600 mt-1">
-            Free email digest of new field notes — practical tips for electricians, PLC techs, and
-            embedded engineers.
+            Free <strong>weekly</strong> email digest of new field notes — at most one email per week,
+            so we preserve quota for account and support messages.
           </p>
         </div>
       ) : null}

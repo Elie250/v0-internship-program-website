@@ -1,24 +1,19 @@
 import Link from 'next/link'
-import { ArrowRight, Calculator } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ENGINEERING_TOOL_CATEGORIES } from '@/lib/engineering/tool-categories'
+import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 export function ToolsSection() {
   return (
-    <section id="tools" className="py-16 px-4 bg-slate-50 border-y border-slate-200">
+    <section id="tools" className="home-section home-section--white">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10 max-w-2xl mx-auto">
-          <p className="section-eyebrow mb-2">Engineering tools</p>
-          <h2 className="section-title mb-3 flex items-center justify-center gap-2">
-            <Calculator className="h-8 w-8 text-[var(--brand-navy)]" />
-            Free calculators for the field
-          </h2>
-          <p className="text-slate-600">
-            Electrical, installation, embedded, and solar helpers — built for students and technicians
-            in our programmes. No login required.
-          </p>
-        </div>
+        <HomeSectionHeader
+          eyebrow="Engineering tools"
+          title="Free calculators for the field"
+          description="Electrical, installation, embedded, and solar helpers — built for students and technicians in our programmes. No login required."
+        />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {ENGINEERING_TOOL_CATEGORIES.map((cat) => {
