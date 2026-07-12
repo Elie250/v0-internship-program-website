@@ -6,17 +6,11 @@ import { loginUser } from '@/app/actions/auth-service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
 import { SiteHeader } from '@/components/layout/site-header'
+import { cn } from '@/lib/utils'
 
 type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
 
@@ -27,7 +21,6 @@ const ROLE_OPTIONS: { value: LoginRole; label: string; hint: string }[] = [
   { value: 'engineer', label: 'Engineer', hint: 'Community & technical support' },
   { value: 'admin', label: 'Administrator', hint: 'Platform management' },
 ]
-
 
 export default function UnifiedLoginPage() {
   return (
@@ -61,7 +54,12 @@ function LoginForm() {
     }
     if (searchParams.get('message') === 'staff_pending') {
       const pendingRole = searchParams.get('role')
-      if (pendingRole === 'lecturer' || pendingRole === 'engineer' || pendingRole === 'admin' || pendingRole === 'mentor') {
+      if (
+        pendingRole === 'lecturer' ||
+        pendingRole === 'engineer' ||
+        pendingRole === 'admin' ||
+        pendingRole === 'mentor'
+      ) {
         setRole(pendingRole)
       }
       setSuccess(
@@ -87,10 +85,6 @@ function LoginForm() {
   const registerHref = redirectTo
     ? `/auth/register?redirect=${encodeURIComponent(redirectTo)}`
     : '/auth/register'
-
-  const selectRole = (next: LoginRole) => {
-    setRole(next)
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -124,7 +118,7 @@ function LoginForm() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <SiteHeader />
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[440px]">
           <div className="text-center mb-6">
             <p className="text-sm text-slate-500">{COMPANY.platformName}</p>
           </div>
@@ -152,21 +146,29 @@ function LoginForm() {
 
               <div>
                 <Label className="text-slate-700">Sign in as</Label>
-                <Select value={role} onValueChange={(value) => selectRole(value as LoginRole)}>
-                  <SelectTrigger className="mt-1.5 w-full">
-                    <SelectValue placeholder="Choose your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ROLE_OPTIONS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Career staff should choose <span className="font-medium text-slate-700">Mentor</span>.
-                </p>
+                <div className="mt-2 space-y-2" role="radiogroup" aria-label="Sign in role">
+                  {ROLE_OPTIONS.map((item) => {
+                    const selected = role === item.value
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => setRole(item.value)}
+                        className={cn(
+                          'w-full text-left rounded-lg border px-3 py-2.5 text-sm transition',
+                          selected
+                            ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-1 ring-[var(--brand-navy)]/20'
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        )}
+                      >
+                        <span className="font-medium text-slate-900">{item.label}</span>
+                        <span className="block text-xs text-slate-500 mt-0.5">{item.hint}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               <div>

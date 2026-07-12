@@ -1,80 +1,19 @@
-'use client';
+import { redirect } from 'next/navigation'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { login } from '@/app/actions/auth';
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const result = await login(password);
-      if (result.success) {
-        localStorage.setItem('admin_authenticated', 'true');
-        router.push('/admin/dashboard');
-      } else {
-        setError(result.error || 'Invalid password');
-      }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-16">
-      <Card className="w-full max-w-sm border-border">
-        <CardHeader>
-          <CardTitle>Admin Login</CardTitle>
-          <CardDescription>
-            Enter your password to access the admin dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-900 border border-red-200">
-                {error}
-              </div>
-            )}
-            
-            <div>
-              <Label htmlFor="password">Admin Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter admin password"
-                required
-                className="mt-1"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Logging in...' : 'Login'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
+/** Legacy admin password login — use unified sign-in with Administrator role. */
+export default async function LegacyAdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const query = new URLSearchParams()
+  query.set('role', 'admin')
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'role') continue
+    if (typeof value === 'string') query.set(key, value)
+    else if (Array.isArray(value) && value[0]) query.set(key, value[0])
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  redirect(`/auth/login${suffix}`)
 }
