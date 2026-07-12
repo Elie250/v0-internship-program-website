@@ -6,9 +6,15 @@ import { loginUser } from '@/app/actions/auth-service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import Link from 'next/link'
-import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
 import { SiteHeader } from '@/components/layout/site-header'
 
@@ -22,9 +28,6 @@ const ROLE_OPTIONS: { value: LoginRole; label: string; hint: string }[] = [
   { value: 'admin', label: 'Administrator', hint: 'Platform management' },
 ]
 
-function roleLabel(role: LoginRole): string {
-  return ROLE_OPTIONS.find((r) => r.value === role)?.label ?? role
-}
 
 export default function UnifiedLoginPage() {
   return (
@@ -38,7 +41,6 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [role, setRole] = useState<LoginRole>('student')
-  const [showRolePicker, setShowRolePicker] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
@@ -88,7 +90,6 @@ function LoginForm() {
 
   const selectRole = (next: LoginRole) => {
     setRole(next)
-    setShowRolePicker(false)
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -149,40 +150,23 @@ function LoginForm() {
                 </div>
               ) : null}
 
-              {/* Role first */}
               <div>
                 <Label className="text-slate-700">Sign in as</Label>
-                <Collapsible open={showRolePicker} onOpenChange={setShowRolePicker} className="mt-1.5">
-                  <CollapsibleTrigger
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 hover:border-slate-400"
-                  >
-                    <span>
-                      <span className="font-semibold">{roleLabel(role)}</span>
-                      <span className="block text-xs text-slate-500 mt-0.5">
-                        {ROLE_OPTIONS.find((r) => r.value === role)?.hint}
-                      </span>
-                    </span>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${showRolePicker ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="pt-2 space-y-1.5">
+                <Select value={role} onValueChange={(value) => selectRole(value as LoginRole)}>
+                  <SelectTrigger className="mt-1.5 w-full">
+                    <SelectValue placeholder="Choose your role" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {ROLE_OPTIONS.map((item) => (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() => selectRole(item.value)}
-                        className={`w-full text-left rounded-lg border px-3 py-2.5 text-sm transition ${
-                          role === item.value
-                            ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5'
-                            : 'border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className="font-medium text-slate-900">{item.label}</span>
-                        <span className="block text-xs text-slate-500 mt-0.5">{item.hint}</span>
-                      </button>
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
                     ))}
-                  </CollapsibleContent>
-                </Collapsible>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1.5">
+                  Career staff should choose <span className="font-medium text-slate-700">Mentor</span>.
+                </p>
               </div>
 
               <div>

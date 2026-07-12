@@ -229,19 +229,15 @@ export async function loginUser(
   role: AuthRole,
   totpCode?: string
 ): Promise<AuthResult & { user?: unknown }> {
-  const debug = baseDebug(email, role)
   try {
     if (!supabaseAdmin) {
-      debug.step = 'supabase_not_configured'
       return {
         success: false,
         error: supabaseNotConfiguredMessage(),
-        debug,
       }
     }
 
     const trimmedEmail = email.trim()
-    debug.step = 'query_user_by_email_and_role'
 
     const { data: user, error } = await supabaseAdmin
       .from('users')
@@ -251,96 +247,72 @@ export async function loginUser(
       .maybeSingle()
 
     if (error) {
-      debug.step = 'query_failed'
-      debug.dbError = error.message
-      debug.dbCode = error.code
       const hint = error.code === 'PGRST125' ? pgrst125Hint() : ''
       return {
         success: false,
-        error: `Database query failed: ${error.message}${error.code ? ` (${error.code})` : ''}${hint}`,
-        debug,
+        error:
+          error.code === 'PGRST125'
+            ? `Sign-in is temporarily unavailable.${hint}`
+            : 'Unable to sign in right now. Please try again.',
       }
     }
 
     if (!user) {
-      debug.step = 'user_not_found_for_email_and_role'
       const { data: sameEmailUsers } = await supabaseAdmin
         .from('users')
-        .select('role, status, email')
+        .select('role')
         .ilike('email', trimmedEmail)
 
-      debug.usersWithEmailCount = sameEmailUsers?.length ?? 0
-      debug.rolesForEmail = sameEmailUsers?.map((u) => u.role) ?? []
-
+      const rolesForEmail = sameEmailUsers?.map((u) => u.role) ?? []
       const roleHint =
-        debug.rolesForEmail.length > 0
-          ? ` Account exists with role(s): ${debug.rolesForEmail.join(', ')}. You selected "${role}".`
-          : ' No user row found for this email in the users table.'
+        rolesForEmail.length > 0
+          ? ` This email is registered as: ${rolesForEmail.join(', ')}. Select the matching role above.`
+          : ''
 
       return {
         success: false,
-        error: `Login failed — wrong email, role, or user missing.${roleHint}`,
-        debug,
+        error: `Invalid email or password.${roleHint}`,
       }
     }
 
-    debug.userFound = true
-    debug.userRole = user.role
-    debug.userStatus = user.status
-    debug.passwordFieldPresent = Boolean(user.password_hash)
-    debug.passwordHashType = classifyPasswordHash(user.password_hash)
-
     if (!isLoginAllowedStatus(user.status)) {
-      debug.step = 'user_not_active'
       return {
         success: false,
         error: loginBlockedMessage(String(user.status), user.role),
-        debug,
       }
     }
 
-    debug.step = 'verify_password'
     const passwordMatch = await verifyPassword(password, user.password_hash)
-    debug.passwordMatch = passwordMatch
 
     if (!passwordMatch) {
-      debug.step = 'password_mismatch'
       return {
         success: false,
-        error: `Password incorrect (stored type: ${debug.passwordHashType}). Try admin123 for seeded admin.`,
-        debug,
+        error: 'Invalid email or password.',
       }
     }
 
     if (user.totp_enabled && user.totp_secret) {
       if (!totpCode || !verifyTotpCode(String(user.totp_secret), totpCode)) {
-        debug.step = 'totp_required'
         return {
           success: false,
           requiresTotp: true,
           error: totpCode ? 'Invalid authenticator code' : 'Enter the 6-digit code from your authenticator app',
-          debug,
         }
       }
     }
 
-    debug.step = 'set_session_cookie'
     await establishUserSession(user)
     await linkEnrollmentsToUser(user.id, trimmedEmail)
 
-    debug.step = 'login_success'
     return {
       success: true,
       redirectTo: dashboardPathForRole(user.role),
-      debug: undefined,
     }
   } catch (error) {
-    debug.step = 'login_exception'
-    debug.exception = formatUnknownError(error)
+    console.error('[auth] login failed:', error)
     return {
       success: false,
-      error: `Login exception: ${formatUnknownError(error)}`,
-      debug,
+      error: 'Unable to sign in right now. Please try again.',
     }
   }
 }
