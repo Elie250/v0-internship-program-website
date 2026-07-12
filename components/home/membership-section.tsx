@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getMembershipPlans } from '@/lib/platform/queries'
 import { HomeSectionHeader } from '@/components/home/home-section-header'
+import { loadHomePersonalization } from '@/lib/home/personalization'
 
 const STUDENT_PORTAL_LOGIN = '/auth/login?redirect=%2Fstudent%2Fcourses'
 const ENGINEER_SUPPORT = '/auth/login?redirect=%2Fengineering-support'
@@ -25,7 +26,7 @@ const DEFAULT_PREMIUM_BENEFITS = [
 ]
 
 export async function MembershipSection() {
-  const plans = await getMembershipPlans()
+  const [plans, personalization] = await Promise.all([getMembershipPlans(), loadHomePersonalization()])
   const freePlan = plans.find((p) => p.plan_type === 'free')
   const premiumPlan = plans.find((p) => p.plan_type === 'premium')
 
@@ -46,10 +47,51 @@ export async function MembershipSection() {
       <div className="max-w-5xl mx-auto">
         <HomeSectionHeader
           eyebrow="Plans"
-          title="Free & premium access"
-          description="Start free with career resources and community. Upgrade for full programmes, engineer support, and AI tools."
+          title={personalization?.hasEnrollment ? 'Your access' : 'Free & premium access'}
+          description={
+            personalization?.hasEnrollment
+              ? 'You already have active programme access. Open your portal to continue learning or browse more courses.'
+              : 'Start free with career resources and community. Upgrade for full programmes, engineer support, and AI tools.'
+          }
         />
 
+        {personalization?.hasEnrollment ? (
+          <Card className="border-[var(--brand-navy)]/20 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl text-slate-900">You&apos;re enrolled</CardTitle>
+              <p className="text-sm text-slate-600">
+                {personalization.activeCourses.length} active{' '}
+                {personalization.activeCourses.length === 1 ? 'programme' : 'programmes'} on your account.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ul className="space-y-2">
+                {personalization.activeCourses.map((course) => (
+                  <li key={course.id}>
+                    <Link
+                      href={course.href}
+                      className="text-sm font-medium text-[var(--brand-navy)] underline underline-offset-2"
+                    >
+                      {course.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap gap-3">
+                <Link href={personalization.portal.href}>
+                  <Button className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+                    Open student portal
+                  </Button>
+                </Link>
+                <Link href="/student/courses?track=training">
+                  <Button variant="outline" className="text-slate-800 border-slate-300">
+                    Browse more courses
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid md:grid-cols-2 gap-8">
           <PlanCard
             title={freePlan?.name ?? 'Free'}
@@ -69,6 +111,7 @@ export async function MembershipSection() {
             badge="Most complete"
           />
         </div>
+        )}
 
         <p className="text-center text-sm text-slate-600 mt-8">
           Paid programmes use{' '}

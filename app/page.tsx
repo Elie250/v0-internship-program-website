@@ -12,6 +12,7 @@ import { ReviewsTrustSection } from '@/components/home/reviews-trust-section'
 import { WhatsHappeningSection } from '@/components/home/whats-happening-section'
 import { MembershipSection } from '@/components/home/membership-section'
 import { HomeStickyNav } from '@/components/home/home-sticky-nav'
+import { HomeSignedInStrip } from '@/components/home/home-signed-in-strip'
 
 export default function HomePage() {
   return (
@@ -21,6 +22,7 @@ export default function HomePage() {
         <SiteHeader overlay />
         <HomeHeroSection fullViewport />
       </div>
+      <HomeSignedInStrip />
       <ExploreHubSection />
       <MissionSnippetSection />
       <ProgrammesCoursesSection />
