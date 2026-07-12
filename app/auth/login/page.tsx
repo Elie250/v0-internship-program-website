@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import Link from 'next/link'
-import { AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Cpu, GraduationCap } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
 import { SiteHeader } from '@/components/layout/site-header'
 import { cn } from '@/lib/utils'
@@ -24,15 +24,19 @@ type PublicRole = 'student' | 'engineer'
 type StaffRole = 'lecturer' | 'mentor' | 'admin'
 type AccountKind = 'public' | 'staff'
 
-const PUBLIC_ROLES: { value: PublicRole; label: string; hint: string }[] = [
-  { value: 'student', label: 'Student', hint: 'Courses & learning portal' },
-  { value: 'engineer', label: 'Engineer', hint: 'Community & technical support' },
+const PUBLIC_ROLES: {
+  value: PublicRole
+  label: string
+  icon: typeof GraduationCap
+}[] = [
+  { value: 'student', label: 'Student', icon: GraduationCap },
+  { value: 'engineer', label: 'Engineer', icon: Cpu },
 ]
 
-const STAFF_ROLES: { value: StaffRole; label: string; hint: string }[] = [
-  { value: 'lecturer', label: 'Lecturer', hint: 'Programmes & classroom' },
-  { value: 'mentor', label: 'Mentor', hint: 'Career guidance & mentorship' },
-  { value: 'admin', label: 'Administrator', hint: 'Platform management' },
+const STAFF_ROLES: { value: StaffRole; label: string }[] = [
+  { value: 'lecturer', label: 'Lecturer' },
+  { value: 'mentor', label: 'Mentor' },
+  { value: 'admin', label: 'Administrator' },
 ]
 
 function isStaffRole(value: string): value is StaffRole {
@@ -146,10 +150,7 @@ function LoginForm() {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-8">
-            <h1 className="text-xl font-semibold text-slate-900 text-center">Sign in</h1>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-6">
-              Choose your account type, then enter your credentials
-            </p>
+            <h1 className="text-xl font-semibold text-slate-900 text-center mb-6">Sign in</h1>
 
             <form onSubmit={handleLogin} className="space-y-4">
               {success ? (
@@ -168,9 +169,14 @@ function LoginForm() {
 
               <div>
                 <Label className="text-slate-700">Sign in as</Label>
-                <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Public account type">
+                <div
+                  className="mt-1.5 flex rounded-lg border border-slate-200 bg-slate-100/70 p-1"
+                  role="radiogroup"
+                  aria-label="Public account type"
+                >
                   {PUBLIC_ROLES.map((item) => {
                     const selected = accountKind === 'public' && publicRole === item.value
+                    const Icon = item.icon
                     return (
                       <button
                         key={item.value}
@@ -182,14 +188,14 @@ function LoginForm() {
                           setPublicRole(item.value)
                         }}
                         className={cn(
-                          'rounded-lg border px-3 py-2.5 text-left text-sm transition',
+                          'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
                           selected
-                            ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-1 ring-[var(--brand-navy)]/20'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                            ? 'bg-white text-[var(--brand-navy)] shadow-sm ring-1 ring-slate-200/80'
+                            : 'text-slate-600 hover:text-slate-900'
                         )}
                       >
-                        <span className="font-medium text-slate-900">{item.label}</span>
-                        <span className="block text-xs text-slate-500 mt-0.5 leading-snug">{item.hint}</span>
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                        {item.label}
                       </button>
                     )
                   })}
@@ -197,7 +203,7 @@ function LoginForm() {
               </div>
 
               <div>
-                <Label className="text-slate-700">Staff account</Label>
+                <Label className="text-slate-700">Staff</Label>
                 <Select
                   value={accountKind === 'staff' ? staffRole : undefined}
                   onValueChange={(value) => {
@@ -211,7 +217,7 @@ function LoginForm() {
                       accountKind === 'staff' && 'border-[var(--brand-navy)] ring-1 ring-[var(--brand-navy)]/20'
                     )}
                   >
-                    <SelectValue placeholder="Lecturer, mentor, or administrator" />
+                    <SelectValue placeholder="Select staff role" />
                   </SelectTrigger>
                   <SelectContent className="max-h-64">
                     {STAFF_ROLES.map((item) => (
@@ -221,9 +227,6 @@ function LoginForm() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  For programme delivery and platform administration.
-                </p>
               </div>
 
               <div>
