@@ -6,7 +6,17 @@ import type { AdminReportData } from '@/lib/admin/data/admin-reports'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ReportsCharts } from '@/components/admin/reports-charts'
+import {
+  downloadAdminReportExcel,
+  downloadAdminReportPdf,
+} from '@/lib/admin/data/admin-report-export'
 import {
   BarChart3,
   Users,
@@ -16,6 +26,8 @@ import {
   ClipboardList,
   Zap,
   FileText,
+  ChevronDown,
+  FileSpreadsheet,
 } from 'lucide-react'
 
 function StatRow({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
@@ -65,67 +77,14 @@ export function ReportsTab({ initialData }: { initialData?: AdminReportData }) {
     }
   }
 
-  const handleDownloadReport = () => {
+  const handleDownloadPdf = () => {
     if (!report) return
-    const { stats, coursesByStatus, programmeNotifications, content } = report
+    downloadAdminReportPdf(report)
+  }
 
-    const reportContent = `
-Energy & Logics Academy - Admin Report
-Generated: ${new Date().toLocaleString()}
-
-USER STATISTICS
-===============
-Total Users: ${stats.users}
-Students: ${stats.students}
-Lecturers: ${stats.lecturers}
-Engineers: ${stats.engineers}
-Staff awaiting approval: ${stats.pendingStaffApprovals}
-
-COURSE STATISTICS
-=================
-Total Courses: ${stats.courses}
-Published: ${coursesByStatus.published}
-Pending review: ${coursesByStatus.pendingReview}
-Draft: ${coursesByStatus.draft}
-Archived: ${coursesByStatus.archived}
-
-PROGRAMME ACTION ITEMS
-======================
-Programmes needing attention: ${programmeNotifications.coursesNeedingAttention}
-Total notification items: ${programmeNotifications.total}
-Pending enrollments (by programme): ${programmeNotifications.pendingEnrollments}
-Pending certificates (by programme): ${programmeNotifications.pendingCertificates}
-
-ENROLLMENTS & PAYMENTS
-======================
-Course Enrollments: ${stats.courseEnrollments}
-Admitted: ${stats.admittedEnrollments}
-Pending payment review: ${stats.pendingEnrollments}
-Pending payment receipts: ${stats.pendingPayments}
-Pending certificates: ${stats.pendingCertificates}
-Verified revenue (RWF): ${stats.approvedPaymentsTotal.toLocaleString()}
-Internship applications: ${stats.applications}
-
-OPERATIONS
-==========
-Products: ${stats.products}
-Low-stock products: ${stats.lowStockProducts}
-Support tickets: ${stats.supportTickets}
-Announcements: ${stats.announcements}
-
-CONTENT
-=======
-Energy Library items: ${content.libraryTotal} (${content.libraryPublished} published, ${content.libraryPendingReview} pending review)
-Field Notes articles: ${content.engineeringArticlesTotal} (${content.engineeringArticlesPublished} published)
-`
-
-    const element = document.createElement('a')
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(reportContent))
-    element.setAttribute('download', `admin-report-${new Date().toISOString().split('T')[0]}.txt`)
-    element.style.display = 'none'
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
+  const handleDownloadExcel = () => {
+    if (!report) return
+    downloadAdminReportExcel(report)
   }
 
   if (isLoading) {
@@ -165,10 +124,25 @@ Field Notes articles: ${content.engineeringArticlesTotal} (${content.engineering
             Metrics aligned with the dashboard overview and per-programme notifications.
           </p>
         </div>
-        <Button onClick={handleDownloadReport} variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Download Report
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="w-4 h-4 mr-2" />
+              Download Report
+              <ChevronDown className="w-4 h-4 ml-2" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleDownloadPdf}>
+              <FileText className="w-4 h-4 mr-2" />
+              Download as PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleDownloadExcel}>
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Download as Excel (CSV)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
