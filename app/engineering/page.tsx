@@ -36,6 +36,20 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
+              href="/engineering/authors"
+              className="text-sm px-3 py-1 rounded-full border border-slate-300 text-slate-700"
+            >
+              Authors
+            </Link>
+            <Link
+              href="/subscriber"
+              className="text-sm px-3 py-1 rounded-full border border-slate-300 text-slate-700"
+            >
+              Subscriber hub
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Link
               href="/engineering"
               className={`text-sm px-3 py-1 rounded-full border ${
                 !tag ? 'bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]' : 'border-slate-300 text-slate-700'

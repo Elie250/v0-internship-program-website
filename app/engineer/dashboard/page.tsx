@@ -110,6 +110,9 @@ export default function EngineerDashboard() {
                 </Badge>
               ) : null}
               <Button variant="outline" asChild>
+                <Link href="/subscriber">Open subscriber hub</Link>
+              </Button>
+              <Button variant="outline" asChild>
                 <Link href="/engineering-support">
                   {supportAccess?.hasActiveSubscription ? 'Manage plan' : 'Choose a plan'}
                 </Link>
