@@ -235,6 +235,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
       },
       {
+        id: 'engineering-articles',
+        label: 'Field Notes',
+        href: '/admin/dashboard/engineering-articles',
+        icon: 'book-open',
+        permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+        description: 'Engineering blog articles on /engineering',
+      },
+      {
         id: 'services',
         label: 'Services',
         href: '/admin/dashboard/services',

@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Home, Users, Bot, Headphones, Wrench } from 'lucide-react';
+import { LogOut, Home, Users, Bot, Headphones, Wrench, BookOpen } from 'lucide-react';
 import type { SupportAccessSummary } from '@/lib/support/types';
 import { EngineerCommunityPanel } from '@/components/engineer/engineer-community';
 import { EngineerAiAssistant } from '@/components/engineer/engineer-ai-assistant';
+import { EngineerFieldNotesPanel } from '@/components/engineer/engineer-field-notes-panel';
 
 export default function EngineerDashboard() {
   const router = useRouter();
@@ -131,6 +132,10 @@ export default function EngineerDashboard() {
               <Headphones className="w-4 h-4 mr-2" />
               Human support
             </TabsTrigger>
+            <TabsTrigger value="field-notes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Field Notes
+            </TabsTrigger>
             <TabsTrigger value="tools" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Wrench className="w-4 h-4 mr-2" />
               Resources
@@ -170,6 +175,10 @@ export default function EngineerDashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="field-notes">
+            <EngineerFieldNotesPanel />
           </TabsContent>
 
           <TabsContent value="tools">

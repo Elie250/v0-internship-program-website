@@ -7,7 +7,7 @@ import {
   uploadObject,
 } from '@/lib/storage/object-storage'
 
-const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero'] as const
+const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero', 'engineering'] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
   brand: PERMISSIONS.SETTINGS_MANAGE,
@@ -15,6 +15,7 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
   products: PERMISSIONS.SHOP_PRODUCTS,
   services: PERMISSIONS.CONTENT_SERVICES,
   announcements: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+  engineering: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   courses: PERMISSIONS.LEARNING_PROGRAMS,
 }
 

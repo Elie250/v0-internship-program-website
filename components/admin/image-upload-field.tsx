@@ -10,7 +10,7 @@ type Props = {
   label?: string
   value: string
   onChange: (url: string) => void
-  folder: 'products' | 'services' | 'announcements' | 'courses' | 'brand'
+  folder: 'products' | 'services' | 'announcements' | 'courses' | 'brand' | 'engineering'
 }
 
 export function ImageUploadField({ label = 'Image', value, onChange, folder }: Props) {
