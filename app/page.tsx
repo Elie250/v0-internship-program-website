@@ -10,6 +10,7 @@ import { PaymentCtaSection } from '@/components/home/payment-cta-section'
 import { EventsSection } from '@/components/home/events-section'
 import { WebinarsSection } from '@/components/home/webinars-section'
 import { AnnouncementsSection, FeaturedServicesSection } from '@/components/home/announcements-section'
+import { LibraryReadingPicksSection } from '@/components/home/library-reading-picks-section'
 import { ReviewsTrustSection } from '@/components/home/reviews-trust-section'
 
 export default function HomePage() {
@@ -22,6 +23,7 @@ export default function HomePage() {
       <TrainingProgramsSection />
       <ToolsSection />
       <BrowseCoursesSection />
+      <LibraryReadingPicksSection />
       <MembershipSection />
       <PaymentCtaSection />
       <WebinarsSection />

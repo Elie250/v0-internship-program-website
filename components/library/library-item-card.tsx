@@ -16,7 +16,7 @@ const pillarIcons: Record<LibraryPillar, typeof Images> = {
   culture: Sparkles,
 }
 
-export function LibraryItemCard({ item }: { item: EnergyLibraryItem }) {
+export function LibraryItemCard({ item, showViews = false }: { item: EnergyLibraryItem; showViews?: boolean }) {
   const cover = libraryItemCover(item)
   const Icon = pillarIcons[item.pillar]
 
@@ -46,6 +46,9 @@ export function LibraryItemCard({ item }: { item: EnergyLibraryItem }) {
           ) : null}
           {item.author_name ? (
             <p className="text-xs text-slate-500">By {item.author_name}</p>
+          ) : null}
+          {showViews && item.view_count > 0 ? (
+            <p className="text-xs text-slate-500">{item.view_count} views</p>
           ) : null}
         </CardContent>
       </Card>

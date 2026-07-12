@@ -19,6 +19,7 @@ import {
   type EnergyLibraryItem,
   type LibraryPillar,
 } from '@/lib/library/items'
+import { LIBRARY_LANGUAGES } from '@/lib/library/urls'
 import { LIBRARY_TERMS_LABEL } from '@/lib/library/terms'
 import { Edit2, ExternalLink, Plus, Trash2 } from 'lucide-react'
 
@@ -36,6 +37,7 @@ const empty = {
   language: 'rw',
   status: 'published',
   sort_order: 0,
+  is_featured: false,
   terms_accepted: false,
 }
 
@@ -167,6 +169,7 @@ export default function EnergyLibraryManagement() {
       language: item.language,
       status: item.status,
       sort_order: item.sort_order,
+      is_featured: item.is_featured,
       terms_accepted: Boolean(item.terms_accepted_at),
     })
   }
@@ -380,6 +383,21 @@ export default function EnergyLibraryManagement() {
           ) : null}
 
           <div className="space-y-2">
+            <Label>Language</Label>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.language}
+              onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
+            >
+              {LIBRARY_LANGUAGES.map((lang) => (
+                <option key={lang.id} value={lang.id}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <Label>Sort order</Label>
             <Input
               type="number"
@@ -387,6 +405,15 @@ export default function EnergyLibraryManagement() {
               onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
             />
           </div>
+
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.is_featured}
+              onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))}
+            />
+            <span>Feature on homepage reading picks and library highlights</span>
+          </label>
 
           <label className="flex items-start gap-2 text-sm text-slate-700">
             <input
@@ -434,6 +461,7 @@ export default function EnergyLibraryManagement() {
                       {pillarLabel(item.pillar)}
                       {item.author_name ? ` · ${item.author_name}` : ''}
                       {item.uploader_role ? ` · submitted by ${item.uploader_role}` : ''}
+                      {item.is_featured ? ' · Featured' : ''}
                     </p>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -468,6 +496,7 @@ export default function EnergyLibraryManagement() {
                 <p className="text-sm text-slate-500">
                   {pillarLabel(item.pillar)} · {libraryStatusLabel(item.status)} · {item.view_count} views
                   {item.author_name ? ` · ${item.author_name}` : ''}
+                  {item.is_featured ? ' · Featured' : ''}
                 </p>
               </div>
               <div className="flex gap-2 items-center">
