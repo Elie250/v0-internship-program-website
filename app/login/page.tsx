@@ -1,37 +1,17 @@
-import { loginStudent } from './actions'
+import { redirect } from 'next/navigation'
 
-export default function LoginPage() {
-
-  return (
-
-    <form action={loginStudent} className="max-w-md mx-auto p-10 space-y-4">
-
-      <h1 className="text-2xl font-bold">
-        Student Login
-      </h1>
-
-      <input
-        name="username"
-        placeholder="Username"
-        className="border p-2 w-full"
-      />
-
-      <input
-        name="password"
-        type="password"
-        placeholder="Password"
-        className="border p-2 w-full"
-      />
-
-      <button
-        type="submit"
-        className="bg-green-600 text-white px-4 py-2"
-      >
-        Login
-      </button>
-
-    </form>
-
-  )
-
+/** Legacy route — unified auth lives at /auth/login */
+export default async function LegacyLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string') query.set(key, value)
+    else if (Array.isArray(value) && value[0]) query.set(key, value[0])
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  redirect(`/auth/login${suffix}`)
 }

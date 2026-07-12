@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { addPostComment, loadPostComments } from '@/lib/engineering/profile-posts'
 import { displayNameFromSession, getSessionUser } from '@/lib/auth/session-user'
+import { authLinksFromReferer } from '@/lib/auth/public-auth-links'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -35,8 +36,13 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await getSessionUser()
     if (!user?.id) {
+      const { loginUrl, registerUrl } = authLinksFromReferer(request, '/engineering/authors')
       return NextResponse.json(
-        { error: 'Sign in to leave a comment', loginUrl: '/login' },
+        {
+          error: 'Create an account or sign in to leave a comment',
+          loginUrl,
+          registerUrl,
+        },
         { status: 401 }
       )
     }
