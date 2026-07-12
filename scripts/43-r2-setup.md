@@ -34,13 +34,18 @@ Update `AllowedOrigins` if your production URL differs.
 
 Redeploy after adding variables.
 
-## 4. Migrate existing Supabase files (optional)
+## 4. Migrate existing Supabase files
 
-Copy objects from Supabase `platform-media` to R2 keeping the same paths (`hero/`, `products/`, `receipts/`, etc.).
+Use the automated migration (recommended):
 
-Then update database URLs from `*.supabase.co/storage/...` to `https://media.energyandlogics.com/...` for existing rows.
+```bash
+node scripts/migrate-supabase-to-r2.mjs --dry-run --rewrite-urls
+node scripts/migrate-supabase-to-r2.mjs --rewrite-urls
+```
 
-New uploads go to R2 automatically once env vars are set.
+Or see **`scripts/44-migrate-storage-to-r2.md`** for full steps and the SQL-only URL rewrite (`scripts/44-migrate-storage-urls-to-r2.sql`).
+
+Objects keep the same paths (`hero/`, `products/`, `receipts/`, etc.). Database URLs change from `*.supabase.co/storage/...` to `https://media.energyandlogics.com/...`.
 
 ## 5. Verify
 
