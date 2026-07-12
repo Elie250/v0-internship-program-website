@@ -46,12 +46,19 @@ function unsubscribeUrl(token: string | null): string {
   return `${appUrl}/engineering/digest/manage`
 }
 
+/** Max digest emails per weekly cron run (protects Resend monthly quota). */
+const DIGEST_MAX_RECIPIENTS_PER_RUN = 150
+
+/** Minimum days between digest sends to the same subscriber. */
+const DIGEST_MIN_DAYS_BETWEEN_SENDS = 6
+
 type DigestSubscriberRow = {
   email: string
   name: string | null
   preferred_tags?: string[] | null
   frequency?: string | null
   unsubscribe_token?: string | null
+  last_digest_sent_at?: string | null
 }
 
 export async function sendEngineeringWeeklyDigest(): Promise<{
@@ -77,7 +84,7 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
 
   const subscriberResult = await supabaseAdmin
     .from('engineering_digest_subscribers')
-    .select('email, name, preferred_tags, frequency, unsubscribe_token')
+    .select('email, name, preferred_tags, frequency, unsubscribe_token, last_digest_sent_at')
     .eq('status', 'active')
 
   let subscribers = subscriberResult.data as DigestSubscriberRow[] | null
@@ -85,7 +92,8 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
   if (
     subError?.message.includes('preferred_tags') ||
     subError?.message.includes('frequency') ||
-    subError?.message.includes('unsubscribe_token')
+    subError?.message.includes('unsubscribe_token') ||
+    subError?.message.includes('last_digest_sent_at')
   ) {
     const legacyResult = await supabaseAdmin
       .from('engineering_digest_subscribers')
@@ -126,10 +134,18 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
   const appUrl = getAppUrl()
   let sent = 0
   const includedArticleIds = new Set<string>()
+  const sentSubscriberEmails: string[] = []
+  const weekMs = 7 * 24 * 60 * 60 * 1000
+  const minGapMs = DIGEST_MIN_DAYS_BETWEEN_SENDS * 24 * 60 * 60 * 1000
 
   for (const sub of subscribers) {
+    if (sent >= DIGEST_MAX_RECIPIENTS_PER_RUN) break
+
     const frequency = String(sub.frequency ?? 'weekly')
     if (frequency === 'off') continue
+
+    const lastSent = sub.last_digest_sent_at ? new Date(sub.last_digest_sent_at).getTime() : 0
+    if (lastSent && Date.now() - lastSent < minGapMs) continue
 
     const preferredTags = Array.isArray(sub.preferred_tags)
       ? sub.preferred_tags.map(String)
@@ -149,14 +165,16 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
       subject: `The Weekly Circuit — ${matched.length} new field note${matched.length === 1 ? '' : 's'}`,
       html: emailLayout({
         title: 'The Weekly Circuit',
-        subtitle: `${COMPANY.brandName} Field Notes`,
+        subtitle: `${COMPANY.brandName} Field Notes · Weekly digest`,
         headerTone: 'primary',
         bodyHtml: `
           <p>Hi ${escapeHtml(sub.name?.trim() || 'engineer')},</p>
-          <p>Here are this week&apos;s practical engineering articles from <strong>Field Notes</strong>:</p>
+          <p>Here is your <strong>weekly</strong> roundup of practical engineering articles from <strong>Field Notes</strong> (not a daily email):</p>
           ${itemsHtml}
           ${ctaButton('Browse all Field Notes', `${appUrl}/engineering`)}
           <p style="font-size:12px;color:#64748b;margin-top:24px">
+            You receive this at most once per week to protect your inbox and our email quota.
+            <br />
             <a href="${manageLink}" style="color:#64748b">Manage digest preferences</a>
             ·
             <a href="${unsubLink}" style="color:#64748b">Unsubscribe</a>
@@ -166,6 +184,7 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
     })
     if (result.success) {
       sent += 1
+      sentSubscriberEmails.push(sub.email)
       matched.forEach((a) => includedArticleIds.add(a.id))
     }
   }
@@ -179,6 +198,13 @@ export async function sendEngineeringWeeklyDigest(): Promise<{
     .from('engineering_articles')
     .update({ digest_sent_at: now })
     .in('id', [...includedArticleIds])
+
+  if (sentSubscriberEmails.length > 0) {
+    await supabaseAdmin
+      .from('engineering_digest_subscribers')
+      .update({ last_digest_sent_at: now })
+      .in('email', sentSubscriberEmails)
+  }
 
   return { sent, articles: includedArticleIds.size }
 }

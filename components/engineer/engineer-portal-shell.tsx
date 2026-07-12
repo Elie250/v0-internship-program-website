@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   PenLine,
+  Rss,
   User,
   Users,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ const nav = [
   { href: '/engineer/ai', label: 'AI assistant', icon: Bot, match: 'ai' as const },
   { href: '/engineer/support', label: 'Support', icon: Headphones, match: 'support' as const },
   { href: '/engineer/field-notes', label: 'Field Notes', icon: PenLine, match: 'field-notes' as const },
+  { href: '/engineer/posts', label: 'Public posts', icon: Rss, match: 'posts' as const },
   { href: '/engineer/tools', label: 'Tools', icon: Calculator, match: 'tools' as const },
   { href: '/engineer/profile', label: 'Profile', icon: User, match: 'profile' as const },
 ]

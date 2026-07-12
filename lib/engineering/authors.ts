@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { normalizeEngineeringArticle, type EngineeringArticle } from '@/lib/engineering/articles'
+import { loadPublicProfilePosts, type ProfilePost } from '@/lib/engineering/profile-posts'
 
 export type PublicAuthorProfile = {
   id: string
@@ -13,6 +14,7 @@ export type PublicAuthorProfile = {
   qualifications: string | null
   cvUrl: string | null
   articles: EngineeringArticle[]
+  posts: ProfilePost[]
 }
 
 const AUTHOR_SELECT =
@@ -56,7 +58,8 @@ export async function loadPublicAuthorProfile(authorId: string): Promise<PublicA
   const published = (articles ?? []).map((row) =>
     normalizeEngineeringArticle(row as Record<string, unknown>)
   )
-  if (published.length === 0) return null
+  const posts = await loadPublicProfilePosts(authorId)
+  if (published.length === 0 && posts.length === 0) return null
 
   const firstName = String(user.first_name ?? '')
   const lastName = String(user.last_name ?? '')
@@ -74,6 +77,7 @@ export async function loadPublicAuthorProfile(authorId: string): Promise<PublicA
     qualifications: row.profile_qualifications ? String(row.profile_qualifications) : null,
     cvUrl: row.profile_cv_url ? String(row.profile_cv_url) : null,
     articles: published,
+    posts,
   }
 }
 

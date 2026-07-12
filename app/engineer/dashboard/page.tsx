@@ -13,6 +13,7 @@ import {
   Calculator,
   Headphones,
   PenLine,
+  Rss,
   Sparkles,
   Users,
 } from 'lucide-react'
@@ -45,6 +46,13 @@ const quickLinks = [
     description: 'Draft practical articles for the public blog.',
     icon: PenLine,
     color: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  },
+  {
+    href: '/engineer/posts',
+    title: 'Public posts',
+    description: 'Share updates on your profile — anyone can comment, no upgrade needed.',
+    icon: Rss,
+    color: 'bg-cyan-50 text-cyan-800 border-cyan-100',
   },
   {
     href: '/engineer/tools',
@@ -89,8 +97,9 @@ export default function EngineerDashboardPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
           <h2 className="text-xl font-bold text-slate-900">Engineer Community Hub</h2>
           <p className="text-sm text-slate-600 mt-2 max-w-2xl">
-            Community discussions, AI assist, support tickets, Field Notes authoring, and
-            calculators — all in one place. Use the sidebar to jump between sections.
+            Community discussions, AI assist, support tickets, Field Notes authoring, public
+            profile posts, and calculators — all in one place. Comment on articles and posts for
+            free; paid plans unlock AI, tickets, and premium reads.
           </p>
         </div>
 
