@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { FieldNotesArticleBody } from '@/components/engineering/field-notes-article'
+import { ArticleSubscriberExtras } from '@/components/engineering/article-subscriber-extras'
 import { DigestSubscribeForm } from '@/components/engineering/digest-subscribe-form'
 import { loadPublishedArticleBySlug, loadPublishedArticles } from '@/lib/engineering/queries'
 import { COMPANY } from '@/lib/company/constants'
@@ -40,6 +41,13 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
           ← All Field Notes
         </Link>
         <FieldNotesArticleBody article={article} />
+
+        <ArticleSubscriberExtras
+          slug={slug}
+          tags={article.tags}
+          authorId={article.author_id}
+          authorName={article.author_name}
+        />
 
         {related.length > 0 ? (
           <section className="space-y-3 border-t border-slate-200 pt-8">

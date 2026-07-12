@@ -22,6 +22,7 @@ export async function SiteFooter() {
             <li><Link href="/career">Career</Link></li>
             <li><Link href="/internship">Internship</Link></li>
             <li><Link href="/engineering">Field Notes</Link></li>
+            <li><Link href="/subscriber">Subscriber Hub</Link></li>
             <li><Link href="/engineering-support">Engineering Support</Link></li>
           </ul>
         </div>
