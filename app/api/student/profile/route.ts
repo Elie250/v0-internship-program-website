@@ -5,8 +5,19 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 const PROFILE_SELECT =
   'id, first_name, last_name, email, phone, role, profile_photo_url, parent_guardian_name, parent_guardian_phone, parent_guardian_email, parent_guardian_relationship'
 
-const PROFILE_SELECT_FALLBACK =
-  'id, first_name, last_name, email, phone, role, profile_photo_url'
+type StudentProfileRow = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  email: string
+  phone: string | null
+  role: string
+  profile_photo_url: string | null
+  parent_guardian_name: string | null
+  parent_guardian_phone: string | null
+  parent_guardian_email: string | null
+  parent_guardian_relationship: string | null
+}
 
 async function getSessionUser() {
   const cookieStore = await cookies()
@@ -19,17 +30,20 @@ async function getSessionUser() {
   }
 }
 
-function withProfileDefaults(
-  data: Record<string, unknown> | null
-): Record<string, unknown> | null {
-  if (!data) return null
+function withParentDefaults(
+  row: Omit<
+    StudentProfileRow,
+    'parent_guardian_name' | 'parent_guardian_phone' | 'parent_guardian_email' | 'parent_guardian_relationship'
+  > | null
+): StudentProfileRow | null {
+  if (!row) return null
   return {
-    ...data,
-    profile_photo_url: data.profile_photo_url ?? null,
-    parent_guardian_name: data.parent_guardian_name ?? null,
-    parent_guardian_phone: data.parent_guardian_phone ?? null,
-    parent_guardian_email: data.parent_guardian_email ?? null,
-    parent_guardian_relationship: data.parent_guardian_relationship ?? null,
+    ...row,
+    profile_photo_url: row.profile_photo_url ?? null,
+    parent_guardian_name: null,
+    parent_guardian_phone: null,
+    parent_guardian_email: null,
+    parent_guardian_relationship: null,
   }
 }
 
@@ -43,7 +57,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    let { data, error } = await supabaseAdmin
+    let data: StudentProfileRow | null = null
+    let { data: fullRow, error } = await supabaseAdmin
       .from('users')
       .select(PROFILE_SELECT)
       .eq('id', user.id)
@@ -55,11 +70,13 @@ export async function GET() {
     ) {
       const fallback = await supabaseAdmin
         .from('users')
-        .select(PROFILE_SELECT_FALLBACK)
+        .select('id, first_name, last_name, email, phone, role, profile_photo_url')
         .eq('id', user.id)
         .maybeSingle()
-      data = withProfileDefaults(fallback.data as Record<string, unknown> | null)
+      data = withParentDefaults(fallback.data as StudentProfileRow | null)
       error = fallback.error
+    } else {
+      data = (fullRow as StudentProfileRow | null) ?? null
     }
 
     if (error || !data) {
@@ -107,7 +124,7 @@ export async function PATCH(request: Request) {
         String(body.parentGuardianRelationship ?? '').trim() || null
     }
 
-    let { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update(payload)
       .eq('id', user.id)
@@ -135,7 +152,7 @@ export async function PATCH(request: Request) {
     }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(withProfileDefaults(data as Record<string, unknown>))
+    return NextResponse.json(data as StudentProfileRow)
   } catch {
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }
