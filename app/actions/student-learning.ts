@@ -108,7 +108,13 @@ export type CatalogCourseItem = {
 }
 
 export type StudentPortalData = {
-  user: { firstName?: string; lastName?: string; email: string; phone?: string | null }
+  user: {
+    firstName?: string
+    lastName?: string
+    email: string
+    phone?: string | null
+    profilePhotoUrl?: string | null
+  }
   activeCourses: StudentCourse[]
   upcomingCourses: StudentCourse[]
   expiredCourses: StudentCourse[]
@@ -542,8 +548,14 @@ export async function getStudentPortalData(options?: {
   }
 
   let phone: string | null = null
-  const { data: userRow } = await supabaseAdmin.from('users').select('phone').eq('id', userId).maybeSingle()
+  let profilePhotoUrl: string | null = null
+  const { data: userRow } = await supabaseAdmin
+    .from('users')
+    .select('phone, profile_photo_url')
+    .eq('id', userId)
+    .maybeSingle()
   phone = userRow?.phone ?? null
+  profilePhotoUrl = userRow?.profile_photo_url ?? null
 
   const enrollmentRows = rows.map((r) => ({
     id: r.id,
@@ -572,6 +584,7 @@ export async function getStudentPortalData(options?: {
         lastName: user.lastName,
         email: user.email,
         phone,
+        profilePhotoUrl,
       },
       activeCourses,
       upcomingCourses,

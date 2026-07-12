@@ -30,13 +30,17 @@ export default function StudentCertificates() {
   const router = useRouter()
   const [certs, setCerts] = useState<CertificateRow[]>([])
   const [userName, setUserName] = useState('')
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       getStudentPortalData(),
       fetch('/api/student/certificates', { credentials: 'same-origin' }).then((res) => res.json()),
-    ]).then(([portal, certData]) => {
+      fetch('/api/student/profile', { credentials: 'same-origin' }).then((res) =>
+        res.ok ? res.json() : null
+      ),
+    ]).then(([portal, certData, profileData]) => {
       if (!portal.success) {
         router.push('/auth/login?redirect=/student/certificates')
         return
@@ -46,6 +50,7 @@ export default function StudentCertificates() {
           portal.data.user.email
       )
       setCerts(Array.isArray(certData) ? certData : [])
+      setProfilePhotoUrl(profileData?.profile_photo_url ?? null)
       setLoading(false)
     })
   }, [router])
@@ -60,6 +65,7 @@ export default function StudentCertificates() {
       completionDate: new Date(cert.issued_at),
       certificateId: cert.certificate_code,
       finalScore: cert.final_score ?? null,
+      profilePhotoUrl,
       freeCourse: cert.is_free === true,
       pendingApproval: !isOfficial,
       assetBaseUrl: origin,
@@ -80,7 +86,12 @@ export default function StudentCertificates() {
           <h1 className="text-2xl font-bold text-slate-900">My certificates</h1>
           <p className="text-slate-600 text-sm mt-1">
             After your lecturer confirms completion, you can preview your certificate here. The
-            official stamp and signature are added once admin gives final approval.
+            official stamp and signature are added once admin gives final approval. Add a profile
+            photo under{' '}
+            <Link href="/student/profile" className="text-[var(--brand-navy)] underline font-medium">
+              Your profile
+            </Link>{' '}
+            to include it on your certificate.
           </p>
         </div>
 

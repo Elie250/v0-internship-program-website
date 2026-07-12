@@ -4,6 +4,8 @@ export type CertificateData = {
   completionDate: Date
   certificateId: string
   finalScore?: number | null
+  /** Student portrait shown above the recipient name when set. */
+  profilePhotoUrl?: string | null
   /** Free programmes render a diagonal "Energy & Logics" watermark. */
   freeCourse?: boolean
   /** Awaiting admin stamp — preview only, not publicly verifiable. */
@@ -26,6 +28,7 @@ export function createCertificateHTML({
   completionDate,
   certificateId,
   finalScore,
+  profilePhotoUrl,
   freeCourse = false,
   pendingApproval = false,
   assetBaseUrl = '',
@@ -203,6 +206,21 @@ export function createCertificateHTML({
           letter-spacing: 2px;
           text-transform: uppercase;
           font-weight: 500;
+        }
+
+        .recipient-photo-wrap {
+          margin-top: 4mm;
+          display: flex;
+          justify-content: center;
+        }
+        .recipient-photo {
+          width: 28mm;
+          height: 28mm;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2.5px solid #b8941f;
+          box-shadow: 0 2px 8px rgba(30, 58, 95, 0.15);
+          background: #f1f5f9;
         }
 
         .recipient {
@@ -519,6 +537,11 @@ export function createCertificateHTML({
           <div class="cert-subtitle">Professional Training &amp; Development</div>
 
           <div class="presented">This certificate is proudly presented to</div>
+          ${
+            profilePhotoUrl
+              ? `<div class="recipient-photo-wrap"><img class="recipient-photo" src="${profilePhotoUrl}" alt=""></div>`
+              : ''
+          }
           <div class="recipient">${fullName}</div>
           <div class="rule"></div>
 
