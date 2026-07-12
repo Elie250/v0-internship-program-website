@@ -7,7 +7,18 @@ import {
   uploadObject,
 } from '@/lib/storage/object-storage'
 
-const ALLOWED_FOLDERS = ['products', 'services', 'announcements', 'courses', 'brand', 'hero', 'engineering', 'engineering-docs'] as const
+const ALLOWED_FOLDERS = [
+  'products',
+  'services',
+  'announcements',
+  'courses',
+  'brand',
+  'hero',
+  'engineering',
+  'engineering-docs',
+  'energy-library',
+  'energy-library-docs',
+] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
   brand: PERMISSIONS.SETTINGS_MANAGE,
@@ -17,6 +28,8 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
   announcements: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   engineering: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   'engineering-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+  'energy-library': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+  'energy-library-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   courses: PERMISSIONS.LEARNING_PROGRAMS,
 }
 
@@ -40,7 +53,7 @@ export async function POST(request: Request) {
 
     await requireAdminPermission(FOLDER_PERMISSIONS[folder as (typeof ALLOWED_FOLDERS)[number]])
 
-    const isPdfDoc = folder === 'engineering-docs'
+    const isPdfDoc = folder === 'engineering-docs' || folder === 'energy-library-docs'
     if (isPdfDoc) {
       if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
         return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 })

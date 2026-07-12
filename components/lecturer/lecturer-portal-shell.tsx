@@ -8,6 +8,7 @@ import {
   Calculator,
   GraduationCap,
   Home,
+  Library,
   LogOut,
   Menu,
   User,
@@ -28,6 +29,7 @@ import { COMPANY } from '@/lib/company/constants'
 const nav = [
   { href: '/lecturer/dashboard', label: 'My programmes', icon: GraduationCap, match: 'programmes' as const },
   { href: '/lecturer/students', label: 'Students', icon: Users, match: 'students' as const },
+  { href: '/lecturer/library', label: 'Library', icon: Library, match: 'library' as const },
   { href: '/lecturer/tools', label: 'Tools', icon: Calculator, match: 'tools' as const },
   { href: '/lecturer/profile', label: 'Profile', icon: User, match: 'profile' as const },
 ]
@@ -38,6 +40,7 @@ function useNavActive(pathname: string) {
       return pathname === '/lecturer/dashboard' || pathname.startsWith('/lecturer/courses/')
     }
     if (item.match === 'students') return pathname.startsWith('/lecturer/students')
+    if (item.match === 'library') return pathname.startsWith('/lecturer/library')
     if (item.match === 'tools') return pathname.startsWith('/lecturer/tools')
     if (item.match === 'profile') return pathname.startsWith('/lecturer/profile')
     return false

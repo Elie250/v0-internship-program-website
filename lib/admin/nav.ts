@@ -259,6 +259,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         description: 'Free PDF guides with email capture',
       },
       {
+        id: 'energy-library',
+        label: 'Energy Library',
+        href: '/admin/dashboard/energy-library',
+        icon: 'book-open',
+        permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+        description: 'Public gallery, books, and culture on /library',
+      },
+      {
         id: 'engineering-analytics',
         label: 'Field Notes analytics',
         href: '/admin/dashboard/engineering-analytics',

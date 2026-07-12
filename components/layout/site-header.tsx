@@ -165,6 +165,9 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
         <Link href="/engineering" onClick={onNavigate} className={mobileNavLinkClass}>
           Blog
         </Link>
+        <Link href="/library" onClick={onNavigate} className={mobileNavLinkClass}>
+          Library
+        </Link>
         <Link href="/about" onClick={onNavigate} className={mobileNavLinkClass}>
           About
         </Link>
@@ -256,12 +259,6 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
             </Button>
           </Link>
 
-          <Link href="/engineering-support">
-            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
-              Support
-            </Button>
-          </Link>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className={headerNavButtonClass}>
@@ -282,6 +279,12 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           <Link href="/engineering">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
               Blog
+            </Button>
+          </Link>
+
+          <Link href="/library">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Library
             </Button>
           </Link>
 
