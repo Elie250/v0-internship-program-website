@@ -24,7 +24,6 @@ const learningLinks = [
   { href: '/learning', label: 'All courses & programmes' },
   { href: '/learning?module=training', label: 'Training' },
   { href: '/internship', label: 'Internship' },
-  { href: '/engineering', label: 'Field Notes' },
   { href: '/subscriber', label: 'Subscriber Hub' },
   { href: '/engineering-support', label: 'Engineering Support' },
 ]
@@ -133,7 +132,6 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
     { href: '/tools', label: 'Tools' },
     { href: '/shop', label: 'Products' },
     { href: '/engineering-support', label: 'Engineering Support' },
-    { href: '/about', label: 'About' },
   ]
 
   return (
@@ -163,6 +161,15 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
             {link.label}
           </Link>
         ))}
+      </div>
+
+      <div className="space-y-1">
+        <Link href="/engineering" onClick={onNavigate} className={mobileNavLinkClass}>
+          Blog
+        </Link>
+        <Link href="/about" onClick={onNavigate} className={mobileNavLinkClass}>
+          About
+        </Link>
       </div>
 
       <div className="border-t border-slate-200 pt-4 flex flex-col gap-2">
@@ -267,6 +274,12 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Link href="/engineering">
+            <Button variant="ghost" size="sm" className={headerNavButtonClass}>
+              Blog
+            </Button>
+          </Link>
 
           <Link href="/about">
             <Button variant="ghost" size="sm" className={headerNavButtonClass}>
