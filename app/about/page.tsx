@@ -10,6 +10,8 @@ import {
   ShoppingBag,
   Smartphone,
   Star,
+  Target,
+  Eye,
 } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
@@ -18,8 +20,10 @@ import { Button } from '@/components/ui/button'
 import {
   COMPANY,
   FOUNDER,
+  GOALS_DEFAULT,
   PAYMENT,
   TRAINING_PROGRAMS,
+  VISION_DEFAULT,
 } from '@/lib/company/constants'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 import { loadPublicTeamMembers } from '@/lib/platform/team'
@@ -51,17 +55,60 @@ export default async function AboutPage() {
           </CardHeader>
           <CardContent>
             <p className="text-slate-700 whitespace-pre-line leading-relaxed">{about}</p>
+            <p className="text-sm text-slate-600 mt-4 leading-relaxed">
+              Based in {profile.address}, we serve students, graduates, technicians, and engineering
+              teams across {COMPANY.region} through training, our online Engineering Hub, Field Notes,
+              and technical support.
+            </p>
           </CardContent>
         </Card>
 
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="border-slate-200 bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <Target className="h-5 w-5 text-[var(--brand-navy)]" />
+                Our Mission
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 whitespace-pre-line leading-relaxed">{mission}</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-slate-200 bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <Eye className="h-5 w-5 text-[var(--brand-navy)]" />
+                Our Vision
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-700 whitespace-pre-line leading-relaxed">{VISION_DEFAULT}</p>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card className="border-slate-200 bg-white">
           <CardHeader>
-            <CardTitle className="text-slate-900">Our Mission</CardTitle>
+            <CardTitle className="text-slate-900">Our Goals</CardTitle>
+            <p className="text-sm text-slate-600 mt-1">
+              What we work toward every day as a training and engineering company.
+            </p>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-700 whitespace-pre-line leading-relaxed">{mission}</p>
+            <ul className="space-y-3">
+              {GOALS_DEFAULT.map((goal) => (
+                <li key={goal} className="flex gap-3 text-slate-700 text-sm leading-relaxed">
+                  <span className="mt-1.5 h-2 w-2 rounded-full bg-[var(--brand-navy)] shrink-0" />
+                  <span>{goal}</span>
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
+
+        <OurTeamSection members={teamMembers} />
 
         <Card className="border-slate-200 bg-white">
           <CardHeader>
@@ -96,8 +143,6 @@ export default async function AboutPage() {
             </ul>
           </CardContent>
         </Card>
-
-        <OurTeamSection members={teamMembers} />
 
         <Card className="border-slate-200 bg-white">
           <CardHeader>

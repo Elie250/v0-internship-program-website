@@ -1,8 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
-import { ExternalLink, Eye, PenLine, Trash2 } from 'lucide-react'
+import { Eye, PenLine, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -16,10 +15,9 @@ type Post = {
 }
 
 export function EngineerPostsPanel({
-  authorId,
   isSignedIn = true,
 }: {
-  authorId: string
+  authorId?: string
   isSignedIn?: boolean
 }) {
   const [posts, setPosts] = useState<Post[]>([])
@@ -28,8 +26,6 @@ export function EngineerPostsPanel({
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [publicPageReady, setPublicPageReady] = useState<boolean | null>(null)
-  const publicPageUrl = `/engineering/authors/${authorId}`
 
   const loadPosts = useCallback(async () => {
     setLoading(true)
@@ -53,12 +49,6 @@ export function EngineerPostsPanel({
   useEffect(() => {
     void loadPosts()
   }, [loadPosts])
-
-  useEffect(() => {
-    void fetch(`/api/engineering/authors/${authorId}`)
-      .then((res) => setPublicPageReady(res.ok))
-      .catch(() => setPublicPageReady(false))
-  }, [authorId, posts.length])
 
   const handleCreate = async () => {
     const trimmedBody = body.trim()
@@ -109,32 +99,16 @@ export function EngineerPostsPanel({
   return (
     <div className="space-y-8">
       <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <PenLine className="h-5 w-5 text-[var(--brand-navy)]" />
-              Public profile posts
-            </h2>
-            <p className="text-sm text-slate-600 mt-1">
-              Share updates on your public author page. Anyone signed in can comment — no paid plan
-              needed.
-            </p>
-          </div>
-          <Link
-            href={publicPageUrl}
-            target="_blank"
-            className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-navy)] underline shrink-0"
-          >
-            View public page <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        {publicPageReady === false ? (
-          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
-            Your public page will appear after you publish at least one post. If you already posted,
-            make sure <code className="text-xs">scripts/51-public-comments-posts.sql</code> has been
-            run in Supabase.
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <PenLine className="h-5 w-5 text-[var(--brand-navy)]" />
+            Public profile posts
+          </h2>
+          <p className="text-sm text-slate-600 mt-1">
+            Share updates on your public author page. Anyone signed in can comment — no paid plan
+            needed.
           </p>
-        ) : null}
+        </div>
 
         <Input
           value={title}

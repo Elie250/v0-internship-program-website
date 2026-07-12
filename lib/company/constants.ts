@@ -85,3 +85,13 @@ export const ABOUT_DEFAULT = `${COMPANY.brandName} Ltd is a Rwanda-based enginee
 Through our ${COMPANY.platformName} platform, we deliver structured programmes in embedded systems, industrial control, and advanced electrical technology—combining classroom instruction, lab work, and real project experience.`
 
 export const MISSION_DEFAULT = `We bridge the gap between classroom theory and industry practice by delivering hands-on engineering training, mentorship, and technical support—so our learners are ready to work, build, and solve real problems in Rwanda and the wider region.`
+
+export const VISION_DEFAULT = `A region where every engineering graduate and technician can demonstrate real skills—programming controls, wiring panels, building embedded systems, and troubleshooting on site—with confidence and professional integrity.`
+
+export const GOALS_DEFAULT = [
+  'Deliver practical, industry-aligned training in embedded systems, industrial control, and electrical technology.',
+  'Connect students and graduates with mentors, field notes, and a community of practicing engineers.',
+  'Support employers with job-ready talent and ongoing technical assistance through our Engineering Hub.',
+  'Make quality engineering education accessible across Rwanda and East Africa through online and in-person programmes.',
+  'Promote continuous learning through Field Notes, workshops, and open collaboration between lecturers and learners.',
+] as const
