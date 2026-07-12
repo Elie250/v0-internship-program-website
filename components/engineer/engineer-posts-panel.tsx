@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ExternalLink, PenLine, Trash2 } from 'lucide-react'
+import { ExternalLink, Eye, PenLine, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { ProfilePostsSection } from '@/components/engineering/profile-posts-section'
 
 type Post = {
   id: string
@@ -14,13 +15,21 @@ type Post = {
   createdAt: string
 }
 
-export function EngineerPostsPanel({ authorId }: { authorId: string }) {
+export function EngineerPostsPanel({
+  authorId,
+  isSignedIn = true,
+}: {
+  authorId: string
+  isSignedIn?: boolean
+}) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [publicPageReady, setPublicPageReady] = useState<boolean | null>(null)
+  const publicPageUrl = `/engineering/authors/${authorId}`
 
   const loadPosts = useCallback(async () => {
     setLoading(true)
@@ -44,6 +53,12 @@ export function EngineerPostsPanel({ authorId }: { authorId: string }) {
   useEffect(() => {
     void loadPosts()
   }, [loadPosts])
+
+  useEffect(() => {
+    void fetch(`/api/engineering/authors/${authorId}`)
+      .then((res) => setPublicPageReady(res.ok))
+      .catch(() => setPublicPageReady(false))
+  }, [authorId, posts.length])
 
   const handleCreate = async () => {
     const trimmedBody = body.trim()
@@ -106,13 +121,20 @@ export function EngineerPostsPanel({ authorId }: { authorId: string }) {
             </p>
           </div>
           <Link
-            href={`/engineering/authors/${authorId}`}
+            href={publicPageUrl}
             target="_blank"
             className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand-navy)] underline shrink-0"
           >
             View public page <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         </div>
+        {publicPageReady === false ? (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-3">
+            Your public page will appear after you publish at least one post. If you already posted,
+            make sure <code className="text-xs">scripts/51-public-comments-posts.sql</code> has been
+            run in Supabase.
+          </p>
+        ) : null}
 
         <Input
           value={title}
@@ -178,6 +200,27 @@ export function EngineerPostsPanel({ authorId }: { authorId: string }) {
           </ul>
         )}
       </div>
+
+      {posts.length > 0 ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-[var(--brand-navy)]" />
+            <h3 className="font-medium text-slate-900">Public preview</h3>
+          </div>
+          <p className="text-sm text-slate-600">
+            This is how others see your posts on your author page — no login required to read.
+          </p>
+          <ProfilePostsSection
+            posts={posts.map((post) => ({
+              id: post.id,
+              title: post.title,
+              body: post.body,
+              createdAt: post.createdAt,
+            }))}
+            isSignedIn={isSignedIn}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }
