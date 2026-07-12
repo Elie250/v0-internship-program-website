@@ -4,8 +4,13 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { FieldNotesArticleBody } from '@/components/engineering/field-notes-article'
 import { ArticleSubscriberExtras } from '@/components/engineering/article-subscriber-extras'
+import { ArticleViewTracker } from '@/components/engineering/article-view-tracker'
 import { DigestSubscribeForm } from '@/components/engineering/digest-subscribe-form'
-import { loadPublishedArticleBySlug, loadPublishedArticles } from '@/lib/engineering/queries'
+import {
+  loadPublishedArticleBySlug,
+  loadPublishedArticles,
+  loadSeriesById,
+} from '@/lib/engineering/queries'
 import { COMPANY } from '@/lib/company/constants'
 
 export const dynamic = 'force-dynamic'
@@ -29,17 +34,33 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
   const article = await loadPublishedArticleBySlug(slug)
   if (!article) notFound()
 
+  const series = article.series_id ? await loadSeriesById(article.series_id) : null
+
   const related = (await loadPublishedArticles({ limit: 4 }))
     .filter((item) => item.slug !== slug)
     .slice(0, 3)
 
   return (
     <main className="min-h-screen bg-slate-50">
+      <ArticleViewTracker slug={slug} />
       <SiteHeader />
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-8 md:py-12 space-y-10">
-        <Link href="/engineering" className="text-sm text-[var(--brand-navy)] underline font-medium">
-          ← All Field Notes
-        </Link>
+        <nav className="text-sm text-slate-600 flex flex-wrap items-center gap-1">
+          <Link href="/engineering" className="text-[var(--brand-navy)] underline font-medium">
+            Field Notes
+          </Link>
+          {series ? (
+            <>
+              <span aria-hidden>·</span>
+              <Link
+                href={`/engineering/series/${series.slug}`}
+                className="text-[var(--brand-navy)] underline font-medium"
+              >
+                {series.title}
+              </Link>
+            </>
+          ) : null}
+        </nav>
         <FieldNotesArticleBody article={article} />
 
         <ArticleSubscriberExtras

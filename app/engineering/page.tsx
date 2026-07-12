@@ -1,21 +1,40 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { FieldNotesArticleCard } from '@/components/engineering/field-notes-article'
 import { DigestSubscribeForm } from '@/components/engineering/digest-subscribe-form'
-import { loadPublishedArticles } from '@/lib/engineering/queries'
+import { FieldNotesSearch } from '@/components/engineering/field-notes-search'
+import { LeadMagnetCard } from '@/components/engineering/lead-magnet-card'
+import {
+  loadPopularArticles,
+  loadPublishedArticles,
+  loadPublishedLeadMagnets,
+  loadPublishedSeries,
+  searchPublishedArticles,
+} from '@/lib/engineering/queries'
 import { ENGINEERING_ARTICLE_TAGS } from '@/lib/engineering/articles'
 import { COMPANY } from '@/lib/company/constants'
 
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams: Promise<{ tag?: string }>
+  searchParams: Promise<{ tag?: string; q?: string }>
 }
 
 export default async function EngineeringBlogPage({ searchParams }: PageProps) {
-  const { tag } = await searchParams
-  const articles = await loadPublishedArticles({ tag: tag || undefined, limit: 48 })
+  const { tag, q } = await searchParams
+  const query = q?.trim() ?? ''
+
+  const [articles, popular, series, leadMagnets] = await Promise.all([
+    query
+      ? searchPublishedArticles(query, 48)
+      : loadPublishedArticles({ tag: tag || undefined, limit: 48 }),
+    loadPopularArticles(5),
+    loadPublishedSeries(),
+    loadPublishedLeadMagnets(),
+  ])
+
   const featured = articles.filter((a) => a.is_featured).slice(0, 2)
   const regular = articles.filter((a) => !featured.some((f) => f.id === a.id))
 
@@ -34,12 +53,21 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
             Wiring, PLC, embedded, and solar tips from {COMPANY.brandName} practitioners. Build
             smarter, fix faster, and grow your engineering career.
           </p>
+          <Suspense fallback={<div className="h-10 rounded-md bg-slate-100 animate-pulse" />}>
+            <FieldNotesSearch />
+          </Suspense>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
               href="/engineering/authors"
               className="text-sm px-3 py-1 rounded-full border border-slate-300 text-slate-700"
             >
               Authors
+            </Link>
+            <Link
+              href="/engineering/series"
+              className="text-sm px-3 py-1 rounded-full border border-slate-300 text-slate-700"
+            >
+              Series
             </Link>
             <Link
               href="/subscriber"
@@ -50,7 +78,7 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
-              href="/engineering"
+              href={query ? `/engineering?q=${encodeURIComponent(query)}` : '/engineering'}
               className={`text-sm px-3 py-1 rounded-full border ${
                 !tag ? 'bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]' : 'border-slate-300 text-slate-700'
               }`}
@@ -60,7 +88,10 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
             {ENGINEERING_ARTICLE_TAGS.map((item) => (
               <Link
                 key={item}
-                href={`/engineering?tag=${item}`}
+                href={`/engineering?${new URLSearchParams({
+                  ...(query ? { q: query } : {}),
+                  tag: item,
+                }).toString()}`}
                 className={`text-sm px-3 py-1 rounded-full border capitalize ${
                   tag === item
                     ? 'bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]'
@@ -77,14 +108,18 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
           <div className="space-y-8">
             {articles.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-10 text-center">
-                <p className="text-slate-700 font-medium">No field notes published yet.</p>
+                <p className="text-slate-700 font-medium">
+                  {query ? `No results for "${query}".` : 'No field notes published yet.'}
+                </p>
                 <p className="text-sm text-slate-500 mt-2">
-                  Check back soon — our engineers and lecturers are preparing the first articles.
+                  {query
+                    ? 'Try different keywords or browse all topics.'
+                    : 'Check back soon — our engineers and lecturers are preparing the first articles.'}
                 </p>
               </div>
             ) : (
               <>
-                {featured.length > 0 ? (
+                {featured.length > 0 && !query ? (
                   <section className="space-y-4">
                     <h2 className="text-xl font-semibold text-slate-900">Featured</h2>
                     <div className="grid sm:grid-cols-2 gap-5">
@@ -96,7 +131,11 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
                 ) : null}
                 <section className="space-y-4">
                   <h2 className="text-xl font-semibold text-slate-900">
-                    {tag ? `${tag} articles` : 'Latest articles'}
+                    {query
+                      ? `Search results for "${query}"`
+                      : tag
+                        ? `${tag} articles`
+                        : 'Latest articles'}
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-5">
                     {regular.map((article) => (
@@ -106,10 +145,64 @@ export default async function EngineeringBlogPage({ searchParams }: PageProps) {
                 </section>
               </>
             )}
+
+            {series.length > 0 ? (
+              <section className="space-y-4 border-t border-slate-200 pt-8">
+                <div className="flex justify-between items-center gap-3">
+                  <h2 className="text-xl font-semibold text-slate-900">Article series</h2>
+                  <Link href="/engineering/series" className="text-sm text-[var(--brand-navy)] underline">
+                    View all
+                  </Link>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {series.slice(0, 4).map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/engineering/series/${item.slug}`}
+                      className="rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md no-underline block"
+                    >
+                      <h3 className="font-semibold text-slate-900">{item.title}</h3>
+                      {item.description ? (
+                        <p className="text-sm text-slate-600 mt-1 line-clamp-2">{item.description}</p>
+                      ) : null}
+                      <p className="text-xs text-slate-500 mt-2">{item.articleCount ?? 0} articles</p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-24">
             <DigestSubscribeForm />
+
+            {popular.length > 0 ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-5 space-y-3">
+                <h3 className="font-semibold text-slate-900">Popular reads</h3>
+                <ul className="space-y-2">
+                  {popular.map((article) => (
+                    <li key={article.id}>
+                      <Link
+                        href={`/engineering/${article.slug}`}
+                        className="text-sm text-[var(--brand-navy)] font-medium hover:underline line-clamp-2"
+                      >
+                        {article.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {leadMagnets.length > 0 ? (
+              <div className="space-y-3">
+                <h3 className="font-semibold text-slate-900 px-1">Free guides</h3>
+                {leadMagnets.slice(0, 2).map((magnet) => (
+                  <LeadMagnetCard key={magnet.id} magnet={magnet} />
+                ))}
+              </div>
+            ) : null}
+
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 space-y-2">
               <p className="font-semibold text-slate-900">Need hands-on help?</p>
               <p>
