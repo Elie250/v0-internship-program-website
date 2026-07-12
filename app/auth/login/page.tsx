@@ -6,6 +6,13 @@ import { loginUser } from '@/app/actions/auth-service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import Link from 'next/link'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
@@ -13,14 +20,28 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { cn } from '@/lib/utils'
 
 type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
+type PublicRole = 'student' | 'engineer'
+type StaffRole = 'lecturer' | 'mentor' | 'admin'
+type AccountKind = 'public' | 'staff'
 
-const ROLE_OPTIONS: { value: LoginRole; label: string; hint: string }[] = [
+const PUBLIC_ROLES: { value: PublicRole; label: string; hint: string }[] = [
   { value: 'student', label: 'Student', hint: 'Courses & learning portal' },
-  { value: 'lecturer', label: 'Lecturer', hint: 'Assigned programmes & classroom' },
-  { value: 'mentor', label: 'Mentor', hint: 'Career guidance & mentorship programmes' },
   { value: 'engineer', label: 'Engineer', hint: 'Community & technical support' },
+]
+
+const STAFF_ROLES: { value: StaffRole; label: string; hint: string }[] = [
+  { value: 'lecturer', label: 'Lecturer', hint: 'Programmes & classroom' },
+  { value: 'mentor', label: 'Mentor', hint: 'Career guidance & mentorship' },
   { value: 'admin', label: 'Administrator', hint: 'Platform management' },
 ]
+
+function isStaffRole(value: string): value is StaffRole {
+  return value === 'lecturer' || value === 'mentor' || value === 'admin'
+}
+
+function isPublicRole(value: string): value is PublicRole {
+  return value === 'student' || value === 'engineer'
+}
 
 export default function UnifiedLoginPage() {
   return (
@@ -33,7 +54,9 @@ export default function UnifiedLoginPage() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [role, setRole] = useState<LoginRole>('student')
+  const [accountKind, setAccountKind] = useState<AccountKind>('public')
+  const [publicRole, setPublicRole] = useState<PublicRole>('student')
+  const [staffRole, setStaffRole] = useState<StaffRole>('lecturer')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
@@ -41,6 +64,20 @@ function LoginForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  const role: LoginRole = accountKind === 'public' ? publicRole : staffRole
+
+  const applyRoleFromParam = (roleParam: string) => {
+    if (isPublicRole(roleParam)) {
+      setAccountKind('public')
+      setPublicRole(roleParam)
+      return
+    }
+    if (isStaffRole(roleParam)) {
+      setAccountKind('staff')
+      setStaffRole(roleParam)
+    }
+  }
 
   useEffect(() => {
     if (searchParams.get('logout') === '1') {
@@ -54,14 +91,7 @@ function LoginForm() {
     }
     if (searchParams.get('message') === 'staff_pending') {
       const pendingRole = searchParams.get('role')
-      if (
-        pendingRole === 'lecturer' ||
-        pendingRole === 'engineer' ||
-        pendingRole === 'admin' ||
-        pendingRole === 'mentor'
-      ) {
-        setRole(pendingRole)
-      }
+      if (pendingRole) applyRoleFromParam(pendingRole)
       setSuccess(
         'Registration received. An administrator must approve your account before you can sign in.'
       )
@@ -70,15 +100,7 @@ function LoginForm() {
       setSuccess((prev) => prev || 'Sign in to continue enrollment.')
     }
     const roleParam = searchParams.get('role')
-    if (
-      roleParam === 'student' ||
-      roleParam === 'lecturer' ||
-      roleParam === 'mentor' ||
-      roleParam === 'engineer' ||
-      roleParam === 'admin'
-    ) {
-      setRole(roleParam)
-    }
+    if (roleParam) applyRoleFromParam(roleParam)
   }, [searchParams])
 
   const redirectTo = searchParams.get('redirect')
@@ -118,7 +140,7 @@ function LoginForm() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <SiteHeader />
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-[440px]">
+        <div className="w-full max-w-[400px]">
           <div className="text-center mb-6">
             <p className="text-sm text-slate-500">{COMPANY.platformName}</p>
           </div>
@@ -126,7 +148,7 @@ function LoginForm() {
           <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-8">
             <h1 className="text-xl font-semibold text-slate-900 text-center">Sign in</h1>
             <p className="text-sm text-slate-500 text-center mt-1 mb-6">
-              Choose your role, then enter your credentials
+              Choose your account type, then enter your credentials
             </p>
 
             <form onSubmit={handleLogin} className="space-y-4">
@@ -146,29 +168,62 @@ function LoginForm() {
 
               <div>
                 <Label className="text-slate-700">Sign in as</Label>
-                <div className="mt-2 space-y-2" role="radiogroup" aria-label="Sign in role">
-                  {ROLE_OPTIONS.map((item) => {
-                    const selected = role === item.value
+                <div className="mt-1.5 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Public account type">
+                  {PUBLIC_ROLES.map((item) => {
+                    const selected = accountKind === 'public' && publicRole === item.value
                     return (
                       <button
                         key={item.value}
                         type="button"
                         role="radio"
                         aria-checked={selected}
-                        onClick={() => setRole(item.value)}
+                        onClick={() => {
+                          setAccountKind('public')
+                          setPublicRole(item.value)
+                        }}
                         className={cn(
-                          'w-full text-left rounded-lg border px-3 py-2.5 text-sm transition',
+                          'rounded-lg border px-3 py-2.5 text-left text-sm transition',
                           selected
                             ? 'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-1 ring-[var(--brand-navy)]/20'
                             : 'border-slate-200 hover:border-slate-300 bg-white'
                         )}
                       >
                         <span className="font-medium text-slate-900">{item.label}</span>
-                        <span className="block text-xs text-slate-500 mt-0.5">{item.hint}</span>
+                        <span className="block text-xs text-slate-500 mt-0.5 leading-snug">{item.hint}</span>
                       </button>
                     )
                   })}
                 </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-700">Staff account</Label>
+                <Select
+                  value={accountKind === 'staff' ? staffRole : undefined}
+                  onValueChange={(value) => {
+                    setAccountKind('staff')
+                    setStaffRole(value as StaffRole)
+                  }}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      'mt-1.5 w-full',
+                      accountKind === 'staff' && 'border-[var(--brand-navy)] ring-1 ring-[var(--brand-navy)]/20'
+                    )}
+                  >
+                    <SelectValue placeholder="Lecturer, mentor, or administrator" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    {STAFF_ROLES.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1.5">
+                  For programme delivery and platform administration.
+                </p>
               </div>
 
               <div>
