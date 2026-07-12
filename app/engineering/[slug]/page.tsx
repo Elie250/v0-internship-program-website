@@ -8,6 +8,7 @@ import { ArticleSubscriberExtras } from '@/components/engineering/article-subscr
 import { ArticleViewTracker } from '@/components/engineering/article-view-tracker'
 import { ArticleBookmarkButton } from '@/components/engineering/article-bookmark-button'
 import { DigestSubscribeForm } from '@/components/engineering/digest-subscribe-form'
+import { PublicCommentPanel } from '@/components/engineering/public-comment-panel'
 import { isArticleBookmarked } from '@/lib/engineering/engagements'
 import { loadRecommendedArticles } from '@/lib/engineering/recommendations'
 import {
@@ -79,6 +80,14 @@ export default async function EngineeringArticlePage({ params }: PageProps) {
           tags={article.tags}
           authorId={article.author_id}
           authorName={article.author_name}
+        />
+
+        <PublicCommentPanel
+          fetchUrl={`/api/engineering/articles/${slug}/comments`}
+          postUrl={`/api/engineering/articles/${slug}/comments`}
+          title="Comments"
+          emptyLabel="No comments yet. Share your perspective — free for all signed-in members."
+          isSignedIn={Boolean(user?.id)}
         />
 
         {related.length > 0 ? (

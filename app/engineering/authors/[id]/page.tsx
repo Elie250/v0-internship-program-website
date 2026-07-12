@@ -5,7 +5,9 @@ import { ExternalLink } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { FieldNotesArticleCard } from '@/components/engineering/field-notes-article'
+import { ProfilePostsSection } from '@/components/engineering/profile-posts-section'
 import { loadPublicAuthorProfile } from '@/lib/engineering/authors'
+import { getCurrentUser } from '@/app/actions/auth-service'
 import { Badge } from '@/components/ui/badge'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +25,7 @@ function roleLabel(role: string) {
 
 export default async function EngineeringAuthorPage({ params }: PageProps) {
   const { id } = await params
-  const author = await loadPublicAuthorProfile(id)
+  const [author, user] = await Promise.all([loadPublicAuthorProfile(id), getCurrentUser()])
   if (!author) notFound()
 
   return (
@@ -87,14 +89,31 @@ export default async function EngineeringAuthorPage({ params }: PageProps) {
           </section>
         ) : null}
 
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Articles by {author.name}</h2>
-          <div className="grid sm:grid-cols-2 gap-5">
-            {author.articles.map((article) => (
-              <FieldNotesArticleCard key={article.id} article={{ ...article, bodyLocked: false, lockReason: null }} />
-            ))}
-          </div>
-        </section>
+        {author.posts.length > 0 ? (
+          <ProfilePostsSection
+            posts={author.posts.map((post) => ({
+              id: post.id,
+              title: post.title,
+              body: post.body,
+              createdAt: post.createdAt,
+            }))}
+            isSignedIn={Boolean(user?.id)}
+          />
+        ) : null}
+
+        {author.articles.length > 0 ? (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-slate-900">Articles by {author.name}</h2>
+            <div className="grid sm:grid-cols-2 gap-5">
+              {author.articles.map((article) => (
+                <FieldNotesArticleCard
+                  key={article.id}
+                  article={{ ...article, bodyLocked: false, lockReason: null }}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
       <SiteFooter />
     </main>
