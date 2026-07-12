@@ -20,50 +20,81 @@ export type PublicAuthorProfile = {
 const AUTHOR_SELECT =
   'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url, profile_education, profile_experience, profile_qualifications, profile_cv_url'
 
+const AUTHOR_SELECT_MINIMAL = 'id, first_name, last_name, role'
+
+type AuthorUserRow = {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  role: string
+  profile_title?: string | null
+  profile_bio?: string | null
+  profile_photo_url?: string | null
+  profile_education?: string | null
+  profile_experience?: string | null
+  profile_qualifications?: string | null
+  profile_cv_url?: string | null
+}
+
+async function loadAuthorUserRow(authorId: string): Promise<AuthorUserRow | null> {
+  if (!supabaseAdmin) return null
+
+  const attempts = [
+    AUTHOR_SELECT,
+    'id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url',
+    AUTHOR_SELECT_MINIMAL,
+  ]
+
+  for (const select of attempts) {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select(select)
+      .eq('id', authorId)
+      .maybeSingle()
+
+    if (!error && data) {
+      return data as unknown as AuthorUserRow
+    }
+  }
+
+  return null
+}
+
 export async function loadPublicAuthorProfile(authorId: string): Promise<PublicAuthorProfile | null> {
   if (!supabaseAdmin) return null
 
-  let { data: user, error } = await supabaseAdmin
-    .from('users')
-    .select(AUTHOR_SELECT)
-    .eq('id', authorId)
-    .maybeSingle()
+  const user = await loadAuthorUserRow(authorId)
+  if (!user) return null
 
-  if (error?.message?.includes('profile_')) {
-    const fallback = await supabaseAdmin
-      .from('users')
-      .select('id, first_name, last_name, role, profile_title, profile_bio, profile_photo_url')
-      .eq('id', authorId)
-      .maybeSingle()
-    if (fallback.error || !fallback.data) return null
-    user = {
-      ...fallback.data,
-      profile_education: null,
-      profile_experience: null,
-      profile_qualifications: null,
-      profile_cv_url: null,
-    }
-    error = null
-  }
-
-  if (error || !user) return null
-
-  const { data: articles } = await supabaseAdmin
-    .from('engineering_articles')
-    .select('*')
-    .eq('author_id', authorId)
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
+  const [{ data: articles }, posts] = await Promise.all([
+    supabaseAdmin
+      .from('engineering_articles')
+      .select('*')
+      .eq('author_id', authorId)
+      .eq('status', 'published')
+      .order('published_at', { ascending: false }),
+    loadPublicProfilePosts(authorId),
+  ])
 
   const published = (articles ?? []).map((row) =>
     normalizeEngineeringArticle(row as Record<string, unknown>)
   )
-  const posts = await loadPublicProfilePosts(authorId)
-  if (published.length === 0 && posts.length === 0) return null
+
+  const row = user as Record<string, unknown>
+  const hasProfileContent = Boolean(
+    user.profile_title ||
+      user.profile_bio ||
+      user.profile_photo_url ||
+      row.profile_education ||
+      row.profile_experience ||
+      row.profile_qualifications ||
+      row.profile_cv_url
+  )
+
+  if (published.length === 0 && posts.length === 0 && !hasProfileContent) return null
 
   const firstName = String(user.first_name ?? '')
   const lastName = String(user.last_name ?? '')
-  const row = user as Record<string, unknown>
 
   return {
     id: String(user.id),
@@ -81,28 +112,73 @@ export async function loadPublicAuthorProfile(authorId: string): Promise<PublicA
   }
 }
 
-export async function listPublishedAuthors(): Promise<Array<{ id: string; name: string; articleCount: number }>> {
+export async function listPublishedAuthors(): Promise<
+  Array<{ id: string; name: string; articleCount: number; postCount: number }>
+> {
   if (!supabaseAdmin) return []
 
-  const { data, error } = await supabaseAdmin
+  const authors = new Map<string, { name: string; articleCount: number; postCount: number }>()
+
+  const { data: articleRows, error: articlesError } = await supabaseAdmin
     .from('engineering_articles')
     .select('author_id, author_name')
     .eq('status', 'published')
     .not('author_id', 'is', null)
 
-  if (error?.message?.includes('engineering_articles')) return []
-
-  const counts = new Map<string, { name: string; count: number }>()
-  for (const row of data ?? []) {
-    const id = String(row.author_id)
-    const existing = counts.get(id)
-    counts.set(id, {
-      name: existing?.name || String(row.author_name ?? 'Author'),
-      count: (existing?.count ?? 0) + 1,
-    })
+  if (!articlesError?.message?.includes('engineering_articles')) {
+    for (const row of articleRows ?? []) {
+      const id = String(row.author_id)
+      const existing = authors.get(id)
+      authors.set(id, {
+        name: existing?.name || String(row.author_name ?? 'Author'),
+        articleCount: (existing?.articleCount ?? 0) + 1,
+        postCount: existing?.postCount ?? 0,
+      })
+    }
   }
 
-  return [...counts.entries()]
-    .map(([id, value]) => ({ id, name: value.name, articleCount: value.count }))
-    .sort((a, b) => b.articleCount - a.articleCount)
+  const { data: postRows, error: postsError } = await supabaseAdmin
+    .from('engineer_profile_posts')
+    .select('author_id')
+    .eq('status', 'published')
+
+  if (!postsError?.message?.includes('engineer_profile_posts')) {
+    for (const row of postRows ?? []) {
+      const id = String(row.author_id)
+      const existing = authors.get(id)
+      authors.set(id, {
+        name: existing?.name || 'Author',
+        articleCount: existing?.articleCount ?? 0,
+        postCount: (existing?.postCount ?? 0) + 1,
+      })
+    }
+  }
+
+  const missingNameIds = [...authors.entries()]
+    .filter(([, value]) => value.name === 'Author')
+    .map(([id]) => id)
+
+  if (missingNameIds.length > 0) {
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', missingNameIds)
+
+    for (const user of users ?? []) {
+      const id = String(user.id)
+      const entry = authors.get(id)
+      if (!entry) continue
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ')
+      if (name) entry.name = name
+    }
+  }
+
+  return [...authors.entries()]
+    .map(([id, value]) => ({
+      id,
+      name: value.name,
+      articleCount: value.articleCount,
+      postCount: value.postCount,
+    }))
+    .sort((a, b) => b.articleCount + b.postCount - (a.articleCount + a.postCount))
 }

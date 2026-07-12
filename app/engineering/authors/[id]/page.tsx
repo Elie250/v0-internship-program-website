@@ -99,7 +99,11 @@ export default async function EngineeringAuthorPage({ params }: PageProps) {
             }))}
             isSignedIn={Boolean(user?.id)}
           />
-        ) : null}
+        ) : (
+          <p className="text-sm text-slate-600 rounded-xl border border-dashed border-slate-200 bg-white p-5">
+            No public posts yet.
+          </p>
+        )}
 
         {author.articles.length > 0 ? (
           <section className="space-y-4">

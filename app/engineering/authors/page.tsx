@@ -18,7 +18,7 @@ export default async function EngineeringAuthorsPage() {
           </Link>
           <h1 className="text-3xl font-bold text-slate-900 mt-3">Authors</h1>
           <p className="text-slate-600 mt-2">
-            Engineers and lecturers who publish practical field notes.
+            Engineers and lecturers who publish field notes or share public profile updates.
           </p>
         </div>
 
@@ -34,7 +34,16 @@ export default async function EngineeringAuthorsPage() {
                 >
                   <p className="font-semibold text-slate-900">{author.name}</p>
                   <p className="text-sm text-slate-500 mt-0.5">
-                    {author.articleCount} article{author.articleCount === 1 ? '' : 's'}
+                    {[
+                      author.articleCount > 0
+                        ? `${author.articleCount} article${author.articleCount === 1 ? '' : 's'}`
+                        : null,
+                      author.postCount > 0
+                        ? `${author.postCount} post${author.postCount === 1 ? '' : 's'}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'Public profile'}
                   </p>
                 </Link>
               </li>
