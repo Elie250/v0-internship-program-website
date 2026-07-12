@@ -48,6 +48,12 @@ export function slugifyArticleTitle(title: string): string {
   return base || `article-${Date.now()}`
 }
 
+export function tierBadgeLabel(tier: EngineeringArticleTier): string {
+  if (tier === 'free') return 'Free'
+  if (tier === 'pro') return 'Pro'
+  return 'Premium'
+}
+
 export function normalizeEngineeringArticle(row: Record<string, unknown>): EngineeringArticle {
   const tags = Array.isArray(row.tags) ? row.tags.map(String) : []
   return {

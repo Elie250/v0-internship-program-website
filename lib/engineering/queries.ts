@@ -10,7 +10,6 @@ import {
   normalizeEngineeringArticle,
   type EngineeringArticle,
   type EngineeringArticlePublic,
-  type EngineeringArticleTier,
 } from '@/lib/engineering/articles'
 import {
   normalizeEngineeringSeries,
@@ -419,10 +418,4 @@ export async function loadArticlesForDigest(): Promise<EngineeringArticle[]> {
     throw error
   }
   return (data ?? []).map((row) => normalizeEngineeringArticle(row as Record<string, unknown>))
-}
-
-export function tierBadgeLabel(tier: EngineeringArticleTier): string {
-  if (tier === 'free') return 'Free'
-  if (tier === 'pro') return 'Pro'
-  return 'Premium'
 }

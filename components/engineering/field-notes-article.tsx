@@ -3,8 +3,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Lock } from 'lucide-react'
-import type { EngineeringArticlePublic } from '@/lib/engineering/articles'
-import { tierBadgeLabel } from '@/lib/engineering/queries'
+import { tierBadgeLabel, type EngineeringArticlePublic } from '@/lib/engineering/articles'
 
 function formatDate(value: string | null) {
   if (!value) return ''
