@@ -42,8 +42,8 @@ export default function LecturerProfilePage() {
   const [uploadError, setUploadError] = useState('')
   const [userName, setUserName] = useState('')
   const [profile, setProfile] = useState<{
-    firstName?: string
-    lastName?: string
+    firstName: string
+    lastName: string
     email: string
     phone?: string | null
     role: string
@@ -69,7 +69,12 @@ export default function LecturerProfilePage() {
         router.push('/auth/login?role=lecturer&redirect=/lecturer/profile')
         return
       }
-      setProfile(user)
+      setProfile({
+        firstName: String(user.firstName ?? ''),
+        lastName: String(user.lastName ?? ''),
+        email: user.email,
+        role: user.role,
+      })
       setUserName(
         [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Lecturer'
       )
@@ -81,6 +86,20 @@ export default function LecturerProfilePage() {
 
       if (profileRes.ok) {
         const data = await profileRes.json()
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                firstName: String(data.first_name ?? prev.firstName),
+                lastName: String(data.last_name ?? prev.lastName),
+              }
+            : prev
+        )
+        setUserName(
+          [data.first_name, data.last_name].filter(Boolean).join(' ') ||
+            user.email ||
+            'Lecturer'
+        )
         setTeamProfile({
           profile_title: data.profile_title ?? '',
           profile_bio: data.profile_bio ?? '',
@@ -101,6 +120,35 @@ export default function LecturerProfilePage() {
     }
     void init()
   }, [router])
+
+  const saveAccountDetails = async () => {
+    if (!profile) return
+    setSaving(true)
+    setSaveError('')
+    setSaveMessage('')
+    try {
+      const res = await fetch('/api/lecturer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          firstName: profile.firstName.trim(),
+          lastName: profile.lastName.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save')
+      setUserName(
+        [profile.firstName, profile.lastName].filter(Boolean).join(' ') || profile.email
+      )
+      setSaveMessage('Name updated.')
+      router.refresh()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const saveTeamProfile = async (overrides?: Partial<TeamProfile>) => {
     const payload = { ...teamProfile, ...overrides }
@@ -198,13 +246,27 @@ export default function LecturerProfilePage() {
               Account details
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 course-form-high-contrast">
             <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Name</p>
-                <p className="font-semibold text-slate-900 mt-1">
-                  {[profile.firstName, profile.lastName].filter(Boolean).join(' ') || '—'}
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="first-name">First name</Label>
+                <Input
+                  id="first-name"
+                  value={profile.firstName}
+                  onChange={(e) =>
+                    setProfile((p) => (p ? { ...p, firstName: e.target.value } : p))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last-name">Last name</Label>
+                <Input
+                  id="last-name"
+                  value={profile.lastName}
+                  onChange={(e) =>
+                    setProfile((p) => (p ? { ...p, lastName: e.target.value } : p))
+                  }
+                />
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Role</p>
@@ -218,6 +280,14 @@ export default function LecturerProfilePage() {
                 </p>
               </div>
             </div>
+            <Button
+              type="button"
+              onClick={() => void saveAccountDetails()}
+              disabled={saving || !profile.firstName.trim()}
+              className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+            >
+              {saving ? 'Saving…' : 'Save name'}
+            </Button>
             <p className="text-xs text-slate-500">
               <Link href="/auth/forgot-password" className="text-[var(--brand-navy)] underline font-medium">
                 Reset your password

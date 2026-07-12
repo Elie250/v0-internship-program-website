@@ -12,7 +12,12 @@ type CourseRow = Record<string, unknown> & {
 
 export function resolveCourseStatus(row: CourseRow): ContentStatus {
   const status = row.status
-  if (status === 'published' || status === 'draft' || status === 'archived') {
+  if (
+    status === 'published' ||
+    status === 'draft' ||
+    status === 'archived' ||
+    status === 'pending_review'
+  ) {
     return status
   }
   if (row.is_published === true) return 'published'

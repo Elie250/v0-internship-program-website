@@ -12,6 +12,11 @@ import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
 import { BookOpen, Users, FileBarChart, Calculator, AlertTriangle } from 'lucide-react'
 import { LecturerBroadcastPanel } from '@/components/lecturer/lecturer-broadcast-panel'
+import {
+  LecturerCreateCourseDialog,
+  courseStatusLabel,
+  lecturerCourseStatusBadgeClass,
+} from '@/components/lecturer/lecturer-create-course-dialog'
 
 type EnrollmentStats = { total: number; admitted: number; pending: number }
 
@@ -88,11 +93,15 @@ export function LecturerDashboardView() {
   return (
     <LecturerPortalShell userName={userName}>
       <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">My programmes</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Open a classroom to manage lessons, students, assessments, and reports.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">My programmes</h1>
+            <p className="text-sm text-slate-600 mt-1">
+              Open a classroom to manage lessons, students, assessments, and reports. New programmes
+              need admin approval before students can enroll.
+            </p>
+          </div>
+          <LecturerCreateCourseDialog onCreated={loadCourses} />
         </div>
 
         {error ? (
@@ -171,11 +180,11 @@ export function LecturerDashboardView() {
 
         {courses.length === 0 ? (
           <Card className="border-slate-200">
-            <CardContent className="pt-6 text-center text-slate-700 space-y-2">
-              <p>No programmes assigned yet.</p>
+            <CardContent className="pt-6 text-center text-slate-700 space-y-3">
+              <p>No programmes yet.</p>
               <p className="text-sm">
-                Ask an administrator to assign you under <strong>Admin → Programs</strong> when
-                creating or editing a course.
+                Use <strong>Propose new programme</strong> above to submit a course for admin review,
+                or ask an administrator to assign you under <strong>Admin → Programs</strong>.
               </p>
             </CardContent>
           </Card>
@@ -188,14 +197,8 @@ export function LecturerDashboardView() {
                     <Badge variant="outline" className="text-slate-800 border-slate-300">
                       {PROGRAM_TYPE_LABELS[course.program_type ?? 'training']}
                     </Badge>
-                    <Badge
-                      className={
-                        course.status === 'published'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-amber-100 text-amber-900'
-                      }
-                    >
-                      {course.status}
+                    <Badge className={lecturerCourseStatusBadgeClass(course.status)}>
+                      {courseStatusLabel(course.status)}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg text-slate-900">{course.title}</CardTitle>
