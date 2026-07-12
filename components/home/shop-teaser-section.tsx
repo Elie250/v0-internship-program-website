@@ -8,11 +8,11 @@ import { COMPANY } from '@/lib/company/constants'
 import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 export async function ShopTeaserSection() {
-  const products = (await getPublishedProducts()).slice(0, 3)
+  const products = (await getPublishedProducts()).slice(0, 2)
   if (products.length === 0) return null
 
   return (
-    <section id="shop" className="home-section home-section--muted">
+    <section id="shop" className="home-section home-section--compact home-section--muted">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <HomeSectionHeader
@@ -29,7 +29,7 @@ export async function ShopTeaserSection() {
             </Button>
           </Link>
         </div>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl">
           {products.map((product) => {
             const image = product.images?.[0]
             return (

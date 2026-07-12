@@ -19,7 +19,7 @@ export async function MissionSnippetSection() {
   if (!text) return null
 
   return (
-    <section className="home-section bg-[var(--brand-navy)] text-on-dark">
+    <section className="home-section home-section--compact bg-[var(--brand-navy)] text-on-dark py-10">
       <div className="max-w-4xl mx-auto text-center space-y-4">
         <p className="text-sm font-semibold uppercase tracking-wider text-[var(--brand-sky)]">
           Our mission

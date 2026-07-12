@@ -7,63 +7,47 @@ import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 export async function ReadExploreSection() {
   const [libraryPicks, articles] = await Promise.all([
-    loadFeaturedLibraryPicks(3),
-    loadPublishedArticles({ limit: 3 }),
+    loadFeaturedLibraryPicks(2),
+    loadPublishedArticles({ limit: 2 }),
   ])
 
   if (libraryPicks.length === 0 && articles.length === 0) return null
 
   return (
-    <section id="read-explore" className="home-section home-section--white">
-      <div className="max-w-6xl mx-auto space-y-10">
-        <HomeSectionHeader
-          eyebrow="Read & explore"
-          title="Library & Field Notes"
-          description="Build a reading habit with our public Energy Library and engineering blog — no login required to browse."
-        />
+    <section id="read-explore" className="home-section home-section--compact home-section--white">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <HomeSectionHeader
+            eyebrow="Read & explore"
+            title="Library & Field Notes"
+            description="Public reading — no account required."
+            align="left"
+            className="mb-0"
+          />
+          <div className="flex gap-4 text-sm font-medium shrink-0">
+            <Link href="/library" className="text-[var(--brand-navy)] underline underline-offset-2">
+              Library
+            </Link>
+            <Link href="/engineering" className="text-[var(--brand-navy)] underline underline-offset-2">
+              Field Notes
+            </Link>
+          </div>
+        </div>
 
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
+        <div className="grid gap-6 lg:grid-cols-2">
           {libraryPicks.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Energy Library</h3>
-                  <p className="text-sm text-slate-600">Gallery, books & culture</p>
-                </div>
-                <Link
-                  href="/library"
-                  className="text-sm font-medium text-[var(--brand-navy)] underline underline-offset-2 shrink-0"
-                >
-                  Browse library
-                </Link>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                {libraryPicks.map((item) => (
-                  <LibraryItemCard key={item.id} item={item} showViews />
-                ))}
-              </div>
+            <div className="grid gap-3">
+              {libraryPicks.map((item) => (
+                <LibraryItemCard key={item.id} item={item} showViews />
+              ))}
             </div>
           ) : null}
 
           {articles.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-end justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">Field Notes</h3>
-                  <p className="text-sm text-slate-600">Latest from the blog</p>
-                </div>
-                <Link
-                  href="/engineering"
-                  className="text-sm font-medium text-[var(--brand-navy)] underline underline-offset-2 shrink-0"
-                >
-                  View all articles
-                </Link>
-              </div>
-              <div className="grid gap-4">
-                {articles.map((article) => (
-                  <FieldNotesArticleCard key={article.id} article={article} />
-                ))}
-              </div>
+            <div className="grid gap-3">
+              {articles.map((article) => (
+                <FieldNotesArticleCard key={article.id} article={article} />
+              ))}
             </div>
           ) : null}
         </div>

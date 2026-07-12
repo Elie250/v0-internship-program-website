@@ -340,6 +340,10 @@
     border-block: 1px solid #e2e8f0;
   }
 
+  .home-section--compact {
+    padding-block: 2.5rem;
+  }
+
   .home-tile-link {
     border-radius: 0.5rem;
     outline-offset: 2px;

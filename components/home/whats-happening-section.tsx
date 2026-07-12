@@ -9,7 +9,7 @@ import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 export async function WhatsHappeningSection() {
   const [announcements, webinars, events] = await Promise.all([
-    getPublishedAnnouncements(6),
+    getPublishedAnnouncements(3),
     getPublishedWebinars(),
     getPublishedEvents(),
   ])
@@ -18,13 +18,19 @@ export async function WhatsHappeningSection() {
   if (!hasContent) return null
 
   return (
-    <section id="happening" className="home-section home-section--white">
+    <section id="happening" className="home-section home-section--compact home-section--white">
       <div className="max-w-6xl mx-auto">
-        <HomeSectionHeader
-          eyebrow="What's happening"
-          title="News, webinars & events"
-          description="Stay updated on workshops, enrollment windows, and community activities from Energy & Logics."
-        />
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <HomeSectionHeader
+            eyebrow="News & events"
+            title="What&apos;s happening"
+            align="left"
+            className="mb-0"
+          />
+          <Link href="/career" className="text-sm font-medium text-[var(--brand-navy)] underline underline-offset-2 shrink-0">
+            Career hub
+          </Link>
+        </div>
         <WhatsHappeningPanel
           announcements={announcements.map((item) => ({
             id: item.id,

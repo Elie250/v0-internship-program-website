@@ -1,10 +1,43 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FOUNDER, COMPANY } from '@/lib/company/constants'
-import { Quote } from 'lucide-react'
 
-export function FounderSection() {
+export function FounderSection({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <section className="home-section home-section--compact border-t border-slate-200 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+            <div className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden border border-slate-200 shadow-sm shrink-0">
+              <Image
+                src={FOUNDER.photo}
+                alt={`${FOUNDER.name} — ${FOUNDER.title}`}
+                fill
+                className="object-cover object-top"
+                sizes="96px"
+              />
+            </div>
+            <div className="flex-1 text-center sm:text-left min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)] mb-1">
+                {FOUNDER.role}
+              </p>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-1">{FOUNDER.headline}</h2>
+              <p className="text-sm text-slate-600 line-clamp-2">{FOUNDER.concept}</p>
+            </div>
+            <Link href="/about" className="shrink-0">
+              <Button variant="outline" className="text-slate-800 border-slate-300">
+                About {COMPANY.brandName}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="border-t border-white/10 bg-[var(--brand-navy)] text-on-dark">
       <div className="max-w-6xl mx-auto px-4 py-16">
@@ -32,22 +65,6 @@ export function FounderSection() {
             </h2>
             <p className="text-white/90 leading-relaxed mb-5 text-lg">{FOUNDER.concept}</p>
             <p className="text-white/80 leading-relaxed mb-6">{FOUNDER.bio}</p>
-
-            <blockquote className="flex gap-3 rounded-xl bg-white/10 border border-white/15 p-4 mb-6">
-              <Quote className="h-5 w-5 shrink-0 text-[var(--brand-sky)] mt-0.5" />
-              <p className="text-sm italic text-white/90">{FOUNDER.quote}</p>
-            </blockquote>
-
-            <ul className="grid sm:grid-cols-2 gap-2 mb-8">
-              {FOUNDER.experienceHighlights.map((item) => (
-                <li
-                  key={item}
-                  className="text-sm bg-white/10 rounded-lg border border-white/10 px-3 py-2.5"
-                >
-                  {item}
-                </li>
-              ))}
-            </ul>
 
             <div className="flex flex-wrap gap-3">
               <Link href="/learning">

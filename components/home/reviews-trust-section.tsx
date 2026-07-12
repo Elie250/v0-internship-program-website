@@ -2,12 +2,11 @@ import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewCard } from '@/components/reviews/review-card'
-import { StarRatingDisplay } from '@/components/reviews/star-rating'
 import { queryPublishedReviews } from '@/lib/reviews/queries'
 import { HomeSectionHeader } from '@/components/home/home-section-header'
 
 export async function ReviewsTrustSection({ compact = false }: { compact?: boolean }) {
-  const limit = compact ? 3 : 6
+  const limit = compact ? 2 : 6
   const { reviews, stats } = await queryPublishedReviews({ limit, featuredOnly: false })
 
   const hasReviews = reviews.length > 0
@@ -15,46 +14,32 @@ export async function ReviewsTrustSection({ compact = false }: { compact?: boole
   return (
     <section
       id="reviews"
-      className={`home-section ${compact ? 'home-section--muted' : 'home-section--white'}`}
+      className={`home-section ${compact ? 'home-section--compact home-section--white' : 'home-section--white'}`}
     >
       <div className="max-w-6xl mx-auto">
-        <HomeSectionHeader
-          eyebrow="Trusted by learners & clients"
-          title="What people say about us"
-          description={
-            compact
-              ? 'Verified feedback from students and engineering clients.'
-              : 'Real ratings and reviews from students, interns, and engineering clients help you choose with confidence.'
-          }
-          align={compact ? 'left' : 'center'}
-          className={compact ? 'mb-8' : undefined}
-        />
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <HomeSectionHeader
+            eyebrow="Reviews"
+            title="What people say about us"
+            description={compact ? undefined : 'Real ratings and reviews from students, interns, and engineering clients.'}
+            align="left"
+            className="mb-0"
+          />
+          {hasReviews ? (
+            <div className="flex items-center gap-2 text-sm text-slate-600 shrink-0">
+              <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+              <span className="font-semibold text-slate-900">{stats.averageRating.toFixed(1)}</span>
+              <span>({stats.totalPublished} reviews)</span>
+            </div>
+          ) : null}
+        </div>
 
         {hasReviews ? (
           <>
             <div
-              className={`flex flex-col sm:flex-row items-center gap-6 mb-8 p-5 rounded-xl bg-white border border-slate-200 shadow-sm ${
-                compact ? 'max-w-full' : 'max-w-xl mx-auto'
-              }`}
-            >
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Star className="h-8 w-8 fill-amber-400 text-amber-400" />
-                  <span className="text-4xl font-bold text-slate-900">{stats.averageRating.toFixed(1)}</span>
-                </div>
-                <StarRatingDisplay rating={stats.averageRating} size="md" className="justify-center mt-2" />
-              </div>
-              <div className="hidden sm:block h-12 w-px bg-slate-200" />
-              <div className="text-center sm:text-left">
-                <p className="text-2xl font-bold text-slate-900">{stats.totalPublished}</p>
-                <p className="text-sm text-slate-600">verified reviews</p>
-              </div>
-            </div>
-
-            <div
               className={
                 compact
-                  ? 'grid md:grid-cols-3 gap-4 mb-6'
+                  ? 'grid md:grid-cols-2 gap-4 mb-4'
                   : 'grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8'
               }
             >

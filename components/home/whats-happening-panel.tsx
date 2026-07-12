@@ -86,7 +86,7 @@ export function WhatsHappeningPanel({
 
       {active === 'announcements' ? (
         <div className="grid md:grid-cols-2 gap-4">
-          {announcements.slice(0, 4).map((item) => (
+          {announcements.slice(0, 2).map((item) => (
             <Card key={item.id} className="overflow-hidden border-slate-200">
               {item.image_url ? (
                 <div className="relative h-36 w-full">
@@ -107,7 +107,7 @@ export function WhatsHappeningPanel({
 
       {active === 'webinars' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {webinars.slice(0, 3).map((w) => (
+          {webinars.slice(0, 2).map((w) => (
             <Card key={w.id} className="border-slate-200">
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap gap-2 mb-1">
@@ -141,7 +141,7 @@ export function WhatsHappeningPanel({
 
       {active === 'events' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {events.slice(0, 3).map((event) => (
+          {events.slice(0, 2).map((event) => (
             <Card key={event.id} className="overflow-hidden border-slate-200">
               {event.image_url ? (
                 <div className="relative h-36">
@@ -165,12 +165,6 @@ export function WhatsHappeningPanel({
           ))}
         </div>
       ) : null}
-
-      <p className="text-center text-sm">
-        <Link href="/career" className="text-[var(--brand-navy)] font-medium underline underline-offset-2">
-          More on Career & events
-        </Link>
-      </p>
     </div>
   )
 }
