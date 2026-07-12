@@ -6,7 +6,7 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { LibraryViewTracker } from '@/components/library/library-view-tracker'
 import {
-  LIBRARY_CULTURE_TYPES,
+  cultureTypeLabel,
   pillarLabel,
 } from '@/lib/library/items'
 import { loadPublishedLibraryItemBySlug } from '@/lib/library/queries'
@@ -27,17 +27,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-function cultureTypeLabel(value: string | null): string | null {
-  if (!value) return null
-  return LIBRARY_CULTURE_TYPES.find((entry) => entry.id === value)?.label ?? value
-}
-
 export default async function LibraryItemPage({ params }: PageProps) {
   const { slug } = await params
   const item = await loadPublishedLibraryItemBySlug(slug)
   if (!item) notFound()
 
-  const cultureLabel = cultureTypeLabel(item.culture_type)
+  const cultureLabelText = cultureTypeLabel(item.culture_type)
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -62,8 +57,8 @@ export default async function LibraryItemPage({ params }: PageProps) {
             <span className="rounded-full border border-slate-300 px-2 py-0.5">
               {pillarLabel(item.pillar)}
             </span>
-            {cultureLabel ? (
-              <span className="rounded-full border border-slate-300 px-2 py-0.5">{cultureLabel}</span>
+            {cultureLabelText ? (
+              <span className="rounded-full border border-slate-300 px-2 py-0.5">{cultureLabelText}</span>
             ) : null}
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{item.title}</h1>

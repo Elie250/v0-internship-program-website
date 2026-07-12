@@ -44,7 +44,7 @@ export const LIBRARY_PILLARS: { id: LibraryPillar; label: string; description: s
   {
     id: 'culture',
     label: 'Culture',
-    description: 'Inkuru, ibisigo, imivugo, and creative arts — coming soon from our community.',
+    description: 'Inkuru, ibisigo, imivugo, and creative arts from students, lecturers, and our team.',
   },
 ]
 
@@ -157,6 +157,11 @@ export function libraryItemCover(item: EnergyLibraryItem): string | null {
 
 export function pillarLabel(pillar: LibraryPillar): string {
   return LIBRARY_PILLARS.find((entry) => entry.id === pillar)?.label ?? pillar
+}
+
+export function cultureTypeLabel(value: LibraryCultureType | null): string | null {
+  if (!value) return null
+  return LIBRARY_CULTURE_TYPES.find((entry) => entry.id === value)?.label ?? value
 }
 
 export function libraryStatusLabel(status: LibraryItemStatus): string {

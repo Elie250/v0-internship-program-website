@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { BookOpen, Images, Sparkles } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
+  cultureTypeLabel,
   libraryItemCover,
   pillarLabel,
   type EnergyLibraryItem,
@@ -31,7 +32,9 @@ export function LibraryItemCard({ item }: { item: EnergyLibraryItem }) {
             </div>
           )}
           <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-slate-700">
-            {pillarLabel(item.pillar)}
+            {item.pillar === 'culture' && item.culture_type
+              ? cultureTypeLabel(item.culture_type)
+              : pillarLabel(item.pillar)}
           </span>
         </div>
         <CardContent className="p-4 space-y-1">

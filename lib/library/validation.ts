@@ -30,3 +30,5 @@ export function validateLibraryItemPayload(payload: Record<string, unknown>) {
 }
 
 export const LECTURER_LIBRARY_PILLARS: LibraryPillar[] = ['books', 'culture']
+
+export const STUDENT_LIBRARY_PILLARS: LibraryPillar[] = ['culture']

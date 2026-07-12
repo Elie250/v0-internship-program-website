@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import {
   normalizeLibraryItem,
   type EnergyLibraryItem,
+  type LibraryCultureType,
   type LibraryPillar,
 } from '@/lib/library/items'
 
@@ -9,6 +10,7 @@ const MISSING_TABLE = /energy_library_items|could not find the table/i
 
 export async function loadPublishedLibraryItems(options?: {
   pillar?: LibraryPillar
+  cultureType?: LibraryCultureType
   limit?: number
 }): Promise<EnergyLibraryItem[]> {
   if (!supabaseAdmin) return []
@@ -23,6 +25,9 @@ export async function loadPublishedLibraryItems(options?: {
   if (options?.pillar) {
     query = query.eq('pillar', options.pillar)
   }
+  if (options?.cultureType) {
+    query = query.eq('culture_type', options.cultureType)
+  }
   if (options?.limit) {
     query = query.limit(options.limit)
   }
@@ -35,6 +40,10 @@ export async function loadPublishedLibraryItems(options?: {
   }
 
   return (data ?? []).map((row) => normalizeLibraryItem(row as Record<string, unknown>))
+}
+
+export async function loadFeaturedCultureItems(limit = 3): Promise<EnergyLibraryItem[]> {
+  return loadPublishedLibraryItems({ pillar: 'culture', limit })
 }
 
 export async function loadPublishedLibraryItemBySlug(slug: string): Promise<EnergyLibraryItem | null> {

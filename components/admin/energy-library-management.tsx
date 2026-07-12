@@ -194,7 +194,8 @@ export default function EnergyLibraryManagement() {
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-4 text-sm text-blue-950">
             <strong>{pendingCount}</strong> submission{pendingCount === 1 ? '' : 's'} from lecturers
-            awaiting your review. Click <strong>Approve &amp; publish</strong> on each card below.
+            and students awaiting your review. Click <strong>Approve &amp; publish</strong> on each
+            card below.
           </CardContent>
         </Card>
       ) : null}
