@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { ExternalLink } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { PublicTeamMember } from '@/lib/platform/team'
@@ -57,6 +58,52 @@ export function OurTeamSection({ members }: { members: PublicTeamMember[] }) {
 
               {member.bio ? (
                 <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{member.bio}</p>
+              ) : null}
+
+              {member.education || member.experience || member.qualifications || member.cvUrl ? (
+                <div className="space-y-2 border-t border-slate-200 pt-3">
+                  {member.education ? (
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Education
+                      </p>
+                      <p className="text-sm text-slate-700 whitespace-pre-line mt-0.5">
+                        {member.education}
+                      </p>
+                    </div>
+                  ) : null}
+                  {member.experience ? (
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Experience
+                      </p>
+                      <p className="text-sm text-slate-700 whitespace-pre-line mt-0.5">
+                        {member.experience}
+                      </p>
+                    </div>
+                  ) : null}
+                  {member.qualifications ? (
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Qualifications
+                      </p>
+                      <p className="text-sm text-slate-700 whitespace-pre-line mt-0.5">
+                        {member.qualifications}
+                      </p>
+                    </div>
+                  ) : null}
+                  {member.cvUrl ? (
+                    <a
+                      href={member.cvUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand-navy)] underline"
+                    >
+                      View CV
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
 
               {member.programmes.length > 0 ? (
