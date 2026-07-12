@@ -18,9 +18,8 @@ export default async function PaymentInstructionsPage() {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl font-bold mb-3">Payment Instructions</h1>
           <p className="text-white/85 text-lg">
-            {profile.brandName} accepts MTN MoMo (manual Pay Code), IremboPay online payments (MTN MoMo,
-            Airtel, and international cards), and manual receipt verification for Pay Code payments.
-            IremboPay unlocks access automatically after successful checkout.
+            {profile.brandName} accepts MTN MoMo via Pay Code and manual receipt verification for enrollments
+            and shop orders.
           </p>
         </div>
       </section>
@@ -54,26 +53,6 @@ export default async function PaymentInstructionsPage() {
                 </li>
               ))}
             </ol>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Online payment (IremboPay)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-700">
-            <p>
-              When enrolling in a paid programme, choose <strong>IremboPay</strong> at checkout.
-              You can pay with MTN MoMo, Airtel Money, Visa, Mastercard, and other IremboPay-supported
-              methods — including international cards.
-            </p>
-            <p>
-              Successful payments activate your enrollment immediately. See our{' '}
-              <Link href="/refund-policy" className="text-[var(--brand-navy)] underline">
-                Refund Policy
-              </Link>{' '}
-              for online payment rules.
-            </p>
           </CardContent>
         </Card>
 

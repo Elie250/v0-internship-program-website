@@ -14,8 +14,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "upload-hero-videos": "node scripts/upload-hero-videos.mjs",
-    "migrate-storage-to-r2": "node scripts/migrate-supabase-to-r2.mjs"
+    "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",

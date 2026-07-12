@@ -34,20 +34,7 @@ Update `AllowedOrigins` if your production URL differs.
 
 Redeploy after adding variables.
 
-## 4. Migrate existing Supabase files
-
-Use the automated migration (recommended):
-
-```bash
-node scripts/migrate-supabase-to-r2.mjs --dry-run --rewrite-urls
-node scripts/migrate-supabase-to-r2.mjs --rewrite-urls
-```
-
-Or see **`scripts/44-migrate-storage-to-r2.md`** for full steps and the SQL-only URL rewrite (`scripts/44-migrate-storage-urls-to-r2.sql`).
-
-Objects keep the same paths (`hero/`, `products/`, `receipts/`, etc.). Database URLs change from `*.supabase.co/storage/...` to `https://media.energyandlogics.com/...`.
-
-## 5. Verify
+## 4. Verify
 
 1. Admin → Settings → upload a product image → URL should be `https://media.energyandlogics.com/products/...`
 2. Homepage hero videos load from `https://media.energyandlogics.com/hero/...`

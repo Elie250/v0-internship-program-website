@@ -2,7 +2,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   Clock,
-  Globe,
   Mail,
   MapPin,
   MessageCircle,
@@ -153,11 +152,10 @@ export default async function AboutPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm">
-              <p className="font-semibold text-indigo-900">Product payments</p>
-              <p className="text-indigo-800/90 mt-1 text-xs leading-relaxed">
-                Payment is arranged after we confirm your order — MTN MoMo or cash on pickup. Online checkout via
-                IremboPay is coming soon for instant payment on shop orders.
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+              <p className="font-semibold text-slate-900">Product payments</p>
+              <p className="text-slate-700 mt-1 text-xs leading-relaxed">
+                Pay with MTN MoMo or cash on pickup after we confirm your order.
               </p>
             </div>
 
@@ -190,17 +188,6 @@ export default async function AboutPage() {
                   <strong className="text-[var(--brand-navy)]">{PAYMENT.momoPayCode}</strong> — {PAYMENT.accountName}
                 </p>
                 <p className="text-xs text-slate-600 leading-relaxed">{PAYMENT.workflow}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-              <Globe className="h-5 w-5 text-indigo-700 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="font-semibold text-indigo-900">{PAYMENT.internationalMethod}</p>
-                <p className="text-xs text-indigo-800/90 leading-relaxed">
-                  {PAYMENT.internationalWorkflow} IremboPay online checkout is launching soon — MTN MoMo, Airtel,
-                  and international cards in one flow.
-                </p>
               </div>
             </div>
 
