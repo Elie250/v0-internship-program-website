@@ -544,10 +544,32 @@
   }
 
   .hero-video-layer {
-    will-change: opacity;
+    will-change: auto;
     transform: translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+  }
+
+  .hero-video-layer[data-hero-active='false'] {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+  .hero-video-stage {
+    isolation: isolate;
+    background: #000;
+  }
+
+  /* Constant grade over hero video — reduces perceived brightness jumps from decode / clip changes */
+  .hero-video-grade {
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 0.18) 0%,
+      rgb(0 0 0 / 0.08) 40%,
+      rgb(0 0 0 / 0.12) 100%
+    );
+    mix-blend-mode: multiply;
   }
 
   @media (prefers-reduced-motion: reduce) {

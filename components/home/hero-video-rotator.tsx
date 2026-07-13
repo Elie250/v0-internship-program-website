@@ -6,6 +6,8 @@ import { HERO_CLIP_SECONDS } from '@/lib/media/hero-videos'
 
 /** Incoming clip fades in on top; outgoing stays full brightness underneath. */
 const CROSSFADE_MS = 1100
+/** Load the next clip only shortly before transition — avoids mid-clip decoder contention on mobile. */
+const PREWARM_BEFORE_END_S = 1.25
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false)
@@ -50,6 +52,15 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     }
   }, [])
 
+  const unloadLayer = useCallback((layer: 0 | 1) => {
+    const video = videoRefs[layer].current
+    if (!video) return
+    video.pause()
+    video.removeAttribute('src')
+    video.load()
+    slideByLayer.current[layer] = -1
+  }, [])
+
   const assignSlideToLayer = useCallback(
     (layer: 0 | 1, slideIndex: number) => {
       if (slideByLayer.current[layer] === slideIndex) return false
@@ -59,6 +70,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       if (!video || !slide) return false
 
       video.pause()
+      video.preload = 'auto'
       video.src = slide.src
       video.load()
       slideByLayer.current[layer] = slideIndex
@@ -91,7 +103,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     video.addEventListener('canplaythrough', onCanPlayThrough, { once: true })
     video.addEventListener('loadeddata', onLoadedData, { once: true })
 
-    const fallback = window.setTimeout(finish, 4000)
+    const fallback = window.setTimeout(finish, 5000)
 
     return () => {
       window.clearTimeout(fallback)
@@ -116,21 +128,19 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   }, [])
 
   const pauseLayer = useCallback((layer: 0 | 1) => {
-    const video = videoRefs[layer].current
-    if (!video) return
-    video.pause()
-    video.currentTime = 0
+    videoRefs[layer].current?.pause()
   }, [])
 
   const finishCrossfade = useCallback(
     (fromLayer: 0 | 1) => {
       pauseLayer(fromLayer)
+      unloadLayer(fromLayer)
       setIncomingVisible(false)
       setCrossfading(false)
       setOutgoingLayer(null)
       advancing.current = false
     },
-    [pauseLayer]
+    [pauseLayer, unloadLayer]
   )
 
   const startCrossfade = useCallback(
@@ -186,12 +196,14 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     if (!slides.length) return
 
     slideByLayer.current = [-1, -1]
+    unloadLayer(1)
+
     const cleanup = bufferLayer(0, 0, () => {
       if (!prefersReducedMotion) void playLayerFromStart(0)
       setInitialReady(true)
     })
     return cleanup
-  }, [bufferLayer, playLayerFromStart, prefersReducedMotion, slides])
+  }, [bufferLayer, playLayerFromStart, prefersReducedMotion, slides, unloadLayer])
 
   useEffect(() => {
     if (
@@ -204,16 +216,6 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       return
     }
 
-    const layer = inactiveLayer(activeLayerRef.current)
-    const nextIndex = (indexRef.current + 1) % slides.length
-    if (slideByLayer.current[layer] === nextIndex) return
-
-    return bufferLayer(layer, nextIndex)
-  }, [activeLayer, bufferLayer, crossfading, index, initialReady, prefersReducedMotion, slides.length])
-
-  useEffect(() => {
-    if (!slides.length || prefersReducedMotion || !initialReady || crossfading) return
-
     const layer = activeLayerRef.current
     const video = videoRefs[layer].current
     if (!video) return
@@ -225,16 +227,27 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       goToNext()
     }
 
-    const clipTimer = window.setTimeout(advanceOnce, HERO_CLIP_SECONDS * 1000)
-    const onError = () => window.setTimeout(advanceOnce, 1200)
+    const clipMs = HERO_CLIP_SECONDS * 1000
+    const prewarmMs = Math.max(400, (HERO_CLIP_SECONDS - PREWARM_BEFORE_END_S) * 1000)
 
+    const clipTimer = window.setTimeout(advanceOnce, clipMs)
+
+    const prewarmTimer = window.setTimeout(() => {
+      const nextLayer = inactiveLayer(activeLayerRef.current)
+      const nextIndex = (indexRef.current + 1) % slides.length
+      if (slideByLayer.current[nextLayer] === nextIndex) return
+      bufferLayer(nextLayer, nextIndex)
+    }, prewarmMs)
+
+    const onError = () => window.setTimeout(advanceOnce, 1200)
     video.addEventListener('error', onError)
 
     return () => {
       window.clearTimeout(clipTimer)
+      window.clearTimeout(prewarmTimer)
       video.removeEventListener('error', onError)
     }
-  }, [activeLayer, crossfading, goToNext, index, initialReady, prefersReducedMotion, slides.length])
+  }, [activeLayer, bufferLayer, crossfading, goToNext, index, initialReady, prefersReducedMotion, slides.length])
 
   useEffect(() => () => clearCrossfadeTimer(), [clearCrossfadeTimer])
 
@@ -246,47 +259,49 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
 
   return (
     <div className="absolute inset-0 bg-black" aria-hidden>
-      {([0, 1] as const).map((layer) => {
-        const isOutgoing = crossfading && outgoingLayer === layer
-        const isIncoming = crossfading && activeLayer === layer
-        const isVisible = !crossfading && activeLayer === layer
+      <div className="hero-video-stage absolute inset-0">
+        {([0, 1] as const).map((layer) => {
+          const isOutgoing = crossfading && outgoingLayer === layer
+          const isIncoming = crossfading && activeLayer === layer
+          const isVisible = !crossfading && activeLayer === layer
 
-        let zClass = 'z-0'
-        if (isOutgoing) zClass = 'z-[1]'
-        else if (isIncoming) zClass = 'z-[2]'
-        else if (isVisible) zClass = 'z-[1]'
+          let zClass = 'z-0'
+          if (isOutgoing) zClass = 'z-[1]'
+          else if (isIncoming) zClass = 'z-[2]'
+          else if (isVisible) zClass = 'z-[1]'
 
-        const opacity =
-          isOutgoing || isVisible
-            ? 1
-            : isIncoming
-              ? incomingVisible
-                ? 1
-                : 0
-              : 0
+          const show =
+            isOutgoing || isVisible || (isIncoming && incomingVisible)
 
-        return (
-          <video
-            key={layer}
-            ref={videoRefs[layer]}
-            muted
-            playsInline
-            autoPlay={layer === 0 && !prefersReducedMotion}
-            preload="auto"
-            disablePictureInPicture
-            aria-hidden={!isVisible && !isIncoming}
-            aria-label={isVisible || isIncoming ? `Hero background: ${currentSlide?.label}` : undefined}
-            className={`hero-video-layer absolute inset-0 h-full w-full object-cover object-center ${zClass}`}
-            style={{
-              opacity,
-              transition: isIncoming ? `opacity ${CROSSFADE_MS}ms ease-out` : 'none',
-            }}
-          />
-        )
-      })}
+          const opacity = isIncoming ? (incomingVisible ? 1 : 0) : show ? 1 : 0
+
+          return (
+            <video
+              key={layer}
+              ref={videoRefs[layer]}
+              muted
+              playsInline
+              autoPlay={layer === 0 && !prefersReducedMotion}
+              preload={show || isIncoming ? 'auto' : 'none'}
+              disablePictureInPicture
+              data-hero-active={show ? 'true' : 'false'}
+              aria-hidden={!show && !isIncoming}
+              aria-label={show || isIncoming ? `Hero background: ${currentSlide?.label}` : undefined}
+              className={`hero-video-layer absolute inset-0 h-full w-full object-cover object-center ${zClass}`}
+              style={{
+                opacity,
+                visibility: show || isIncoming ? 'visible' : 'hidden',
+                transition: isIncoming ? `opacity ${CROSSFADE_MS}ms ease-out` : 'none',
+              }}
+            />
+          )
+        })}
+        {/* Steady grade — keeps perceived brightness even while clips and overlays stack */}
+        <div className="hero-video-grade pointer-events-none absolute inset-0 z-[3]" aria-hidden />
+      </div>
 
       {!prefersReducedMotion && slides.length > 1 ? (
-        <div className="absolute bottom-20 sm:bottom-4 right-4 z-[3] flex items-center gap-2">
+        <div className="absolute bottom-20 sm:bottom-4 right-4 z-[4] flex items-center gap-2">
           {slides.map((slide, slideIndex) => (
             <span
               key={slide.src}

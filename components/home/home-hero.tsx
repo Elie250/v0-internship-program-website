@@ -54,7 +54,7 @@ export async function HomeHeroSection({ fullViewport = false }: { fullViewport?:
       ) : resolvedHero.background_image ? (
         <HeroBackgroundMedia src={resolvedHero.background_image} alt={resolvedHero.title} />
       ) : null}
-      <div className="absolute inset-0 z-[1] bg-black/50 md:bg-black/40" aria-hidden />
+      <div className="absolute inset-0 z-[1] bg-black/55 md:bg-black/45" aria-hidden />
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-8 pb-10 sm:pb-12 lg:pb-0 pt-24 sm:pt-28 lg:pt-[calc(var(--site-header-h)+2rem)]">
         <div className="max-w-2xl lg:max-w-3xl text-on-dark text-left">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-5 leading-[1.15] tracking-tight">
