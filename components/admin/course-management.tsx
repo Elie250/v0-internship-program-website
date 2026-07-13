@@ -361,9 +361,9 @@ export default function CourseManagementTab() {
           if (!open) setCreateError('')
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-400 shadow-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b border-slate-300 pb-4">
-            <DialogTitle className="text-slate-950 text-xl font-bold">Create program</DialogTitle>
+            <DialogTitle className="text-xl">Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} lecturers={lecturers} mentors={mentors} />
           {createError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{createError}</p> : null}
@@ -481,9 +481,9 @@ export default function CourseManagementTab() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-400 shadow-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b border-slate-300 pb-4">
-            <DialogTitle className="text-slate-950 text-xl font-bold">Edit program</DialogTitle>
+            <DialogTitle className="text-xl">Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}

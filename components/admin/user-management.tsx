@@ -12,6 +12,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -351,13 +352,20 @@ function UserManagementTab() {
               Add User
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create user</DialogTitle>
               <DialogDescription>Add a new platform user with hashed password.</DialogDescription>
             </DialogHeader>
             <UserForm formData={formData} setFormData={setFormData} showPassword />
-            <Button onClick={handleCreate} className="w-full">Create</Button>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreate} className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+                Create
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -495,17 +503,24 @@ function UserManagementTab() {
       </Card>
 
       <Dialog open={Boolean(editingUser)} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit user</DialogTitle>
           </DialogHeader>
           <UserForm formData={formData} setFormData={setFormData} />
-          <Button onClick={handleUpdate} className="w-full">Save changes</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setEditingUser(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdate} className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+              Save changes
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={Boolean(resetUserId)} onOpenChange={() => setResetUserId(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Reset password</DialogTitle>
           </DialogHeader>
@@ -515,7 +530,14 @@ function UserManagementTab() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
           />
-          <Button onClick={handleResetPassword} className="w-full">Reset password</Button>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setResetUserId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleResetPassword} className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+              Reset password
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -584,7 +606,7 @@ function UserForm({
           onChange={(e) =>
             setFormData({ ...formData, role: e.target.value as AdminUserRole })
           }
-          className="mt-1 w-full px-3 py-2 border border-border rounded-md bg-background"
+          className="mt-1 w-full h-9 rounded-md border border-slate-500 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:border-[var(--brand-navy)] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--brand-navy)]/25"
         >
           {USER_ROLES.map((role) => (
             <option key={role} value={role}>

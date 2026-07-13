@@ -494,10 +494,93 @@
     color: #475569;
   }
 
+  .app-form-surface[data-slot='dialog-content'],
   .app-form-surface [data-slot='dialog-content'] {
     background-color: #ffffff;
     color: #0f172a;
-    border-color: #cbd5e1;
+    border-color: #94a3b8;
+  }
+
+  /* Admin create/edit modals — solid surface, readable labels and controls */
+  .admin-form-dialog {
+    background-color: #ffffff !important;
+    color: #020617;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+  }
+
+  .admin-form-dialog [data-slot='dialog-title'] {
+    color: #020617;
+    font-weight: 700;
+  }
+
+  .admin-form-dialog [data-slot='dialog-description'] {
+    color: #334155;
+    font-weight: 500;
+  }
+
+  .admin-form-dialog [data-slot='label'] {
+    color: #020617;
+    font-weight: 700;
+  }
+
+  .admin-form-dialog [data-slot='input'],
+  .admin-form-dialog [data-slot='textarea'],
+  .admin-form-dialog [data-slot='select-trigger'],
+  .admin-form-dialog select {
+    background-color: #ffffff !important;
+    color: #020617 !important;
+    border-color: #64748b !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  }
+
+  .admin-form-dialog [data-slot='input']::placeholder,
+  .admin-form-dialog [data-slot='textarea']::placeholder {
+    color: #475569;
+  }
+
+  .admin-form-dialog [data-slot='input']:focus-visible,
+  .admin-form-dialog [data-slot='textarea']:focus-visible,
+  .admin-form-dialog [data-slot='select-trigger']:focus-visible,
+  .admin-form-dialog select:focus-visible {
+    border-color: var(--brand-navy) !important;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.25);
+    outline: none;
+  }
+
+  .admin-form-dialog [data-slot='select-content'] {
+    background-color: #ffffff;
+    color: #020617;
+    border-color: #64748b;
+  }
+
+  .admin-form-dialog .text-slate-500,
+  .admin-form-dialog .text-slate-600,
+  .admin-form-dialog .text-slate-700 {
+    color: #1e293b !important;
+    font-weight: 600;
+  }
+
+  .admin-form-dialog .text-amber-700,
+  .admin-form-dialog .text-amber-800 {
+    color: #b45309 !important;
+    font-weight: 700;
+  }
+
+  .admin-form-dialog [data-slot='dialog-footer'] [data-slot='button'][data-variant='outline'] {
+    border-color: #64748b;
+    color: #020617;
+    background-color: #ffffff;
+    font-weight: 600;
+  }
+
+  .admin-form-dialog [data-slot='dialog-close'] {
+    color: #334155;
+    opacity: 1;
+  }
+
+  .admin-form-dialog [data-slot='dialog-close']:hover {
+    background-color: #f1f5f9;
   }
 
   .app-form-surface [data-slot='tabs-trigger'][data-state='active'] {
