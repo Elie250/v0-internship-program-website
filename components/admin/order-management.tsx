@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { reviewPayment } from '@/app/actions/admin-payments'
+import { reviewPaymentRequest } from '@/lib/admin/review-payment-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -134,7 +134,7 @@ export default function OrderManagement() {
   const handlePaymentReview = async (paymentId: string, decision: 'approved' | 'rejected') => {
     setReviewingPaymentId(paymentId)
     setError('')
-    const result = await reviewPayment({
+    const result = await reviewPaymentRequest({
       id: paymentId,
       decision,
       adminNotes: paymentNotes[paymentId],

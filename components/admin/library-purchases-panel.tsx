@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { reviewPayment } from '@/app/actions/admin-payments'
+import { reviewPaymentRequest } from '@/lib/admin/review-payment-client'
 import type { LibraryPurchaseRow } from '@/lib/admin/data/library-purchases'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -63,7 +63,7 @@ export function LibraryPurchasesPanel() {
     setError('')
     setSuccess('')
     try {
-      const result = await reviewPayment({
+      const result = await reviewPaymentRequest({
         id: action.paymentId,
         decision: action.decision,
         adminNotes: notes[action.paymentId],

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { reviewPayment } from '@/app/actions/admin-payments'
+import { reviewPaymentRequest } from '@/lib/admin/review-payment-client'
 import type { EngineerSubscriptionApplication } from '@/lib/admin/data/engineer-subscriptions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -60,7 +60,7 @@ export default function EngineerSubscriptionsManagement({ embedded = false }: { 
     setActionLoading(true)
     setError('')
     try {
-      const result = await reviewPayment({
+      const result = await reviewPaymentRequest({
         id: action.paymentId,
         decision: action.decision,
         adminNotes: notes[action.paymentId],

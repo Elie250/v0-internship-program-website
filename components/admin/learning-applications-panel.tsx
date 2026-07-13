@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { reviewPayment } from '@/app/actions/admin-payments'
+import { reviewPaymentRequest } from '@/lib/admin/review-payment-client'
 import type { LearningApplicationRow } from '@/lib/admin/data/learning-applications'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
 import type { ProgramType } from '@/lib/enrollment/program-types'
@@ -65,7 +65,7 @@ export function LearningApplicationsPanel() {
     setError('')
     setSuccess('')
     try {
-      const result = await reviewPayment({
+      const result = await reviewPaymentRequest({
         id: action.paymentId,
         decision: action.decision,
         adminNotes: notes[action.paymentId],

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   refundPayment,
   removePaymentReceipt,
-  reviewPayment,
 } from '@/app/actions/admin-payments'
+import { reviewPaymentRequest } from '@/lib/admin/review-payment-client'
 import type { PaymentRecord } from '@/lib/admin/data/payments'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -71,7 +71,7 @@ export default function PaymentVerificationPanel({ embedded = false }: { embedde
     setReviewingId(id)
     setError('')
     setSuccess('')
-    const result = await reviewPayment({
+    const result = await reviewPaymentRequest({
       id,
       decision,
       adminNotes: notes[id],
