@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils'
 type LoginRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
 type PublicRole = 'student' | 'engineer'
 type StaffRole = 'lecturer' | 'mentor' | 'admin'
-type AccountKind = 'public' | 'staff'
 
 const PUBLIC_ROLES: {
   value: PublicRole
@@ -58,9 +57,7 @@ export default function UnifiedLoginPage() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [accountKind, setAccountKind] = useState<AccountKind>('public')
-  const [publicRole, setPublicRole] = useState<PublicRole>('student')
-  const [staffRole, setStaffRole] = useState<StaffRole>('lecturer')
+  const [role, setRole] = useState<LoginRole>('student')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [totpCode, setTotpCode] = useState('')
@@ -69,18 +66,22 @@ function LoginForm() {
   const [success, setSuccess] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const role: LoginRole = accountKind === 'public' ? publicRole : staffRole
+  const staffActive = isStaffRole(role)
 
   const applyRoleFromParam = (roleParam: string) => {
-    if (isPublicRole(roleParam)) {
-      setAccountKind('public')
-      setPublicRole(roleParam)
-      return
+    if (isPublicRole(roleParam) || isStaffRole(roleParam)) {
+      setRole(roleParam)
     }
-    if (isStaffRole(roleParam)) {
-      setAccountKind('staff')
-      setStaffRole(roleParam)
-    }
+  }
+
+  const selectPublicRole = (next: PublicRole) => {
+    setRole(next)
+    setError('')
+  }
+
+  const selectStaffRole = (next: StaffRole) => {
+    setRole(next)
+    setError('')
   }
 
   useEffect(() => {
@@ -170,12 +171,17 @@ function LoginForm() {
               <div>
                 <Label className="text-slate-800 font-semibold">Sign in as</Label>
                 <div
-                  className="mt-1.5 flex rounded-lg border border-slate-300 bg-slate-200 p-1 shadow-inner"
+                  className={cn(
+                    'mt-1.5 flex rounded-lg border p-1 transition-colors',
+                    staffActive
+                      ? 'border-slate-200 bg-slate-50'
+                      : 'border-slate-400 bg-slate-100 shadow-sm'
+                  )}
                   role="radiogroup"
                   aria-label="Public account type"
                 >
                   {PUBLIC_ROLES.map((item) => {
-                    const selected = accountKind === 'public' && publicRole === item.value
+                    const selected = !staffActive && role === item.value
                     const Icon = item.icon
                     return (
                       <button
@@ -183,19 +189,21 @@ function LoginForm() {
                         type="button"
                         role="radio"
                         aria-checked={selected}
-                        onClick={() => {
-                          setAccountKind('public')
-                          setPublicRole(item.value)
-                        }}
+                        onClick={() => selectPublicRole(item.value)}
                         className={cn(
                           'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold transition-all',
                           selected
-                            ? 'bg-[var(--brand-navy)] text-white shadow-md ring-2 ring-[var(--brand-navy)]/40'
-                            : 'text-slate-800 hover:bg-white hover:text-slate-950'
+                            ? 'bg-[var(--brand-navy)] text-white shadow-md'
+                            : staffActive
+                              ? 'bg-transparent text-slate-400'
+                              : 'bg-white text-slate-700 border border-slate-300 shadow-sm hover:border-slate-400 hover:text-slate-900'
                         )}
                       >
                         <Icon
-                          className={cn('h-4 w-4 shrink-0', selected ? 'text-white' : 'text-slate-700')}
+                          className={cn(
+                            'h-4 w-4 shrink-0',
+                            selected ? 'text-white' : staffActive ? 'text-slate-400' : 'text-slate-600'
+                          )}
                           aria-hidden
                         />
                         {item.label}
@@ -208,17 +216,14 @@ function LoginForm() {
               <div>
                 <Label className="text-slate-800 font-semibold">Staff</Label>
                 <Select
-                  value={accountKind === 'staff' ? staffRole : undefined}
-                  onValueChange={(value) => {
-                    setAccountKind('staff')
-                    setStaffRole(value as StaffRole)
-                  }}
+                  value={staffActive ? role : ''}
+                  onValueChange={(value) => selectStaffRole(value as StaffRole)}
                 >
                   <SelectTrigger
                     className={cn(
-                      'mt-1.5 w-full border-slate-400 text-slate-900',
-                      accountKind === 'staff' &&
-                        'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-2 ring-[var(--brand-navy)]/25 font-semibold'
+                      'mt-1.5 w-full border-slate-400 text-slate-900 bg-white',
+                      staffActive &&
+                        'border-[var(--brand-navy)] bg-[var(--brand-navy)] text-white ring-2 ring-[var(--brand-navy)]/30 font-semibold [&_svg]:text-white'
                     )}
                   >
                     <SelectValue placeholder="Select staff role" />
