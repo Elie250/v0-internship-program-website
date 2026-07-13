@@ -543,6 +543,13 @@
     outline-offset: 2px;
   }
 
+  .hero-video-layer {
+    will-change: opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .hero-video-layer {
       transition: none !important;
