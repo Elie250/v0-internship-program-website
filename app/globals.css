@@ -339,7 +339,29 @@
   }
 
   .admin-courses-page [data-slot='card'] {
-    border-color: #cbd5e1;
+    border-color: #94a3b8;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  }
+
+  .admin-courses-page h1 {
+    color: #020617;
+  }
+
+  .admin-courses-page .course-page-subtitle {
+    color: #334155;
+    font-weight: 600;
+  }
+
+  .admin-courses-page [data-slot='card-title'] {
+    color: #020617;
+  }
+
+  .admin-courses-page .text-slate-600 {
+    color: #334155 !important;
+  }
+
+  .admin-courses-page .text-slate-700 {
+    color: #1e293b !important;
   }
 
   .admin-notification-badge {
@@ -495,32 +517,37 @@
   .course-form-high-contrast [data-slot='select-trigger'] {
     background-color: #ffffff;
     color: #020617;
-    border-color: #475569;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    border-color: #64748b;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
   }
 
   .course-form-high-contrast [data-slot='input']::placeholder,
   .course-form-high-contrast [data-slot='textarea']::placeholder {
-    color: #64748b;
+    color: #475569;
   }
 
   .course-form-high-contrast [data-slot='input']:focus-visible,
   .course-form-high-contrast [data-slot='textarea']:focus-visible,
   .course-form-high-contrast [data-slot='select-trigger']:focus-visible {
     border-color: var(--brand-navy);
-    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.25);
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.3);
   }
 
   .course-form-high-contrast [data-slot='select-content'] {
-    border-color: #475569;
+    border-color: #64748b;
     background-color: #ffffff;
     color: #020617;
   }
 
   .course-form-high-contrast p.text-slate-600,
   .course-form-high-contrast .text-slate-500 {
-    color: #334155;
-    font-weight: 500;
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  .course-form-high-contrast .text-amber-700 {
+    color: #b45309;
+    font-weight: 700;
   }
 
   /* Shop portal — category filters, catalog cards, checkout sheet */

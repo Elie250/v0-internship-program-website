@@ -25,7 +25,7 @@ export function AdminSectionHeader({
             Admin console
           </p>
           <h1 className="text-xl md:text-2xl font-bold text-slate-900">{title}</h1>
-          {description ? <p className="text-sm text-slate-600 max-w-3xl">{description}</p> : null}
+          {description ? <p className="text-sm text-slate-800 font-medium max-w-3xl">{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap gap-2 shrink-0">{actions}</div> : null}
       </div>

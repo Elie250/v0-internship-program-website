@@ -168,9 +168,9 @@ function LoginForm() {
               ) : null}
 
               <div>
-                <Label className="text-slate-700">Sign in as</Label>
+                <Label className="text-slate-800 font-semibold">Sign in as</Label>
                 <div
-                  className="mt-1.5 flex rounded-lg border border-slate-200 bg-slate-100/70 p-1"
+                  className="mt-1.5 flex rounded-lg border border-slate-300 bg-slate-200 p-1 shadow-inner"
                   role="radiogroup"
                   aria-label="Public account type"
                 >
@@ -188,13 +188,16 @@ function LoginForm() {
                           setPublicRole(item.value)
                         }}
                         className={cn(
-                          'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-all',
+                          'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-semibold transition-all',
                           selected
-                            ? 'bg-white text-[var(--brand-navy)] shadow-sm ring-1 ring-slate-200/80'
-                            : 'text-slate-600 hover:text-slate-900'
+                            ? 'bg-[var(--brand-navy)] text-white shadow-md ring-2 ring-[var(--brand-navy)]/40'
+                            : 'text-slate-800 hover:bg-white hover:text-slate-950'
                         )}
                       >
-                        <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                        <Icon
+                          className={cn('h-4 w-4 shrink-0', selected ? 'text-white' : 'text-slate-700')}
+                          aria-hidden
+                        />
                         {item.label}
                       </button>
                     )
@@ -203,7 +206,7 @@ function LoginForm() {
               </div>
 
               <div>
-                <Label className="text-slate-700">Staff</Label>
+                <Label className="text-slate-800 font-semibold">Staff</Label>
                 <Select
                   value={accountKind === 'staff' ? staffRole : undefined}
                   onValueChange={(value) => {
@@ -213,8 +216,9 @@ function LoginForm() {
                 >
                   <SelectTrigger
                     className={cn(
-                      'mt-1.5 w-full',
-                      accountKind === 'staff' && 'border-[var(--brand-navy)] ring-1 ring-[var(--brand-navy)]/20'
+                      'mt-1.5 w-full border-slate-400 text-slate-900',
+                      accountKind === 'staff' &&
+                        'border-[var(--brand-navy)] bg-[var(--brand-navy)]/5 ring-2 ring-[var(--brand-navy)]/25 font-semibold'
                     )}
                   >
                     <SelectValue placeholder="Select staff role" />

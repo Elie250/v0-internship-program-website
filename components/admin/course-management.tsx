@@ -333,7 +333,7 @@ export default function CourseManagementTab() {
             <h1 className="text-2xl font-bold text-slate-950">Programs</h1>
             {totalNotifications > 0 ? <AdminNotificationBadge count={totalNotifications} /> : null}
           </div>
-          <p className="text-slate-700 mt-1 max-w-2xl">
+          <p className="course-page-subtitle text-slate-700 mt-1 max-w-2xl">
             {publishedCount} published · {courses.length} total
             {totalNotifications > 0 ? ` · ${courseNotificationLabel(totalNotifications)}` : ''}
           </p>
@@ -361,8 +361,8 @@ export default function CourseManagementTab() {
           if (!open) setCreateError('')
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-300">
-          <DialogHeader className="border-b border-slate-200 pb-4">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-400 shadow-xl">
+          <DialogHeader className="border-b border-slate-300 pb-4">
             <DialogTitle className="text-slate-950 text-xl font-bold">Create program</DialogTitle>
           </DialogHeader>
           <CourseForm form={form} setForm={setForm} lecturers={lecturers} mentors={mentors} />
@@ -375,9 +375,9 @@ export default function CourseManagementTab() {
       </Dialog>
 
       {courses.length === 0 ? (
-        <Card>
+        <Card className="border-slate-400 bg-white shadow-sm">
           <CardContent className="pt-6 text-center space-y-3">
-            <p className="text-slate-600">No courses created yet.</p>
+            <p className="text-slate-800 font-medium">No courses created yet.</p>
             <Button variant="outline" onClick={seedDefaults} disabled={saving}>
               Add Embedded Systems, Industrial Control & Advanced Electrical
             </Button>
@@ -386,14 +386,14 @@ export default function CourseManagementTab() {
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <Card key={course.id} className="overflow-hidden border-slate-300 bg-white shadow-sm">
+            <Card key={course.id} className="overflow-hidden border-slate-400 bg-white shadow-md">
               <div className="relative">
                 {course.thumbnail ? (
                   <div className="relative h-40">
                     <Image src={course.thumbnail} alt={course.title} fill className="object-cover" unoptimized />
                   </div>
                 ) : (
-                  <div className="h-40 bg-slate-100 flex items-center justify-center text-sm text-slate-700 font-medium">
+                  <div className="h-40 bg-slate-200 flex items-center justify-center text-sm text-slate-800 font-semibold">
                     No thumbnail
                   </div>
                 )}
@@ -481,8 +481,8 @@ export default function CourseManagementTab() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-300">
-          <DialogHeader className="border-b border-slate-200 pb-4">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto app-form-surface course-form-high-contrast border-slate-400 shadow-xl">
+          <DialogHeader className="border-b border-slate-300 pb-4">
             <DialogTitle className="text-slate-950 text-xl font-bold">Edit program</DialogTitle>
           </DialogHeader>
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
@@ -621,13 +621,13 @@ function CourseForm({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-700 font-semibold mt-1">
           {mentorProgram
             ? 'Career guidance and mentorship programmes are delivered by mentor accounts created in User Management.'
             : 'Only admin-approved lecturer accounts appear here. Pending registrations must be approved under User Management first.'}
         </p>
         {assignees.length === 0 ? (
-          <p className="text-xs text-amber-700 mt-1">
+          <p className="text-xs text-amber-800 font-bold mt-1">
             {mentorProgram
               ? 'No active mentors yet — create mentor accounts in User Management.'
               : 'No active lecturers yet — approve lecturer registrations in User Management.'}
@@ -644,7 +644,7 @@ function CourseForm({
             value={form.pricing}
             onChange={(e) => setForm({ ...form, pricing: e.target.value })}
           />
-          <p className="text-xs text-slate-500 mt-1">Free programmes skip payment approval.</p>
+          <p className="text-xs text-slate-700 font-semibold mt-1">Free programmes skip payment approval.</p>
         </div>
         <div>
           <Label>Status</Label>
