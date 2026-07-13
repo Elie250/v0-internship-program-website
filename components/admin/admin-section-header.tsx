@@ -15,17 +15,19 @@ export function AdminSectionHeader({
   return (
     <header
       className={cn(
-        'rounded-xl border border-slate-200 bg-white px-4 py-4 md:px-6 md:py-5 shadow-sm',
+        'rounded-xl border border-slate-300 bg-white px-4 py-4 md:px-6 md:py-5 shadow-sm',
         className
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-navy)]">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--brand-navy)]">
             Admin console
           </p>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900">{title}</h1>
-          {description ? <p className="text-sm text-slate-800 font-medium max-w-3xl">{description}</p> : null}
+          <h1 className="text-xl md:text-2xl font-bold text-slate-950">{title}</h1>
+          {description ? (
+            <p className="text-sm text-slate-800 font-semibold max-w-3xl leading-relaxed">{description}</p>
+          ) : null}
         </div>
         {actions ? <div className="flex flex-wrap gap-2 shrink-0">{actions}</div> : null}
       </div>

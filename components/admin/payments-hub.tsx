@@ -33,22 +33,22 @@ export default function PaymentsHub() {
         description="Review MoMo receipts for programme enrollments, Energy Library purchases, and engineer support plans. Product order payments are under Products → Product orders."
       />
       <Tabs defaultValue="programme">
-        <TabsList className="bg-white border border-slate-200 w-full sm:w-auto flex">
+        <TabsList className="admin-mobile-tabs bg-white border border-slate-300 w-full sm:w-auto flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger
             value="programme"
-            className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+            className="flex-1 sm:flex-none min-h-10 data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white data-[state=active]:font-semibold text-slate-800 font-medium"
           >
             Programme enrollments
           </TabsTrigger>
           <TabsTrigger
             value="library"
-            className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+            className="flex-1 sm:flex-none min-h-10 data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white data-[state=active]:font-semibold text-slate-800 font-medium"
           >
             Library
           </TabsTrigger>
           <TabsTrigger
             value="engineer"
-            className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+            className="flex-1 sm:flex-none min-h-10 data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white data-[state=active]:font-semibold text-slate-800 font-medium"
           >
             Engineer plans
           </TabsTrigger>

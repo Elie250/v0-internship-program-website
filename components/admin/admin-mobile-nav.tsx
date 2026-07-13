@@ -2,9 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
 import type { AdminMobileHub } from '@/lib/admin/nav'
 import { ADMIN_NAV_ICONS } from '@/components/admin/admin-nav-icons'
 import { cn } from '@/lib/utils'
@@ -14,7 +11,7 @@ function hubIsActive(pathname: string, hub: AdminMobileHub): boolean {
   return hub.groupIds.some((groupId) => {
     const groupPrefixes: Record<string, string[]> = {
       people: ['students', 'lecturers', 'engineers', 'users', 'roles'],
-      commerce: ['products', 'stock', 'orders', 'categories'],
+      commerce: ['products', 'stock', 'orders', 'categories', 'financial', 'pos'],
       learning: ['courses', 'webinars', 'classroom', 'learning-analytics'],
       public: [
         'announcements',
@@ -30,6 +27,15 @@ function hubIsActive(pathname: string, hub: AdminMobileHub): boolean {
         'support-plans',
         'reports',
         'communications',
+        'energy-library',
+        'engineering-articles',
+        'engineering-series',
+        'engineering-lead-magnets',
+        'engineering-analytics',
+        'engineering-editorial',
+        'audit-log',
+        'security',
+        'mentor-requests',
       ],
     }
     const sections = groupPrefixes[hub.id] ?? []
@@ -44,10 +50,10 @@ export function AdminMobileNav({ hubs }: { hubs: AdminMobileHub[] }) {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90 pb-[env(safe-area-inset-bottom)]"
+      className="admin-mobile-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 border-t-2 border-slate-300 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(15,23,42,0.08)]"
       aria-label="Admin quick navigation"
     >
-      <div className="grid grid-cols-5 gap-0">
+      <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${hubs.length}, minmax(0, 1fr))` }}>
         {hubs.map((hub) => {
           const Icon = ADMIN_NAV_ICONS[hub.icon]
           const active = hubIsActive(pathname, hub)
@@ -57,29 +63,28 @@ export function AdminMobileNav({ hubs }: { hubs: AdminMobileHub[] }) {
               key={hub.id}
               href={hub.href}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 text-[10px] font-medium transition-colors',
+                'relative flex flex-col items-center justify-center gap-1 py-2.5 px-1 min-h-[3.25rem] text-[10px] font-semibold transition-colors',
                 active
-                  ? 'text-[var(--brand-navy)] bg-slate-50'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/80'
+                  ? 'text-[var(--brand-navy)] bg-slate-100'
+                  : 'text-slate-700 hover:text-slate-950 hover:bg-slate-50'
               )}
             >
-              {Icon ? <Icon className={cn('h-5 w-5', active && 'stroke-[2.5]')} /> : null}
-              <span className="truncate max-w-full">{hub.label}</span>
+              {active ? (
+                <span
+                  className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-[var(--brand-navy)]"
+                  aria-hidden
+                />
+              ) : null}
+              {Icon ? (
+                <Icon
+                  className={cn('h-5 w-5 shrink-0', active ? 'stroke-[2.5] text-[var(--brand-navy)]' : 'text-slate-700')}
+                />
+              ) : null}
+              <span className="truncate max-w-full leading-tight">{hub.label}</span>
             </Link>
           )
         })}
       </div>
     </nav>
-  )
-}
-
-export function AdminMobileMenuButton() {
-  return (
-    <SidebarTrigger
-      className="md:hidden text-slate-800 shrink-0"
-      aria-label="Open admin menu"
-    >
-      <Menu className="h-5 w-5" />
-    </SidebarTrigger>
   )
 }

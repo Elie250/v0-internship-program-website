@@ -72,15 +72,15 @@ export function AdminShell({
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="admin-portal-sidebar border-r border-white/20">
-        <SidebarHeader className="border-b border-white/25 p-4">
+      <Sidebar collapsible="icon" className="admin-portal-sidebar border-r border-white/30">
+        <SidebarHeader className="border-b border-white/30 p-4">
           <div className="flex items-center gap-3">
-            <div className="relative h-10 w-10 shrink-0 rounded-md border border-white/25 bg-white overflow-hidden">
+            <div className="relative h-11 w-11 shrink-0 rounded-lg border-2 border-white/40 bg-white shadow-sm overflow-hidden">
               <Image src={logoUrl} alt="Company logo" fill className="object-contain p-0.5" unoptimized />
             </div>
             <div className="flex flex-col gap-0.5 min-w-0 group-data-[collapsible=icon]:hidden">
               <p className="font-bold text-sm leading-tight truncate text-white">{COMPANY.platformName}</p>
-              <p className="text-xs text-white/90 font-medium">Administration</p>
+              <p className="text-xs text-white font-semibold tracking-wide">Administration</p>
             </div>
           </div>
         </SidebarHeader>
@@ -88,7 +88,7 @@ export function AdminShell({
         <SidebarContent className="gap-0">
           {nav.map((group) => (
             <SidebarGroup key={group.id}>
-              <SidebarGroupLabel className="text-white/85 uppercase text-[10px] tracking-wider font-bold px-2">
+              <SidebarGroupLabel className="text-white uppercase text-[10px] tracking-widest font-bold px-2 opacity-95">
                 {group.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -109,8 +109,8 @@ export function AdminShell({
                           tooltip={item.label}
                           className={
                             isActive
-                              ? 'bg-white text-[var(--brand-navy)] font-semibold hover:bg-white hover:text-[var(--brand-navy)] shadow-sm'
-                              : 'text-white hover:bg-white/15 hover:text-white font-medium'
+                              ? 'bg-white text-[var(--brand-navy)] font-semibold hover:bg-white hover:text-[var(--brand-navy)] shadow-md ring-1 ring-white/80'
+                              : 'text-white hover:bg-white/20 hover:text-white font-medium'
                           }
                         >
                           <Link href={item.href} className="relative">
@@ -134,11 +134,11 @@ export function AdminShell({
           ))}
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-white/25 p-3">
-          <div className="rounded-lg bg-white/15 border border-white/20 p-3 text-xs group-data-[collapsible=icon]:hidden">
-            <p className="font-semibold truncate text-white">{userName}</p>
-            <p className="text-white/90 truncate">{user.email}</p>
-            <p className="text-white/75 mt-1">{ROLE_LABELS[user.role] ?? user.role}</p>
+        <SidebarFooter className="border-t border-white/30 p-3">
+          <div className="rounded-lg bg-white/20 border border-white/35 p-3 text-xs group-data-[collapsible=icon]:hidden shadow-sm">
+            <p className="font-bold truncate text-white">{userName}</p>
+            <p className="text-white font-medium truncate">{user.email}</p>
+            <p className="text-white/90 mt-1 font-semibold">{ROLE_LABELS[user.role] ?? user.role}</p>
           </div>
           <Link href="/" className="mt-2 block group-data-[collapsible=icon]:hidden">
             <Button
@@ -164,22 +164,25 @@ export function AdminShell({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="bg-slate-100/80 admin-portal-main">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/95 backdrop-blur px-4 shadow-sm">
-          <SidebarTrigger className="text-slate-900 shrink-0" aria-label="Toggle sidebar" />
-          <Separator orientation="vertical" className="h-6 hidden sm:block" />
+      <SidebarInset className="bg-slate-100 admin-portal-main">
+        <header className="admin-mobile-topbar sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-slate-300 bg-white px-3 md:px-4 shadow-sm">
+          <SidebarTrigger
+            className="size-10 shrink-0 rounded-lg border border-slate-300 bg-slate-50 text-[var(--brand-navy)] hover:bg-slate-100 hover:text-[var(--brand-navy)] md:size-7 md:border-0 md:bg-transparent"
+            aria-label="Open admin menu"
+          />
+          <Separator orientation="vertical" className="h-6 hidden sm:block bg-slate-300" />
           <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
             <div className="min-w-0">
               {currentGroup ? (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-navy)] truncate">
                   {currentGroup.label}
                 </p>
               ) : (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--brand-navy)]">
                   Administration
                 </p>
               )}
-              <p className="text-sm font-semibold text-slate-900 truncate">
+              <p className="text-sm font-bold text-slate-950 truncate">
                 {currentItem?.label ?? 'Dashboard overview'}
               </p>
             </div>
