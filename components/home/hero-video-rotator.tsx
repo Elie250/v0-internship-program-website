@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { HeroVideoSlide } from '@/lib/media/hero-videos'
-import { HERO_CLIP_SECONDS } from '@/lib/media/hero-videos'
+import { HERO_CLIP_SECONDS, heroVideoFilterForSlide } from '@/lib/media/hero-videos'
 
 /** Incoming clip fades in on top; outgoing stays full brightness underneath. */
 const CROSSFADE_MS = 1100
@@ -275,6 +275,10 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
 
           const opacity = isIncoming ? (incomingVisible ? 1 : 0) : show ? 1 : 0
 
+          const slideIndex = slideByLayer.current[layer]
+          const layerSlide = slideIndex >= 0 ? slides[slideIndex] : undefined
+          const filter = heroVideoFilterForSlide(layerSlide)
+
           return (
             <video
               key={layer}
@@ -292,6 +296,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
                 opacity,
                 visibility: show || isIncoming ? 'visible' : 'hidden',
                 transition: isIncoming ? `opacity ${CROSSFADE_MS}ms ease-out` : 'none',
+                filter: filter ?? 'none',
               }}
             />
           )

@@ -10,7 +10,7 @@ Large homepage videos are hosted on **Cloudflare R2** (or Supabase `platform-med
 ## Required filenames
 
 - `e-learning.mp4`
-- `transmission-line.mp4`
+- `transmission-line.mp4` — outdoor/sky shots; re-encode with fixed exposure if the clip still pulses mid-playback (`ffmpeg -vf eq=brightness=0.02:saturation=0.95`)
 - `embedded-programming.mp4`
 - `electronics.mov`
 
