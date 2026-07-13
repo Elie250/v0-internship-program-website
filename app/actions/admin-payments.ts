@@ -1,5 +1,6 @@
 'use server'
 
+import { runInBackground, isLikelyValidEmail } from '@/lib/async/background-task'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission, getAdminSession } from '@/app/actions/admin-context'
 import { PERMISSIONS, hasPermission } from '@/lib/admin/permissions'
@@ -252,15 +253,17 @@ export async function reviewPayment(input: {
             .maybeSingle()
           if (course?.title) programTitle = course.title
         }
-        if (enrolled?.applicant_email) {
-          const { sendEnrollmentApprovedEmail } = await import('@/lib/email/enrollment-notifications')
-          void sendEnrollmentApprovedEmail({
-            to: enrolled.applicant_email,
-            studentName: enrolled.applicant_name,
-            programTitle,
-            amountPaid: Number(enrolled.amount_due ?? 0),
-            accessStartsAt: enrolled.access_starts_at,
-          })
+        if (enrolled?.applicant_email && isLikelyValidEmail(enrolled.applicant_email)) {
+          runInBackground(async () => {
+            const { sendEnrollmentApprovedEmail } = await import('@/lib/email/enrollment-notifications')
+            await sendEnrollmentApprovedEmail({
+              to: enrolled.applicant_email,
+              studentName: enrolled.applicant_name,
+              programTitle,
+              amountPaid: Number(enrolled.amount_due ?? 0),
+              accessStartsAt: enrolled.access_starts_at,
+            })
+          }, 'enrollment_approved_email')
         }
       } else {
         await rejectEnrollmentById(existing.course_enrollment_id as string, input.adminNotes)
@@ -278,14 +281,16 @@ export async function reviewPayment(input: {
             .maybeSingle()
           if (course?.title) programTitle = course.title
         }
-        if (enrolled?.applicant_email) {
-          const { sendEnrollmentRejectedEmail } = await import('@/lib/email/enrollment-notifications')
-          void sendEnrollmentRejectedEmail({
-            to: enrolled.applicant_email,
-            studentName: enrolled.applicant_name,
-            programTitle,
-            reason: input.adminNotes,
-          })
+        if (enrolled?.applicant_email && isLikelyValidEmail(enrolled.applicant_email)) {
+          runInBackground(async () => {
+            const { sendEnrollmentRejectedEmail } = await import('@/lib/email/enrollment-notifications')
+            await sendEnrollmentRejectedEmail({
+              to: enrolled.applicant_email,
+              studentName: enrolled.applicant_name,
+              programTitle,
+              reason: input.adminNotes,
+            })
+          }, 'enrollment_rejected_email')
         }
       }
     }
@@ -322,24 +327,28 @@ export async function reviewPayment(input: {
             error: activated.error ?? 'Payment saved but subscription activation failed',
           }
         }
-        if (subEmail) {
-          const { sendSubscriptionApprovedEmail } = await import('@/lib/email/enrollment-notifications')
-          void sendSubscriptionApprovedEmail({
-            to: subEmail,
-            name: subName,
-            planName,
-          })
+        if (subEmail && isLikelyValidEmail(subEmail)) {
+          runInBackground(async () => {
+            const { sendSubscriptionApprovedEmail } = await import('@/lib/email/enrollment-notifications')
+            await sendSubscriptionApprovedEmail({
+              to: subEmail,
+              name: subName,
+              planName,
+            })
+          }, 'subscription_approved_email')
         }
       } else {
         await rejectSupportSubscription(existing.support_subscription_id as string)
-        if (subEmail) {
-          const { sendSubscriptionRejectedEmail } = await import('@/lib/email/enrollment-notifications')
-          void sendSubscriptionRejectedEmail({
-            to: subEmail,
-            name: subName,
-            planName,
-            reason: input.adminNotes,
-          })
+        if (subEmail && isLikelyValidEmail(subEmail)) {
+          runInBackground(async () => {
+            const { sendSubscriptionRejectedEmail } = await import('@/lib/email/enrollment-notifications')
+            await sendSubscriptionRejectedEmail({
+              to: subEmail,
+              name: subName,
+              planName,
+              reason: input.adminNotes,
+            })
+          }, 'subscription_rejected_email')
         }
       }
     }
@@ -367,12 +376,16 @@ export async function reviewPayment(input: {
       }
     }
 
-    const { notifyPaymentReviewed } = await import('@/lib/email/payment-hooks')
-    void notifyPaymentReviewed({
-      paymentId: input.id,
-      decision: input.decision,
-      adminNotes: input.adminNotes,
-    })
+    if (!existing.course_enrollment_id && !existing.support_subscription_id) {
+      runInBackground(async () => {
+        const { notifyPaymentReviewed } = await import('@/lib/email/payment-hooks')
+        await notifyPaymentReviewed({
+          paymentId: input.id,
+          decision: input.decision,
+          adminNotes: input.adminNotes,
+        })
+      }, 'payment_review_notify')
+    }
 
     return { success: true }
   } catch (error) {

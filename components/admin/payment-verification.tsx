@@ -332,7 +332,7 @@ export default function PaymentVerificationPanel({ embedded = false }: { embedde
           }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="admin-form-dialog border-slate-400 shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {refundTarget?.mode === 'refund'

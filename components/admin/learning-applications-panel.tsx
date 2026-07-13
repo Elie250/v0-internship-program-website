@@ -34,6 +34,7 @@ export function LearningApplicationsPanel() {
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [success, setSuccess] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -58,21 +59,33 @@ export function LearningApplicationsPanel() {
   }, [load])
 
   const confirmReview = async () => {
-    if (!reviewAction) return
+    const action = reviewAction
+    if (!action) return
     setActionLoading(true)
     setError('')
-    const result = await reviewPayment({
-      id: reviewAction.paymentId,
-      decision: reviewAction.decision,
-      adminNotes: notes[reviewAction.paymentId],
-    })
-    setActionLoading(false)
-    if (!result.success) {
-      setError(result.error || 'Review failed')
-      return
+    setSuccess('')
+    try {
+      const result = await reviewPayment({
+        id: action.paymentId,
+        decision: action.decision,
+        adminNotes: notes[action.paymentId],
+      })
+      if (!result.success) {
+        setError(result.error || 'Review failed')
+        return
+      }
+      setSuccess(
+        action.decision === 'approved'
+          ? 'Enrollment approved. The student can access the course in their dashboard.'
+          : 'Payment rejected. The student was notified if a valid email is on file.'
+      )
+      setReviewAction(null)
+      void load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Review failed')
+    } finally {
+      setActionLoading(false)
     }
-    setReviewAction(null)
-    void load()
   }
 
   return (
@@ -86,6 +99,11 @@ export function LearningApplicationsPanel() {
           {error ? (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md p-3">
               {error}
+            </p>
+          ) : null}
+          {success ? (
+            <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-3">
+              {success}
             </p>
           ) : null}
           {loading ? (
@@ -238,21 +256,39 @@ export function LearningApplicationsPanel() {
         </TabsContent>
       </Tabs>
 
-      <AlertDialog open={!!reviewAction} onOpenChange={(open) => !open && setReviewAction(null)}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={!!reviewAction}
+        onOpenChange={(open) => {
+          if (!open && !actionLoading) setReviewAction(null)
+        }}
+      >
+        <AlertDialogContent className="admin-form-dialog border-slate-400 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-950">
               {reviewAction?.decision === 'approved' ? 'Approve enrollment?' : 'Reject payment?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-slate-800">
               {reviewAction?.decision === 'approved'
                 ? `${reviewAction?.label} will be admitted, receive a confirmation email, and appear under Enrollments.`
                 : `${reviewAction?.label} will be notified by email with your rejection reason.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReview} disabled={actionLoading}>
+            <AlertDialogCancel disabled={actionLoading} className="border-slate-500 text-slate-900">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionLoading}
+              className={
+                reviewAction?.decision === 'approved'
+                  ? 'bg-green-700 hover:bg-green-800 text-white'
+                  : 'bg-red-700 hover:bg-red-800 text-white'
+              }
+              onClick={(e) => {
+                e.preventDefault()
+                void confirmReview()
+              }}
+            >
               {actionLoading ? 'Processing…' : 'Confirm'}
             </AlertDialogAction>
           </AlertDialogFooter>

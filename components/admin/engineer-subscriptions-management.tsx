@@ -55,20 +55,27 @@ export default function EngineerSubscriptionsManagement({ embedded = false }: { 
   }, [load])
 
   const confirmReview = async () => {
-    if (!reviewAction) return
+    const action = reviewAction
+    if (!action) return
     setActionLoading(true)
-    const result = await reviewPayment({
-      id: reviewAction.paymentId,
-      decision: reviewAction.decision,
-      adminNotes: notes[reviewAction.paymentId],
-    })
-    setActionLoading(false)
-    if (!result.success) {
-      setError(result.error || 'Review failed')
-      return
+    setError('')
+    try {
+      const result = await reviewPayment({
+        id: action.paymentId,
+        decision: action.decision,
+        adminNotes: notes[action.paymentId],
+      })
+      if (!result.success) {
+        setError(result.error || 'Review failed')
+        return
+      }
+      setReviewAction(null)
+      void load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Review failed')
+    } finally {
+      setActionLoading(false)
     }
-    setReviewAction(null)
-    void load()
   }
 
   return (
@@ -208,22 +215,40 @@ export default function EngineerSubscriptionsManagement({ embedded = false }: { 
         </TabsContent>
       </Tabs>
 
-      <AlertDialog open={!!reviewAction} onOpenChange={(open) => !open && setReviewAction(null)}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={!!reviewAction}
+        onOpenChange={(open) => {
+          if (!open && !actionLoading) setReviewAction(null)
+        }}
+      >
+        <AlertDialogContent className="admin-form-dialog border-slate-400 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-slate-950">
               {reviewAction?.decision === 'approved' ? 'Activate subscription?' : 'Reject payment?'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-slate-800">
               {reviewAction?.decision === 'approved'
                 ? 'The engineer will receive a confirmation email and can use support tickets.'
                 : 'The engineer will be emailed with your rejection reason.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmReview} disabled={actionLoading}>
-              Confirm
+            <AlertDialogCancel disabled={actionLoading} className="border-slate-500 text-slate-900">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionLoading}
+              className={
+                reviewAction?.decision === 'approved'
+                  ? 'bg-green-700 hover:bg-green-800 text-white'
+                  : 'bg-red-700 hover:bg-red-800 text-white'
+              }
+              onClick={(e) => {
+                e.preventDefault()
+                void confirmReview()
+              }}
+            >
+              {actionLoading ? 'Processing…' : 'Confirm'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
