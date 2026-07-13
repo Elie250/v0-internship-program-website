@@ -28,6 +28,7 @@ import {
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 import { loadPublicTeamMembers } from '@/lib/platform/team'
 import { OurTeamSection } from '@/components/about/our-team-section'
+import { ProfessionalExperienceSection } from '@/components/about/professional-experience-section'
 
 export default async function AboutPage() {
   const profile = await loadPublicCompanyProfile()
@@ -62,6 +63,8 @@ export default async function AboutPage() {
             </p>
           </CardContent>
         </Card>
+
+        <ProfessionalExperienceSection />
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="border-slate-200 bg-white">

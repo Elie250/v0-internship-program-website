@@ -20,12 +20,13 @@ const libraryMessages = {
   },
   rw: {
     title: 'Isomero rya Energy',
-    subtitle: 'Reba amafoto, imishinga yubatsi, ibitabo n\'umuco wa Energy & Logics.',
+    subtitle:
+      "Reba amafoto, Imishinga migari, ibitabo ndetse n'ibindi bijyanye n'umuco gakondo bitegurwa na Energy & Logics.",
     projectsTitle: 'Imishinga yubatsi',
     projectsSubtitle: 'Imishinga y\'abanyeshuri n\'itsinda ryacu yerekanywe na Energy & Logics.',
     viewAllProjects: 'Reba imishinga yose',
-    photosEvents: 'Amafoto n\'ibikorwa',
-    engineeringProject: 'Umushinga w\'ubuhanzi',
+    photosEvents: "Amafoto n'ibyakozwe",
+    engineeringProject: 'Imishinga',
     team: 'Itsinda',
     year: 'Umwaka',
     technologies: 'Ikoranabuhanga',
