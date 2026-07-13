@@ -49,9 +49,6 @@ const desktopHeaderInnerClass = 'hidden lg:grid lg:grid-cols-[auto_1fr_auto] lg:
 const mobileNavLinkClass =
   'block rounded-lg px-3 py-2.5 text-base font-medium text-slate-950 hover:bg-slate-100 no-underline hover:no-underline'
 
-const mobileRegisterButtonClass =
-  'site-header-register-btn h-9 px-3 text-sm font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white'
-
 function BrandMark({
   logoUrl,
   compact = false,
@@ -173,15 +170,10 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
       </div>
 
-      <div className="border-t border-slate-200 pt-4 flex flex-col gap-2">
+      <div className="border-t border-slate-200 pt-4">
         <Link href="/auth/login" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button variant="outline" className="w-full border-slate-400 bg-white text-slate-950 font-semibold hover:bg-slate-50">
-            Login
-          </Button>
-        </Link>
-        <Link href="/auth/register" onClick={onNavigate} className="no-underline hover:no-underline">
           <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 font-semibold">
-            Register
+            Login
           </Button>
         </Link>
       </div>
@@ -295,29 +287,29 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
           </Link>
         </div>
 
-        <div className="flex items-center justify-end gap-2 shrink-0">
-          <Link href="/auth/login" className="text-sm font-semibold text-white hover:text-white px-2 py-1 no-underline hover:underline whitespace-nowrap">
-            Login
-          </Link>
-          <Link href="/auth/register" className="no-underline hover:no-underline">
-            <Button size="sm" className="site-header-register-btn bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-4 shadow-sm border border-white">
-              Register
+        <div className="flex items-center justify-end shrink-0">
+          <Link href="/auth/login" className="no-underline hover:no-underline">
+            <Button
+              size="sm"
+              className="bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-4 shadow-sm border border-white"
+            >
+              Login
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* Mobile: Menu · Login · Register only */}
+      {/* Mobile: Menu · Login */}
       <div className="lg:hidden flex w-full items-center justify-between gap-3 px-4 py-2">
         <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
 
-        <div className="site-header-mobile-auth flex items-center gap-2 shrink-0">
-          <Link href="/auth/login" className="inline-flex items-center h-9 px-2 text-sm font-semibold text-white hover:text-white no-underline hover:underline whitespace-nowrap">
-            Login
-          </Link>
-          <Link href="/auth/register" className="no-underline hover:no-underline">
-            <Button size="sm" className={mobileRegisterButtonClass}>
-              Register
+        <div className="site-header-mobile-auth flex items-center shrink-0">
+          <Link href="/auth/login" className="no-underline hover:no-underline">
+            <Button
+              size="sm"
+              className="h-9 px-3 text-sm font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white"
+            >
+              Login
             </Button>
           </Link>
         </div>

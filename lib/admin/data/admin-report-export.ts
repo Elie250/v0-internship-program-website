@@ -6,11 +6,11 @@ const REPORT_TITLE = 'Energy & Logics Academy - Admin Report'
 
 type ReportRow = [section: string, metric: string, value: string | number]
 
-function reportFileDate(): string {
+export function reportFileDate(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-function buildReportRows(report: AdminReportData): ReportRow[] {
+export function buildReportRows(report: AdminReportData): ReportRow[] {
   const { stats, coursesByStatus, programmeNotifications, content } = report
 
   return [
@@ -56,7 +56,7 @@ function escapeCsvCell(value: string | number): string {
   return `"${String(value).replace(/"/g, '""')}"`
 }
 
-export function downloadAdminReportPdf(report: AdminReportData): void {
+function buildAdminReportPdfDoc(report: AdminReportData): jsPDF {
   const doc = new jsPDF()
   const generated = new Date().toLocaleString()
 
@@ -82,27 +82,45 @@ export function downloadAdminReportPdf(report: AdminReportData): void {
     },
   })
 
-  doc.save(`admin-report-${reportFileDate()}.pdf`)
+  return doc
 }
 
-export function downloadAdminReportExcel(report: AdminReportData): void {
+export function buildAdminReportCsvString(report: AdminReportData): string {
   const rows = buildReportRows(report)
-  const csvContent = [
+  return [
     ['Section', 'Metric', 'Value'],
     ...rows,
     ['', 'Generated', new Date().toLocaleString()],
   ]
     .map((row) => row.map(escapeCsvCell).join(','))
     .join('\n')
+}
 
-  const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+export function buildAdminReportPdfArrayBuffer(report: AdminReportData): ArrayBuffer {
+  return buildAdminReportPdfDoc(report).output('arraybuffer')
+}
+
+function triggerBrowserDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.setAttribute('download', `admin-report-${reportFileDate()}.csv`)
+  link.download = filename
   link.style.display = 'none'
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+export function downloadAdminReportPdf(report: AdminReportData): void {
+  const buffer = buildAdminReportPdfArrayBuffer(report)
+  const blob = new Blob([buffer], { type: 'application/pdf' })
+  triggerBrowserDownload(blob, `admin-report-${reportFileDate()}.pdf`)
+}
+
+export function downloadAdminReportExcel(report: AdminReportData): void {
+  const blob = new Blob([`\uFEFF${buildAdminReportCsvString(report)}`], {
+    type: 'application/vnd.ms-excel;charset=utf-8;',
+  })
+  triggerBrowserDownload(blob, `admin-report-${reportFileDate()}.csv`)
 }

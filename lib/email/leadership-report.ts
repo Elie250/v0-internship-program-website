@@ -1,6 +1,11 @@
 import { Resend } from 'resend'
 import { COMPANY } from '@/lib/company/constants'
 import { buildAdminReportDataInternal } from '@/app/actions/admin-context'
+import {
+  buildAdminReportCsvString,
+  buildAdminReportPdfArrayBuffer,
+  reportFileDate,
+} from '@/lib/admin/data/admin-report-export'
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY?.trim()
@@ -22,10 +27,16 @@ export async function sendLeadershipReportEmail(): Promise<{ sent: boolean; skip
 
   const report = await buildAdminReportDataInternal()
   const { stats, coursesByStatus, programmeNotifications, content } = report
+  const fileDate = reportFileDate()
+  const pdfBase64 = Buffer.from(buildAdminReportPdfArrayBuffer(report)).toString('base64')
+  const csvBase64 = Buffer.from(`\uFEFF${buildAdminReportCsvString(report)}`, 'utf-8').toString('base64')
 
   const html = `<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;line-height:1.6;color:#1e293b;max-width:640px;margin:0 auto;padding:24px">
 <h1 style="color:#1e3a5f">Weekly leadership report</h1>
 <p>Snapshot for ${new Date().toLocaleDateString()}.</p>
+<p style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:12px 16px;font-size:14px">
+  <strong>Attached:</strong> PDF summary and Excel-compatible CSV export. Open the PDF for the full formatted report.
+</p>
 <h2>Users</h2>
 <ul>
 <li>Total users: ${stats.users}</li>
@@ -60,6 +71,16 @@ export async function sendLeadershipReportEmail(): Promise<{ sent: boolean; skip
     to: recipients,
     subject: `Leadership report — ${COMPANY.brandName}`,
     html,
+    attachments: [
+      {
+        filename: `admin-report-${fileDate}.pdf`,
+        content: pdfBase64,
+      },
+      {
+        filename: `admin-report-${fileDate}.csv`,
+        content: csvBase64,
+      },
+    ],
   })
 
   return { sent: true }

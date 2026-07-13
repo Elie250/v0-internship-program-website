@@ -133,11 +133,21 @@ export function ReportsTab({ initialData }: { initialData?: AdminReportData }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleDownloadPdf}>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                handleDownloadPdf()
+              }}
+            >
               <FileText className="w-4 h-4 mr-2" />
               Download as PDF
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDownloadExcel}>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                handleDownloadExcel()
+              }}
+            >
               <FileSpreadsheet className="w-4 h-4 mr-2" />
               Download as Excel (CSV)
             </DropdownMenuItem>
