@@ -1,7 +1,13 @@
-const CACHE = 'energy-logics-static-v2'
+const CACHE = 'energy-logics-static-v3'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {

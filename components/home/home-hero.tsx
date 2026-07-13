@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { getActiveHero } from '@/lib/platform/queries'
 import { HeroVideoRotator } from '@/components/home/hero-video-rotator'
@@ -8,8 +7,6 @@ import { getHeroVideoPlaylist } from '@/lib/media/hero-videos'
 import { COMPANY } from '@/lib/company/constants'
 import type { HeroContent } from '@/types/platform'
 import { loadHomePersonalization, resolveHomeHeroCtas } from '@/lib/home/personalization'
-
-const HERO_POSTER = '/hero-laboratory.jpg'
 
 const defaultHero: HeroContent = {
   id: 'default',
@@ -51,20 +48,9 @@ export async function HomeHeroSection({ fullViewport = false }: { fullViewport?:
       }`}
     >
       {showPlaylist ? (
-        <>
-          <div className="absolute inset-0 md:hidden" aria-hidden>
-            <Image
-              src={HERO_POSTER}
-              alt=""
-              fill
-              className="object-cover object-center"
-              priority
-            />
-          </div>
-          <div className="absolute inset-0 hidden md:block">
-            <HeroVideoRotator playlist={videoPlaylist} />
-          </div>
-        </>
+        <div className="absolute inset-0">
+          <HeroVideoRotator playlist={videoPlaylist} />
+        </div>
       ) : resolvedHero.background_image ? (
         <HeroBackgroundMedia src={resolvedHero.background_image} alt={resolvedHero.title} />
       ) : null}

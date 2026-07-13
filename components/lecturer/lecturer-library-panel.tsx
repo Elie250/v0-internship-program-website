@@ -39,6 +39,7 @@ const empty = {
   file_url: '',
   author_name: '',
   language: 'rw',
+  price_rwf: 0,
   terms_accepted: false,
 }
 
@@ -183,6 +184,7 @@ export function LecturerLibraryPanel() {
       file_url: item.file_url ?? '',
       author_name: item.author_name ?? '',
       language: item.language,
+      price_rwf: item.price_rwf ?? 0,
       terms_accepted: Boolean(item.terms_accepted_at),
     })
     setSuccess('')
@@ -344,6 +346,23 @@ export function LecturerLibraryPanel() {
                 />
               </div>
             ) : null}
+
+            <div className="space-y-2">
+              <Label>Price (RWF)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={100}
+                value={form.price_rwf}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, price_rwf: Math.max(0, Number(e.target.value) || 0) }))
+                }
+                placeholder="0 = free access"
+              />
+              <p className="text-xs text-slate-500">
+                Optional paid access for your book or culture submission. Admin approves pricing on publish.
+              </p>
+            </div>
 
             <label className="flex items-start gap-2 text-sm text-slate-700">
               <input

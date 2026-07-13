@@ -1,4 +1,5 @@
 import type { LibraryGalleryType, LibraryPillar } from '@/lib/library/items'
+import { canSetLibraryPrice } from '@/lib/library/access'
 
 export function validateLibraryItemPayload(payload: Record<string, unknown>) {
   const title = String(payload.title ?? '').trim()
@@ -28,6 +29,18 @@ export function validateLibraryItemPayload(payload: Record<string, unknown>) {
     const file = String(payload.file_url ?? '').trim()
     if (!body && !file) {
       return 'Culture items require text content or a file'
+    }
+  }
+
+  const priceRwf = Math.max(0, Math.round(Number(payload.price_rwf ?? 0)))
+  const uploaderRole = String(payload.uploader_role ?? '').trim() || null
+
+  if (priceRwf > 0) {
+    if (!canSetLibraryPrice(pillar, uploaderRole)) {
+      return 'Only admin and lecturer books or culture items can have a price'
+    }
+    if (pillar !== 'books' && pillar !== 'culture') {
+      return 'Only books and culture items can be sold'
     }
   }
 

@@ -5,8 +5,10 @@ import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { LibraryViewTracker } from '@/components/library/library-view-tracker'
+import { LibraryPurchasePanel } from '@/components/library/library-purchase-panel'
 import { PublicCommentPanel } from '@/components/engineering/public-comment-panel'
 import { getSessionUser } from '@/lib/auth/session-user'
+import { userHasLibraryAccess, libraryItemRequiresPayment } from '@/lib/library/access'
 import {
   cultureTypeLabel,
   galleryTypeLabel,
@@ -37,6 +39,8 @@ export default async function LibraryItemPage({ params }: PageProps) {
   if (!item) notFound()
 
   const user = await getSessionUser()
+  const access = await userHasLibraryAccess(user?.id, user?.role, item)
+  const isPaidItem = libraryItemRequiresPayment(item)
   const cultureLabelText = cultureTypeLabel(item.culture_type)
 
   return (
@@ -62,6 +66,11 @@ export default async function LibraryItemPage({ params }: PageProps) {
             <span className="rounded-full border border-slate-300 px-2 py-0.5">
               {pillarLabel(item.pillar)}
             </span>
+            {isPaidItem ? (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-amber-900">
+                {item.price_rwf.toLocaleString()} RWF
+              </span>
+            ) : null}
             {cultureLabelText ? (
               <span className="rounded-full border border-slate-300 px-2 py-0.5">{cultureLabelText}</span>
             ) : null}
@@ -106,6 +115,22 @@ export default async function LibraryItemPage({ params }: PageProps) {
           </div>
         ) : null}
 
+        {isPaidItem && !access.hasAccess ? (
+          <LibraryPurchasePanel
+            item={item}
+            user={
+              user
+                ? {
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email ?? '',
+                  }
+                : null
+            }
+            purchaseStatus={access.purchaseStatus}
+          />
+        ) : null}
+
         {item.pillar === 'gallery' && item.body ? (
           <section className="prose prose-slate max-w-none">
             <p className="whitespace-pre-wrap text-slate-700">{item.body}</p>
@@ -135,7 +160,7 @@ export default async function LibraryItemPage({ params }: PageProps) {
           </section>
         ) : null}
 
-        {item.pillar === 'books' && item.file_url ? (
+        {access.hasAccess && item.pillar === 'books' && item.file_url ? (
           <section className="space-y-4">
             <div className="rounded-xl border bg-white overflow-hidden">
               <iframe
@@ -157,11 +182,11 @@ export default async function LibraryItemPage({ params }: PageProps) {
           </section>
         ) : null}
 
-        {item.pillar === 'books' && !item.file_url ? (
+        {access.hasAccess && item.pillar === 'books' && !item.file_url ? (
           <p className="text-slate-600">This book file is not available yet.</p>
         ) : null}
 
-        {item.body ? (
+        {access.hasAccess && item.body ? (
           <section className="prose prose-slate max-w-none rounded-xl border bg-white p-6">
             {item.body.split('\n').map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
@@ -169,8 +194,20 @@ export default async function LibraryItemPage({ params }: PageProps) {
           </section>
         ) : null}
 
-        {item.pillar === 'culture' && !item.body && !item.file_url ? (
+        {access.hasAccess && item.pillar === 'culture' && !item.body && !item.file_url ? (
           <p className="text-slate-600">Culture content will appear here when published.</p>
+        ) : null}
+
+        {access.hasAccess && item.pillar === 'culture' && item.file_url ? (
+          <section className="space-y-4">
+            <div className="rounded-xl border bg-white overflow-hidden">
+              <iframe
+                src={item.file_url}
+                title={item.title}
+                className="w-full h-[min(80vh,720px)]"
+              />
+            </div>
+          </section>
         ) : null}
 
         {item.pillar === 'culture' ? (

@@ -43,6 +43,7 @@ const empty = {
   status: 'published',
   sort_order: 0,
   is_featured: false,
+  price_rwf: 0,
   terms_accepted: false,
 }
 
@@ -179,6 +180,7 @@ export default function EnergyLibraryManagement() {
       status: item.status,
       sort_order: item.sort_order,
       is_featured: item.is_featured,
+      price_rwf: item.price_rwf ?? 0,
       terms_accepted: Boolean(item.terms_accepted_at),
     })
   }
@@ -445,6 +447,25 @@ export default function EnergyLibraryManagement() {
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                 placeholder="Story, poem, or prose for culture items"
               />
+            </div>
+          ) : null}
+
+          {(form.pillar === 'books' || form.pillar === 'culture') ? (
+            <div className="space-y-2">
+              <Label>Price (RWF)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={100}
+                value={form.price_rwf}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, price_rwf: Math.max(0, Number(e.target.value) || 0) }))
+                }
+                placeholder="0 = free access"
+              />
+              <p className="text-xs text-slate-500">
+                Set a price for paid books or culture items. Leave at 0 for free access.
+              </p>
             </div>
           ) : null}
 

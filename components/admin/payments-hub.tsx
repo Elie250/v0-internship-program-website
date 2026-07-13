@@ -17,12 +17,20 @@ const EngineerSubscriptionsManagement = dynamic(
   { loading: () => <p className="text-sm text-slate-600">Loading engineer subscriptions…</p> }
 )
 
+const LibraryPurchasesPanel = dynamic(
+  () =>
+    import('@/components/admin/library-purchases-panel').then((m) => ({
+      default: m.LibraryPurchasesPanel,
+    })),
+  { loading: () => <p className="text-sm text-slate-600">Loading library purchases…</p> }
+)
+
 export default function PaymentsHub() {
   return (
     <div className="space-y-6">
       <AdminSectionHeader
         title="E-learning payments"
-        description="Review MoMo receipts for programme enrollments and engineer support plans. Product order payments are under Products → Product orders."
+        description="Review MoMo receipts for programme enrollments, Energy Library purchases, and engineer support plans. Product order payments are under Products → Product orders."
       />
       <Tabs defaultValue="programme">
         <TabsList className="bg-white border border-slate-200 w-full sm:w-auto flex">
@@ -33,6 +41,12 @@ export default function PaymentsHub() {
             Programme enrollments
           </TabsTrigger>
           <TabsTrigger
+            value="library"
+            className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
+          >
+            Library
+          </TabsTrigger>
+          <TabsTrigger
             value="engineer"
             className="flex-1 sm:flex-none data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white"
           >
@@ -41,6 +55,9 @@ export default function PaymentsHub() {
         </TabsList>
         <TabsContent value="programme" className="mt-4">
           <LearningApplicationsPanel />
+        </TabsContent>
+        <TabsContent value="library" className="mt-4">
+          <LibraryPurchasesPanel />
         </TabsContent>
         <TabsContent value="engineer" className="mt-4">
           <EngineerSubscriptionsManagement embedded />

@@ -42,6 +42,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const payload = libraryItemPayloadFromBody(merged, {
       termsAccepted: termsAccepted || undefined,
+      uploaderRole: String(existing.uploader_role ?? 'admin'),
     })
 
     if (termsAccepted) {

@@ -16,6 +16,7 @@ type PaymentReviewRow = {
   status: string
   course_enrollment_id: string | null
   support_subscription_id: string | null
+  library_purchase_id: string | null
   application_id: string | null
   order_id: string | null
 }
@@ -27,8 +28,9 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
   if (!supabaseAdmin) return { payment: null, error: 'Database not configured' }
 
   const withOrder =
-    'id, status, course_enrollment_id, support_subscription_id, application_id, order_id'
-  const base = 'id, status, course_enrollment_id, support_subscription_id, application_id'
+    'id, status, course_enrollment_id, support_subscription_id, library_purchase_id, application_id, order_id'
+  const base =
+    'id, status, course_enrollment_id, support_subscription_id, library_purchase_id, application_id'
 
   const primary = await supabaseAdmin
     .from('payments')
@@ -40,7 +42,21 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
   let error = primary.error
 
   if (error?.message?.includes('order_id')) {
-    const retry = await supabaseAdmin.from('payments').select(base).eq('id', paymentId).maybeSingle()
+    const retry = await supabaseAdmin
+      .from('payments')
+      .select('id, status, course_enrollment_id, support_subscription_id, application_id')
+      .eq('id', paymentId)
+      .maybeSingle()
+    data = retry.data as Record<string, unknown> | null
+    error = retry.error
+  }
+
+  if (error?.message?.includes('library_purchase_id')) {
+    const retry = await supabaseAdmin
+      .from('payments')
+      .select('id, status, course_enrollment_id, support_subscription_id, application_id, order_id')
+      .eq('id', paymentId)
+      .maybeSingle()
     data = retry.data as Record<string, unknown> | null
     error = retry.error
   }
@@ -65,6 +81,7 @@ async function fetchPaymentForReview(paymentId: string): Promise<{
       status: String(data.status),
       course_enrollment_id: (data.course_enrollment_id as string | null) ?? null,
       support_subscription_id: (data.support_subscription_id as string | null) ?? null,
+      library_purchase_id: (data.library_purchase_id as string | null) ?? null,
       application_id: (data.application_id as string | null) ?? null,
       order_id: orderId,
     },
@@ -83,6 +100,13 @@ function canReviewPayment(
       PERMISSIONS.PAYMENTS_APPROVE,
       PERMISSIONS.APPLICATIONS_APPROVE,
       PERMISSIONS.LEARNING_STUDENTS,
+    ])
+  }
+  if (payment.library_purchase_id) {
+    return hasPermission(permissions, [
+      PERMISSIONS.PAYMENTS_APPROVE,
+      PERMISSIONS.APPLICATIONS_APPROVE,
+      PERMISSIONS.CONTENT_ANNOUNCEMENTS,
     ])
   }
   if (payment.support_subscription_id) {
@@ -196,6 +220,12 @@ export async function reviewPayment(input: {
       if (input.decision === 'approved' && String(existing.status) === 'approved') {
         if (existing.course_enrollment_id) {
           await admitEnrollmentById(existing.course_enrollment_id as string)
+        }
+        if (existing.library_purchase_id) {
+          await supabaseAdmin
+            .from('library_purchases')
+            .update({ status: 'active', updated_at: now })
+            .eq('id', existing.library_purchase_id)
         }
         return { success: true }
       }
@@ -353,6 +383,26 @@ export async function reviewPayment(input: {
       }
     }
 
+    if (existing.library_purchase_id) {
+      if (input.decision === 'approved') {
+        const { error: purchaseError } = await supabaseAdmin
+          .from('library_purchases')
+          .update({ status: 'active', updated_at: now })
+          .eq('id', existing.library_purchase_id)
+        if (purchaseError?.message?.includes('library_purchases')) {
+          return { success: false, error: 'Run scripts/61-library-payments.sql in Supabase.' }
+        }
+        if (purchaseError) {
+          return { success: false, error: purchaseError.message }
+        }
+      } else {
+        await supabaseAdmin
+          .from('library_purchases')
+          .update({ status: 'rejected', updated_at: now })
+          .eq('id', existing.library_purchase_id)
+      }
+    }
+
     if (existing.order_id) {
       if (input.decision === 'approved') {
         await supabaseAdmin
@@ -376,7 +426,7 @@ export async function reviewPayment(input: {
       }
     }
 
-    if (!existing.course_enrollment_id && !existing.support_subscription_id) {
+    if (!existing.course_enrollment_id && !existing.support_subscription_id && !existing.library_purchase_id) {
       runInBackground(async () => {
         const { notifyPaymentReviewed } = await import('@/lib/email/payment-hooks')
         await notifyPaymentReviewed({

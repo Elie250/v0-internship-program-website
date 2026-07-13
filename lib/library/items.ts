@@ -32,6 +32,7 @@ export type EnergyLibraryItem = {
   view_count: number
   sort_order: number
   is_featured: boolean
+  price_rwf: number
   published_at: string | null
   created_at: string
   updated_at: string
@@ -110,6 +111,7 @@ export function normalizeLibraryItem(row: Record<string, unknown>): EnergyLibrar
     view_count: Number(row.view_count ?? 0),
     sort_order: Number(row.sort_order ?? 0),
     is_featured: Boolean(row.is_featured),
+    price_rwf: Number(row.price_rwf ?? 0),
     published_at: row.published_at != null ? String(row.published_at) : null,
     created_at: String(row.created_at ?? new Date().toISOString()),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
@@ -163,6 +165,10 @@ export function libraryItemPayloadFromBody(
     status,
     sort_order: Number(body.sort_order ?? 0),
     is_featured: Boolean(body.is_featured),
+    price_rwf:
+      pillar === 'books' || pillar === 'culture'
+        ? Math.max(0, Math.round(Number(body.price_rwf ?? 0)))
+        : 0,
     updated_at: now,
   }
 

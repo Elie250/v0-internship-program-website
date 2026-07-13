@@ -1,11 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import type { HeroVideoSlide } from '@/lib/media/hero-videos'
 import { HERO_CLIP_SECONDS } from '@/lib/media/hero-videos'
-
-const FALLBACK_POSTER = '/hero-laboratory.jpg'
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false)
@@ -26,7 +23,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const [index, setIndex] = useState(0)
   const [activeLayer, setActiveLayer] = useState<0 | 1>(0)
-  const [showPoster, setShowPoster] = useState(true)
+  const [videoReady, setVideoReady] = useState(false)
 
   const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)]
   const slideByLayer = useRef<[number, number]>([-1, -1])
@@ -78,7 +75,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
   }, [])
 
   const goToNext = useCallback(() => {
-    if (slides.length <= 1 || advancing.current) return
+    if (slides.length <= 1 || advancing.current || prefersReducedMotion) return
     advancing.current = true
 
     const currentIndex = indexRef.current
@@ -103,7 +100,7 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       advancing.current = false
       setIndex(nextIndex)
       setActiveLayer(nextLayer)
-      setShowPoster(false)
+      setVideoReady(true)
     }, 12000)
 
     whenLayerCanPlay(nextLayer, () => {
@@ -112,10 +109,10 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       playLayer(nextLayer)
       setActiveLayer(nextLayer)
       setIndex(nextIndex)
-      setShowPoster(false)
+      setVideoReady(true)
       finish()
     })
-  }, [assignSlideToLayer, pauseLayer, playLayer, slides.length, whenLayerCanPlay])
+  }, [assignSlideToLayer, pauseLayer, playLayer, prefersReducedMotion, slides.length, whenLayerCanPlay])
 
   useEffect(() => {
     if (!slides.length) return
@@ -123,13 +120,15 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
     assignSlideToLayer(0, 0)
 
     whenLayerCanPlay(0, () => {
-      playLayer(0)
-      setShowPoster(false)
+      if (!prefersReducedMotion) {
+        playLayer(0)
+      }
+      setVideoReady(true)
     })
-  }, [assignSlideToLayer, playLayer, slides, whenLayerCanPlay])
+  }, [assignSlideToLayer, playLayer, prefersReducedMotion, slides, whenLayerCanPlay])
 
   useEffect(() => {
-    if (!slides.length) return
+    if (!slides.length || prefersReducedMotion) return
 
     const layer = activeLayerRef.current
     const video = videoRefs[layer].current
@@ -156,74 +155,56 @@ export function HeroVideoRotator({ playlist }: { playlist: HeroVideoSlide[] }) {
       video.removeEventListener('ended', onEnded)
       video.removeEventListener('error', onError)
     }
-  }, [activeLayer, index, goToNext, slides.length])
+  }, [activeLayer, goToNext, index, prefersReducedMotion, slides.length])
 
   useEffect(() => {
-    if (slides.length <= 1) return
+    if (slides.length <= 1 || prefersReducedMotion) return
 
     const layer = inactiveLayer(activeLayer)
     const nextIndex = (index + 1) % slides.length
     if (slideByLayer.current[layer] === nextIndex) return
 
     assignSlideToLayer(layer, nextIndex)
-  }, [activeLayer, assignSlideToLayer, index, slides])
+  }, [activeLayer, assignSlideToLayer, index, prefersReducedMotion, slides])
 
   useEffect(() => {
     pauseLayer(inactiveLayer(activeLayer))
   }, [activeLayer, pauseLayer])
 
-  if (!slides.length || prefersReducedMotion) {
-    return (
-      <Image
-        src={FALLBACK_POSTER}
-        alt="Energy & Logics engineering training"
-        fill
-        className="absolute inset-0 object-cover object-center"
-        priority
-      />
-    )
+  if (!slides.length) {
+    return <div className="absolute inset-0 bg-black" aria-hidden />
   }
 
   const currentSlide = slides[index]
 
   return (
     <>
-      {showPoster ? (
-        <Image
-          src={FALLBACK_POSTER}
-          alt=""
-          fill
-          aria-hidden
-          className="absolute inset-0 object-cover object-center"
-          priority
-        />
-      ) : null}
-
       {([0, 1] as const).map((layer) => (
         <video
           key={layer}
           ref={videoRefs[layer]}
           muted
           playsInline
+          autoPlay={!prefersReducedMotion}
           preload="auto"
           aria-hidden={layer !== activeLayer}
           aria-label={layer === activeLayer ? `Hero background: ${currentSlide?.label}` : undefined}
           className={`hero-video-layer absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-700 ${
-            layer === activeLayer && !showPoster ? 'opacity-100' : 'opacity-0'
+            layer === activeLayer && videoReady ? 'opacity-100' : 'opacity-0'
           }`}
         />
       ))}
 
-      {slides.length > 1 ? (
+      {!prefersReducedMotion && slides.length > 1 ? (
         <div className="absolute bottom-20 sm:bottom-4 right-4 z-[2] flex items-center gap-2" aria-hidden>
           {slides.map((slide, slideIndex) => (
-              <span
-                key={slide.src}
-                className={`h-1.5 rounded-full transition-all duration-500 ${
-                  slideIndex === index ? 'w-8 bg-white' : 'w-1.5 bg-white/40'
-                }`}
-              />
-            ))}
+            <span
+              key={slide.src}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                slideIndex === index ? 'w-8 bg-white' : 'w-1.5 bg-white/40'
+              }`}
+            />
+          ))}
         </div>
       ) : null}
     </>
