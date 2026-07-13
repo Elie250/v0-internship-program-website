@@ -91,54 +91,38 @@ export const VISION_DEFAULT = `A region where every engineering graduate and tec
 export const COMPANY_EXPERIENCE = {
   title: 'Professional Experience',
   subtitle:
-    'A track record of hands-on engineering practice, industry-aligned training, and partnerships that keep our programmes grounded in real work.',
+    'Hands-on engineering practice and industry-aligned training for students, graduates, and technicians.',
   stats: [
-    { value: '6+', label: 'Years in electrical & embedded systems practice' },
+    { value: '6+', label: 'Years in electrical & embedded systems' },
     { value: '2+', label: 'Years delivering technical training' },
-    { value: '3', label: 'Core engineering programme tracks' },
-    { value: 'RTB', label: 'Rwanda TVET Board collaboration' },
-  ],
-  milestones: [
-    {
-      period: '2018–2024',
-      title: 'Field & industrial practice',
-      description:
-        'Hands-on work in electrical technology, control systems, and embedded prototypes for employers and project sites across Rwanda.',
-    },
-    {
-      period: '2022–present',
-      title: 'Technical training delivery',
-      description:
-        'Structured programmes for students, graduates, and technicians—combining lab work, real equipment, and project-based assessment.',
-    },
-    {
-      period: '2023',
-      title: 'RTB training collaboration',
-      description:
-        'Partnered with the Rwanda TVET Board on practical skills programmes aligned with national vocational standards.',
-    },
-    {
-      period: 'Today',
-      title: 'Engineering Hub platform',
-      description:
-        'Online and in-person learning through our Engineering Hub—courses, Field Notes, shop, and mentor support in one place.',
-    },
+    { value: '3', label: 'Core programme tracks' },
   ],
   capabilities: [
     {
       title: 'Industrial control',
-      items: ['PLC & ladder logic', 'Control panel wiring', 'Factory & site troubleshooting'],
+      items: ['PLC & ladder logic', 'Control panel wiring'],
     },
     {
       title: 'Embedded systems',
-      items: ['Microcontrollers & firmware', 'Sensors & IoT labs', 'Prototype development'],
+      items: ['Microcontrollers & firmware', 'Sensors & IoT'],
     },
     {
       title: 'Electrical technology',
-      items: ['Power & protection', 'Installation practice', 'Solar & applied power systems'],
+      items: ['Power & protection', 'Installation practice'],
     },
   ],
-  partners: ['Rwanda TVET Board (RTB)', 'Easy Fab', 'Employers & technicians across Rwanda'],
+  partners: [
+    {
+      name: 'Namiria Group',
+      logo: '/partners/namiria-group.png',
+      logoBg: 'bg-[#1a2f4a]',
+    },
+    {
+      name: 'Easy Fab',
+      logo: '/partners/easy-fab.png',
+      logoBg: 'bg-white',
+    },
+  ],
 } as const
 
 export const GOALS_DEFAULT = [
