@@ -10,3 +10,8 @@ node_modules/
 scripts/.mtn-sandbox-credentials.local
 .DS_Store
 .vercel
+
+# Hero videos — host on R2/CDN, not in Git (avoids Git LFS bandwidth)
+public/videos/*.mp4
+public/videos/*.mov
+public/videos/*.webm
