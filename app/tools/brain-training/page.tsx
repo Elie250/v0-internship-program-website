@@ -6,7 +6,10 @@ import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
 import { getCurrentUser } from '@/app/actions/auth-service'
-import { getBrainTrainingLeaderboard } from '@/app/actions/brain-training'
+import {
+  getBrainGamesForHub,
+  getBrainTrainingLeaderboard,
+} from '@/app/actions/brain-training'
 import { ArrowLeft } from 'lucide-react'
 
 export default function PublicBrainTrainingPage() {
@@ -14,21 +17,27 @@ export default function PublicBrainTrainingPage() {
   const [board, setBoard] = useState<
     Array<{ name: string; score: number; accuracy: number; level: number; game?: string }>
   >([])
+  const [catalogRows, setCatalogRows] = useState<
+    Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
+  >([])
 
   useEffect(() => {
+    void getBrainGamesForHub().then(setCatalogRows)
     void getCurrentUser().then((u) => {
       const ok = Boolean(u?.id)
       setLoggedIn(ok)
       if (ok) {
         void Promise.all([
-          getBrainTrainingLeaderboard('color-word', 6),
-          getBrainTrainingLeaderboard('sequence-match', 6),
-        ]).then(([color, seq]) => {
+          getBrainTrainingLeaderboard('color-word', 4),
+          getBrainTrainingLeaderboard('ohm-law', 4),
+          getBrainTrainingLeaderboard('code-trace', 4),
+        ]).then(([a, b, c]) => {
           const merged = [
-            ...color.map((r) => ({ ...r, game: 'Color-Word' })),
-            ...seq.map((r) => ({ ...r, game: 'Sequence' })),
+            ...a.map((r) => ({ ...r, game: 'Color-Word' })),
+            ...b.map((r) => ({ ...r, game: 'Ohm' })),
+            ...c.map((r) => ({ ...r, game: 'Code' })),
           ]
-            .sort((a, b) => b.score - a.score)
+            .sort((x, y) => y.score - x.score)
             .slice(0, 10)
           setBoard(merged)
         })
@@ -37,9 +46,9 @@ export default function PublicBrainTrainingPage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-100">
       <SiteHeader />
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 app-form-surface">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12">
         <div className="mb-6">
           <Link
             href="/tools"
@@ -53,6 +62,7 @@ export default function PublicBrainTrainingPage() {
           basePath="/tools/brain-training"
           showLeaderboard={loggedIn}
           leaderboard={board}
+          catalogRows={catalogRows}
         />
       </div>
       <SiteFooter />

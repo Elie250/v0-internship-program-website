@@ -25,6 +25,7 @@ export type AdminNavIconName =
   | 'settings'
   | 'mail'
   | 'star'
+  | 'gamepad'
 
 export type AdminNavItem = {
   id: string
@@ -264,6 +265,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         icon: 'mail',
         permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
         description: 'Free PDF guides with email capture',
+      },
+      {
+        id: 'brain-games',
+        label: 'Brain Training games',
+        href: '/admin/dashboard/brain-games',
+        icon: 'gamepad',
+        permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+        description: 'Arcade covers, visibility, and drill copy',
       },
       {
         id: 'energy-library',

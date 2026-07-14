@@ -1,6 +1,7 @@
 /** Shared scoring + rank labels for Brain Training Academy. */
 
-export type BrainGameSlug = 'color-word' | 'sequence-match'
+export type { BrainGameSlug } from '@/lib/brain-training/catalog'
+import type { BrainGameSlug } from '@/lib/brain-training/catalog'
 
 export type GameResultPayload = {
   gameSlug: BrainGameSlug

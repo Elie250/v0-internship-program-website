@@ -168,3 +168,119 @@ export async function getBrainTrainingLeaderboard(gameSlug: string, limit = 10) 
     date: row.attempt_date as string,
   }))
 }
+
+export type BrainGameCatalogRow = {
+  id?: string
+  slug: string
+  name: string
+  description: string
+  category: string
+  thumbnail_url: string | null
+  is_active: boolean
+  sort_order: number
+  short_tagline: string
+  estimated_minutes: number
+  difficulty_levels: number
+}
+
+/** Public hub: merge static catalog with DB thumbnails / flags when available. */
+export async function getBrainGamesForHub(): Promise<
+  Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
+> {
+  if (!supabaseAdmin) {
+    return []
+  }
+  const { data, error } = await supabaseAdmin
+    .from('brain_games')
+    .select('slug, thumbnail_url, is_active')
+    .order('sort_order', { ascending: true })
+  if (error || !data) return []
+  return data.map((row) => ({
+    slug: String(row.slug),
+    thumbnailUrl: (row.thumbnail_url as string | null) ?? null,
+    isActive: row.is_active !== false,
+  }))
+}
+
+export async function listBrainGamesAdmin(): Promise<{
+  success: boolean
+  games: BrainGameCatalogRow[]
+  error?: string
+}> {
+  const { requireAdminPermission } = await import('@/app/actions/admin-context')
+  const { PERMISSIONS } = await import('@/lib/admin/permissions')
+  try {
+    await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
+  } catch {
+    return { success: false, games: [], error: 'Forbidden' }
+  }
+  if (!supabaseAdmin) return { success: false, games: [], error: 'Database not configured' }
+
+  const { data, error } = await supabaseAdmin
+    .from('brain_games')
+    .select(
+      'id, slug, name, description, category, thumbnail_url, is_active, sort_order, short_tagline, estimated_minutes, difficulty_levels'
+    )
+    .order('sort_order', { ascending: true })
+
+  if (error) {
+    return {
+      success: false,
+      games: [],
+      error:
+        error.message.includes('thumbnail_url') || error.message.includes('does not exist')
+          ? 'Run scripts/63-brain-training-thumbnails-and-games.sql in Supabase first.'
+          : error.message,
+    }
+  }
+
+  return {
+    success: true,
+    games: (data ?? []).map((row) => ({
+      id: row.id as string,
+      slug: String(row.slug),
+      name: String(row.name),
+      description: String(row.description ?? ''),
+      category: String(row.category ?? 'cognitive'),
+      thumbnail_url: (row.thumbnail_url as string | null) ?? null,
+      is_active: row.is_active !== false,
+      sort_order: Number(row.sort_order) || 100,
+      short_tagline: String(row.short_tagline ?? ''),
+      estimated_minutes: Number(row.estimated_minutes) || 4,
+      difficulty_levels: Number(row.difficulty_levels) || 4,
+    })),
+  }
+}
+
+export async function updateBrainGameAdmin(input: {
+  id: string
+  name?: string
+  description?: string
+  short_tagline?: string
+  thumbnail_url?: string | null
+  is_active?: boolean
+  sort_order?: number
+  estimated_minutes?: number
+}): Promise<{ success: boolean; error?: string }> {
+  const { requireAdminPermission } = await import('@/app/actions/admin-context')
+  const { PERMISSIONS } = await import('@/lib/admin/permissions')
+  try {
+    await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
+  } catch {
+    return { success: false, error: 'Forbidden' }
+  }
+  if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
+
+  const patch: Record<string, unknown> = {}
+  if (input.name !== undefined) patch.name = input.name
+  if (input.description !== undefined) patch.description = input.description
+  if (input.short_tagline !== undefined) patch.short_tagline = input.short_tagline
+  if (input.thumbnail_url !== undefined) patch.thumbnail_url = input.thumbnail_url || null
+  if (input.is_active !== undefined) patch.is_active = input.is_active
+  if (input.sort_order !== undefined) patch.sort_order = input.sort_order
+  if (input.estimated_minutes !== undefined) patch.estimated_minutes = input.estimated_minutes
+
+  const { error } = await supabaseAdmin.from('brain_games').update(patch).eq('id', input.id)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}

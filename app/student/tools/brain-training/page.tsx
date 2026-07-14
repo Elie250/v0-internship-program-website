@@ -7,7 +7,10 @@ import { ArrowLeft } from 'lucide-react'
 import { getStudentPortalData } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
-import { getBrainTrainingLeaderboard } from '@/app/actions/brain-training'
+import {
+  getBrainGamesForHub,
+  getBrainTrainingLeaderboard,
+} from '@/app/actions/brain-training'
 
 export default function StudentBrainTrainingPage() {
   const router = useRouter()
@@ -16,8 +19,12 @@ export default function StudentBrainTrainingPage() {
   const [board, setBoard] = useState<
     Array<{ name: string; score: number; accuracy: number; level: number; game?: string }>
   >([])
+  const [catalogRows, setCatalogRows] = useState<
+    Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
+  >([])
 
   useEffect(() => {
+    void getBrainGamesForHub().then(setCatalogRows)
     getStudentPortalData().then((result) => {
       if (!result.success) {
         router.push('/auth/login?redirect=/student/tools/brain-training')
@@ -29,14 +36,16 @@ export default function StudentBrainTrainingPage() {
       )
       setLoading(false)
       void Promise.all([
-        getBrainTrainingLeaderboard('color-word', 6),
-        getBrainTrainingLeaderboard('sequence-match', 6),
-      ]).then(([color, seq]) => {
+        getBrainTrainingLeaderboard('color-word', 4),
+        getBrainTrainingLeaderboard('ohm-law', 4),
+        getBrainTrainingLeaderboard('plc-ladder', 4),
+      ]).then(([a, b, c]) => {
         const merged = [
-          ...color.map((r) => ({ ...r, game: 'Color-Word' })),
-          ...seq.map((r) => ({ ...r, game: 'Sequence' })),
+          ...a.map((r) => ({ ...r, game: 'Color-Word' })),
+          ...b.map((r) => ({ ...r, game: 'Ohm' })),
+          ...c.map((r) => ({ ...r, game: 'PLC' })),
         ]
-          .sort((a, b) => b.score - a.score)
+          .sort((x, y) => y.score - x.score)
           .slice(0, 10)
         setBoard(merged)
       })
@@ -46,7 +55,7 @@ export default function StudentBrainTrainingPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600">Loading Academy…</p>
+        <p className="text-slate-600">Loading Arcade…</p>
       </div>
     )
   }
@@ -64,6 +73,7 @@ export default function StudentBrainTrainingPage() {
         basePath="/student/tools/brain-training"
         showLeaderboard
         leaderboard={board}
+        catalogRows={catalogRows}
       />
     </StudentPortalShell>
   )

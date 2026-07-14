@@ -18,6 +18,7 @@ const ALLOWED_FOLDERS = [
   'engineering-docs',
   'energy-library',
   'energy-library-docs',
+  'brain-games',
 ] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
@@ -30,6 +31,7 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
   'engineering-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   'energy-library': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   'energy-library-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+  'brain-games': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   courses: PERMISSIONS.LEARNING_PROGRAMS,
 }
 

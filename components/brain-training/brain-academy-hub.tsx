@@ -1,8 +1,20 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { GameCard } from '@/components/brain-training/game-card'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ClipboardList, Gauge, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
+import {
+  BRAIN_GAME_CATALOG,
+  CATEGORY_FILTERS,
+  type BrainGameCategory,
+} from '@/lib/brain-training/catalog'
+import { cn } from '@/lib/utils'
+
+export type CatalogGameRow = {
+  slug: string
+  thumbnailUrl?: string | null
+  isActive?: boolean
+}
 
 type LeaderRow = {
   name: string
@@ -16,127 +28,113 @@ type Props = {
   basePath: string
   showLeaderboard?: boolean
   leaderboard?: LeaderRow[]
+  /** Optional DB overlays (thumbnails / active) */
+  catalogRows?: CatalogGameRow[]
 }
 
-export function BrainAcademyHub({ basePath, showLeaderboard, leaderboard = [] }: Props) {
+export function BrainAcademyHub({
+  basePath,
+  showLeaderboard,
+  leaderboard = [],
+  catalogRows = [],
+}: Props) {
+  const [filter, setFilter] = useState<BrainGameCategory | 'all'>('all')
+
+  const overlay = useMemo(() => {
+    const map = new Map<string, CatalogGameRow>()
+    for (const row of catalogRows) map.set(row.slug, row)
+    return map
+  }, [catalogRows])
+
+  const games = BRAIN_GAME_CATALOG.filter((g) => {
+    const row = overlay.get(g.slug)
+    if (row && row.isActive === false) return false
+    if (filter === 'all') return true
+    return g.category === filter
+  })
+
   return (
     <div className="space-y-8">
-      <header className="space-y-2 max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-navy)]">
-          Brain Training Academy
-        </p>
-        <h1 className="text-3xl font-bold text-slate-900">Cognitive readiness drills</h1>
-        <p className="text-slate-600 leading-relaxed">
-          Build attention and working memory with timed YES/NO challenges. Designed as warm-ups
-          before labs, assessments, and field problem-solving — not casual arcade play.
-        </p>
-      </header>
+      <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 text-white">
+        <div
+          className="absolute inset-0 opacity-80"
+          style={{
+            background:
+              'radial-gradient(ellipse at 20% 20%, #1d4ed8 0%, transparent 45%), radial-gradient(ellipse at 80% 0%, #0f766e 0%, transparent 40%), linear-gradient(160deg, #020617, #0f172a 60%)',
+          }}
+        />
+        <div className="relative px-6 py-10 md:px-10 md:py-14 max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-300/90">
+            Brain Training Arcade
+          </p>
+          <h1 className="mt-3 text-4xl md:text-5xl font-black tracking-tight">
+            Play. Learn. Level up.
+          </h1>
+          <p className="mt-3 text-base text-slate-300 max-w-xl">
+            Timed YES/NO arenas for focus, electrical basics, electronics, PLC, embedded logic, and
+            code.
+          </p>
+        </div>
+      </section>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        <GameCard
-          title="Color-Word Attention Challenge"
-          description="Stroop-style ink vs word decisions. Train focus and cognitive flexibility under a countdown."
-          href={`${basePath}/color-word`}
-          skills={['Attention', 'Flexibility', 'Speed']}
-          maxLevel={4}
-          estimatedMinutes={4}
-        />
-        <GameCard
-          title="Same / Different Sequence Test"
-          description="Compare digit, letter, and mixed sequences. Spot tiny differences before time runs out."
-          href={`${basePath}/sequence-match`}
-          skills={['Memory', 'Detail', 'Speed']}
-          maxLevel={4}
-          estimatedMinutes={4}
-        />
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+        {CATEGORY_FILTERS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setFilter(item.id)}
+            className={cn(
+              'shrink-0 rounded-full px-4 py-2 text-sm font-semibold border transition',
+              filter === item.id
+                ? 'bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]'
+                : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      <Card className="border-slate-200 bg-white">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base text-slate-900 flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-[var(--brand-navy)]" />
-            How sessions are scored
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid sm:grid-cols-3 gap-4 text-sm text-slate-600">
-          <div>
-            <p className="font-semibold text-slate-900 mb-1">Accuracy (primary)</p>
-            <p>Up to ~800 XP from correct YES/NO decisions. Missed timers count as incorrect.</p>
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 mb-1">Speed bonus</p>
-            <p>Up to 200 XP for faster average responses relative to the level clock.</p>
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 mb-1">Progression</p>
-            <p>~70% accuracy auto-promotes to the next level within the same session.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid sm:grid-cols-3 gap-3">
-        {[
-          {
-            icon: Gauge,
-            title: 'Brain assessment',
-            body: 'Student profiles roll accuracy, memory, and speed into an overall readiness score.',
-          },
-          {
-            icon: Trophy,
-            title: 'Leaderboards',
-            body: showLeaderboard ? 'Top recent scores are listed below.' : 'Sign in to view cohort rankings.',
-          },
-          {
-            icon: ClipboardList,
-            title: 'Rewards',
-            body: 'Badges unlock for 90%+ accuracy and Expert (Level 4) clears.',
-          },
-        ].map((item) => (
-          <Card key={item.title} className="border-slate-200 bg-slate-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-slate-900 flex items-center gap-2">
-                <item.icon className="h-3.5 w-3.5 text-[var(--brand-navy)]" />
-                {item.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs text-slate-600 leading-relaxed">{item.body}</CardContent>
-          </Card>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+        {games.map((game) => (
+          <GameCard
+            key={game.slug}
+            game={game}
+            href={`${basePath}/${game.slug}`}
+            thumbnailUrl={overlay.get(game.slug)?.thumbnailUrl}
+          />
         ))}
       </div>
 
       {showLeaderboard ? (
-        <Card className="border-slate-200">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-slate-900 flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-amber-500" />
-              Recent top scores
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {leaderboard.length === 0 ? (
-              <p className="text-sm text-slate-600">No saved sessions yet. Be the first on the board.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {leaderboard.map((row, i) => (
-                  <li
-                    key={`${row.name}-${row.game ?? 'drill'}-${i}`}
-                    className="py-2.5 flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="font-medium text-slate-900 min-w-0">
-                      {i + 1}. {row.name}
-                      {row.game ? (
-                        <span className="ml-2 text-xs font-normal text-slate-500">{row.game}</span>
-                      ) : null}
-                    </span>
-                    <span className="text-slate-600 shrink-0">
-                      {row.score} XP · {row.accuracy}% · L{row.level}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <section className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Top runs</h2>
+          </div>
+          {leaderboard.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-slate-600">No scores yet — be first on the board.</p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {leaderboard.map((row, i) => (
+                <li
+                  key={`${row.name}-${row.game ?? 'drill'}-${i}`}
+                  className="px-5 py-3 flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="font-medium text-slate-900">
+                    {i + 1}. {row.name}
+                    {row.game ? (
+                      <span className="ml-2 text-xs font-normal text-slate-500">{row.game}</span>
+                    ) : null}
+                  </span>
+                  <span className="text-slate-600 shrink-0">
+                    {row.score} XP · L{row.level}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       ) : null}
     </div>
   )
