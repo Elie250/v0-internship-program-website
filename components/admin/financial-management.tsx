@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AdminSectionHeader } from '@/components/admin/admin-section-header'
 import type { FinancialSummary } from '@/lib/admin/data/financial-analytics'
+import { downloadSalesReportPdf } from '@/lib/admin/data/sales-report-export'
 
 function formatRwf(value: number) {
   return `${value.toLocaleString()} RWF`
@@ -49,6 +50,15 @@ export default function FinancialManagement() {
       <AdminSectionHeader
         title="Financial overview"
         description="Revenue and profit across products, e-learning, and support — separate from learning delivery."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void downloadSalesReportPdf(data)}
+          >
+            Download sales PDF
+          </Button>
+        }
       />
 
       <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">

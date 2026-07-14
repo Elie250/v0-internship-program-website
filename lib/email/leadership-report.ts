@@ -28,7 +28,7 @@ export async function sendLeadershipReportEmail(): Promise<{ sent: boolean; skip
   const report = await buildAdminReportDataInternal()
   const { stats, coursesByStatus, programmeNotifications, content } = report
   const fileDate = reportFileDate()
-  const pdfBase64 = Buffer.from(buildAdminReportPdfArrayBuffer(report)).toString('base64')
+  const pdfBase64 = Buffer.from(await buildAdminReportPdfArrayBuffer(report)).toString('base64')
   const csvBase64 = Buffer.from(`\uFEFF${buildAdminReportCsvString(report)}`, 'utf-8').toString('base64')
 
   const html = `<!DOCTYPE html><html><body style="font-family:system-ui,sans-serif;line-height:1.6;color:#1e293b;max-width:640px;margin:0 auto;padding:24px">

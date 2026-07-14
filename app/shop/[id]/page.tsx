@@ -6,6 +6,7 @@ import { SiteFooter } from '@/components/layout/site-footer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AddToCartButton } from '@/components/shop/add-to-cart-button'
+import { BuyNowPanel } from '@/components/shop/buy-now-panel'
 import { getProductById, getPublishedProducts } from '@/lib/platform/queries'
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -64,13 +65,22 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </span>
           </p>
           <div className="flex flex-wrap gap-3">
-            <AddToCartButton
+            <BuyNowPanel
               productId={product.id}
               name={product.name}
               price={finalPrice}
               stock={product.stock}
               image={images[0]}
               className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+            />
+            <AddToCartButton
+              productId={product.id}
+              name={product.name}
+              price={finalPrice}
+              stock={product.stock}
+              image={images[0]}
+              size="lg"
+              className="border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
             />
             <Link href="/shop">
               <Button size="lg" variant="outline" className="border-slate-300 text-slate-800 hover:bg-slate-50">
@@ -79,7 +89,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </Link>
           </div>
           <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-            Open the cart (top bar) to submit your order with contact details for delivery or pickup in Kigali.
+            Use <strong>Order now</strong> for a direct purchase, or add to cart for multiple items.
           </p>
           {specs.length > 0 && (
             <Card className="mt-8 border-slate-200">

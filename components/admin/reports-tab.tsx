@@ -79,7 +79,7 @@ export function ReportsTab({ initialData }: { initialData?: AdminReportData }) {
 
   const handleDownloadPdf = () => {
     if (!report) return
-    downloadAdminReportPdf(report)
+    void downloadAdminReportPdf(report)
   }
 
   const handleDownloadExcel = () => {

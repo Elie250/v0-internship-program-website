@@ -99,7 +99,6 @@ export async function POST(request: Request) {
               : 'MTN MoMo (POS)',
           order_id: order.id,
           status: isPaidNow ? 'approved' : 'pending_review',
-          currency: 'RWF',
           paid_at: isPaidNow ? now : null,
         },
       ])

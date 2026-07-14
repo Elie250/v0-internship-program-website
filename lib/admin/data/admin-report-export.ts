@@ -1,8 +1,15 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { AdminReportData } from '@/lib/admin/data/admin-reports'
-
-const REPORT_TITLE = 'Energy & Logics Academy - Admin Report'
+import { COMPANY } from '@/lib/company/constants'
+import {
+  companyLetterheadRows,
+  drawReportAuthorityAfterContent,
+  drawReportFooter,
+  drawReportHeader,
+  loadReportAuthorityAssets,
+  loadReportLogoDataUrl,
+} from '@/lib/admin/data/report-branding'
 
 type ReportRow = [section: string, metric: string, value: string | number]
 
@@ -56,21 +63,27 @@ function escapeCsvCell(value: string | number): string {
   return `"${String(value).replace(/"/g, '""')}"`
 }
 
-function buildAdminReportPdfDoc(report: AdminReportData): jsPDF {
+async function buildAdminReportPdfDoc(report: AdminReportData): Promise<jsPDF> {
   const doc = new jsPDF()
-  const generated = new Date().toLocaleString()
+  const [logoDataUrl, authority] = await Promise.all([
+    loadReportLogoDataUrl(),
+    loadReportAuthorityAssets(),
+  ])
+  const startY = drawReportHeader(doc, {
+    title: 'Admin platform report',
+    subtitle: `${COMPANY.platformName} — operations & programme summary`,
+    logoDataUrl,
+  })
 
-  doc.setFontSize(16)
-  doc.text(REPORT_TITLE, 14, 18)
-  doc.setFontSize(10)
-  doc.setTextColor(100)
-  doc.text(`Generated: ${generated}`, 14, 26)
-  doc.setTextColor(0)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.setTextColor(30, 58, 95)
+  doc.text('Key metrics', 14, startY)
 
   autoTable(doc, {
     head: [['Section', 'Metric', 'Value']],
     body: buildReportRows(report),
-    startY: 34,
+    startY: startY + 3,
     margin: { left: 14, right: 14 },
     theme: 'striped',
     styles: { fontSize: 9, cellPadding: 3 },
@@ -82,22 +95,32 @@ function buildAdminReportPdfDoc(report: AdminReportData): jsPDF {
     },
   })
 
+  drawReportAuthorityAfterContent(doc, authority, startY)
+
+  const pageCount = doc.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    drawReportFooter(doc, i, pageCount)
+  }
+
   return doc
 }
 
 export function buildAdminReportCsvString(report: AdminReportData): string {
   const rows = buildReportRows(report)
   return [
+    ...companyLetterheadRows(),
+    ['Admin platform report', '', ''],
     ['Section', 'Metric', 'Value'],
     ...rows,
-    ['', 'Generated', new Date().toLocaleString()],
   ]
     .map((row) => row.map(escapeCsvCell).join(','))
     .join('\n')
 }
 
-export function buildAdminReportPdfArrayBuffer(report: AdminReportData): ArrayBuffer {
-  return buildAdminReportPdfDoc(report).output('arraybuffer')
+export async function buildAdminReportPdfArrayBuffer(report: AdminReportData): Promise<ArrayBuffer> {
+  const doc = await buildAdminReportPdfDoc(report)
+  return doc.output('arraybuffer')
 }
 
 function triggerBrowserDownload(blob: Blob, filename: string): void {
@@ -112,15 +135,14 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-export function downloadAdminReportPdf(report: AdminReportData): void {
-  const buffer = buildAdminReportPdfArrayBuffer(report)
+export async function downloadAdminReportPdf(report: AdminReportData): Promise<void> {
+  const buffer = await buildAdminReportPdfArrayBuffer(report)
   const blob = new Blob([buffer], { type: 'application/pdf' })
   triggerBrowserDownload(blob, `admin-report-${reportFileDate()}.pdf`)
 }
 
 export function downloadAdminReportExcel(report: AdminReportData): void {
-  const blob = new Blob([`\uFEFF${buildAdminReportCsvString(report)}`], {
-    type: 'application/vnd.ms-excel;charset=utf-8;',
-  })
+  const csv = buildAdminReportCsvString(report)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   triggerBrowserDownload(blob, `admin-report-${reportFileDate()}.csv`)
 }

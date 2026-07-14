@@ -107,7 +107,6 @@ export async function POST(request: Request) {
           status: 'pending_review',
           receipt_url: receiptUrl || null,
           receipt_number: receiptNumber || null,
-          currency: 'RWF',
         },
       ])
       .select()

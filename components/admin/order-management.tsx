@@ -14,7 +14,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Phone, Mail, MapPin, Package, Trash2, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Package,
+  Trash2,
+  ExternalLink,
+  CheckCircle2,
+  XCircle,
+  Printer,
+} from 'lucide-react'
+import { printOrderReceipt } from '@/lib/shop/order-receipt-client'
 
 type OrderItem = {
   id: string
@@ -241,6 +252,15 @@ export default function OrderManagement() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void printOrderReceipt(order)}
+                      title="Print receipt with stamp and QR"
+                    >
+                      <Printer className="h-4 w-4 mr-1" />
+                      Receipt
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

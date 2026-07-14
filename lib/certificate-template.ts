@@ -168,7 +168,7 @@ export function createCertificateHTML({
 
         .content {
           position: absolute;
-          inset: 14mm 22mm;
+          inset: 12mm 12mm 14mm;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -239,17 +239,18 @@ export function createCertificateHTML({
 
         .achievement {
           font-family: 'Libre Baskerville', Georgia, serif;
-          font-size: 13px;
+          font-size: 15px;
           color: #2d3748;
           margin-top: 5mm;
-          line-height: 1.75;
-          max-width: 170mm;
+          line-height: 1.6;
+          max-width: 240mm;
+          width: 100%;
           padding-bottom: 2mm;
         }
 
         .program-name {
           font-family: 'Cinzel', Georgia, serif;
-          font-size: 20px;
+          font-size: 22px;
           font-weight: 600;
           color: #1e3a5f;
           margin-top: 2mm;
@@ -266,27 +267,18 @@ export function createCertificateHTML({
         .score-line strong { color: #1e3a5f; font-weight: 700; }
 
         .free-upgrade-notice {
-          margin: 4mm auto 0;
-          max-width: 165mm;
-          padding: 3mm 4mm;
-          border: 1.5px solid #b8941f;
-          border-radius: 2mm;
+          margin: 3mm auto 0;
+          max-width: 140mm;
+          padding: 1.4mm 3mm;
+          border: 1px solid #b8941f;
+          border-radius: 1.2mm;
           background: rgba(184, 148, 31, 0.08);
           font-family: 'Montserrat', sans-serif;
           font-size: 10px;
-          font-weight: 600;
-          line-height: 1.55;
-          color: #1e3a5f;
-          letter-spacing: 0.2px;
-        }
-        .free-upgrade-notice strong {
-          display: block;
-          font-size: 11px;
           font-weight: 700;
+          line-height: 1.3;
           color: #9a7b1a;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          margin-bottom: 1mm;
+          text-align: center;
         }
 
         .bottom-row {
@@ -310,63 +302,66 @@ export function createCertificateHTML({
 
         .sig-block {
           text-align: center;
-          width: 100mm;
+          width: 110mm;
           flex: 1;
           max-width: 48%;
           position: relative;
-          min-height: 42mm;
+          min-height: 52mm;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-end;
-          padding-top: 8mm;
+          justify-content: center;
+          padding: 2mm 0;
         }
 
-        /* Stamp centered over the whole signature block */
+        .sig-text {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+        }
+
+        /* Stamp overlays MD name + "Managing Director" (text is the background) */
         .sig-stamp {
           position: absolute;
-          width: 62mm;
-          height: auto;
-          opacity: 0.90;
-          transform: translate(-50%, -50%) rotate(-10deg);
+          width: 66mm;
+          height: 66mm;
+          object-fit: contain;
+          opacity: 0.92;
+          transform: translate(-50%, -50%) rotate(-12deg);
           left: 50%;
           top: 50%;
-          z-index: 1;
+          z-index: 2;
           pointer-events: none;
           mix-blend-mode: multiply;
-          filter: contrast(1.15) saturate(1.1);
+          filter: contrast(1.16) saturate(1.12);
         }
 
         .sig-name {
-          position: relative;
-          z-index: 2;
           font-family: 'Cinzel', 'Times New Roman', serif;
-          font-size: 22px;
+          font-size: 17px;
           font-weight: 700;
           color: #1e3a5f;
-          letter-spacing: 3px;
+          letter-spacing: 2.2px;
           line-height: 1.2;
           text-transform: uppercase;
-          text-shadow: 0 0 10px rgba(255,255,255,0.9);
         }
 
         .sig-rule {
-          position: relative;
-          z-index: 2;
-          width: 72mm;
+          width: 58mm;
           border-top: 1.5px solid #2d3748;
           margin: 2mm 0 1.5mm;
         }
 
         .sig-org {
-          position: relative;
-          z-index: 2;
           font-family: 'Montserrat', sans-serif;
-          font-size: 9px;
-          line-height: 1.45;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.35;
           color: #5a6472;
-          letter-spacing: 0.3px;
-          margin-top: 0.5mm;
+          letter-spacing: 0.7px;
           max-width: 90mm;
         }
 
@@ -555,17 +550,14 @@ export function createCertificateHTML({
             }
             ${
               freeCourse
-                ? `<div class="free-upgrade-notice">
-                    <strong>Complimentary certificate — watermark applied</strong>
-                    Upgrade to the paid version of this programme to receive an official certificate without watermark.
-                  </div>`
+                ? `<div class="free-upgrade-notice">Upgrade to remove watermark</div>`
                 : ''
             }
             ${
               pendingApproval
                 ? `<div class="pending-approval-notice">
                     <strong>Preview — pending admin approval</strong>
-                    This certificate will receive the official company stamp and authorised signature once approved by Energy and Logics Ltd. It is not yet publicly verifiable.
+                    Official stamp and signature are added after Energy and Logics Ltd approval.
                   </div>`
                 : ''
             }
@@ -573,15 +565,17 @@ export function createCertificateHTML({
 
           <div class="bottom-row">
             <div class="sig-block">
-              ${isOfficial ? `<img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">` : ''}
+              <div class="sig-text">
               ${
                 isOfficial
                   ? `<div class="sig-name">Elie BISAMAZA</div>
                      <div class="sig-rule"></div>
-                     <div class="sig-org">Managing Director · Energy and Logics Ltd</div>`
-                  : `<div class="sig-rule" style="margin-top: 18mm"></div>
+                     <div class="sig-org">Managing Director</div>`
+                  : `<div class="sig-rule" style="margin-top: 8mm"></div>
                      <div class="sig-pending">Awaiting official stamp &amp; signature</div>`
               }
+              </div>
+              ${isOfficial ? `<img class="sig-stamp" src="${stampUrl}" alt="Official company stamp">` : ''}
             </div>
 
             <div class="right-column">
