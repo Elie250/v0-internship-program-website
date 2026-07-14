@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { isDeliveryPortalRole, deliveryLoginRoleForUser } from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
-import { EngineeringToolsPanel } from '@/components/tools/engineering-tools-panel'
+import { ToolsCenterHub } from '@/components/tools/tools-center-hub'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function LecturerToolsPage() {
@@ -41,15 +41,19 @@ export default function LecturerToolsPage() {
 
   return (
     <LecturerPortalShell userName={userName}>
-      <EngineeringToolsPanel />
+      <ToolsCenterHub
+        title="Instructor Tools Center"
+        subtitle="Run calculators in class, and try Brain Training drills yourself so you can recommend readiness warm-ups before assessments."
+        calculatorsHref="/tools/calculators"
+        brainHref="/tools/brain-training"
+      />
       <Card className="mt-8 border-slate-200 bg-slate-50">
         <CardContent className="py-4 text-sm text-slate-600">
-          Use these calculators during lessons or when reviewing student work. The same tools are
-          available on the{' '}
-          <Link href="/tools" className="text-[var(--brand-navy)] font-medium underline">
-            public tools page
-          </Link>{' '}
-          for students and visitors.
+          Student progress is saved when learners use{' '}
+          <Link href="/student/tools/brain-training" className="text-[var(--brand-navy)] font-medium underline">
+            My learning → Brain Training
+          </Link>
+          . Class analytics dashboards can be extended next.
         </CardContent>
       </Card>
     </LecturerPortalShell>

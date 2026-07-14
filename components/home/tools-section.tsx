@@ -28,7 +28,7 @@ export function ToolsSection() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                   <p className="text-sm text-slate-600 flex-1">{cat.summary}</p>
-                  <Link href={`/tools#${cat.id}`} className="no-underline hover:no-underline">
+                  <Link href={`/tools/calculators#${cat.id}`} className="no-underline hover:no-underline">
                     <Button variant="outline" className="w-full text-slate-800 border-slate-300 group">
                       Open tools
                       <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 transition-transform" />

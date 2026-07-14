@@ -1,33 +1,35 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/layout/site-header'
 import { SiteFooter } from '@/components/layout/site-footer'
-import {
-  EngineeringToolsPanel,
-} from '@/components/tools/engineering-tools-panel'
+import { ToolsCenterHub } from '@/components/tools/tools-center-hub'
 import { Button } from '@/components/ui/button'
 
-const VALID_TABS = ['electrical', 'installation', 'embedded', 'solar'] as const
+const CALC_HASHES = ['electrical', 'installation', 'embedded', 'solar']
 
 export default function ToolsPage() {
-  const [defaultTab, setDefaultTab] = useState<string>('electrical')
+  const router = useRouter()
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
-    if ((VALID_TABS as readonly string[]).includes(hash)) {
-      setDefaultTab(hash)
+    if (CALC_HASHES.includes(hash)) {
+      router.replace(`/tools/calculators#${hash}`)
     }
-  }, [])
+  }, [router])
 
   return (
     <main className="min-h-screen bg-slate-50">
       <SiteHeader />
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 app-form-surface">
-        <EngineeringToolsPanel key={defaultTab} defaultTab={defaultTab} className="mx-auto" />
+        <ToolsCenterHub
+          calculatorsHref="/tools/calculators"
+          brainHref="/tools/brain-training"
+        />
         <p className="text-center text-sm text-slate-600 mt-10 max-w-xl mx-auto">
-          Enrolled students can also open these tools from{' '}
+          Students: open the full academy with saved progress from{' '}
           <Link href="/student/tools" className="text-[var(--brand-navy)] font-medium underline">
             My learning → Tools
           </Link>
@@ -35,7 +37,7 @@ export default function ToolsPage() {
           <Link href="/auth/login" className="text-[var(--brand-navy)] font-medium underline">
             Log in
           </Link>{' '}
-          for course materials and certificates.
+          to track scores.
         </p>
         <div className="text-center mt-4">
           <Link href="/learning">

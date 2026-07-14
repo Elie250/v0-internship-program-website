@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getStudentPortalData } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
-import { EngineeringToolsPanel } from '@/components/student/engineering-tools-panel'
+import { ToolsCenterHub } from '@/components/tools/tools-center-hub'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function StudentToolsPage() {
@@ -37,7 +37,12 @@ export default function StudentToolsPage() {
 
   return (
     <StudentPortalShell userName={userName}>
-      <EngineeringToolsPanel />
+      <ToolsCenterHub
+        title="Student Tools Center"
+        subtitle="Use calculators for coursework and Brain Training Academy to warm up attention before labs and quizzes. Signed-in scores are saved to your profile."
+        calculatorsHref="/student/tools/calculators"
+        brainHref="/student/tools/brain-training"
+      />
       <Card className="mt-8 border-slate-200 bg-slate-50">
         <CardContent className="py-4 text-sm text-slate-600">
           Need human help on a live project?{' '}

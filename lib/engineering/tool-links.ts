@@ -5,22 +5,22 @@ export const ARTICLE_TAG_TOOL_LINKS: Record<
 > = {
   electrical: {
     label: 'Electrical calculators',
-    href: '/tools#electrical',
+    href: '/tools/calculators#electrical',
     description: "Ohm's law, three-phase power, power factor, and motor HP conversions.",
   },
   plc: {
     label: 'Solar & PLC tools',
-    href: '/tools#solar',
+    href: '/tools/calculators#solar',
     description: 'PLC timer delays and solar array sizing helpers.',
   },
   embedded: {
     label: 'Embedded calculators',
-    href: '/tools#embedded',
+    href: '/tools/calculators#embedded',
     description: 'Resistor codes, LED resistors, voltage dividers, and PWM duty.',
   },
   solar: {
     label: 'Solar sizing tools',
-    href: '/tools#solar',
+    href: '/tools/calculators#solar',
     description: 'Panel array sizing and related field checks.',
   },
   tools: {
@@ -28,9 +28,9 @@ export const ARTICLE_TAG_TOOL_LINKS: Record<
     href: '/tools',
     description: 'Browse every calculator on the public tools page.',
   },
-  'field-fix': {
+  'field-work': {
     label: 'Installation tools',
-    href: '/tools#installation',
+    href: '/tools/calculators#installation',
     description: 'Voltage drop, cable sizing, motor FLC, and conduit fill.',
   },
 }
