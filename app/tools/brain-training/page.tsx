@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react'
 export default function PublicBrainTrainingPage() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [board, setBoard] = useState<
-    Array<{ name: string; score: number; accuracy: number; level: number }>
+    Array<{ name: string; score: number; accuracy: number; level: number; game?: string }>
   >([])
 
   useEffect(() => {
@@ -20,7 +20,18 @@ export default function PublicBrainTrainingPage() {
       const ok = Boolean(u?.id)
       setLoggedIn(ok)
       if (ok) {
-        void getBrainTrainingLeaderboard('color-word', 8).then(setBoard)
+        void Promise.all([
+          getBrainTrainingLeaderboard('color-word', 6),
+          getBrainTrainingLeaderboard('sequence-match', 6),
+        ]).then(([color, seq]) => {
+          const merged = [
+            ...color.map((r) => ({ ...r, game: 'Color-Word' })),
+            ...seq.map((r) => ({ ...r, game: 'Sequence' })),
+          ]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10)
+          setBoard(merged)
+        })
       }
     })
   }, [])

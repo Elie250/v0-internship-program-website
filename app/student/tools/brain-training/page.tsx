@@ -14,7 +14,7 @@ export default function StudentBrainTrainingPage() {
   const [userName, setUserName] = useState('')
   const [loading, setLoading] = useState(true)
   const [board, setBoard] = useState<
-    Array<{ name: string; score: number; accuracy: number; level: number }>
+    Array<{ name: string; score: number; accuracy: number; level: number; game?: string }>
   >([])
 
   useEffect(() => {
@@ -28,7 +28,18 @@ export default function StudentBrainTrainingPage() {
           result.data.user.email
       )
       setLoading(false)
-      void getBrainTrainingLeaderboard('color-word', 10).then(setBoard)
+      void Promise.all([
+        getBrainTrainingLeaderboard('color-word', 6),
+        getBrainTrainingLeaderboard('sequence-match', 6),
+      ]).then(([color, seq]) => {
+        const merged = [
+          ...color.map((r) => ({ ...r, game: 'Color-Word' })),
+          ...seq.map((r) => ({ ...r, game: 'Sequence' })),
+        ]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+        setBoard(merged)
+      })
     })
   }, [router])
 

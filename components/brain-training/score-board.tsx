@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { rankLabel, xpFromScore } from '@/lib/brain-training/scoring'
+import { coachingInsight, rankLabel, xpFromScore } from '@/lib/brain-training/scoring'
 
 type Props = {
   accuracy: number
@@ -32,6 +32,7 @@ export function ScoreBoard({
   const rank = rankLabel(accuracy, averageResponseMs)
   const xp = xpFromScore(score)
   const reactionSec = (averageResponseMs / 1000).toFixed(2)
+  const tip = coachingInsight(accuracy, averageResponseMs)
 
   return (
     <Card className="border-slate-200 shadow-sm max-w-lg mx-auto">
@@ -39,17 +40,24 @@ export function ScoreBoard({
         <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-navy)]">
           Performance report
         </p>
-        <CardTitle className="text-2xl text-slate-900">Your result</CardTitle>
+        <CardTitle className="text-2xl text-slate-900">Session summary</CardTitle>
         <p className="text-sm text-slate-600">
-          {correctCount}/{totalQuestions} correct · Level {levelCompleted}
+          {correctCount}/{totalQuestions} correct · Peak level {levelCompleted}
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Accuracy" value={`${accuracy}%`} />
-          <Metric label="Reaction speed" value={`${reactionSec} s`} />
+          <Metric label="Avg response" value={`${reactionSec} s`} />
           <Metric label="Score" value={`${xp} XP`} />
           <Metric label="Rank" value={rank} highlight />
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">
+            Coach note
+          </p>
+          <p className="text-sm text-slate-700 leading-relaxed">{tip}</p>
         </div>
 
         {guest ? (
@@ -72,6 +80,9 @@ export function ScoreBoard({
             onClick={onPlayAgain}
           >
             Play again
+            <kbd className="ml-2 hidden md:inline-flex rounded border border-white/25 px-1.5 py-0.5 text-[10px]">
+              R
+            </kbd>
           </Button>
           <Button variant="outline" className="flex-1 border-slate-300" onClick={onBack}>
             Back to Academy
