@@ -27,12 +27,17 @@ export function computeScore(params: {
       ? Math.round(answered.reduce((a, b) => a + b, 0) / answered.length)
       : maxPerQuestionMs
 
+  const safeMax = Math.max(1, maxPerQuestionMs || 1)
   const accuracyScore = Math.round(accuracy * 8) // max ~800
-  const speedRatio = Math.max(0, Math.min(1, 1 - averageResponseMs / maxPerQuestionMs))
+  const speedRatio = Math.max(0, Math.min(1, 1 - averageResponseMs / safeMax))
   const speedBonus = Math.round(speedRatio * 200) // max 200
   const score = Math.max(0, accuracyScore + speedBonus)
 
-  return { score, accuracy: Math.round(accuracy * 10) / 10, averageResponseMs }
+  return {
+    score,
+    accuracy: Math.round(accuracy * 10) / 10,
+    averageResponseMs: Number.isFinite(averageResponseMs) ? averageResponseMs : safeMax,
+  }
 }
 
 export function rankLabel(accuracy: number, averageResponseMs: number): string {

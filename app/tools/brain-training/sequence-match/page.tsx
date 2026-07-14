@@ -17,8 +17,12 @@ export default function SequenceMatchPublicPage() {
   }, [])
 
   const onPersist = async (result: GameResultPayload) => {
-    const res = await saveBrainTrainingSession(result)
-    return res.success
+    try {
+      const res = await saveBrainTrainingSession(result)
+      return Boolean(res?.success)
+    } catch {
+      return false
+    }
   }
 
   const focusMode = phase === 'playing' || phase === 'warmup'

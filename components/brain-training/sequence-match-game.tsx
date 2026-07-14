@@ -88,6 +88,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
   const startedAt = useRef(0)
   const sessionStart = useRef(0)
   const answering = useRef(false)
+  const sessionClosed = useRef(false)
   const flashTimer = useRef<number | null>(null)
 
   const setDrillPhase = useCallback(
@@ -100,7 +101,9 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
 
   useLockBodyScroll(phase === 'playing' || phase === 'warmup')
 
-  const levelConfig = SEQUENCE_LEVELS[Math.min(level, SEQUENCE_LEVELS.length) - 1]!
+  const levelConfig =
+    SEQUENCE_LEVELS[Math.max(0, Math.min(level, SEQUENCE_LEVELS.length) - 1)] ??
+    SEQUENCE_LEVELS[0]!
   const seconds = playSeconds(levelConfig.seconds, touchLayout)
   const progressPct = ((index + (phase === 'playing' ? 1 : 0)) / levelConfig.questions) * 100
   const flashMs = reducedMotion ? 0 : 140
@@ -135,8 +138,11 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
   const startLevel = useCallback(
     (nextLevel: number) => {
       clearFlashTimer()
-      const cfg = SEQUENCE_LEVELS[Math.min(nextLevel, SEQUENCE_LEVELS.length) - 1]!
+      const cfg =
+        SEQUENCE_LEVELS[Math.max(0, Math.min(nextLevel, SEQUENCE_LEVELS.length) - 1)] ??
+        SEQUENCE_LEVELS[0]!
       const nextSeconds = playSeconds(cfg.seconds, touchLayout)
+      sessionClosed.current = false
       setLevel(nextLevel)
       setIndex(0)
       setCorrect(0)
@@ -174,31 +180,42 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
 
   const finish = useCallback(
     async (finalCorrect: number, finalTimes: number[], finalLevel: number) => {
+      if (sessionClosed.current) return
+      sessionClosed.current = true
+      answering.current = false
+      clearFlashTimer()
+      setFlash(null)
       setCorrect(finalCorrect)
       setTimes(finalTimes)
       setLevel(finalLevel)
       setDrillPhase('result')
-      setFlash(null)
-      const cfg = SEQUENCE_LEVELS[Math.min(finalLevel, SEQUENCE_LEVELS.length) - 1]!
+
+      const cfg =
+        SEQUENCE_LEVELS[Math.max(0, Math.min(finalLevel, SEQUENCE_LEVELS.length) - 1)] ??
+        SEQUENCE_LEVELS[0]!
       const maxMs = playSeconds(cfg.seconds, touchLayout) * 1000
       const computed = computeScore({
         correct: finalCorrect,
-        total: finalTimes.length,
+        total: Math.max(1, finalTimes.length),
         responseTimesMs: finalTimes,
         maxPerQuestionMs: maxMs,
       })
       if (canPersist && onPersist) {
-        const ok = await onPersist({
-          gameSlug: 'sequence-match',
-          score: computed.score,
-          accuracy: computed.accuracy,
-          averageResponseMs: computed.averageResponseMs,
-          timeTakenMs: Date.now() - sessionStart.current,
-          levelCompleted: finalLevel,
-          correctCount: finalCorrect,
-          totalQuestions: finalTimes.length,
-        })
-        setSaved(ok)
+        try {
+          const ok = await onPersist({
+            gameSlug: 'sequence-match',
+            score: computed.score,
+            accuracy: computed.accuracy,
+            averageResponseMs: computed.averageResponseMs,
+            timeTakenMs: Math.max(0, Date.now() - (sessionStart.current || Date.now())),
+            levelCompleted: finalLevel,
+            correctCount: finalCorrect,
+            totalQuestions: finalTimes.length,
+          })
+          setSaved(Boolean(ok))
+        } catch {
+          setSaved(false)
+        }
       }
     },
     [canPersist, onPersist, touchLayout, setDrillPhase]
@@ -206,7 +223,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
 
   const advance = useCallback(
     (wasCorrect: boolean, responseMs: number) => {
-      if (answering.current || phase !== 'playing') return
+      if (answering.current || sessionClosed.current || phase !== 'playing') return
       answering.current = true
       feedbackPulse(wasCorrect)
       const nextCorrect = correct + (wasCorrect ? 1 : 0)
@@ -216,10 +233,9 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       const afterFlash = () => {
         setFlash(null)
         if (nextIndex >= levelConfig.questions) {
-          const acc = nextCorrect / nextTimes.length
+          const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
           if (acc >= 0.7 && level < 4) {
-            setCorrect(nextCorrect)
-            setTimes(nextTimes)
+            answering.current = false
             startLevel(level + 1)
             return
           }
@@ -240,8 +256,11 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
 
       setFlash(wasCorrect ? 'correct' : 'incorrect')
       clearFlashTimer()
-      if (flashMs <= 0) afterFlash()
-      else flashTimer.current = window.setTimeout(afterFlash, flashMs)
+      if (flashMs <= 0) {
+        afterFlash()
+      } else {
+        flashTimer.current = window.setTimeout(afterFlash, flashMs)
+      }
     },
     [
       phase,

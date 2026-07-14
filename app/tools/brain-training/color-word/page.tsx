@@ -17,10 +17,15 @@ export default function ColorWordPublicPage() {
   }, [])
 
   const onPersist = async (result: GameResultPayload) => {
-    const res = await saveBrainTrainingSession(result)
-    return res.success
+    try {
+      const res = await saveBrainTrainingSession(result)
+      return Boolean(res?.success)
+    } catch {
+      return false
+    }
   }
 
+  // Keep chrome stable through result screen (avoid layout remount crashes)
   const focusMode = phase === 'playing' || phase === 'warmup'
 
   return (

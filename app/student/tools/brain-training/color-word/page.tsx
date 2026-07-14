@@ -50,8 +50,12 @@ export default function StudentColorWordPage() {
         backHref="/student/tools/brain-training"
         canPersist
         onPersist={async (result: GameResultPayload) => {
-          const res = await saveBrainTrainingSession(result)
-          return res.success
+          try {
+            const res = await saveBrainTrainingSession(result)
+            return Boolean(res?.success)
+          } catch {
+            return false
+          }
         }}
       />
     </StudentPortalShell>

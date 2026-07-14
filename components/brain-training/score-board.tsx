@@ -29,10 +29,13 @@ export function ScoreBoard({
   onPlayAgain,
   onBack,
 }: Props) {
-  const rank = rankLabel(accuracy, averageResponseMs)
-  const xp = xpFromScore(score)
-  const reactionSec = (averageResponseMs / 1000).toFixed(2)
-  const tip = coachingInsight(accuracy, averageResponseMs)
+  const safeAccuracy = Number.isFinite(accuracy) ? accuracy : 0
+  const safeAvg = Number.isFinite(averageResponseMs) ? averageResponseMs : 0
+  const safeScore = Number.isFinite(score) ? score : 0
+  const rank = rankLabel(safeAccuracy, safeAvg)
+  const xp = xpFromScore(safeScore)
+  const reactionSec = (safeAvg / 1000).toFixed(2)
+  const tip = coachingInsight(safeAccuracy, safeAvg)
 
   return (
     <Card className="border-slate-200 shadow-sm max-w-lg mx-auto">
@@ -47,7 +50,7 @@ export function ScoreBoard({
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
-          <Metric label="Accuracy" value={`${accuracy}%`} />
+          <Metric label="Accuracy" value={`${safeAccuracy}%`} />
           <Metric label="Avg response" value={`${reactionSec} s`} />
           <Metric label="Score" value={`${xp} XP`} />
           <Metric label="Rank" value={rank} highlight />
