@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { GameTimer } from '@/components/brain-training/timer'
 import { ScoreBoard } from '@/components/brain-training/score-board'
 import { GameAnswerBar } from '@/components/brain-training/game-answer-bar'
+import { GameLaunchScreen } from '@/components/brain-training/game-launch-screen'
 import {
   feedbackPulse,
   useLockBodyScroll,
@@ -24,6 +24,7 @@ import {
   type ColorEntry,
   type GameResultPayload,
 } from '@/lib/brain-training/scoring'
+import { getGameDef } from '@/lib/brain-training/catalog'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
 
@@ -335,43 +336,14 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
   }
 
   if (phase === 'intro') {
+    const def = getGameDef('color-word')!
     return (
-      <Card className="max-w-xl mx-auto border-slate-200">
-        <CardHeader>
-          <Badge className="w-fit bg-[var(--brand-navy)] text-white">Cognitive drill</Badge>
-          <CardTitle className="text-2xl text-slate-900">Color-Word Attention Challenge</CardTitle>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Decide whether the <strong>ink color</strong> matches the written color word. Ignore the
-            word meaning when it conflicts with the ink — classic Stroop attention training used in
-            cognitive readiness programmes.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ul className="text-sm text-slate-700 space-y-2 list-disc pl-5">
-            <li>Levels auto-increase when you hit ~70% accuracy</li>
-            <li>Missed timers count as incorrect</li>
-            <li>Score rewards both accuracy and reaction speed</li>
-            <li className="hidden md:list-item">
-              Desktop: Enter to start · Y / N to answer · Esc to exit · R to replay
-            </li>
-          </ul>
-          <Button
-            className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
-            onClick={() => startLevel(1)}
-          >
-            Begin scored Level 1 — {COLOR_WORD_LEVELS[0].label}
-            <kbd className="ml-2 hidden md:inline-flex rounded border border-white/25 px-1.5 py-0.5 text-[10px]">
-              Enter
-            </kbd>
-          </Button>
-          <Button variant="outline" className="w-full border-slate-300" onClick={startWarmup}>
-            Warm-up (3 untimed trials)
-          </Button>
-          <Button variant="ghost" className="w-full text-slate-600" onClick={() => router.push(backHref)}>
-            Cancel
-          </Button>
-        </CardContent>
-      </Card>
+      <GameLaunchScreen
+        game={def}
+        onPlay={() => startLevel(1)}
+        onWarmup={startWarmup}
+        onBack={() => router.push(backHref)}
+      />
     )
   }
 

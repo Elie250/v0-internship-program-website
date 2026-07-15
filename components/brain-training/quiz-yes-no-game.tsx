@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { GameTimer } from '@/components/brain-training/timer'
 import { ScoreBoard } from '@/components/brain-training/score-board'
 import { GameAnswerBar } from '@/components/brain-training/game-answer-bar'
+import { GameLaunchScreen } from '@/components/brain-training/game-launch-screen'
 import {
   feedbackPulse,
   useLockBodyScroll,
@@ -296,32 +296,13 @@ export function QuizYesNoGame({
   }
 
   if (phase === 'intro') {
+    if (!def) return null
     return (
-      <Card className="max-w-xl mx-auto border-slate-200 overflow-hidden">
-        <div
-          className="h-28 px-5 flex items-end pb-4"
-          style={{
-            background: `linear-gradient(135deg, ${def?.art.from ?? '#0f2744'}, ${def?.art.to ?? '#1d4ed8'})`,
-          }}
-        >
-          <Badge className="bg-white/15 text-white border-0">{def?.categoryLabel ?? 'Drill'}</Badge>
-        </div>
-        <CardHeader>
-          <CardTitle className="text-2xl text-slate-900">{def?.name ?? 'Training drill'}</CardTitle>
-          <p className="text-sm text-slate-600">{def?.shortTagline}</p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
-            onClick={() => startLevel(1)}
-          >
-            Play Level 1
-          </Button>
-          <Button variant="ghost" className="w-full text-slate-600" onClick={() => router.push(backHref)}>
-            Back
-          </Button>
-        </CardContent>
-      </Card>
+      <GameLaunchScreen
+        game={def}
+        onPlay={() => startLevel(1)}
+        onBack={() => router.push(backHref)}
+      />
     )
   }
 
