@@ -68,6 +68,7 @@ export function QuizYesNoGame({
   const [times, setTimes] = useState<number[]>([])
   const [saved, setSaved] = useState(false)
   const [flash, setFlash] = useState<Flash>(null)
+  const [coachLine, setCoachLine] = useState<string | null>(null)
   const startedAt = useRef(0)
   const sessionStart = useRef(0)
   const answering = useRef(false)
@@ -87,8 +88,8 @@ export function QuizYesNoGame({
   const levelConfig = LEVELS[Math.max(0, Math.min(level, LEVELS.length) - 1)]!
   const seconds = playSeconds(levelConfig.seconds, touchLayout)
   const progressPct = ((index + (phase === 'playing' ? 1 : 0)) / levelConfig.questions) * 100
-  const flashMs = reducedMotion ? 0 : 140
   const challenge = deck[index] ?? null
+  const flashMs = reducedMotion ? 0 : challenge?.explain ? 1100 : 160
 
   const result = useMemo(() => {
     const computed = computeScore({
@@ -124,6 +125,7 @@ export function QuizYesNoGame({
       setTimes([])
       setSaved(false)
       setFlash(null)
+      setCoachLine(null)
       setDeck(pickQuizRound(bankId, cfg.questions))
       sessionStart.current = Date.now()
       setSecondsLeft(nextSeconds)
@@ -134,13 +136,6 @@ export function QuizYesNoGame({
     [bankId, touchLayout, setDrillPhase]
   )
 
-  const exitToIntro = useCallback(() => {
-    clearFlashTimer()
-    answering.current = false
-    setFlash(null)
-    setDrillPhase('intro')
-  }, [setDrillPhase])
-
   const finish = useCallback(
     async (finalCorrect: number, finalTimes: number[], finalLevel: number) => {
       if (sessionClosed.current) return
@@ -148,6 +143,7 @@ export function QuizYesNoGame({
       answering.current = false
       clearFlashTimer()
       setFlash(null)
+      setCoachLine(null)
       setCorrect(finalCorrect)
       setTimes(finalTimes)
       setLevel(finalLevel)
@@ -182,6 +178,18 @@ export function QuizYesNoGame({
     [canPersist, onPersist, touchLayout, setDrillPhase, gameSlug]
   )
 
+  const exitSession = useCallback(() => {
+    clearFlashTimer()
+    setFlash(null)
+    setCoachLine(null)
+    if (times.length > 0 && phase === 'playing') {
+      void finish(correct, times, level)
+      return
+    }
+    answering.current = false
+    setDrillPhase('intro')
+  }, [times, phase, correct, level, finish, setDrillPhase])
+
   const advance = useCallback(
     (wasCorrect: boolean, responseMs: number) => {
       if (answering.current || sessionClosed.current || phase !== 'playing') return
@@ -190,9 +198,11 @@ export function QuizYesNoGame({
       const nextCorrect = correct + (wasCorrect ? 1 : 0)
       const nextTimes = [...times, responseMs]
       const nextIndex = index + 1
+      const tip = challenge?.explain ?? null
 
       const afterFlash = () => {
         setFlash(null)
+        setCoachLine(null)
         if (nextIndex >= levelConfig.questions) {
           const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
           if (acc >= 0.7 && level < 4) {
@@ -212,6 +222,7 @@ export function QuizYesNoGame({
       }
 
       setFlash(wasCorrect ? 'correct' : 'incorrect')
+      setCoachLine(tip)
       clearFlashTimer()
       if (flashMs <= 0) afterFlash()
       else flashTimer.current = window.setTimeout(afterFlash, flashMs)
@@ -227,6 +238,7 @@ export function QuizYesNoGame({
       startLevel,
       finish,
       flashMs,
+      challenge,
     ]
   )
 
@@ -262,7 +274,7 @@ export function QuizYesNoGame({
       if (phase === 'playing') answer(false)
     },
     onStart: phase === 'intro' ? () => startLevel(1) : undefined,
-    onExit: phase === 'playing' ? exitToIntro : undefined,
+    onExit: phase === 'playing' ? exitSession : undefined,
     onReplay: phase === 'result' ? () => startLevel(1) : undefined,
   })
 
@@ -345,6 +357,18 @@ export function QuizYesNoGame({
               {challenge?.display}
             </pre>
           </div>
+          {coachLine ? (
+            <p
+              className={cn(
+                'text-center text-sm font-medium rounded-lg px-3 py-2 border',
+                flash === 'correct'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-950'
+              )}
+            >
+              {coachLine}
+            </p>
+          ) : null}
           <div className="hidden md:block">
             <GameAnswerBar
               prompt={challenge?.prompt ?? 'Answer YES or NO'}

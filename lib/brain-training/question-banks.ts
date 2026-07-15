@@ -7,6 +7,8 @@ export type QuizItem = {
   display: string
   /** true => correct answer is YES */
   answerYes: boolean
+  /** Short teaching line shown after answer */
+  explain?: string
 }
 
 export type QuizBankId =
@@ -17,8 +19,18 @@ export type QuizBankId =
   | 'code-trace'
 
 const OHM_LAW: QuizItem[] = [
-  { display: 'V = 12 V · R = 4 Ω', prompt: 'Is the current I = 3 A?', answerYes: true },
-  { display: 'V = 24 V · R = 8 Ω', prompt: 'Is the current I = 2 A?', answerYes: true },
+  {
+    display: 'V = 12 V · R = 4 Ω',
+    prompt: 'Is the current I = 3 A?',
+    answerYes: true,
+    explain: 'I = V / R = 12 / 4 = 3 A.',
+  },
+  {
+    display: 'V = 24 V · R = 8 Ω',
+    prompt: 'Is the current I = 3 A?',
+    answerYes: true,
+    explain: 'I = V / R = 24 / 8 = 3 A.',
+  },
   { display: 'I = 2 A · R = 10 Ω', prompt: 'Is the voltage V = 20 V?', answerYes: true },
   { display: 'V = 10 V · I = 2 A', prompt: 'Is the resistance R = 5 Ω?', answerYes: true },
   { display: 'V = 12 V · R = 6 Ω', prompt: 'Is the current I = 3 A?', answerYes: false },
@@ -139,8 +151,18 @@ const BANKS: Record<QuizBankId, QuizItem[]> = {
   'code-trace': CODE_TRACE,
 }
 
+function withExplain(item: QuizItem): QuizItem {
+  if (item.explain) return item
+  return {
+    ...item,
+    explain: item.answerYes
+      ? 'Yes — that statement is correct.'
+      : 'No — re-check the formula, symbol, or condition.',
+  }
+}
+
 export function getQuizBank(id: QuizBankId): QuizItem[] {
-  return BANKS[id] ?? []
+  return (BANKS[id] ?? []).map(withExplain)
 }
 
 export function pickQuizRound(bankId: QuizBankId, count: number): QuizItem[] {

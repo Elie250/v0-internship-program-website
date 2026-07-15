@@ -30,7 +30,7 @@ export async function saveBrainTrainingSession(
   if (!game?.id) {
     return {
       success: false,
-      error: 'Brain games are not set up yet. Run scripts/62-brain-training-academy.sql in Supabase.',
+      error: 'Brain games are not set up yet. Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.',
     }
   }
 
@@ -197,7 +197,10 @@ export async function getBrainGamesForHub(): Promise<
   if (error || !data) return []
   return data.map((row) => ({
     slug: String(row.slug),
-    thumbnailUrl: (row.thumbnail_url as string | null) ?? null,
+    thumbnailUrl:
+      typeof row.thumbnail_url === 'string' && /^https?:\/\//i.test(row.thumbnail_url.trim())
+        ? row.thumbnail_url.trim()
+        : null,
     isActive: row.is_active !== false,
   }))
 }
@@ -283,4 +286,128 @@ export async function updateBrainGameAdmin(input: {
   const { error } = await supabaseAdmin.from('brain_games').update(patch).eq('id', input.id)
   if (error) return { success: false, error: error.message }
   return { success: true }
+}
+
+export type MyBrainProgressRow = {
+  slug: string
+  name: string
+  bestScore: number
+  bestAccuracy: number
+  sessions: number
+  lastPlayed: string | null
+}
+
+/** Logged-in user's personal bests per game. */
+export async function getMyBrainProgress(): Promise<MyBrainProgressRow[]> {
+  const user = await getCurrentUser()
+  if (!user?.id || !supabaseAdmin) return []
+
+  const { data: sessions } = await supabaseAdmin
+    .from('game_sessions')
+    .select('score, accuracy, attempt_date, game_id')
+    .eq('user_id', user.id)
+    .order('attempt_date', { ascending: false })
+    .limit(200)
+
+  if (!sessions?.length) return []
+
+  const gameIds = [...new Set(sessions.map((s) => s.game_id).filter(Boolean))] as string[]
+  const { data: games } = await supabaseAdmin
+    .from('brain_games')
+    .select('id, slug, name')
+    .in('id', gameIds)
+
+  const gameById = new Map((games ?? []).map((g) => [g.id as string, g]))
+  const bySlug = new Map<string, MyBrainProgressRow>()
+
+  for (const s of sessions) {
+    const g = gameById.get(s.game_id as string)
+    if (!g?.slug) continue
+    const slug = String(g.slug)
+    const existing = bySlug.get(slug)
+    const score = Number(s.score) || 0
+    const accuracy = Number(s.accuracy) || 0
+    const date = (s.attempt_date as string) || null
+    if (!existing) {
+      bySlug.set(slug, {
+        slug,
+        name: String(g.name),
+        bestScore: score,
+        bestAccuracy: accuracy,
+        sessions: 1,
+        lastPlayed: date,
+      })
+    } else {
+      existing.sessions += 1
+      if (score > existing.bestScore) existing.bestScore = score
+      if (accuracy > existing.bestAccuracy) existing.bestAccuracy = accuracy
+    }
+  }
+
+  return [...bySlug.values()].sort((a, b) => b.bestScore - a.bestScore)
+}
+
+export type CohortGameStat = {
+  slug: string
+  name: string
+  attempts: number
+  avgAccuracy: number
+  avgScore: number
+  uniquePlayers: number
+}
+
+/** Lecturer/admin cohort snapshot across brain drills. */
+export async function getBrainCohortStats(): Promise<{
+  success: boolean
+  stats: CohortGameStat[]
+  error?: string
+}> {
+  const user = await getCurrentUser()
+  if (!user?.id) return { success: false, stats: [], error: 'Login required' }
+  const role = String(user.role || '')
+  const allowed = new Set(['lecturer', 'admin', 'engineer', 'mentor'])
+  if (!allowed.has(role)) return { success: false, stats: [], error: 'Forbidden' }
+  if (!supabaseAdmin) return { success: false, stats: [], error: 'Database not configured' }
+
+  const { data: games } = await supabaseAdmin
+    .from('brain_games')
+    .select('id, slug, name')
+    .eq('is_active', true)
+
+  const stats: CohortGameStat[] = []
+  for (const g of games ?? []) {
+    const { data: sessions } = await supabaseAdmin
+      .from('game_sessions')
+      .select('score, accuracy, user_id')
+      .eq('game_id', g.id)
+      .not('user_id', 'is', null)
+      .limit(500)
+
+    const rows = sessions ?? []
+    if (!rows.length) {
+      stats.push({
+        slug: String(g.slug),
+        name: String(g.name),
+        attempts: 0,
+        avgAccuracy: 0,
+        avgScore: 0,
+        uniquePlayers: 0,
+      })
+      continue
+    }
+    const avgAccuracy =
+      rows.reduce((a, r) => a + (Number(r.accuracy) || 0), 0) / rows.length
+    const avgScore = rows.reduce((a, r) => a + (Number(r.score) || 0), 0) / rows.length
+    const uniquePlayers = new Set(rows.map((r) => r.user_id)).size
+    stats.push({
+      slug: String(g.slug),
+      name: String(g.name),
+      attempts: rows.length,
+      avgAccuracy: Math.round(avgAccuracy * 10) / 10,
+      avgScore: Math.round(avgScore),
+      uniquePlayers,
+    })
+  }
+
+  return { success: true, stats: stats.sort((a, b) => b.attempts - a.attempts) }
 }

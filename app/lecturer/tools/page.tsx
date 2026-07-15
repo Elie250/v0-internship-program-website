@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { isDeliveryPortalRole, deliveryLoginRoleForUser } from '@/lib/lecturer/delivery-portal'
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { ToolsCenterHub } from '@/components/tools/tools-center-hub'
-import { Card, CardContent } from '@/components/ui/card'
+import { BrainCohortPanel } from '@/components/brain-training/brain-cohort-panel'
 
 export default function LecturerToolsPage() {
   const router = useRouter()
@@ -47,15 +46,9 @@ export default function LecturerToolsPage() {
         calculatorsHref="/tools/calculators"
         brainHref="/tools/brain-training"
       />
-      <Card className="mt-8 border-slate-200 bg-slate-50">
-        <CardContent className="py-4 text-sm text-slate-600">
-          Student progress is saved when learners use{' '}
-          <Link href="/student/tools/brain-training" className="text-[var(--brand-navy)] font-medium underline">
-            My learning → Brain Training
-          </Link>
-          . Class analytics dashboards can be extended next.
-        </CardContent>
-      </Card>
+      <div className="mt-8">
+        <BrainCohortPanel />
+      </div>
     </LecturerPortalShell>
   )
 }

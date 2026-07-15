@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { GameCard } from '@/components/brain-training/game-card'
-import { Trophy } from 'lucide-react'
+import { Trophy, TrendingUp } from 'lucide-react'
 import {
   BRAIN_GAME_CATALOG,
   CATEGORY_FILTERS,
   type BrainGameCategory,
 } from '@/lib/brain-training/catalog'
+import type { MyBrainProgressRow } from '@/app/actions/brain-training'
 import { cn } from '@/lib/utils'
 
 export type CatalogGameRow = {
@@ -28,8 +29,8 @@ type Props = {
   basePath: string
   showLeaderboard?: boolean
   leaderboard?: LeaderRow[]
-  /** Optional DB overlays (thumbnails / active) */
   catalogRows?: CatalogGameRow[]
+  personalProgress?: MyBrainProgressRow[]
 }
 
 export function BrainAcademyHub({
@@ -37,6 +38,7 @@ export function BrainAcademyHub({
   showLeaderboard,
   leaderboard = [],
   catalogRows = [],
+  personalProgress = [],
 }: Props) {
   const [filter, setFilter] = useState<BrainGameCategory | 'all'>('all')
 
@@ -77,7 +79,30 @@ export function BrainAcademyHub({
         </div>
       </section>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
+      {personalProgress.length > 0 ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-[var(--brand-navy)]" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">Your bests</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {personalProgress.slice(0, 6).map((row) => (
+              <a
+                key={row.slug}
+                href={`${basePath}/${row.slug}`}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 hover:border-[var(--brand-navy)]/40 transition"
+              >
+                <p className="text-sm font-semibold text-slate-900 truncate">{row.name}</p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Best {row.bestScore} XP · {row.bestAccuracy}% · {row.sessions} runs
+                </p>
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         {CATEGORY_FILTERS.map((item) => (
           <button
             key={item.id}

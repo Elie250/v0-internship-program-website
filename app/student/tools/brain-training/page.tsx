@@ -10,6 +10,8 @@ import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
 import {
   getBrainGamesForHub,
   getBrainTrainingLeaderboard,
+  getMyBrainProgress,
+  type MyBrainProgressRow,
 } from '@/app/actions/brain-training'
 
 export default function StudentBrainTrainingPage() {
@@ -22,9 +24,13 @@ export default function StudentBrainTrainingPage() {
   const [catalogRows, setCatalogRows] = useState<
     Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
   >([])
+  const [progress, setProgress] = useState<MyBrainProgressRow[]>([])
 
   useEffect(() => {
-    void getBrainGamesForHub().then(setCatalogRows)
+    void getBrainGamesForHub()
+      .then(setCatalogRows)
+      .catch(() => setCatalogRows([]))
+
     getStudentPortalData().then((result) => {
       if (!result.success) {
         router.push('/auth/login?redirect=/student/tools/brain-training')
@@ -39,16 +45,23 @@ export default function StudentBrainTrainingPage() {
         getBrainTrainingLeaderboard('color-word', 4),
         getBrainTrainingLeaderboard('ohm-law', 4),
         getBrainTrainingLeaderboard('plc-ladder', 4),
-      ]).then(([a, b, c]) => {
-        const merged = [
-          ...a.map((r) => ({ ...r, game: 'Color-Word' })),
-          ...b.map((r) => ({ ...r, game: 'Ohm' })),
-          ...c.map((r) => ({ ...r, game: 'PLC' })),
-        ]
-          .sort((x, y) => y.score - x.score)
-          .slice(0, 10)
-        setBoard(merged)
-      })
+        getMyBrainProgress(),
+      ])
+        .then(([a, b, c, mine]) => {
+          const merged = [
+            ...a.map((r) => ({ ...r, game: 'Color-Word' })),
+            ...b.map((r) => ({ ...r, game: 'Ohm' })),
+            ...c.map((r) => ({ ...r, game: 'PLC' })),
+          ]
+            .sort((x, y) => y.score - x.score)
+            .slice(0, 10)
+          setBoard(merged)
+          setProgress(mine)
+        })
+        .catch(() => {
+          setBoard([])
+          setProgress([])
+        })
     })
   }, [router])
 
@@ -74,6 +87,7 @@ export default function StudentBrainTrainingPage() {
         showLeaderboard
         leaderboard={board}
         catalogRows={catalogRows}
+        personalProgress={progress}
       />
     </StudentPortalShell>
   )
