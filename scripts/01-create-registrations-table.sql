@@ -1,6 +1,6 @@
--- Create registrations table (legacy filename)
--- Prefer numbered: scripts/01-create-registrations-table.sql
--- Safe to re-run.
+-- 01-create-registrations-table.sql
+-- Run AFTER 00-create-users-table.sql and BEFORE 03-extend-registrations-table.sql
+-- Creates the internship/application registrations table (safe to re-run).
 
 CREATE TABLE IF NOT EXISTS registrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
