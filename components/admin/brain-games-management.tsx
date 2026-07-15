@@ -17,15 +17,18 @@ import {
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import {
   listBrainGamesAdmin,
+  seedBrainGamesCatalogAdmin,
   updateBrainGameAdmin,
   type BrainGameCatalogRow,
 } from '@/app/actions/brain-training'
-import { Eye, EyeOff, Pencil } from 'lucide-react'
+import { Eye, EyeOff, Pencil, RefreshCw } from 'lucide-react'
 
 export default function BrainGamesManagement() {
   const [games, setGames] = useState<BrainGameCatalogRow[]>([])
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(true)
+  const [seeding, setSeeding] = useState(false)
   const [editing, setEditing] = useState<BrainGameCatalogRow | null>(null)
   const [form, setForm] = useState({
     name: '',
@@ -41,6 +44,7 @@ export default function BrainGamesManagement() {
   const load = async () => {
     setLoading(true)
     setError('')
+    setInfo('')
     try {
       const res = await listBrainGamesAdmin()
       if (!res.success) {
@@ -48,9 +52,11 @@ export default function BrainGamesManagement() {
         setGames([])
       } else {
         setGames(res.games)
-        if (res.games.length === 0) {
+        if (res.seeded) {
+          setInfo(`Synced ${res.games.length} drills from the app catalog into the database.`)
+        } else if (res.games.length === 0) {
           setError(
-            'No games in the database yet. Run scripts/62 and scripts/63 in Supabase, then refresh.'
+            'No games in the database yet. Click “Sync catalog”, or run scripts/62 and scripts/63 in Supabase.'
           )
         }
       }
@@ -59,6 +65,25 @@ export default function BrainGamesManagement() {
       setGames([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const syncCatalog = async () => {
+    setSeeding(true)
+    setError('')
+    setInfo('')
+    try {
+      const res = await seedBrainGamesCatalogAdmin()
+      if (!res.success) {
+        setError(res.error || 'Sync failed')
+        return
+      }
+      setInfo(`Synced ${res.count ?? 0} drills.`)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sync failed')
+    } finally {
+      setSeeding(false)
     }
   }
 
@@ -119,21 +144,52 @@ export default function BrainGamesManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Brain Training games</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Upload a thumbnail cover for each drill. Covers show on the public Arcade shelf.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Brain Training games</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Upload a thumbnail cover for each drill. Covers show on the public Arcade shelf.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={loading || seeding}
+          onClick={() => void syncCatalog()}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${seeding ? 'animate-spin' : ''}`} />
+          {seeding ? 'Syncing…' : 'Sync catalog'}
+        </Button>
       </div>
 
       {error ? (
         <p className="text-sm text-red-700 rounded-lg border border-red-200 bg-red-50 px-3 py-2">{error}</p>
       ) : null}
+      {info ? (
+        <p className="text-sm text-emerald-800 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          {info}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="text-slate-600">Loading games…</p>
       ) : games.length === 0 ? (
-        <p className="text-sm text-slate-600">No games found.</p>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 space-y-3">
+          <p className="text-sm text-slate-700">
+            No games in Supabase yet. Sync creates the seven Arcade drills automatically — or run{' '}
+            <code className="text-xs bg-white px-1 py-0.5 rounded border">scripts/62</code> then{' '}
+            <code className="text-xs bg-white px-1 py-0.5 rounded border">scripts/63</code> in the
+            SQL editor if the table is missing.
+          </p>
+          <Button
+            type="button"
+            className="bg-[var(--brand-navy)] text-white"
+            disabled={seeding}
+            onClick={() => void syncCatalog()}
+          >
+            Sync catalog now
+          </Button>
+        </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {games.map((game) => (

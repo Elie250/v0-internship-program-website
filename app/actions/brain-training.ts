@@ -2,6 +2,7 @@
 
 import { checkUserPermission, getCurrentUser } from '@/app/actions/auth-service'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { BRAIN_GAME_CATALOG } from '@/lib/brain-training/catalog'
 import type { GameResultPayload } from '@/lib/brain-training/scoring'
 import { xpFromScore } from '@/lib/brain-training/scoring'
 import { PERMISSIONS } from '@/lib/admin/permissions'
@@ -13,6 +14,125 @@ async function assertBrainGamesAdmin(): Promise<{ ok: true } | { ok: false; erro
   const allowed = await checkUserPermission(user.id, PERMISSIONS.CONTENT_ANNOUNCEMENTS)
   if (!allowed) return { ok: false, error: 'Forbidden' }
   return { ok: true }
+}
+
+/** Map extended categories to script-62-safe values when migration 63 is missing. */
+function legacySafeCategory(category: string): string {
+  if (category === 'cognitive' || category === 'memory' || category === 'logic' || category === 'engineering') {
+    return category
+  }
+  return 'engineering'
+}
+
+/**
+ * Upsert the static app catalog into `brain_games` so admin always has rows to edit.
+ * Tolerates missing thumbnail/sort columns (script 63 not run yet).
+ */
+async function upsertStaticBrainGamesCatalog(): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  if (!supabaseAdmin) return { ok: false, error: 'Database not configured' }
+
+  const richRows = BRAIN_GAME_CATALOG.map((game, index) => ({
+    slug: game.slug,
+    name: game.name,
+    description: `${game.name}. ${game.shortTagline}`,
+    category: game.category,
+    difficulty_levels: game.maxLevel,
+    is_active: true,
+    sort_order: (index + 1) * 10,
+    estimated_minutes: game.estimatedMinutes,
+    short_tagline: game.shortTagline,
+  }))
+
+  const rich = await supabaseAdmin.from('brain_games').upsert(richRows, { onConflict: 'slug' })
+  if (!rich.error) return { ok: true, count: richRows.length }
+
+  const msg = rich.error.message || ''
+  const missingTable = msg.includes('does not exist') || msg.includes('schema cache')
+  if (missingTable) {
+    return {
+      ok: false,
+      error:
+        'Table brain_games is missing. In Supabase → SQL, run scripts/64-brain-games-bootstrap.sql (one paste), then click Sync catalog.',
+    }
+  }
+
+  // Retry with columns/categories from script 62 only.
+  const basicRows = BRAIN_GAME_CATALOG.map((game) => ({
+    slug: game.slug,
+    name: game.name,
+    description: `${game.name}. ${game.shortTagline}`,
+    category: legacySafeCategory(game.category),
+    difficulty_levels: game.maxLevel,
+    is_active: true,
+  }))
+
+  const basic = await supabaseAdmin.from('brain_games').upsert(basicRows, { onConflict: 'slug' })
+  if (basic.error) {
+    return {
+      ok: false,
+      error: missingTable
+        ? 'Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.'
+        : basic.error.message,
+    }
+  }
+  return { ok: true, count: basicRows.length }
+}
+
+function mapBrainGameAdminRow(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    description: String(row.description ?? ''),
+    category: String(row.category ?? 'cognitive'),
+    thumbnail_url: (row.thumbnail_url as string | null) ?? null,
+    is_active: row.is_active !== false,
+    sort_order: Number(row.sort_order) || 100,
+    short_tagline: String(row.short_tagline ?? ''),
+    estimated_minutes: Number(row.estimated_minutes) || 4,
+    difficulty_levels: Number(row.difficulty_levels) || 4,
+  }
+}
+
+async function fetchBrainGamesAdminRows(): Promise<{
+  games: ReturnType<typeof mapBrainGameAdminRow>[]
+  error?: string
+}> {
+  if (!supabaseAdmin) return { games: [], error: 'Database not configured' }
+
+  const full = await supabaseAdmin
+    .from('brain_games')
+    .select(
+      'id, slug, name, description, category, thumbnail_url, is_active, sort_order, short_tagline, estimated_minutes, difficulty_levels'
+    )
+    .order('sort_order', { ascending: true })
+
+  if (!full.error) {
+    return {
+      games: ((full.data ?? []) as Record<string, unknown>[]).map(mapBrainGameAdminRow),
+    }
+  }
+
+  const basic = await supabaseAdmin
+    .from('brain_games')
+    .select('id, slug, name, description, category, is_active, difficulty_levels')
+    .order('name', { ascending: true })
+
+  if (basic.error) {
+    return {
+      games: [],
+      error:
+        basic.error.message.includes('does not exist') || full.error.message.includes('does not exist')
+          ? 'Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.'
+          : basic.error.message,
+    }
+  }
+
+  return {
+    games: ((basic.data ?? []) as Record<string, unknown>[]).map((row) =>
+      mapBrainGameAdminRow({ ...row, thumbnail_url: null, sort_order: 100, short_tagline: '', estimated_minutes: 4 })
+    ),
+  }
 }
 
 const STUDENT_ROLES = new Set(['student', 'registered'])
@@ -197,77 +317,87 @@ export type BrainGameCatalogRow = {
 export async function getBrainGamesForHub(): Promise<
   Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
 > {
-  if (!supabaseAdmin) {
+  try {
+    if (!supabaseAdmin) return []
+
+    const withSort = await supabaseAdmin
+      .from('brain_games')
+      .select('slug, thumbnail_url, is_active, sort_order')
+      .order('sort_order', { ascending: true })
+
+    const rows =
+      withSort.error || !withSort.data
+        ? (
+            await supabaseAdmin.from('brain_games').select('slug, is_active')
+          ).data
+        : withSort.data
+
+    if (!rows) return []
+
+    return rows.map((row) => {
+      const thumb = (row as { thumbnail_url?: unknown }).thumbnail_url
+      const thumbStr = typeof thumb === 'string' ? thumb.trim() : ''
+      return {
+        slug: String(row.slug),
+        thumbnailUrl: /^https?:\/\//i.test(thumbStr) ? thumbStr : null,
+        isActive: row.is_active !== false,
+      }
+    })
+  } catch {
     return []
   }
-  const { data, error } = await supabaseAdmin
-    .from('brain_games')
-    .select('slug, thumbnail_url, is_active')
-    .order('sort_order', { ascending: true })
-  if (error || !data) return []
-  return data.map((row) => ({
-    slug: String(row.slug),
-    thumbnailUrl:
-      typeof row.thumbnail_url === 'string' && /^https?:\/\//i.test(row.thumbnail_url.trim())
-        ? row.thumbnail_url.trim()
-        : null,
-    isActive: row.is_active !== false,
-  }))
 }
 
 export async function listBrainGamesAdmin(): Promise<{
   success: boolean
   games: BrainGameCatalogRow[]
   error?: string
+  seeded?: boolean
 }> {
-  const auth = await assertBrainGamesAdmin()
-  if (!auth.ok) return { success: false, games: [], error: auth.error }
+  try {
+    const auth = await assertBrainGamesAdmin()
+    if (!auth.ok) return { success: false, games: [], error: auth.error }
 
-  if (!supabaseAdmin) return { success: false, games: [], error: 'Database not configured' }
+    let fetched = await fetchBrainGamesAdminRows()
+    if (fetched.error) return { success: false, games: [], error: fetched.error }
 
-  // Prefer full catalog columns; fall back if migration 63 is not applied yet.
-  let data: Record<string, unknown>[] | null = null
-  let errorMessage = ''
-
-  const full = await supabaseAdmin
-    .from('brain_games')
-    .select(
-      'id, slug, name, description, category, thumbnail_url, is_active, sort_order, short_tagline, estimated_minutes, difficulty_levels'
-    )
-    .order('sort_order', { ascending: true })
-
-  if (full.error) {
-    const basic = await supabaseAdmin
-      .from('brain_games')
-      .select('id, slug, name, description, category, is_active, difficulty_levels')
-      .order('name', { ascending: true })
-    if (basic.error) {
-      errorMessage =
-        basic.error.message.includes('does not exist') || full.error.message.includes('does not exist')
-          ? 'Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.'
-          : basic.error.message
-      return { success: false, games: [], error: errorMessage }
+    let seeded = false
+    if (fetched.games.length === 0) {
+      const seed = await upsertStaticBrainGamesCatalog()
+      if (!seed.ok) return { success: false, games: [], error: seed.error }
+      seeded = true
+      fetched = await fetchBrainGamesAdminRows()
+      if (fetched.error) return { success: false, games: [], error: fetched.error }
     }
-    data = (basic.data ?? []) as Record<string, unknown>[]
-  } else {
-    data = (full.data ?? []) as Record<string, unknown>[]
+
+    return { success: true, games: fetched.games, seeded }
+  } catch (err) {
+    return {
+      success: false,
+      games: [],
+      error: err instanceof Error ? err.message : 'Failed to load brain games',
+    }
   }
+}
 
-  const games: BrainGameCatalogRow[] = (data ?? []).map((row) => ({
-    id: String(row.id),
-    slug: String(row.slug),
-    name: String(row.name),
-    description: String(row.description ?? ''),
-    category: String(row.category ?? 'cognitive'),
-    thumbnail_url: (row.thumbnail_url as string | null) ?? null,
-    is_active: row.is_active !== false,
-    sort_order: Number(row.sort_order) || 100,
-    short_tagline: String(row.short_tagline ?? ''),
-    estimated_minutes: Number(row.estimated_minutes) || 4,
-    difficulty_levels: Number(row.difficulty_levels) || 4,
-  }))
-
-  return { success: true, games }
+/** Admin button: force-sync app catalog into Supabase (creates missing drills). */
+export async function seedBrainGamesCatalogAdmin(): Promise<{
+  success: boolean
+  count?: number
+  error?: string
+}> {
+  try {
+    const auth = await assertBrainGamesAdmin()
+    if (!auth.ok) return { success: false, error: auth.error }
+    const seed = await upsertStaticBrainGamesCatalog()
+    if (!seed.ok) return { success: false, error: seed.error }
+    return { success: true, count: seed.count }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Seed failed',
+    }
+  }
 }
 
 export async function updateBrainGameAdmin(input: {
