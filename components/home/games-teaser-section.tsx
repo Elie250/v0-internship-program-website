@@ -35,7 +35,7 @@ export async function GamesTeaserSection() {
             <HomeSectionHeader
               eyebrow="Games"
               title="Brain Training Arcade"
-              description="Three live previews cycle through cognitive and engineering drills — warm up before labs."
+              description="Short cognitive and engineering drills to sharpen focus before class or lab sessions."
               align="left"
               className="mb-0"
             />

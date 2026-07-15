@@ -30,7 +30,7 @@ export async function ShopTeaserSection() {
           <HomeSectionHeader
             eyebrow="Products"
             title="Engineering supplies"
-            description={`Three live previews from the ${COMPANY.brandName} shop — components and tools for labs and field work.`}
+            description={`Components and tools from the ${COMPANY.brandName} shop for labs and field work.`}
             align="left"
             className="mb-0"
           />

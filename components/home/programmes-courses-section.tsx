@@ -42,7 +42,7 @@ export async function ProgrammesCoursesSection() {
           <HomeSectionHeader
             eyebrow="Programmes"
             title="Open for enrollment"
-            description="Three live previews cycle through our catalogue — practitioner-led training in Kigali and online."
+            description="Practitioner-led programmes in Kigali and online — enroll when a seat opens."
             align="left"
             className="mb-0"
           />
