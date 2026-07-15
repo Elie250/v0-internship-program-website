@@ -22,6 +22,7 @@ import {
   type GameResultPayload,
 } from '@/lib/brain-training/scoring'
 import { getGameDef } from '@/lib/brain-training/catalog'
+import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
 
@@ -235,7 +236,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
         setFlash(null)
         if (nextIndex >= levelConfig.questions) {
           const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < 4) {
+          if (acc >= 0.7 && level < SEQUENCE_LEVELS.length) {
             answering.current = false
             startLevel(level + 1)
             return
@@ -386,6 +387,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
                 : `${index + 1} / ${levelConfig.questions}`}
             </span>
           </div>
+          {phase === 'playing' ? <StageRail total={SEQUENCE_LEVELS.length} current={level} /> : null}
           {phase === 'playing' ? (
             <>
               <div className="h-2 rounded-full bg-slate-100 overflow-hidden">

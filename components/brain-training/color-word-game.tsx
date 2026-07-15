@@ -16,15 +16,14 @@ import {
   useYesNoShortcuts,
 } from '@/components/brain-training/use-brain-play'
 import {
-  BASIC_COLORS,
   COLOR_WORD_LEVELS,
-  SIMILAR_COLORS,
+  colorsForColorWordLevel,
   computeScore,
   playSeconds,
-  type ColorEntry,
   type GameResultPayload,
 } from '@/lib/brain-training/scoring'
 import { getGameDef } from '@/lib/brain-training/catalog'
+import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
 
@@ -44,11 +43,12 @@ function pick<T>(arr: readonly T[]): T {
 }
 
 function buildChallenge(level: number): Challenge {
-  const palette: readonly ColorEntry[] = level >= 3 ? SIMILAR_COLORS : BASIC_COLORS
+  // Starter: few popular colors. Hard stages: still popular words (beginner English).
+  const palette = colorsForColorWordLevel(level)
   const wordColor = pick(palette)
   const shouldMatch = Math.random() < 0.48
   const others = palette.filter((c) => c.name !== wordColor.name)
-  const inkColor = shouldMatch ? wordColor : pick(others)
+  const inkColor = shouldMatch ? wordColor : pick(others.length ? others : palette)
   return {
     word: wordColor.name,
     inkHex: inkColor.hex,
@@ -220,7 +220,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
         setFlash(null)
         if (nextIndex >= levelConfig.questions) {
           const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < 4) {
+          if (acc >= 0.7 && level < COLOR_WORD_LEVELS.length) {
             answering.current = false
             startLevel(level + 1)
             return
@@ -368,6 +368,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
                 : `${index + 1} / ${levelConfig.questions}`}
             </span>
           </div>
+          {phase === 'playing' ? <StageRail total={COLOR_WORD_LEVELS.length} current={level} /> : null}
           {phase === 'playing' ? (
             <>
               <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -381,22 +382,49 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
           ) : (
             <p className="text-xs text-slate-500">Practice only — nothing is scored or saved.</p>
           )}
+          <p className="text-xs sm:text-sm text-slate-600 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
+            Tip: look at the <span className="font-semibold text-slate-800">ink color</span> of the
+            letters — not the meaning of the word. Colors stay simple (red, blue, green…).
+          </p>
         </CardHeader>
         <CardContent className="space-y-4 pb-28 md:pb-4">
           <div
             className={cn(
-              'rounded-xl border border-slate-200 bg-slate-50 px-4 py-12 sm:py-14 text-center ring-2 ring-transparent transition-colors',
+              'relative overflow-hidden rounded-2xl border border-slate-200 px-4 py-12 sm:py-14 text-center transition-colors',
               !reducedMotion && 'duration-150',
               flash === 'correct' && 'bg-emerald-50 border-emerald-200',
-              flash === 'incorrect' && 'bg-red-50 border-red-200'
+              flash === 'incorrect' && 'bg-red-50 border-red-200',
+              !flash && 'bg-slate-50'
             )}
           >
+            <div
+              className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full opacity-25 blur-2xl"
+              style={{ backgroundColor: challenge?.inkHex }}
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -left-6 -bottom-10 h-28 w-28 rounded-full opacity-20 blur-xl"
+              style={{ backgroundColor: challenge?.inkHex }}
+              aria-hidden
+            />
             <p
-              className="text-5xl sm:text-6xl font-bold tracking-wide select-none"
+              className="relative text-5xl sm:text-6xl font-black tracking-[0.12em] select-none drop-shadow-sm"
               style={{ color: challenge?.inkHex }}
             >
               {challenge?.word}
             </p>
+            {challenge ? (
+              <div className="relative mt-5 flex items-center justify-center gap-2">
+                <span
+                  className="h-4 w-4 rounded-full border border-white shadow"
+                  style={{ backgroundColor: challenge.inkHex }}
+                  aria-hidden
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Ink color
+                </span>
+              </div>
+            ) : null}
           </div>
           {phase === 'playing' ? (
             <p className="text-center text-xs text-slate-500 hidden md:block">

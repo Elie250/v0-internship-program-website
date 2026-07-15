@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { GameCard } from '@/components/brain-training/game-card'
-import { Trophy, TrendingUp } from 'lucide-react'
+import { Keyboard, Sparkles, Target, Trophy, TrendingUp } from 'lucide-react'
 import {
   BRAIN_GAME_CATALOG,
   CATEGORY_FILTERS,
@@ -73,10 +73,49 @@ export function BrainAcademyHub({
             Play. Learn. Level up.
           </h1>
           <p className="mt-3 text-base text-white/90 max-w-xl">
-            Timed YES/NO arenas for focus, electrical basics, electronics, PLC, embedded logic, and
-            code.
+            Six clear stages per drill — from Starter to Pro. Built for apprentices: simple English,
+            short rounds, and coaching after every miss.
           </p>
+          <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">6 stages</span>
+            <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">YES / NO</span>
+            <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">
+              Popular color words
+            </span>
+            <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">
+              Warm-up modes
+            </span>
+          </div>
         </div>
+      </section>
+
+      <section className="grid sm:grid-cols-3 gap-3">
+        {[
+          {
+            icon: Target,
+            title: 'Beginner-first',
+            body: 'Color-Word uses everyday words like red and blue — even on hard stages.',
+          },
+          {
+            icon: Sparkles,
+            title: 'Learn while you play',
+            body: 'Engineering rounds show a short tip when you miss, so every error teaches.',
+          },
+          {
+            icon: Keyboard,
+            title: 'Desktop shortcuts',
+            body: 'Y / N to answer, Enter to start, Esc to end a run with a partial save.',
+          },
+        ].map((item) => (
+          <div
+            key={item.title}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+          >
+            <item.icon className="h-4 w-4 text-[var(--brand-navy)] mb-2" />
+            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.body}</p>
+          </div>
+        ))}
       </section>
 
       {personalProgress.length > 0 ? (

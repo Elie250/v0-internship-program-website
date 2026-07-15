@@ -75,6 +75,20 @@ export function GameLaunchScreen({
           </span>
         </div>
 
+        {game.slug === 'color-word' ? (
+          <p className="text-sm text-slate-600 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 leading-relaxed">
+            How to play: ignore the letter meaning. Ask only — is the{' '}
+            <span className="font-semibold text-slate-800">ink color</span> the same as the color
+            name? Stage 1 uses just red, blue, green, yellow. Harder stages stay on popular color
+            words.
+          </p>
+        ) : (
+          <p className="text-sm text-slate-600 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 leading-relaxed">
+            Clear YES/NO rounds across {game.maxLevel} stages. Reach about 70% accuracy to unlock the
+            next stage.
+          </p>
+        )}
+
         <Button
           type="button"
           size="lg"

@@ -42,9 +42,9 @@ export default function LecturerToolsPage() {
     <LecturerPortalShell userName={userName}>
       <ToolsCenterHub
         title="Instructor Tools Center"
-        subtitle="Run calculators in class, and try Brain Training drills yourself so you can recommend readiness warm-ups before assessments."
+        subtitle="Run calculators in class, and play Brain Training in your lecturer account so you can recommend readiness warm-ups before assessments."
         calculatorsHref="/tools/calculators"
-        brainHref="/tools/brain-training"
+        brainHref="/lecturer/tools/brain-training"
       />
       <div className="mt-8">
         <BrainCohortPanel />

@@ -16,10 +16,12 @@ import {
   useYesNoShortcuts,
 } from '@/components/brain-training/use-brain-play'
 import {
+  QUIZ_LEVELS,
   computeScore,
   playSeconds,
   type GameResultPayload,
 } from '@/lib/brain-training/scoring'
+import { StageRail } from '@/components/brain-training/stage-rail'
 import { getGameDef, type BrainGameSlug } from '@/lib/brain-training/catalog'
 import {
   pickQuizRound,
@@ -30,13 +32,6 @@ import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
 
 type Flash = 'correct' | 'incorrect' | null
-
-const LEVELS = [
-  { level: 1, questions: 8, seconds: 6, label: 'Foundation' },
-  { level: 2, questions: 10, seconds: 5, label: 'Focused' },
-  { level: 3, questions: 12, seconds: 4, label: 'Advanced' },
-  { level: 4, questions: 14, seconds: 3, label: 'Expert' },
-] as const
 
 type Props = {
   gameSlug: BrainGameSlug
@@ -85,7 +80,7 @@ export function QuizYesNoGame({
 
   useLockBodyScroll(phase === 'playing')
 
-  const levelConfig = LEVELS[Math.max(0, Math.min(level, LEVELS.length) - 1)]!
+  const levelConfig = QUIZ_LEVELS[Math.max(0, Math.min(level, QUIZ_LEVELS.length) - 1)]!
   const seconds = playSeconds(levelConfig.seconds, touchLayout)
   const progressPct = ((index + (phase === 'playing' ? 1 : 0)) / levelConfig.questions) * 100
   const challenge = deck[index] ?? null
@@ -116,7 +111,7 @@ export function QuizYesNoGame({
   const startLevel = useCallback(
     (nextLevel: number) => {
       clearFlashTimer()
-      const cfg = LEVELS[Math.max(0, Math.min(nextLevel, LEVELS.length) - 1)]!
+      const cfg = QUIZ_LEVELS[Math.max(0, Math.min(nextLevel, QUIZ_LEVELS.length) - 1)]!
       const nextSeconds = playSeconds(cfg.seconds, touchLayout)
       sessionClosed.current = false
       setLevel(nextLevel)
@@ -126,7 +121,7 @@ export function QuizYesNoGame({
       setSaved(false)
       setFlash(null)
       setCoachLine(null)
-      setDeck(pickQuizRound(bankId, cfg.questions))
+      setDeck(pickQuizRound(bankId, cfg.questions, nextLevel))
       sessionStart.current = Date.now()
       setSecondsLeft(nextSeconds)
       startedAt.current = Date.now()
@@ -149,7 +144,7 @@ export function QuizYesNoGame({
       setLevel(finalLevel)
       setDrillPhase('result')
 
-      const cfg = LEVELS[Math.max(0, Math.min(finalLevel, LEVELS.length) - 1)]!
+      const cfg = QUIZ_LEVELS[Math.max(0, Math.min(finalLevel, QUIZ_LEVELS.length) - 1)]!
       const maxMs = playSeconds(cfg.seconds, touchLayout) * 1000
       const computed = computeScore({
         correct: finalCorrect,
@@ -205,7 +200,7 @@ export function QuizYesNoGame({
         setCoachLine(null)
         if (nextIndex >= levelConfig.questions) {
           const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < 4) {
+          if (acc >= 0.7 && level < QUIZ_LEVELS.length) {
             answering.current = false
             startLevel(level + 1)
             return
@@ -318,6 +313,14 @@ export function QuizYesNoGame({
               {index + 1} / {levelConfig.questions}
             </span>
           </div>
+          <StageRail total={QUIZ_LEVELS.length} current={level} />
+          <p className="text-xs text-slate-500">
+            {level <= 2
+              ? 'Basic / popular knowledge · extra thinking time'
+              : level <= 4
+                ? 'Core applied questions · moderate pace'
+                : 'Harder items · shorter time'}
+          </p>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
             <div
               className="h-full bg-[var(--brand-navy)] transition-all"
@@ -329,12 +332,12 @@ export function QuizYesNoGame({
         <CardContent className="space-y-4 pb-28 md:pb-4">
           <div
             className={cn(
-              'rounded-xl border border-slate-200 bg-slate-100 text-slate-900 px-4 py-8 text-center transition-colors',
-              flash === 'correct' && 'bg-emerald-50 border-emerald-300 text-emerald-950',
-              flash === 'incorrect' && 'bg-red-50 border-red-300 text-red-950'
+              'relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-slate-900 px-4 py-8 text-center transition-colors shadow-inner',
+              flash === 'correct' && 'from-emerald-50 to-emerald-50/40 border-emerald-300 text-emerald-950',
+              flash === 'incorrect' && 'from-red-50 to-red-50/40 border-red-300 text-red-950'
             )}
           >
-            <pre className="font-mono text-base sm:text-lg whitespace-pre-wrap leading-relaxed">
+            <pre className="relative font-mono text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-semibold tracking-tight">
               {challenge?.display}
             </pre>
           </div>

@@ -5,7 +5,15 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { GameResultPayload } from '@/lib/brain-training/scoring'
 import { xpFromScore } from '@/lib/brain-training/scoring'
 
-const STUDENT_ROLES = new Set(['student', 'registered'])
+const SAVE_ROLES = new Set([
+  'student',
+  'registered',
+  'admin',
+  'lecturer',
+  'instructor',
+  'engineer',
+  'mentor',
+])
 
 export async function saveBrainTrainingSession(
   result: GameResultPayload
@@ -14,8 +22,8 @@ export async function saveBrainTrainingSession(
   if (!user?.id) {
     return { success: false, error: 'Login required to save progress' }
   }
-  if (!STUDENT_ROLES.has(String(user.role || '')) && user.role !== 'admin') {
-    // Lecturers/engineers can practice but optional save — allow any authenticated user
+  if (!SAVE_ROLES.has(String(user.role || ''))) {
+    return { success: false, error: 'Your account type cannot save Brain Training progress' }
   }
   if (!supabaseAdmin) {
     return { success: false, error: 'Database not configured' }
