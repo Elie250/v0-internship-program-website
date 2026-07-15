@@ -314,7 +314,7 @@ export function QuizYesNoGame({
             </span>
           </div>
           <StageRail total={QUIZ_LEVELS.length} current={level} />
-          <p className="text-xs text-slate-500">
+          <p className="hidden sm:block text-xs text-slate-500">
             {level <= 2
               ? 'Basic / popular knowledge · extra thinking time'
               : level <= 4
@@ -329,15 +329,15 @@ export function QuizYesNoGame({
           </div>
           <GameTimer secondsLeft={secondsLeft} totalSeconds={seconds} />
         </CardHeader>
-        <CardContent className="space-y-4 pb-28 md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
           <div
             className={cn(
-              'relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-slate-900 px-4 py-8 text-center transition-colors shadow-inner',
+              'relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-slate-900 px-3 sm:px-4 py-6 sm:py-8 text-center transition-colors shadow-inner min-h-[8.5rem] flex items-center justify-center',
               flash === 'correct' && 'from-emerald-50 to-emerald-50/40 border-emerald-300 text-emerald-950',
               flash === 'incorrect' && 'from-red-50 to-red-50/40 border-red-300 text-red-950'
             )}
           >
-            <pre className="relative font-mono text-base sm:text-lg whitespace-pre-wrap leading-relaxed font-semibold tracking-tight">
+            <pre className="relative font-mono text-[15px] sm:text-lg whitespace-pre-wrap leading-relaxed font-semibold tracking-tight max-w-full break-words">
               {challenge?.display}
             </pre>
           </div>

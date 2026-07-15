@@ -79,7 +79,8 @@ export function ScoreBoard({
 
         <div className="flex flex-col sm:flex-row gap-2">
           <Button
-            className="flex-1 bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+            className="flex-1 h-12 min-h-12 bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 touch-manipulation rounded-xl"
+            style={{ touchAction: 'manipulation' }}
             onClick={onPlayAgain}
           >
             Play again
@@ -87,7 +88,12 @@ export function ScoreBoard({
               R
             </kbd>
           </Button>
-          <Button variant="outline" className="flex-1 border-slate-300" onClick={onBack}>
+          <Button
+            variant="outline"
+            className="flex-1 h-12 min-h-12 border-slate-300 touch-manipulation rounded-xl"
+            style={{ touchAction: 'manipulation' }}
+            onClick={onBack}
+          >
             Back to Academy
           </Button>
         </div>

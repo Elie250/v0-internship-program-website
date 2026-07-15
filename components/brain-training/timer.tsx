@@ -17,13 +17,18 @@ export function GameTimer({ secondsLeft, totalSeconds, className }: Props) {
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-slate-700">Time</span>
-        <span className={cn('font-mono font-bold', urgent ? 'text-red-600' : 'text-slate-900')}>
+        <span
+          className={cn(
+            'font-mono font-bold tabular-nums text-base sm:text-sm',
+            urgent ? 'text-red-600' : 'text-slate-900'
+          )}
+        >
           {secondsLeft.toFixed(1)}s
         </span>
       </div>
       <Progress
         value={pct}
-        className={cn('h-2', urgent ? '[&>div]:bg-red-500' : '[&>div]:bg-[var(--brand-navy)]')}
+        className={cn('h-2.5 sm:h-2', urgent ? '[&>div]:bg-red-500' : '[&>div]:bg-[var(--brand-navy)]')}
       />
     </div>
   )

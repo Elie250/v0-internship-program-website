@@ -402,10 +402,10 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
             <p className="text-xs text-slate-500">Practice only — nothing is scored or saved.</p>
           )}
         </CardHeader>
-        <CardContent className="space-y-4 pb-28 md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
           <div
             className={cn(
-              'grid grid-cols-1 md:grid-cols-2 gap-3 rounded-xl transition-colors',
+              'grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 rounded-xl transition-colors',
               !reducedMotion && 'duration-150',
               flash === 'correct' && 'bg-emerald-50/60',
               flash === 'incorrect' && 'bg-red-50/60'
@@ -445,12 +445,12 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
 
 function SequenceBox({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 sm:py-3 min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
         {label}
       </p>
       <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-        <p className="font-mono text-base sm:text-lg md:text-xl tracking-[0.1em] sm:tracking-[0.12em] text-slate-900 whitespace-nowrap text-center font-semibold inline-block min-w-full">
+        <p className="font-mono text-lg sm:text-lg md:text-xl tracking-[0.14em] sm:tracking-[0.12em] text-slate-900 whitespace-nowrap text-center font-bold inline-block min-w-full">
           {value}
         </p>
       </div>

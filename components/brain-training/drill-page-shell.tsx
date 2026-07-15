@@ -42,8 +42,8 @@ export function DrillPageShell({ academyHref, focusMode, children }: Props) {
 
       <div
         className={cn(
-          'max-w-3xl mx-auto px-4 md:px-6',
-          focusMode ? 'py-4 md:py-6' : 'py-8 md:py-12'
+          'max-w-3xl mx-auto px-3 sm:px-4 md:px-6',
+          focusMode ? 'py-3 sm:py-4 md:py-6 pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-6' : 'py-6 md:py-12'
         )}
       >
         <div className={cn(focusMode && 'hidden')}>

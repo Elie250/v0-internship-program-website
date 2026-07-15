@@ -37,7 +37,7 @@ export function GameLaunchScreen({
       )}
     >
       <div
-        className="relative aspect-[16/11] overflow-hidden"
+        className="relative aspect-[16/10] sm:aspect-[16/11] overflow-hidden"
         style={{
           background: `linear-gradient(145deg, ${game.art.from}, ${game.art.to})`,
         }}
@@ -59,40 +59,38 @@ export function GameLaunchScreen({
         </div>
       </div>
 
-      <div className="space-y-4 p-5 sm:p-6 bg-white">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="space-y-3 sm:space-y-4 p-4 sm:p-6 bg-white">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {game.skills.map((skill) => (
             <span
               key={skill}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] sm:text-xs font-medium text-slate-700"
             >
               <Zap className="h-3 w-3 text-amber-600" />
               {skill}
             </span>
           ))}
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] sm:text-xs text-slate-600">
             <Clock3 className="h-3 w-3" />~{game.estimatedMinutes} min · Lv 1–{game.maxLevel}
           </span>
         </div>
 
         {game.slug === 'color-word' ? (
-          <p className="text-sm text-slate-600 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 leading-relaxed">
-            How to play: ignore the letter meaning. Ask only — is the{' '}
-            <span className="font-semibold text-slate-800">ink color</span> the same as the color
-            name? Stage 1 uses just red, blue, green, yellow. Harder stages stay on popular color
-            words.
+          <p className="text-xs sm:text-sm text-slate-600 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 leading-relaxed">
+            Ask only: is the <span className="font-semibold text-slate-800">ink color</span> the same
+            as the word?
           </p>
         ) : (
-          <p className="text-sm text-slate-600 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 leading-relaxed">
-            Clear YES/NO rounds across {game.maxLevel} stages. Reach about 70% accuracy to unlock the
-            next stage.
+          <p className="text-xs sm:text-sm text-slate-600 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 leading-relaxed">
+            YES/NO across {game.maxLevel} stages. Reach ~70% accuracy to unlock the next stage.
           </p>
         )}
 
         <Button
           type="button"
           size="lg"
-          className="h-14 w-full text-base font-bold bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 active:scale-[0.99]"
+          className="h-14 min-h-14 sm:h-14 w-full text-base font-bold bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 active:scale-[0.99] touch-manipulation rounded-2xl"
+          style={{ touchAction: 'manipulation' }}
           onClick={onPlay}
         >
           <Play className="h-5 w-5 mr-2 fill-current" />
@@ -106,7 +104,8 @@ export function GameLaunchScreen({
           <Button
             type="button"
             variant="outline"
-            className="w-full border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+            className="h-12 min-h-12 w-full border-slate-300 bg-white text-slate-800 hover:bg-slate-50 touch-manipulation rounded-2xl"
+            style={{ touchAction: 'manipulation' }}
             onClick={onWarmup}
           >
             Warm-up · 3 free trials

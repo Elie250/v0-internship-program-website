@@ -382,15 +382,15 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
           ) : (
             <p className="text-xs text-slate-500">Practice only — nothing is scored or saved.</p>
           )}
-          <p className="text-xs sm:text-sm text-slate-600 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
+          <p className="hidden sm:block text-sm text-slate-600 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
             Tip: look at the <span className="font-semibold text-slate-800">ink color</span> of the
-            letters — not the meaning of the word. Colors stay simple (red, blue, green…).
+            letters — not the meaning of the word.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4 pb-28 md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
           <div
             className={cn(
-              'relative overflow-hidden rounded-2xl border border-slate-200 px-4 py-12 sm:py-14 text-center transition-colors',
+              'relative overflow-hidden rounded-2xl border border-slate-200 px-3 sm:px-4 py-10 sm:py-14 text-center transition-colors',
               !reducedMotion && 'duration-150',
               flash === 'correct' && 'bg-emerald-50 border-emerald-200',
               flash === 'incorrect' && 'bg-red-50 border-red-200',
@@ -408,15 +408,15 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
               aria-hidden
             />
             <p
-              className="relative text-5xl sm:text-6xl font-black tracking-[0.12em] select-none drop-shadow-sm"
+              className="relative text-[2.75rem] leading-none sm:text-6xl font-black tracking-[0.12em] select-none drop-shadow-sm"
               style={{ color: challenge?.inkHex }}
             >
               {challenge?.word}
             </p>
             {challenge ? (
-              <div className="relative mt-5 flex items-center justify-center gap-2">
+              <div className="relative mt-4 sm:mt-5 flex items-center justify-center gap-2">
                 <span
-                  className="h-4 w-4 rounded-full border border-white shadow"
+                  className="h-5 w-5 sm:h-4 sm:w-4 rounded-full border-2 border-white shadow"
                   style={{ backgroundColor: challenge.inkHex }}
                   aria-hidden
                 />

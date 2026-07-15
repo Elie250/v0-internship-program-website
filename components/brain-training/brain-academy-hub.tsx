@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { GameCard } from '@/components/brain-training/game-card'
-import { Keyboard, Sparkles, Target, Trophy, TrendingUp } from 'lucide-react'
+import { Keyboard, Sparkles, Trophy, TrendingUp } from 'lucide-react'
 import {
   BRAIN_GAME_CATALOG,
   CATEGORY_FILTERS,
@@ -80,22 +80,14 @@ export function BrainAcademyHub({
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">6 stages</span>
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">YES / NO</span>
             <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">
-              Popular color words
-            </span>
-            <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur-sm">
               Warm-up modes
             </span>
           </div>
         </div>
       </section>
 
-      <section className="grid sm:grid-cols-3 gap-3">
+      <section className="grid sm:grid-cols-2 gap-3">
         {[
-          {
-            icon: Target,
-            title: 'Beginner-first',
-            body: 'Color-Word uses everyday words like red and blue — even on hard stages.',
-          },
           {
             icon: Sparkles,
             title: 'Learn while you play',
