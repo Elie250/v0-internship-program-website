@@ -15,22 +15,30 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
-import {
-  diagnoseBrainGamesAdmin,
-  listBrainGamesAdmin,
-  seedBrainGamesCatalogAdmin,
-  updateBrainGameAdmin,
-  type BrainGameCatalogRow,
-} from '@/app/actions/brain-training'
+import type {
+  BrainGameCatalogRow,
+  BrainGamesDiagReport,
+} from '@/lib/brain-training/admin-catalog'
 import { Eye, EyeOff, Pencil, RefreshCw } from 'lucide-react'
 
-type DiagReport = Awaited<ReturnType<typeof diagnoseBrainGamesAdmin>>['report']
+async function readJson(res: Response) {
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch {
+    throw new Error(
+      text?.includes('Server Components')
+        ? 'Got an HTML error page instead of JSON. Hard-refresh after deploy, then try again.'
+        : text?.slice(0, 240) || `Request failed (${res.status})`
+    )
+  }
+}
 
 export default function BrainGamesManagement() {
   const [games, setGames] = useState<BrainGameCatalogRow[]>([])
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-  const [diag, setDiag] = useState<DiagReport | null>(null)
+  const [diag, setDiag] = useState<BrainGamesDiagReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
   const [editing, setEditing] = useState<BrainGameCatalogRow | null>(null)
@@ -47,11 +55,12 @@ export default function BrainGamesManagement() {
 
   const loadDiagnostics = async () => {
     try {
-      const res = await diagnoseBrainGamesAdmin()
-      setDiag(res.report)
-      if (!res.success && res.error) setError(res.error)
-    } catch {
-      setDiag(null)
+      const res = await fetch('/api/admin/brain-games?diagnose=1', { cache: 'no-store' })
+      const data = await readJson(res)
+      if (data.report) setDiag(data.report as BrainGamesDiagReport)
+      if (!res.ok && data.error) setError(String(data.error))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Diagnostics failed')
     }
   }
 
@@ -60,22 +69,28 @@ export default function BrainGamesManagement() {
     setError('')
     setInfo('')
     try {
-      const res = await listBrainGamesAdmin()
-      if (!res.success) {
-        setError(res.error || 'Failed to load games')
+      const res = await fetch('/api/admin/brain-games', { cache: 'no-store' })
+      const data = await readJson(res)
+      if (data.report) setDiag(data.report as BrainGamesDiagReport)
+
+      if (!res.ok || data.success === false) {
+        setError(String(data.error || `Failed to load games (${res.status})`))
         setGames([])
-        await loadDiagnostics()
+        if (!data.report) await loadDiagnostics()
+        return
+      }
+
+      const nextGames = Array.isArray(data.games) ? (data.games as BrainGameCatalogRow[]) : []
+      setGames(nextGames)
+      if (data.seeded) {
+        setInfo(`Synced ${nextGames.length} drills from the app catalog into the database.`)
+      } else if (nextGames.length === 0) {
+        setError(
+          'Catalog is empty after seed. Check diagnostics — SQL may have run on a different Supabase project than production.'
+        )
+        if (!data.report) await loadDiagnostics()
       } else {
-        setGames(res.games)
         setDiag(null)
-        if (res.seeded) {
-          setInfo(`Synced ${res.games.length} drills from the app catalog into the database.`)
-        } else if (res.games.length === 0) {
-          setError(
-            'Catalog is empty after seed. Check diagnostics below — usually the SQL ran on a different Supabase project than production.'
-          )
-          await loadDiagnostics()
-        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load games')
@@ -91,13 +106,18 @@ export default function BrainGamesManagement() {
     setError('')
     setInfo('')
     try {
-      const res = await seedBrainGamesCatalogAdmin()
-      if (!res.success) {
-        setError(res.error || 'Sync failed')
-        await loadDiagnostics()
+      const res = await fetch('/api/admin/brain-games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync' }),
+      })
+      const data = await readJson(res)
+      if (data.report) setDiag(data.report as BrainGamesDiagReport)
+      if (!res.ok || data.success === false) {
+        setError(String(data.error || 'Sync failed'))
         return
       }
-      setInfo(`Synced ${res.count ?? 0} drills.`)
+      setInfo(`Synced ${Number(data.count) || 0} drills.`)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed')
@@ -129,18 +149,23 @@ export default function BrainGamesManagement() {
     setSaving(true)
     setError('')
     try {
-      const res = await updateBrainGameAdmin({
-        id: editing.id,
-        name: form.name,
-        description: form.description,
-        short_tagline: form.short_tagline,
-        thumbnail_url: form.thumbnail_url || null,
-        sort_order: form.sort_order,
-        estimated_minutes: form.estimated_minutes,
-        is_active: form.is_active,
+      const res = await fetch('/api/admin/brain-games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editing.id,
+          name: form.name,
+          description: form.description,
+          short_tagline: form.short_tagline,
+          thumbnail_url: form.thumbnail_url || null,
+          sort_order: form.sort_order,
+          estimated_minutes: form.estimated_minutes,
+          is_active: form.is_active,
+        }),
       })
-      if (!res.success) {
-        setError(res.error || 'Save failed')
+      const data = await readJson(res)
+      if (!res.ok || data.success === false) {
+        setError(String(data.error || 'Save failed'))
         return
       }
       setEditing(null)
@@ -155,7 +180,16 @@ export default function BrainGamesManagement() {
   const toggleActive = async (game: BrainGameCatalogRow) => {
     if (!game.id) return
     try {
-      await updateBrainGameAdmin({ id: game.id, is_active: !game.is_active })
+      const res = await fetch('/api/admin/brain-games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: game.id, is_active: !game.is_active }),
+      })
+      const data = await readJson(res)
+      if (!res.ok || data.success === false) {
+        setError(String(data.error || 'Update failed'))
+        return
+      }
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed')
@@ -183,7 +217,9 @@ export default function BrainGamesManagement() {
       </div>
 
       {error ? (
-        <p className="text-sm text-red-700 rounded-lg border border-red-200 bg-red-50 px-3 py-2">{error}</p>
+        <p className="text-sm text-red-700 rounded-lg border border-red-200 bg-red-50 px-3 py-2 whitespace-pre-wrap">
+          {error}
+        </p>
       ) : null}
       {info ? (
         <p className="text-sm text-emerald-800 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
@@ -196,11 +232,11 @@ export default function BrainGamesManagement() {
       ) : games.length === 0 ? (
         <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 space-y-4">
           <p className="text-sm text-slate-700">
-            Still no rows visible from the production Supabase project. Run{' '}
+            No drills loaded from production Supabase. Run{' '}
             <code className="text-xs bg-white px-1 py-0.5 rounded border">
               scripts/64-brain-games-bootstrap.sql
             </code>{' '}
-            in the same project as your Vercel <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code>, then
+            in the project matching Vercel <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code>, then
             Sync.
           </p>
           {diag ? (
@@ -213,7 +249,9 @@ export default function BrainGamesManagement() {
               {diag.urlIssue ? <li>urlIssue: {diag.urlIssue}</li> : null}
               <li>selectOk: {String(diag.selectOk)}</li>
               <li>selectCount: {diag.selectCount}</li>
-              {diag.selectError ? <li className="text-red-700 whitespace-pre-wrap">selectError: {diag.selectError}</li> : null}
+              {diag.selectError ? (
+                <li className="text-red-700 whitespace-pre-wrap">selectError: {diag.selectError}</li>
+              ) : null}
             </ul>
           ) : null}
           <div className="flex flex-wrap gap-2">
