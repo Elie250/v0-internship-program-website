@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 
 const NAV_LINKS = [
-  { href: '#showcase', label: 'Discover' },
   { href: '#explore', label: 'Explore' },
   { href: '#programmes', label: 'Programmes' },
+  { href: '#games', label: 'Games' },
   { href: '#read-explore', label: 'Library' },
+  { href: '#shop', label: 'Shop' },
   { href: '#reviews', label: 'Reviews' },
 ] as const
 

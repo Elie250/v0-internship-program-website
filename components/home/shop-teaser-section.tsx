@@ -1,15 +1,27 @@
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, ShoppingBag } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { getPublishedProducts } from '@/lib/platform/queries'
 import { COMPANY } from '@/lib/company/constants'
 import { HomeSectionHeader } from '@/components/home/home-section-header'
+import {
+  SectionShuffleSlots,
+  type ShuffleCardItem,
+} from '@/components/home/section-shuffle-slots'
 
 export async function ShopTeaserSection() {
-  const products = (await getPublishedProducts()).slice(0, 2)
+  const products = await getPublishedProducts()
   if (products.length === 0) return null
+
+  const items: ShuffleCardItem[] = products.slice(0, 24).map((product) => ({
+    id: product.id,
+    title: product.name,
+    subtitle: product.description || undefined,
+    href: `/shop/${product.id}`,
+    imageUrl: product.images?.[0] || null,
+    ctaLabel:
+      product.price != null ? `${Number(product.price).toLocaleString()} RWF` : 'View in shop',
+  }))
 
   return (
     <section id="shop" className="home-section home-section--compact home-section--muted">
@@ -18,7 +30,7 @@ export async function ShopTeaserSection() {
           <HomeSectionHeader
             eyebrow="Products"
             title="Engineering supplies"
-            description={`Components and tools from ${COMPANY.brandName} — browse the shop.`}
+            description={`Three live previews from the ${COMPANY.brandName} shop — components and tools for labs and field work.`}
             align="left"
             className="mb-0"
           />
@@ -29,34 +41,7 @@ export async function ShopTeaserSection() {
             </Button>
           </Link>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl">
-          {products.map((product) => {
-            const image = product.images?.[0]
-            return (
-              <Link key={product.id} href={`/shop/${product.id}`} className="home-tile-link no-underline hover:no-underline">
-                <Card className="h-full border-slate-200 hover:shadow-md transition-shadow overflow-hidden">
-                  <div className="relative h-32 bg-slate-100">
-                    {image ? (
-                      <Image src={image} alt="" fill className="object-cover" unoptimized />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-slate-300">
-                        <ShoppingBag className="h-8 w-8" />
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <p className="font-semibold text-slate-900 text-sm line-clamp-2">{product.name}</p>
-                    {product.price != null ? (
-                      <p className="text-sm text-[var(--brand-navy)] font-medium mt-1">
-                        {Number(product.price).toLocaleString()} RWF
-                      </p>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </Link>
-            )
-          })}
-        </div>
+        <SectionShuffleSlots items={items} slots={3} />
       </div>
     </section>
   )

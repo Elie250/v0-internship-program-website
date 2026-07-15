@@ -4,6 +4,7 @@ import { HomeHeroSection } from '@/components/home/home-hero'
 import { FounderSection } from '@/components/home/founder-section'
 import { ExploreHubSection } from '@/components/home/explore-hub-section'
 import { ProgrammesCoursesSection } from '@/components/home/programmes-courses-section'
+import { GamesTeaserSection } from '@/components/home/games-teaser-section'
 import { ReadExploreSection } from '@/components/home/read-explore-section'
 import { ShopTeaserSection } from '@/components/home/shop-teaser-section'
 import { ReviewsTrustSection } from '@/components/home/reviews-trust-section'
@@ -11,7 +12,6 @@ import { WhatsHappeningSection } from '@/components/home/whats-happening-section
 import { MembershipSection } from '@/components/home/membership-section'
 import { HomeStickyNav } from '@/components/home/home-sticky-nav'
 import { HomeSignedInStrip } from '@/components/home/home-signed-in-strip'
-import { CatalogShowcaseSection } from '@/components/home/catalog-showcase-section'
 
 export default function HomePage() {
   return (
@@ -22,9 +22,9 @@ export default function HomePage() {
         <HomeHeroSection fullViewport />
       </div>
       <HomeSignedInStrip />
-      <CatalogShowcaseSection />
       <ExploreHubSection />
       <ProgrammesCoursesSection />
+      <GamesTeaserSection />
       <ReadExploreSection />
       <ReviewsTrustSection compact />
       <ShopTeaserSection />

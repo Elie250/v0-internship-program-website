@@ -127,8 +127,8 @@ export function GameCard({ game, href, thumbnailUrl, className }: Props) {
     <Link
       href={href}
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-900 text-white shadow-lg',
-        'transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]',
+        'group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm',
+        'transition duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[var(--brand-navy)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]',
         className
       )}
     >
@@ -150,23 +150,23 @@ export function GameCard({ game, href, thumbnailUrl, className }: Props) {
           <>
             <ArtPattern pattern={game.art.pattern} patternId={patternId} />
             <div
-              className="absolute bottom-3 left-3 h-10 w-10 rounded-xl border border-white/30"
+              className="absolute bottom-3 left-3 h-10 w-10 rounded-xl border border-white/40"
               style={{ backgroundColor: game.art.accent }}
             />
           </>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <span className="absolute left-3 top-3 rounded-md bg-black/45 px-2 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+        <span className="absolute left-3 top-3 rounded-md bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-800 shadow-sm">
           {game.categoryLabel}
         </span>
-        <span className="absolute bottom-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-900 shadow-md transition group-hover:scale-110">
+        <span className="absolute bottom-3 right-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--brand-navy)] shadow-md transition group-hover:scale-110">
           <Play className="h-5 w-5 fill-current" />
         </span>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="text-lg font-bold leading-tight tracking-tight">{game.name}</h3>
-        <p className="text-sm text-white/70 line-clamp-2">{game.shortTagline}</p>
-        <div className="mt-auto flex items-center justify-between pt-2 text-xs text-white/55">
+      <div className="flex flex-1 flex-col gap-2 p-4 bg-white">
+        <h3 className="text-lg font-bold leading-tight tracking-tight text-slate-900">{game.name}</h3>
+        <p className="text-sm text-slate-600 line-clamp-2">{game.shortTagline}</p>
+        <div className="mt-auto flex items-center justify-between pt-2 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1">
             <Clock3 className="h-3.5 w-3.5" /> ~{game.estimatedMinutes} min
           </span>

@@ -5,7 +5,7 @@ import { BrainArcadeClient } from '@/components/brain-training/arcade-client'
 /** Server page: keeps async SiteFooter out of the client bundle (fixes Arcade crash). */
 export default function PublicBrainTrainingPage() {
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="min-h-screen bg-slate-50">
       <SiteHeader />
       <BrainArcadeClient />
       <SiteFooter />

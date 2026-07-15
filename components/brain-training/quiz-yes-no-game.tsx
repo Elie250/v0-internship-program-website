@@ -329,9 +329,9 @@ export function QuizYesNoGame({
         <CardContent className="space-y-4 pb-28 md:pb-4">
           <div
             className={cn(
-              'rounded-xl border border-slate-200 bg-slate-950 text-slate-50 px-4 py-8 text-center transition-colors',
-              flash === 'correct' && 'bg-emerald-950 border-emerald-700',
-              flash === 'incorrect' && 'bg-red-950 border-red-700'
+              'rounded-xl border border-slate-200 bg-slate-100 text-slate-900 px-4 py-8 text-center transition-colors',
+              flash === 'correct' && 'bg-emerald-50 border-emerald-300 text-emerald-950',
+              flash === 'incorrect' && 'bg-red-50 border-red-300 text-red-950'
             )}
           >
             <pre className="font-mono text-base sm:text-lg whitespace-pre-wrap leading-relaxed">

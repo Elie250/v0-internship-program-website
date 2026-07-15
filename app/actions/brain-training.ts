@@ -1,9 +1,19 @@
 'use server'
 
-import { getCurrentUser } from '@/app/actions/auth-service'
+import { checkUserPermission, getCurrentUser } from '@/app/actions/auth-service'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import type { GameResultPayload } from '@/lib/brain-training/scoring'
 import { xpFromScore } from '@/lib/brain-training/scoring'
+import { PERMISSIONS } from '@/lib/admin/permissions'
+
+async function assertBrainGamesAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser()
+  if (!user?.id) return { ok: false, error: 'Login required' }
+  if (user.role === 'admin') return { ok: true }
+  const allowed = await checkUserPermission(user.id, PERMISSIONS.CONTENT_ANNOUNCEMENTS)
+  if (!allowed) return { ok: false, error: 'Forbidden' }
+  return { ok: true }
+}
 
 const STUDENT_ROLES = new Set(['student', 'registered'])
 
@@ -210,49 +220,54 @@ export async function listBrainGamesAdmin(): Promise<{
   games: BrainGameCatalogRow[]
   error?: string
 }> {
-  const { requireAdminPermission } = await import('@/app/actions/admin-context')
-  const { PERMISSIONS } = await import('@/lib/admin/permissions')
-  try {
-    await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
-  } catch {
-    return { success: false, games: [], error: 'Forbidden' }
-  }
+  const auth = await assertBrainGamesAdmin()
+  if (!auth.ok) return { success: false, games: [], error: auth.error }
+
   if (!supabaseAdmin) return { success: false, games: [], error: 'Database not configured' }
 
-  const { data, error } = await supabaseAdmin
+  // Prefer full catalog columns; fall back if migration 63 is not applied yet.
+  let data: Record<string, unknown>[] | null = null
+  let errorMessage = ''
+
+  const full = await supabaseAdmin
     .from('brain_games')
     .select(
       'id, slug, name, description, category, thumbnail_url, is_active, sort_order, short_tagline, estimated_minutes, difficulty_levels'
     )
     .order('sort_order', { ascending: true })
 
-  if (error) {
-    return {
-      success: false,
-      games: [],
-      error:
-        error.message.includes('thumbnail_url') || error.message.includes('does not exist')
-          ? 'Run scripts/63-brain-training-thumbnails-and-games.sql in Supabase first.'
-          : error.message,
+  if (full.error) {
+    const basic = await supabaseAdmin
+      .from('brain_games')
+      .select('id, slug, name, description, category, is_active, difficulty_levels')
+      .order('name', { ascending: true })
+    if (basic.error) {
+      errorMessage =
+        basic.error.message.includes('does not exist') || full.error.message.includes('does not exist')
+          ? 'Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.'
+          : basic.error.message
+      return { success: false, games: [], error: errorMessage }
     }
+    data = (basic.data ?? []) as Record<string, unknown>[]
+  } else {
+    data = (full.data ?? []) as Record<string, unknown>[]
   }
 
-  return {
-    success: true,
-    games: (data ?? []).map((row) => ({
-      id: row.id as string,
-      slug: String(row.slug),
-      name: String(row.name),
-      description: String(row.description ?? ''),
-      category: String(row.category ?? 'cognitive'),
-      thumbnail_url: (row.thumbnail_url as string | null) ?? null,
-      is_active: row.is_active !== false,
-      sort_order: Number(row.sort_order) || 100,
-      short_tagline: String(row.short_tagline ?? ''),
-      estimated_minutes: Number(row.estimated_minutes) || 4,
-      difficulty_levels: Number(row.difficulty_levels) || 4,
-    })),
-  }
+  const games: BrainGameCatalogRow[] = (data ?? []).map((row) => ({
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    description: String(row.description ?? ''),
+    category: String(row.category ?? 'cognitive'),
+    thumbnail_url: (row.thumbnail_url as string | null) ?? null,
+    is_active: row.is_active !== false,
+    sort_order: Number(row.sort_order) || 100,
+    short_tagline: String(row.short_tagline ?? ''),
+    estimated_minutes: Number(row.estimated_minutes) || 4,
+    difficulty_levels: Number(row.difficulty_levels) || 4,
+  }))
+
+  return { success: true, games }
 }
 
 export async function updateBrainGameAdmin(input: {
@@ -265,13 +280,9 @@ export async function updateBrainGameAdmin(input: {
   sort_order?: number
   estimated_minutes?: number
 }): Promise<{ success: boolean; error?: string }> {
-  const { requireAdminPermission } = await import('@/app/actions/admin-context')
-  const { PERMISSIONS } = await import('@/lib/admin/permissions')
-  try {
-    await requireAdminPermission(PERMISSIONS.CONTENT_ANNOUNCEMENTS)
-  } catch {
-    return { success: false, error: 'Forbidden' }
-  }
+  const auth = await assertBrainGamesAdmin()
+  if (!auth.ok) return { success: false, error: auth.error }
+
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
   const patch: Record<string, unknown> = {}
@@ -284,7 +295,15 @@ export async function updateBrainGameAdmin(input: {
   if (input.estimated_minutes !== undefined) patch.estimated_minutes = input.estimated_minutes
 
   const { error } = await supabaseAdmin.from('brain_games').update(patch).eq('id', input.id)
-  if (error) return { success: false, error: error.message }
+  if (error) {
+    return {
+      success: false,
+      error:
+        error.message.includes('thumbnail_url') || error.message.includes('does not exist')
+          ? 'Run scripts/63-brain-training-thumbnails-and-games.sql in Supabase first.'
+          : error.message,
+    }
+  }
   return { success: true }
 }
 

@@ -32,7 +32,7 @@ export function GameLaunchScreen({
   return (
     <div
       className={cn(
-        'max-w-lg mx-auto overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white shadow-2xl',
+        'max-w-lg mx-auto overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-xl',
         className
       )}
     >
@@ -47,28 +47,30 @@ export function GameLaunchScreen({
         ) : (
           <LaunchArt pattern={game.art.pattern} accent={game.art.accent} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
-        <span className="absolute left-4 top-4 rounded-md bg-black/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+        <span className="absolute left-4 top-4 rounded-md bg-white/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-800 shadow-sm">
           {game.categoryLabel}
         </span>
         <div className="absolute bottom-4 left-4 right-4">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-lg">{game.name}</h1>
-          <p className="mt-1.5 text-sm sm:text-base text-white/80">{game.shortTagline}</p>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white drop-shadow-md">
+            {game.name}
+          </h1>
+          <p className="mt-1.5 text-sm sm:text-base text-white/95">{game.shortTagline}</p>
         </div>
       </div>
 
-      <div className="space-y-4 p-5 sm:p-6">
+      <div className="space-y-4 p-5 sm:p-6 bg-white">
         <div className="flex flex-wrap items-center gap-2">
           {game.skills.map((skill) => (
             <span
               key={skill}
-              className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-medium text-white/85"
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
             >
-              <Zap className="h-3 w-3 text-amber-300" />
+              <Zap className="h-3 w-3 text-amber-600" />
               {skill}
             </span>
           ))}
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/70">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
             <Clock3 className="h-3 w-3" />~{game.estimatedMinutes} min · Lv 1–{game.maxLevel}
           </span>
         </div>
@@ -76,12 +78,12 @@ export function GameLaunchScreen({
         <Button
           type="button"
           size="lg"
-          className="h-14 w-full text-base font-bold bg-white text-slate-950 hover:bg-slate-100 active:scale-[0.99]"
+          className="h-14 w-full text-base font-bold bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 active:scale-[0.99]"
           onClick={onPlay}
         >
           <Play className="h-5 w-5 mr-2 fill-current" />
           Play
-          <kbd className="ml-3 hidden sm:inline-flex rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+          <kbd className="ml-3 hidden sm:inline-flex rounded border border-white/30 bg-white/15 px-1.5 py-0.5 text-[10px] font-semibold text-white/90">
             Enter
           </kbd>
         </Button>
@@ -90,7 +92,7 @@ export function GameLaunchScreen({
           <Button
             type="button"
             variant="outline"
-            className="w-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            className="w-full border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
             onClick={onWarmup}
           >
             Warm-up · 3 free trials
@@ -100,12 +102,12 @@ export function GameLaunchScreen({
         <button
           type="button"
           onClick={onBack}
-          className="w-full text-center text-sm text-white/55 hover:text-white/90 transition"
+          className="w-full text-center text-sm text-slate-500 hover:text-slate-800 transition"
         >
           Back to Arcade
         </button>
 
-        <p className="hidden md:block text-center text-[11px] text-white/40">
+        <p className="hidden md:block text-center text-[11px] text-slate-400">
           Y / N to answer · Esc ends run · R replays
         </p>
       </div>

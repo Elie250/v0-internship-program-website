@@ -41,14 +41,25 @@ export default function BrainGamesManagement() {
   const load = async () => {
     setLoading(true)
     setError('')
-    const res = await listBrainGamesAdmin()
-    if (!res.success) {
-      setError(res.error || 'Failed to load games')
+    try {
+      const res = await listBrainGamesAdmin()
+      if (!res.success) {
+        setError(res.error || 'Failed to load games')
+        setGames([])
+      } else {
+        setGames(res.games)
+        if (res.games.length === 0) {
+          setError(
+            'No games in the database yet. Run scripts/62 and scripts/63 in Supabase, then refresh.'
+          )
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load games')
       setGames([])
-    } else {
-      setGames(res.games)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -72,29 +83,38 @@ export default function BrainGamesManagement() {
     if (!editing?.id) return
     setSaving(true)
     setError('')
-    const res = await updateBrainGameAdmin({
-      id: editing.id,
-      name: form.name,
-      description: form.description,
-      short_tagline: form.short_tagline,
-      thumbnail_url: form.thumbnail_url || null,
-      sort_order: form.sort_order,
-      estimated_minutes: form.estimated_minutes,
-      is_active: form.is_active,
-    })
-    setSaving(false)
-    if (!res.success) {
-      setError(res.error || 'Save failed')
-      return
+    try {
+      const res = await updateBrainGameAdmin({
+        id: editing.id,
+        name: form.name,
+        description: form.description,
+        short_tagline: form.short_tagline,
+        thumbnail_url: form.thumbnail_url || null,
+        sort_order: form.sort_order,
+        estimated_minutes: form.estimated_minutes,
+        is_active: form.is_active,
+      })
+      if (!res.success) {
+        setError(res.error || 'Save failed')
+        return
+      }
+      setEditing(null)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save failed')
+    } finally {
+      setSaving(false)
     }
-    setEditing(null)
-    await load()
   }
 
   const toggleActive = async (game: BrainGameCatalogRow) => {
     if (!game.id) return
-    await updateBrainGameAdmin({ id: game.id, is_active: !game.is_active })
-    await load()
+    try {
+      await updateBrainGameAdmin({ id: game.id, is_active: !game.is_active })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed')
+    }
   }
 
   return (
@@ -112,21 +132,23 @@ export default function BrainGamesManagement() {
 
       {loading ? (
         <p className="text-slate-600">Loading games…</p>
+      ) : games.length === 0 ? (
+        <p className="text-sm text-slate-600">No games found.</p>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
           {games.map((game) => (
             <Card key={game.id || game.slug} className="overflow-hidden border-slate-200">
-              <div className="relative h-36 bg-slate-900">
+              <div className="relative h-36 bg-slate-100">
                 {game.thumbnail_url ? (
                   <Image src={game.thumbnail_url} alt="" fill className="object-cover" unoptimized />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
+                  <div className="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
                     No thumbnail yet
                   </div>
                 )}
               </div>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">{game.name}</CardTitle>
+                <CardTitle className="text-base text-slate-900">{game.name}</CardTitle>
                 <p className="text-xs text-slate-500">
                   {game.slug} · {game.category}
                 </p>
@@ -209,7 +231,7 @@ export default function BrainGamesManagement() {
                 />
               </div>
             </div>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm text-slate-800">
               <input
                 type="checkbox"
                 checked={form.is_active}

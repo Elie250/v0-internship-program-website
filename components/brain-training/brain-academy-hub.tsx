@@ -57,22 +57,22 @@ export function BrainAcademyHub({
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 text-white">
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-[var(--brand-navy)] via-[#1e4a7a] to-[#0f766e] text-white shadow-sm">
         <div
-          className="absolute inset-0 opacity-80"
+          className="pointer-events-none absolute inset-0 opacity-30"
           style={{
             background:
-              'radial-gradient(ellipse at 20% 20%, #1d4ed8 0%, transparent 45%), radial-gradient(ellipse at 80% 0%, #0f766e 0%, transparent 40%), linear-gradient(160deg, #020617, #0f172a 60%)',
+              'radial-gradient(ellipse at 15% 20%, rgba(255,255,255,0.35) 0%, transparent 50%), radial-gradient(ellipse at 90% 10%, rgba(125,211,252,0.35) 0%, transparent 45%)',
           }}
         />
-        <div className="relative px-6 py-10 md:px-10 md:py-14 max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-300/90">
+        <div className="relative px-6 py-10 md:px-10 md:py-12 max-w-3xl">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-100">
             Brain Training Arcade
           </p>
-          <h1 className="mt-3 text-4xl md:text-5xl font-black tracking-tight">
+          <h1 className="mt-3 text-4xl md:text-5xl font-black tracking-tight text-white">
             Play. Learn. Level up.
           </h1>
-          <p className="mt-3 text-base text-slate-300 max-w-xl">
+          <p className="mt-3 text-base text-white/90 max-w-xl">
             Timed YES/NO arenas for focus, electrical basics, electronics, PLC, embedded logic, and
             code.
           </p>
