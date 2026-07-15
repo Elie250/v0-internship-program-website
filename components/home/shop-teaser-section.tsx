@@ -10,7 +10,12 @@ import {
 } from '@/components/home/section-shuffle-slots'
 
 export async function ShopTeaserSection() {
-  const products = await getPublishedProducts()
+  let products: Awaited<ReturnType<typeof getPublishedProducts>> = []
+  try {
+    products = await getPublishedProducts()
+  } catch {
+    return null
+  }
   if (products.length === 0) return null
 
   const items: ShuffleCardItem[] = products.slice(0, 24).map((product) => ({

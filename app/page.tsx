@@ -12,6 +12,7 @@ import { WhatsHappeningSection } from '@/components/home/whats-happening-section
 import { MembershipSection } from '@/components/home/membership-section'
 import { HomeStickyNav } from '@/components/home/home-sticky-nav'
 import { HomeSignedInStrip } from '@/components/home/home-signed-in-strip'
+import { SafeHomeSection } from '@/components/home/safe-home-section'
 
 export default function HomePage() {
   return (
@@ -19,19 +20,41 @@ export default function HomePage() {
       <HomeStickyNav />
       <div className="relative">
         <SiteHeader overlay />
-        <HomeHeroSection fullViewport />
+        <SafeHomeSection label="hero">
+          <HomeHeroSection fullViewport />
+        </SafeHomeSection>
       </div>
-      <HomeSignedInStrip />
+      <SafeHomeSection label="signed-in">
+        <HomeSignedInStrip />
+      </SafeHomeSection>
       <ExploreHubSection />
-      <ProgrammesCoursesSection />
-      <GamesTeaserSection />
-      <ReadExploreSection />
-      <ReviewsTrustSection compact />
-      <ShopTeaserSection />
-      <WhatsHappeningSection />
-      <MembershipSection />
-      <FounderSection compact />
-      <SiteFooter />
+      <SafeHomeSection label="programmes">
+        <ProgrammesCoursesSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="games">
+        <GamesTeaserSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="read">
+        <ReadExploreSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="reviews">
+        <ReviewsTrustSection compact />
+      </SafeHomeSection>
+      <SafeHomeSection label="shop">
+        <ShopTeaserSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="happening">
+        <WhatsHappeningSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="membership">
+        <MembershipSection />
+      </SafeHomeSection>
+      <SafeHomeSection label="founder">
+        <FounderSection compact />
+      </SafeHomeSection>
+      <SafeHomeSection label="footer">
+        <SiteFooter />
+      </SafeHomeSection>
     </main>
   )
 }

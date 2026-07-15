@@ -1,8 +1,17 @@
 import Link from 'next/link'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
+import {
+  DEFAULT_WEB_SETTINGS,
+  toPublicCompanyProfile,
+} from '@/lib/platform/site-settings-schema'
 
 export async function SiteFooter() {
-  const profile = await loadPublicCompanyProfile()
+  let profile = toPublicCompanyProfile(DEFAULT_WEB_SETTINGS)
+  try {
+    profile = await loadPublicCompanyProfile()
+  } catch {
+    // keep defaults — never crash the whole page for a settings fetch failure
+  }
 
   return (
     <footer className="text-on-dark bg-[#152a45] border-t border-white/10 px-4 py-12">

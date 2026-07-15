@@ -13,8 +13,13 @@ import {
 } from '@/components/home/section-shuffle-slots'
 
 export async function ProgrammesCoursesSection() {
-  const courses = await getPublishedCourses()
-  const user = await getCurrentUser()
+  let courses: Awaited<ReturnType<typeof getPublishedCourses>> = []
+  let user: Awaited<ReturnType<typeof getCurrentUser>> = null
+  try {
+    ;[courses, user] = await Promise.all([getPublishedCourses(), getCurrentUser()])
+  } catch {
+    return null
+  }
   const isStudent = user?.role === 'student' || user?.role === 'registered'
 
   const items: ShuffleCardItem[] = courses.slice(0, 24).map((course) => {

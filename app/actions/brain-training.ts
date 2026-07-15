@@ -1,11 +1,27 @@
 'use server'
 
 import { checkUserPermission, getCurrentUser } from '@/app/actions/auth-service'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { supabaseAdmin, supabaseAdminConfig } from '@/lib/supabaseAdmin'
 import { BRAIN_GAME_CATALOG } from '@/lib/brain-training/catalog'
 import type { GameResultPayload } from '@/lib/brain-training/scoring'
 import { xpFromScore } from '@/lib/brain-training/scoring'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+
+function formatSupabaseError(error: { message?: string; code?: string; details?: string; hint?: string } | null): string {
+  if (!error?.message) return 'Unknown database error'
+  const parts = [error.message]
+  if (error.code) parts.push(`code=${error.code}`)
+  if (error.hint) parts.push(error.hint)
+  if (error.details) parts.push(error.details)
+  const joined = parts.join(' · ')
+  if (
+    joined.includes('schema cache') ||
+    joined.toLowerCase().includes('could not find the table')
+  ) {
+    return `${joined} — In Supabase SQL run: NOTIFY pgrst, 'reload schema'; then wait ~10s and Sync again.`
+  }
+  return joined
+}
 
 async function assertBrainGamesAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
   const user = await getCurrentUser()
@@ -24,12 +40,44 @@ function legacySafeCategory(category: string): string {
   return 'engineering'
 }
 
+async function upsertOneBrainGame(
+  row: Record<string, unknown>
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!supabaseAdmin) return { ok: false, error: 'Database not configured' }
+
+  const existing = await supabaseAdmin
+    .from('brain_games')
+    .select('id')
+    .eq('slug', String(row.slug))
+    .maybeSingle()
+
+  if (existing.error && !existing.error.message.includes('multiple')) {
+    // proceed to insert attempt; select may fail on missing table
+  }
+
+  if (existing.data?.id) {
+    const { error } = await supabaseAdmin.from('brain_games').update(row).eq('id', existing.data.id)
+    if (error) return { ok: false, error: formatSupabaseError(error) }
+    return { ok: true }
+  }
+
+  const { error } = await supabaseAdmin.from('brain_games').insert(row)
+  if (error) return { ok: false, error: formatSupabaseError(error) }
+  return { ok: true }
+}
+
 /**
  * Upsert the static app catalog into `brain_games` so admin always has rows to edit.
  * Tolerates missing thumbnail/sort columns (script 63 not run yet).
  */
 async function upsertStaticBrainGamesCatalog(): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  if (!supabaseAdmin) return { ok: false, error: 'Database not configured' }
+  if (!supabaseAdmin) {
+    return {
+      ok: false,
+      error:
+        'Database not configured on the server (SUPABASE_SERVICE_ROLE_KEY / NEXT_PUBLIC_SUPABASE_URL). Check Vercel env vars.',
+    }
+  }
 
   const richRows = BRAIN_GAME_CATALOG.map((game, index) => ({
     slug: game.slug,
@@ -46,36 +94,51 @@ async function upsertStaticBrainGamesCatalog(): Promise<{ ok: true; count: numbe
   const rich = await supabaseAdmin.from('brain_games').upsert(richRows, { onConflict: 'slug' })
   if (!rich.error) return { ok: true, count: richRows.length }
 
-  const msg = rich.error.message || ''
-  const missingTable = msg.includes('does not exist') || msg.includes('schema cache')
-  if (missingTable) {
-    return {
-      ok: false,
-      error:
-        'Table brain_games is missing. In Supabase → SQL, run scripts/64-brain-games-bootstrap.sql (one paste), then click Sync catalog.',
-    }
+  const richErr = formatSupabaseError(rich.error)
+  if (richErr.includes('schema cache') || richErr.includes('does not exist')) {
+    // Fall through to row-by-row / basic columns; still return helpful message if all fail.
   }
 
-  // Retry with columns/categories from script 62 only.
-  const basicRows = BRAIN_GAME_CATALOG.map((game) => ({
-    slug: game.slug,
-    name: game.name,
-    description: `${game.name}. ${game.shortTagline}`,
-    category: legacySafeCategory(game.category),
-    difficulty_levels: game.maxLevel,
-    is_active: true,
-  }))
+  let wrote = 0
+  let lastError = richErr
 
-  const basic = await supabaseAdmin.from('brain_games').upsert(basicRows, { onConflict: 'slug' })
-  if (basic.error) {
-    return {
-      ok: false,
-      error: missingTable
-        ? 'Run scripts/62-brain-training-academy.sql and scripts/63-brain-training-thumbnails-and-games.sql in Supabase.'
-        : basic.error.message,
+  for (let index = 0; index < BRAIN_GAME_CATALOG.length; index += 1) {
+    const game = BRAIN_GAME_CATALOG[index]!
+    const richRow = {
+      slug: game.slug,
+      name: game.name,
+      description: `${game.name}. ${game.shortTagline}`,
+      category: game.category,
+      difficulty_levels: game.maxLevel,
+      is_active: true,
+      sort_order: (index + 1) * 10,
+      estimated_minutes: game.estimatedMinutes,
+      short_tagline: game.shortTagline,
     }
+    let one = await upsertOneBrainGame(richRow)
+    if (!one.ok) {
+      one = await upsertOneBrainGame({
+        slug: game.slug,
+        name: game.name,
+        description: `${game.name}. ${game.shortTagline}`,
+        category: legacySafeCategory(game.category),
+        difficulty_levels: game.maxLevel,
+        is_active: true,
+      })
+    }
+    if (one.ok) wrote += 1
+    else lastError = one.error
   }
-  return { ok: true, count: basicRows.length }
+
+  if (wrote > 0) return { ok: true, count: wrote }
+
+  return {
+    ok: false,
+    error:
+      lastError.includes('does not exist') || lastError.includes('schema cache')
+        ? `${lastError} Run scripts/64-brain-games-bootstrap.sql in the SAME Supabase project as your production env, then Sync.`
+        : lastError,
+  }
 }
 
 function mapBrainGameAdminRow(row: Record<string, unknown>) {
@@ -398,6 +461,71 @@ export async function seedBrainGamesCatalogAdmin(): Promise<{
       error: err instanceof Error ? err.message : 'Seed failed',
     }
   }
+}
+
+/** Surface server/DB connectivity for the admin empty-state panel. */
+export async function diagnoseBrainGamesAdmin(): Promise<{
+  success: boolean
+  error?: string
+  report: {
+    supabaseClientReady: boolean
+    urlSet: boolean
+    serviceRoleKeySet: boolean
+    urlValid: boolean
+    hostname?: string
+    urlIssue?: string
+    selectOk: boolean
+    selectCount: number
+    selectError?: string
+  }
+}> {
+  const auth = await assertBrainGamesAdmin()
+  if (!auth.ok) {
+    return {
+      success: false,
+      error: auth.error,
+      report: {
+        supabaseClientReady: Boolean(supabaseAdmin),
+        urlSet: supabaseAdminConfig.urlSet,
+        serviceRoleKeySet: supabaseAdminConfig.serviceRoleKeySet,
+        urlValid: supabaseAdminConfig.urlValidation.valid,
+        hostname: supabaseAdminConfig.urlValidation.hostname,
+        urlIssue: supabaseAdminConfig.urlValidation.issue,
+        selectOk: false,
+        selectCount: 0,
+      },
+    }
+  }
+
+  const report = {
+    supabaseClientReady: Boolean(supabaseAdmin),
+    urlSet: supabaseAdminConfig.urlSet,
+    serviceRoleKeySet: supabaseAdminConfig.serviceRoleKeySet,
+    urlValid: supabaseAdminConfig.urlValidation.valid,
+    hostname: supabaseAdminConfig.urlValidation.hostname,
+    urlIssue: supabaseAdminConfig.urlValidation.issue,
+    selectOk: false,
+    selectCount: 0,
+    selectError: undefined as string | undefined,
+  }
+
+  if (!supabaseAdmin) {
+    return {
+      success: false,
+      error: 'Supabase admin client is null — set SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL on the host.',
+      report,
+    }
+  }
+
+  const probe = await supabaseAdmin.from('brain_games').select('id, slug', { count: 'exact' })
+  if (probe.error) {
+    report.selectError = formatSupabaseError(probe.error)
+  } else {
+    report.selectOk = true
+    report.selectCount = probe.count ?? probe.data?.length ?? 0
+  }
+
+  return { success: true, report }
 }
 
 export async function updateBrainGameAdmin(input: {

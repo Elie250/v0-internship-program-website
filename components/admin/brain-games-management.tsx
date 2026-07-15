@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import {
+  diagnoseBrainGamesAdmin,
   listBrainGamesAdmin,
   seedBrainGamesCatalogAdmin,
   updateBrainGameAdmin,
@@ -23,10 +24,13 @@ import {
 } from '@/app/actions/brain-training'
 import { Eye, EyeOff, Pencil, RefreshCw } from 'lucide-react'
 
+type DiagReport = Awaited<ReturnType<typeof diagnoseBrainGamesAdmin>>['report']
+
 export default function BrainGamesManagement() {
   const [games, setGames] = useState<BrainGameCatalogRow[]>([])
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [diag, setDiag] = useState<DiagReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [seeding, setSeeding] = useState(false)
   const [editing, setEditing] = useState<BrainGameCatalogRow | null>(null)
@@ -41,6 +45,16 @@ export default function BrainGamesManagement() {
   })
   const [saving, setSaving] = useState(false)
 
+  const loadDiagnostics = async () => {
+    try {
+      const res = await diagnoseBrainGamesAdmin()
+      setDiag(res.report)
+      if (!res.success && res.error) setError(res.error)
+    } catch {
+      setDiag(null)
+    }
+  }
+
   const load = async () => {
     setLoading(true)
     setError('')
@@ -50,19 +64,23 @@ export default function BrainGamesManagement() {
       if (!res.success) {
         setError(res.error || 'Failed to load games')
         setGames([])
+        await loadDiagnostics()
       } else {
         setGames(res.games)
+        setDiag(null)
         if (res.seeded) {
           setInfo(`Synced ${res.games.length} drills from the app catalog into the database.`)
         } else if (res.games.length === 0) {
           setError(
-            'No games in the database yet. Click “Sync catalog”, or run scripts/62 and scripts/63 in Supabase.'
+            'Catalog is empty after seed. Check diagnostics below — usually the SQL ran on a different Supabase project than production.'
           )
+          await loadDiagnostics()
         }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load games')
       setGames([])
+      await loadDiagnostics()
     } finally {
       setLoading(false)
     }
@@ -76,12 +94,14 @@ export default function BrainGamesManagement() {
       const res = await seedBrainGamesCatalogAdmin()
       if (!res.success) {
         setError(res.error || 'Sync failed')
+        await loadDiagnostics()
         return
       }
       setInfo(`Synced ${res.count ?? 0} drills.`)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed')
+      await loadDiagnostics()
     } finally {
       setSeeding(false)
     }
@@ -174,21 +194,41 @@ export default function BrainGamesManagement() {
       {loading ? (
         <p className="text-slate-600">Loading games…</p>
       ) : games.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 space-y-3">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 space-y-4">
           <p className="text-sm text-slate-700">
-            No games in Supabase yet. Sync creates the seven Arcade drills automatically — or run{' '}
-            <code className="text-xs bg-white px-1 py-0.5 rounded border">scripts/62</code> then{' '}
-            <code className="text-xs bg-white px-1 py-0.5 rounded border">scripts/63</code> in the
-            SQL editor if the table is missing.
+            Still no rows visible from the production Supabase project. Run{' '}
+            <code className="text-xs bg-white px-1 py-0.5 rounded border">
+              scripts/64-brain-games-bootstrap.sql
+            </code>{' '}
+            in the same project as your Vercel <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code>, then
+            Sync.
           </p>
-          <Button
-            type="button"
-            className="bg-[var(--brand-navy)] text-white"
-            disabled={seeding}
-            onClick={() => void syncCatalog()}
-          >
-            Sync catalog now
-          </Button>
+          {diag ? (
+            <ul className="text-xs text-slate-600 space-y-1 font-mono bg-white border border-slate-200 rounded-md p-3">
+              <li>clientReady: {String(diag.supabaseClientReady)}</li>
+              <li>urlSet: {String(diag.urlSet)}</li>
+              <li>serviceRoleKeySet: {String(diag.serviceRoleKeySet)}</li>
+              <li>urlValid: {String(diag.urlValid)}</li>
+              <li>hostname: {diag.hostname || '—'}</li>
+              {diag.urlIssue ? <li>urlIssue: {diag.urlIssue}</li> : null}
+              <li>selectOk: {String(diag.selectOk)}</li>
+              <li>selectCount: {diag.selectCount}</li>
+              {diag.selectError ? <li className="text-red-700 whitespace-pre-wrap">selectError: {diag.selectError}</li> : null}
+            </ul>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              className="bg-[var(--brand-navy)] text-white"
+              disabled={seeding}
+              onClick={() => void syncCatalog()}
+            >
+              Sync catalog now
+            </Button>
+            <Button type="button" variant="outline" onClick={() => void loadDiagnostics()}>
+              Run diagnostics
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
