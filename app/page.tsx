@@ -11,6 +11,7 @@ import { WhatsHappeningSection } from '@/components/home/whats-happening-section
 import { MembershipSection } from '@/components/home/membership-section'
 import { HomeStickyNav } from '@/components/home/home-sticky-nav'
 import { HomeSignedInStrip } from '@/components/home/home-signed-in-strip'
+import { CatalogShowcaseSection } from '@/components/home/catalog-showcase-section'
 
 export default function HomePage() {
   return (
@@ -21,6 +22,7 @@ export default function HomePage() {
         <HomeHeroSection fullViewport />
       </div>
       <HomeSignedInStrip />
+      <CatalogShowcaseSection />
       <ExploreHubSection />
       <ProgrammesCoursesSection />
       <ReadExploreSection />
