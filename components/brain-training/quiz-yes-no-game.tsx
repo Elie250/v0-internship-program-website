@@ -30,6 +30,7 @@ import {
 } from '@/lib/brain-training/question-banks'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
+import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 type Flash = 'correct' | 'incorrect' | null
 
@@ -74,8 +75,13 @@ export function QuizYesNoGame({
     (next: DrillPhase) => {
       setPhase(next)
       onPhaseChange?.(next)
+      if (next === 'playing') {
+        trackBrainEngagement('open', gameSlug, { isGuest: !canPersist })
+      } else if (next === 'result') {
+        trackBrainEngagement('complete', gameSlug, { isGuest: !canPersist })
+      }
     },
-    [onPhaseChange]
+    [onPhaseChange, canPersist, gameSlug]
   )
 
   useLockBodyScroll(phase === 'playing')

@@ -11,6 +11,7 @@ import {
   getMyBrainProgress,
   type MyBrainProgressRow,
 } from '@/app/actions/brain-training'
+import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 type Props = {
   basePath?: string
@@ -43,6 +44,7 @@ export function BrainArcadeClient({
       .then((u) => {
         const ok = Boolean(u?.id)
         setLoggedIn(ok)
+        trackBrainEngagement('hub_view', 'hub', { isGuest: !ok })
         if (!ok) return
         void Promise.all([
           getBrainTrainingLeaderboard('color-word', 4),

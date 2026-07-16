@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { PwaRegister } from '@/components/pwa/pwa-register'
+import { AnalyticsBeacon } from '@/components/privacy/analytics-beacon'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 import './globals.css'
 
@@ -49,7 +50,9 @@ export default function RootLayout({
       <body className={`${_geist.className} font-sans antialiased`}>
         {children}
         <PwaRegister />
-        <Analytics />
+        <Suspense fallback={null}>
+          <AnalyticsBeacon />
+        </Suspense>
       </body>
     </html>
   )

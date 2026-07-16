@@ -25,6 +25,7 @@ import { getGameDef } from '@/lib/brain-training/catalog'
 import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
+import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 type Flash = 'correct' | 'incorrect' | null
 type CharMode = 'numbers' | 'letters' | 'mixed'
@@ -97,8 +98,13 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
     (next: DrillPhase) => {
       setPhase(next)
       onPhaseChange?.(next)
+      if (next === 'playing') {
+        trackBrainEngagement('open', 'sequence-match', { isGuest: !canPersist })
+      } else if (next === 'result') {
+        trackBrainEngagement('complete', 'sequence-match', { isGuest: !canPersist })
+      }
     },
-    [onPhaseChange]
+    [onPhaseChange, canPersist]
   )
 
   useLockBodyScroll(phase === 'playing' || phase === 'warmup')

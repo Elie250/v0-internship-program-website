@@ -275,6 +275,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         description: 'Arcade covers, visibility, and drill copy',
       },
       {
+        id: 'brain-game-analytics',
+        label: 'Site & Brain analytics',
+        href: '/admin/dashboard/brain-game-analytics',
+        icon: 'bar-chart',
+        permission: PERMISSIONS.CONTENT_ANNOUNCEMENTS,
+        description: 'Visitors, referrers, and games ranked by players',
+      },
+      {
         id: 'energy-library',
         label: 'Energy Library',
         href: '/admin/dashboard/energy-library',

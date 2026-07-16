@@ -1,6 +1,6 @@
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
 
-export const LEGAL_LAST_UPDATED = '6 July 2026'
+export const LEGAL_LAST_UPDATED = '16 July 2026'
 
 export const privacyPolicySections = [
   {
@@ -21,11 +21,11 @@ export const privacyPolicySections = [
   },
   {
     title: '5. Legal basis & consent',
-    body: `We process data to perform our contract with you (enrollment, support plans), with your consent (marketing where applicable), and for legitimate interests (security, analytics, improving services). You may withdraw consent for optional communications at any time.`,
+    body: `We process data to perform our contract with you (enrollment, support plans), with your consent where required (for example marketing emails you opt into), and for legitimate interests including security, fraud prevention, and understanding how the platform is used so we can improve training and tools. Analytics practices are described in section 10. Contact ${COMPANY.email} if you have questions about your data.`,
   },
   {
     title: '6. Sharing with third parties',
-    body: `We may share data with: Supabase (hosting/database); Vercel (application hosting); Resend (transactional email); and authorities when required by law. We do not sell your personal data.`,
+    body: `We may share data with: Supabase (database hosting for the platform and first-party analytics rollups); Vercel (application hosting); Cloudflare (DNS/CDN and optional Web Analytics if enabled); Resend (transactional email); and authorities when required by law. We do not sell your personal data or use it for third-party advertising.`,
   },
   {
     title: '7. Data retention',
@@ -41,7 +41,19 @@ export const privacyPolicySections = [
   },
   {
     title: '10. Cookies & analytics',
-    body: `We use essential cookies for authentication and session management. Optional analytics may be added in the future; we will update this policy when that changes.`,
+    body: `We use cookies and similar browser storage for two purposes.
+
+Essential (login & site operation): session cookies / storage keep you signed in, protect forms, and remember settings needed for the service to work.
+
+Visitor analytics (first-party, for our Admin team only): when you use the site we also collect lightweight usage information so we can improve programmes, Tools, and Brain Training. We do not show a cookie popup for this. Instead we disclose it here.
+
+What we collect for analytics: a random visitor identifier stored in your browser (not your name or password); pages viewed in broad groups (for example Home, Learning, Shop, Brain Training — not every personal message); whether you arrived via Instagram, Facebook, Google/search, direct visit, or another site (from the browser referrer or campaign links such as utm_source); and which Brain Training games are opened or completed. If you are logged in and save a game score, that score is stored on your account as part of the training feature.
+
+How we use it: only to count visitors, popular pages, traffic sources, and which games people use, inside our Admin dashboards. We use this to decide what to improve. We do not sell this data, do not use it for advertising networks, and do not use it to hack or scam anyone.
+
+Where it is stored: on our infrastructure (for example Supabase database rollups hosted with our application). Optional Cloudflare Web Analytics may also measure traffic in a privacy-friendly way if enabled on our domain.
+
+Browser controls: you can clear cookies/site data for this domain in your browser settings, or use private browsing. Blocking storage may reduce analytics accuracy but should not prevent normal browsing of public pages.`,
   },
   {
     title: '11. Children',

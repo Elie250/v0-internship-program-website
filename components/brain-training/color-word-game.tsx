@@ -26,6 +26,7 @@ import { getGameDef } from '@/lib/brain-training/catalog'
 import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
 import type { DrillPhase } from '@/components/brain-training/types'
+import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 export type { DrillPhase }
 
@@ -88,8 +89,13 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
     (next: DrillPhase) => {
       setPhase(next)
       onPhaseChange?.(next)
+      if (next === 'playing') {
+        trackBrainEngagement('open', 'color-word', { isGuest: !canPersist })
+      } else if (next === 'result') {
+        trackBrainEngagement('complete', 'color-word', { isGuest: !canPersist })
+      }
     },
-    [onPhaseChange]
+    [onPhaseChange, canPersist]
   )
 
   useLockBodyScroll(phase === 'playing' || phase === 'warmup')
