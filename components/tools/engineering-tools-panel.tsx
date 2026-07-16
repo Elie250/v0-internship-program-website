@@ -4,7 +4,6 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -13,29 +12,46 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  awgToMm2,
+  batteryAutonomyAh,
   celsiusToFahrenheit,
   conduitFillPercent,
   decodeResistor4Band,
+  energyCostEstimate,
   fahrenheitToCelsius,
+  frequencyPeriod,
   kwToHp,
   ledSeriesResistor,
+  mm2ToNearestAwg,
   motorFlcKw,
   ohmsLawFromTwo,
   plcTimerDelay,
   powerFactorCorrection,
   pwmDutyCycle,
+  rcTimeConstant,
+  reactiveFromActivePf,
   singlePhasePowerW,
+  sizeWireForLoad,
   solarPanelSizing,
+  starDeltaConvert,
   suggestCableSize,
   threePhasePowerW,
   threePhaseVoltageConvert,
   transformerSecondaryCurrent,
   voltageDivider,
   voltageDropSinglePhase,
+  voltageDropThreePhase,
 } from '@/lib/engineering/calculators'
+import {
+  CALCULATOR_FOLDERS,
+  findCalculatorTool,
+  findFolder,
+  toolsInFolder,
+  type CalculatorFolderId,
+} from '@/lib/engineering/calculator-catalog'
 import { cn } from '@/lib/utils'
-import { ENGINEERING_TOOL_CATEGORIES } from '@/lib/engineering/tool-categories'
-import { Calculator } from 'lucide-react'
+import { ArrowLeft, Calculator, ChevronRight, FolderOpen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 function NumField({
   id,
@@ -902,76 +918,674 @@ function TempConverterTool() {
   )
 }
 
-const TAB_TRIGGER_CLASS =
-  'data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white'
+function VoltageDrop3phTool() {
+  const [i, setI] = useState('')
+  const [l, setL] = useState('')
+  const [a, setA] = useState('2.5')
+  const [v, setV] = useState('400')
+
+  const result = useMemo(() => {
+    const li = Number(i)
+    const ll = Number(l)
+    const la = Number(a)
+    const lv = Number(v)
+    if (!li || !ll || !la) return null
+    return voltageDropThreePhase({
+      currentA: li,
+      lengthM: ll,
+      crossSectionMm2: la,
+      lineVoltage: lv > 0 ? lv : 400,
+    })
+  }, [i, l, a, v])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Voltage drop (3φ)</CardTitle>
+        <CardDescription>Approx. VD = √3 × ρ × L × I / A (copper default).</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="vd3-i" label="Line current" value={i} onChange={setI} unit="A" />
+        <NumField id="vd3-l" label="One-way length" value={l} onChange={setL} unit="m" />
+        <NumField id="vd3-a" label="Cross-section" value={a} onChange={setA} unit="mm²" />
+        <NumField id="vd3-v" label="Line voltage" value={v} onChange={setV} unit="V" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                <strong>Drop</strong> = {result.dropV.toFixed(2)} V ({result.dropPercent.toFixed(2)}%)
+              </p>
+              {result.dropPercent > 5 ? (
+                <p className="text-amber-800 text-xs">Above 5% — consider larger cable or shorter run.</p>
+              ) : null}
+            </ResultBox>
+          </div>
+        ) : (
+          <p className="sm:col-span-2 text-xs text-slate-500">Enter current, length, and size.</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function WireSizingTool() {
+  const [load, setLoad] = useState('')
+  const [len, setLen] = useState('')
+  const [maxDrop, setMaxDrop] = useState('5')
+  const [v, setV] = useState('230')
+  const [phases, setPhases] = useState<'1' | '3'>('1')
+
+  const result = useMemo(() => {
+    const a = Number(load)
+    const l = Number(len)
+    const d = Number(maxDrop)
+    const lv = Number(v)
+    if (!a || !l || !d || !lv) return null
+    return sizeWireForLoad({
+      loadAmps: a,
+      lengthM: l,
+      maxDropPercent: d,
+      supplyVoltage: lv,
+      phases: phases === '3' ? 3 : 1,
+    })
+  }, [load, len, maxDrop, v, phases])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Wire sizing (load + drop)</CardTitle>
+        <CardDescription>
+          Suggests copper PVC size meeting 125% ampacity and your max voltage-drop %. Field estimate —
+          confirm with local standards.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="ws-load" label="Load current" value={load} onChange={setLoad} unit="A" />
+        <NumField id="ws-len" label="One-way length" value={len} onChange={setLen} unit="m" />
+        <NumField id="ws-drop" label="Max drop" value={maxDrop} onChange={setMaxDrop} unit="%" />
+        <NumField id="ws-v" label="Supply voltage" value={v} onChange={setV} unit="V" />
+        <div>
+          <Label>Phases</Label>
+          <Select value={phases} onValueChange={(x) => setPhases(x as '1' | '3')}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">Single-phase</SelectItem>
+              <SelectItem value="3">Three-phase</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                Design current (×1.25): <strong>{result.designAmps.toFixed(1)} A</strong>
+              </p>
+              {result.suggestedMm2 != null ? (
+                <>
+                  <p>
+                    Suggested size: <strong>{result.suggestedMm2} mm²</strong> (table ampacity{' '}
+                    {result.ampacity} A)
+                  </p>
+                  <p>
+                    At that size: drop ≈ {result.dropV?.toFixed(2)} V ({result.dropPercent?.toFixed(2)}%)
+                  </p>
+                </>
+              ) : (
+                <p className="text-amber-900 text-xs">{result.note}</p>
+              )}
+            </ResultBox>
+          </div>
+        ) : (
+          <p className="sm:col-span-2 text-xs text-slate-500">Enter load, length, and limits.</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function AwgMm2Tool() {
+  const [mode, setMode] = useState<'awg' | 'mm2'>('awg')
+  const [awg, setAwg] = useState('12')
+  const [mm2, setMm2] = useState('2.5')
+
+  const result = useMemo(() => {
+    if (mode === 'awg') {
+      const n = Number(awg)
+      if (Number.isNaN(n)) return null
+      return awgToMm2(n)
+    }
+    const n = Number(mm2)
+    if (!n || n <= 0) return null
+    return mm2ToNearestAwg(n)
+  }, [mode, awg, mm2])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">AWG ↔ mm²</CardTitle>
+        <CardDescription>Nearest common cross-section (approximate).</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <Label>Convert</Label>
+          <Select value={mode} onValueChange={(v) => setMode(v as 'awg' | 'mm2')}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="awg">AWG → mm²</SelectItem>
+              <SelectItem value="mm2">mm² → nearest AWG</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {mode === 'awg' ? (
+          <NumField id="awg-n" label="AWG" value={awg} onChange={setAwg} step="1" />
+        ) : (
+          <NumField id="mm2-n" label="mm²" value={mm2} onChange={setMm2} unit="mm²" />
+        )}
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                AWG <strong>{result.awg}</strong> ≈ <strong>{result.mm2} mm²</strong>
+              </p>
+            </ResultBox>
+          </div>
+        ) : (
+          <p className="sm:col-span-2 text-xs text-slate-500">
+            Supported AWG: 18, 16, 14, 12, 10, 8, 6, 4, 2, 1, 0.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function StarDeltaTool() {
+  const [mode, setMode] = useState<'starToDelta' | 'deltaToStar'>('starToDelta')
+  const [v, setV] = useState('230')
+  const [i, setI] = useState('')
+
+  const result = useMemo(() => {
+    const lv = Number(v)
+    const li = i.trim() ? Number(i) : undefined
+    if (!lv || lv <= 0) return null
+    return starDeltaConvert({ mode, voltage: lv, current: li && li > 0 ? li : undefined })
+  }, [mode, v, i])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Star ↔ delta</CardTitle>
+        <CardDescription>Balanced three-phase voltage (and optional current) relations.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <Label>Mode</Label>
+          <Select
+            value={mode}
+            onValueChange={(x) => setMode(x as 'starToDelta' | 'deltaToStar')}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="starToDelta">Star phase V → line V</SelectItem>
+              <SelectItem value="deltaToStar">Delta line V → phase V</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <NumField
+          id="sd-v"
+          label={mode === 'starToDelta' ? 'Phase voltage' : 'Line voltage'}
+          value={v}
+          onChange={setV}
+          unit="V"
+        />
+        <NumField id="sd-i" label="Line current (optional)" value={i} onChange={setI} unit="A" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                Line V ≈ <strong>{result.lineVoltage.toFixed(1)} V</strong> · Phase V ≈{' '}
+                <strong>{result.phaseVoltage.toFixed(1)} V</strong>
+              </p>
+              {result.phaseCurrent != null ? (
+                <p>
+                  Phase current ≈ <strong>{result.phaseCurrent.toFixed(2)} A</strong>
+                </p>
+              ) : null}
+            </ResultBox>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ReactivePowerTool() {
+  const [kw, setKw] = useState('')
+  const [pf, setPf] = useState('0.85')
+  const result = useMemo(() => {
+    const p = Number(kw)
+    const f = Number(pf)
+    if (!p || p <= 0) return null
+    return reactiveFromActivePf(p, f)
+  }, [kw, pf])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Reactive power (Q)</CardTitle>
+        <CardDescription>Find kVAR and kVA from real power and PF.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="q-kw" label="Real power" value={kw} onChange={setKw} unit="kW" />
+        <NumField id="q-pf" label="Power factor" value={pf} onChange={setPf} step="0.01" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                <strong>Q</strong> = {result.reactiveKvar.toFixed(2)} kVAR · <strong>S</strong> ={' '}
+                {result.apparentKva.toFixed(2)} kVA
+              </p>
+            </ResultBox>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RcTimeTool() {
+  const [r, setR] = useState('')
+  const [c, setC] = useState('')
+  const [cUnit, setCUnit] = useState<'uF' | 'nF'>('uF')
+
+  const result = useMemo(() => {
+    const rr = Number(r)
+    const cc = Number(c)
+    if (!rr || !cc || rr <= 0 || cc <= 0) return null
+    const farad = cUnit === 'uF' ? cc * 1e-6 : cc * 1e-9
+    return rcTimeConstant(rr, farad)
+  }, [r, c, cUnit])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">RC time constant</CardTitle>
+        <CardDescription>τ = R × C · roughly settles in ~5τ.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-3 gap-4">
+        <NumField id="rc-r" label="Resistance" value={r} onChange={setR} unit="Ω" />
+        <NumField id="rc-c" label="Capacitance" value={c} onChange={setC} />
+        <div>
+          <Label>C unit</Label>
+          <Select value={cUnit} onValueChange={(v) => setCUnit(v as 'uF' | 'nF')}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="uF">µF</SelectItem>
+              <SelectItem value="nF">nF</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {result ? (
+          <div className="sm:col-span-3">
+            <ResultBox>
+              <p>
+                τ ≈ <strong>{result.tauMs.toFixed(3)} ms</strong> ({result.tauS.toExponential(3)} s)
+              </p>
+              <p>~5τ settle ≈ {(result.settleS * 1000).toFixed(2)} ms</p>
+            </ResultBox>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+function FrequencyPeriodTool() {
+  const [f, setF] = useState('')
+  const [t, setT] = useState('')
+
+  const result = useMemo(() => {
+    const ff = f.trim() ? Number(f) : null
+    const tt = t.trim() ? Number(t) : null
+    return frequencyPeriod({
+      frequencyHz: ff != null && ff > 0 ? ff : null,
+      periodS: tt != null && tt > 0 ? tt : null,
+    })
+  }, [f, t])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Frequency ↔ period</CardTitle>
+        <CardDescription>Enter frequency (Hz) or period (s).</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="fp-f" label="Frequency" value={f} onChange={setF} unit="Hz" />
+        <NumField id="fp-t" label="Period" value={t} onChange={setT} unit="s" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                <strong>{result.frequencyHz.toFixed(4)} Hz</strong> · period{' '}
+                <strong>{result.periodMs.toFixed(4)} ms</strong>
+              </p>
+            </ResultBox>
+          </div>
+        ) : (
+          <p className="sm:col-span-2 text-xs text-slate-500">Fill one field.</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function BatteryAhTool() {
+  const [w, setW] = useState('')
+  const [h, setH] = useState('')
+  const [v, setV] = useState('12')
+  const [dod, setDod] = useState('50')
+
+  const result = useMemo(() => {
+    const lw = Number(w)
+    const lh = Number(h)
+    const lv = Number(v)
+    const d = Number(dod) / 100
+    if (!lw || !lh || !lv || !d) return null
+    return batteryAutonomyAh({ loadW: lw, hours: lh, systemV: lv, depthOfDischarge: d })
+  }, [w, h, v, dod])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Battery autonomy (Ah)</CardTitle>
+        <CardDescription>Rough bank size for DC loads (includes DoD & efficiency).</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="bat-w" label="Load" value={w} onChange={setW} unit="W" />
+        <NumField id="bat-h" label="Autonomy" value={h} onChange={setH} unit="h" />
+        <NumField id="bat-v" label="System voltage" value={v} onChange={setV} unit="V" />
+        <NumField id="bat-dod" label="Depth of discharge" value={dod} onChange={setDod} unit="%" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                Energy ≈ <strong>{result.wh.toFixed(0)} Wh</strong>
+              </p>
+              <p>
+                Suggested bank ≈ <strong>{result.ahRequired.toFixed(1)} Ah</strong> at {v} V
+              </p>
+            </ResultBox>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+function EnergyCostTool() {
+  const [kw, setKw] = useState('')
+  const [hours, setHours] = useState('8')
+  const [days, setDays] = useState('30')
+  const [tariff, setTariff] = useState('')
+
+  const result = useMemo(() => {
+    const p = Number(kw)
+    const h = Number(hours)
+    const d = Number(days)
+    const t = Number(tariff)
+    if (p < 0 || !h || !d || t < 0 || Number.isNaN(t)) return null
+    if (!kw.trim()) return null
+    return energyCostEstimate({
+      loadKw: p,
+      hoursPerDay: h,
+      daysPerMonth: d,
+      tariffPerKwh: t,
+    })
+  }, [kw, hours, days, tariff])
+
+  return (
+    <Card className="border-slate-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-slate-900">Energy cost estimate</CardTitle>
+        <CardDescription>Monthly and yearly cost from continuous or average load.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid sm:grid-cols-2 gap-4">
+        <NumField id="ec-kw" label="Average load" value={kw} onChange={setKw} unit="kW" />
+        <NumField id="ec-h" label="Hours / day" value={hours} onChange={setHours} unit="h" />
+        <NumField id="ec-d" label="Days / month" value={days} onChange={setDays} />
+        <NumField id="ec-t" label="Tariff" value={tariff} onChange={setTariff} unit="/kWh" />
+        {result ? (
+          <div className="sm:col-span-2">
+            <ResultBox>
+              <p>
+                {result.kwhPerMonth.toFixed(1)} kWh / month ·{' '}
+                <strong>{result.costMonth.toFixed(2)}</strong> / month
+              </p>
+              <p>
+                ≈ {result.kwhPerYear.toFixed(0)} kWh / year ·{' '}
+                <strong>{result.costYear.toFixed(2)}</strong> / year
+              </p>
+            </ResultBox>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+const TOOL_VIEWS: Record<string, () => ReactNode> = {
+  'ohms-law': () => <OhmsLawTool />,
+  'single-phase': () => <SinglePhaseTool />,
+  'three-phase': () => <ThreePhaseTool />,
+  'line-phase': () => <LinePhaseTool />,
+  'star-delta': () => <StarDeltaTool />,
+  transformer: () => <TransformerTool />,
+  'pf-correction': () => <PfCorrectionTool />,
+  'reactive-power': () => <ReactivePowerTool />,
+  'kw-hp': () => <UnitConverterTool />,
+  'wire-sizing': () => <WireSizingTool />,
+  'cable-ampacity': () => <CableSizeTool />,
+  'voltage-drop-1ph': () => <VoltageDropTool />,
+  'voltage-drop-3ph': () => <VoltageDrop3phTool />,
+  'awg-mm2': () => <AwgMm2Tool />,
+  'motor-flc': () => <MotorFlcTool />,
+  'conduit-fill': () => <ConduitFillTool />,
+  'resistor-color': () => <ResistorColorTool />,
+  'led-resistor': () => <LedResistorTool />,
+  'voltage-divider': () => <VoltageDividerTool />,
+  pwm: () => <PwmTool />,
+  'rc-time': () => <RcTimeTool />,
+  'frequency-period': () => <FrequencyPeriodTool />,
+  'solar-sizing': () => <SolarSizingTool />,
+  'battery-ah': () => <BatteryAhTool />,
+  'energy-cost': () => <EnergyCostTool />,
+  'plc-timer': () => <PlcTimerTool />,
+  temperature: () => <TempConverterTool />,
+}
 
 export function EngineeringToolsPanel({
   showHeading = true,
-  defaultTab = 'electrical',
+  defaultTab,
   className,
 }: {
   showHeading?: boolean
+  /** Folder id or tool id from URL hash */
   defaultTab?: string
   className?: string
 }) {
+  const bootTool = defaultTab ? findCalculatorTool(defaultTab) : undefined
+  const bootFolder = defaultTab ? findFolder(defaultTab) : undefined
+  const [folderId, setFolderId] = useState<CalculatorFolderId | null>(
+    bootTool?.folderId ?? (bootFolder?.id as CalculatorFolderId | undefined) ?? null
+  )
+  const [toolId, setToolId] = useState<string | null>(bootTool?.id ?? null)
+
+  const openFolder = (id: CalculatorFolderId) => {
+    setFolderId(id)
+    setToolId(null)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }
+
+  const openTool = (id: string) => {
+    const meta = findCalculatorTool(id)
+    if (!meta) return
+    setFolderId(meta.folderId)
+    setToolId(id)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${id}`)
+    }
+  }
+
+  const backToFolders = () => {
+    setFolderId(null)
+    setToolId(null)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }
+
+  const backToFolder = () => {
+    setToolId(null)
+    if (folderId && typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${folderId}`)
+    }
+  }
+
+  const folder = folderId ? findFolder(folderId) : null
+  const tools = folderId ? toolsInFolder(folderId) : []
+  const activeTool = toolId ? findCalculatorTool(toolId) : null
+  const ActiveView = toolId ? TOOL_VIEWS[toolId] : null
+
   return (
     <div className={cn('space-y-6 max-w-4xl', className)}>
       {showHeading ? (
         <div>
           <h1 className="text-2xl font-bold text-[var(--brand-navy)] flex items-center gap-2">
             <Calculator className="h-7 w-7" />
-            Engineering tools
+            Engineering calculators
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Quick calculators for electrical, installation, embedded, and solar work — aligned with your
-            training programmes. Results are estimates; always verify on site and follow local standards.
+            Browse by folder — power, wiring, electronics, and energy tools for technical careers.
+            Results are estimates; verify on site and follow local standards.
           </p>
         </div>
       ) : null}
 
-      <Tabs defaultValue={defaultTab} className="space-y-4">
-        <TabsList className="bg-white border border-slate-200 flex flex-wrap h-auto gap-1 p-1">
-          {ENGINEERING_TOOL_CATEGORIES.map((cat) => {
-            const Icon = cat.icon
+      {/* Breadcrumb */}
+      <nav className="flex flex-wrap items-center gap-1.5 text-sm text-slate-600">
+        <button
+          type="button"
+          onClick={backToFolders}
+          className="font-medium text-[var(--brand-navy)] hover:underline"
+        >
+          All folders
+        </button>
+        {folder ? (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+            <button
+              type="button"
+              onClick={backToFolder}
+              className={cn(
+                'font-medium hover:underline',
+                toolId ? 'text-[var(--brand-navy)]' : 'text-slate-900'
+              )}
+            >
+              {folder.title}
+            </button>
+          </>
+        ) : null}
+        {activeTool ? (
+          <>
+            <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+            <span className="font-semibold text-slate-900">{activeTool.title}</span>
+          </>
+        ) : null}
+      </nav>
+
+      {!folderId ? (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {CALCULATOR_FOLDERS.map((f) => {
+            const count = toolsInFolder(f.id).length
             return (
-              <TabsTrigger key={cat.id} value={cat.id} className={TAB_TRIGGER_CLASS}>
-                <Icon className="h-4 w-4 mr-1.5" />
-                {cat.title}
-              </TabsTrigger>
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => openFolder(f.id)}
+                className="text-left rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:border-slate-300 hover:shadow-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]"
+              >
+                <div
+                  className="h-16 w-full relative"
+                  style={{
+                    background: `linear-gradient(135deg, ${f.accent} 0%, #0f172a 100%)`,
+                  }}
+                >
+                  <FolderOpen className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 text-white/35" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white font-bold text-sm tracking-wide">
+                    {count} tools
+                  </span>
+                </div>
+                <div className="p-5">
+                  <p className="font-semibold text-slate-900 text-lg">{f.title}</p>
+                  <p className="text-sm text-slate-600 mt-1 leading-relaxed">{f.summary}</p>
+                </div>
+              </button>
             )
           })}
-        </TabsList>
+        </div>
+      ) : null}
 
-        <TabsContent value="electrical" className="space-y-4 mt-0">
-          <OhmsLawTool />
-          <SinglePhaseTool />
-          <ThreePhaseTool />
-          <LinePhaseTool />
-          <TransformerTool />
-          <PfCorrectionTool />
-          <UnitConverterTool />
-        </TabsContent>
+      {folderId && !toolId ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">{folder?.title}</h2>
+              <p className="text-sm text-slate-600">{folder?.summary}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={backToFolders}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Folders
+            </Button>
+          </div>
+          <ul className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white overflow-hidden">
+            {tools.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onClick={() => openTool(t.id)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left hover:bg-slate-50 transition-colors"
+                >
+                  <span>
+                    <span className="block font-medium text-slate-900">{t.title}</span>
+                    <span className="block text-sm text-slate-600 mt-0.5">{t.blurb}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
-        <TabsContent value="installation" className="space-y-4 mt-0">
-          <VoltageDropTool />
-          <MotorFlcTool />
-          <CableSizeTool />
-          <ConduitFillTool />
-        </TabsContent>
-
-        <TabsContent value="embedded" className="space-y-4 mt-0">
-          <ResistorColorTool />
-          <LedResistorTool />
-          <VoltageDividerTool />
-          <PwmTool />
-        </TabsContent>
-
-        <TabsContent value="solar" className="space-y-4 mt-0">
-          <SolarSizingTool />
-          <PlcTimerTool />
-          <TempConverterTool />
-        </TabsContent>
-      </Tabs>
+      {toolId && ActiveView ? (
+        <div className="space-y-3">
+          <Button type="button" variant="outline" size="sm" onClick={backToFolder}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to {folder?.title ?? 'folder'}
+          </Button>
+          {ActiveView()}
+        </div>
+      ) : null}
     </div>
   )
 }

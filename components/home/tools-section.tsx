@@ -12,7 +12,7 @@ export function ToolsSection() {
         <HomeSectionHeader
           eyebrow="Engineering tools"
           title="Free calculators for the field"
-          description="Electrical, installation, embedded, and solar helpers — built for students and technicians in our programmes. No login required."
+          description="Organized folders for power, wiring, electronics, and energy — practical tools for students and technicians. No login required."
         />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">

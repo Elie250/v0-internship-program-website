@@ -290,3 +290,211 @@ export function conduitFillPercent(conduitMm: string, wireMm2: number, conductor
     note: fill > 40 ? 'Above 40% fill — reduce conductors or upsize conduit.' : null,
   }
 }
+
+/** Three-phase voltage drop (approx): VD = √3 × ρ × L × I / A */
+export function voltageDropThreePhase(params: {
+  currentA: number
+  lengthM: number
+  crossSectionMm2: number
+  resistivity?: number
+  lineVoltage?: number
+}) {
+  const rho = params.resistivity ?? 0.0175
+  const { currentA, lengthM, crossSectionMm2 } = params
+  if (currentA <= 0 || lengthM <= 0 || crossSectionMm2 <= 0) return null
+  const dropV = (Math.sqrt(3) * rho * lengthM * currentA) / crossSectionMm2
+  const supply = params.lineVoltage ?? 400
+  const dropPercent = (dropV / supply) * 100
+  return { dropV, dropPercent, resistanceOhm: (rho * lengthM) / crossSectionMm2 }
+}
+
+/**
+ * Field wire sizing: pick copper PVC size that meets ampacity (125%) and max voltage-drop %.
+ * Single-phase uses 2-wire path; three-phase uses √3 path.
+ */
+export function sizeWireForLoad(params: {
+  loadAmps: number
+  lengthM: number
+  maxDropPercent: number
+  supplyVoltage: number
+  phases: 1 | 3
+  resistivity?: number
+}) {
+  const { loadAmps, lengthM, maxDropPercent, supplyVoltage, phases } = params
+  const rho = params.resistivity ?? 0.0175
+  if (
+    loadAmps <= 0 ||
+    lengthM <= 0 ||
+    maxDropPercent <= 0 ||
+    supplyVoltage <= 0 ||
+    (phases !== 1 && phases !== 3)
+  ) {
+    return null
+  }
+
+  const designAmps = loadAmps * 1.25
+  let chosen: { mm2: number; amps: number } | null = null
+  let dropAtChosen: { dropV: number; dropPercent: number } | null = null
+
+  for (const row of CABLE_AMPACITY_MM2) {
+    if (row.amps < designAmps) continue
+    const drop =
+      phases === 1
+        ? voltageDropSinglePhase({
+            currentA: loadAmps,
+            lengthM,
+            crossSectionMm2: row.mm2,
+            resistivity: rho,
+            supplyVoltage,
+          })
+        : voltageDropThreePhase({
+            currentA: loadAmps,
+            lengthM,
+            crossSectionMm2: row.mm2,
+            resistivity: rho,
+            lineVoltage: supplyVoltage,
+          })
+    if (!drop) continue
+    if (drop.dropPercent <= maxDropPercent) {
+      chosen = row
+      dropAtChosen = drop
+      break
+    }
+  }
+
+  return {
+    designAmps,
+    suggestedMm2: chosen?.mm2 ?? null,
+    ampacity: chosen?.amps ?? null,
+    dropV: dropAtChosen?.dropV ?? null,
+    dropPercent: dropAtChosen?.dropPercent ?? null,
+    note: chosen
+      ? null
+      : 'No size in the quick table meets both ampacity and drop — upsize further or shorten the run; verify with IEC/local tables.',
+  }
+}
+
+/** Approximate AWG ↔ mm² (nearest common sizes). */
+const AWG_MM2: { awg: number; mm2: number }[] = [
+  { awg: 18, mm2: 0.82 },
+  { awg: 16, mm2: 1.31 },
+  { awg: 14, mm2: 2.08 },
+  { awg: 12, mm2: 3.31 },
+  { awg: 10, mm2: 5.26 },
+  { awg: 8, mm2: 8.37 },
+  { awg: 6, mm2: 13.3 },
+  { awg: 4, mm2: 21.2 },
+  { awg: 2, mm2: 33.6 },
+  { awg: 1, mm2: 42.4 },
+  { awg: 0, mm2: 53.5 },
+]
+
+export function awgToMm2(awg: number) {
+  const row = AWG_MM2.find((r) => r.awg === awg)
+  if (!row) return null
+  return { awg: row.awg, mm2: row.mm2 }
+}
+
+export function mm2ToNearestAwg(mm2: number) {
+  if (mm2 <= 0) return null
+  let best = AWG_MM2[0]!
+  let bestDiff = Math.abs(best.mm2 - mm2)
+  for (const row of AWG_MM2) {
+    const d = Math.abs(row.mm2 - mm2)
+    if (d < bestDiff) {
+      best = row
+      bestDiff = d
+    }
+  }
+  return { awg: best.awg, mm2: best.mm2, inputMm2: mm2 }
+}
+
+/** Monthly / annual energy cost from kW load and hours. */
+export function energyCostEstimate(params: {
+  loadKw: number
+  hoursPerDay: number
+  daysPerMonth: number
+  tariffPerKwh: number
+}) {
+  const { loadKw, hoursPerDay, daysPerMonth, tariffPerKwh } = params
+  if (loadKw < 0 || hoursPerDay < 0 || daysPerMonth <= 0 || tariffPerKwh < 0) return null
+  const kwhPerDay = loadKw * hoursPerDay
+  const kwhPerMonth = kwhPerDay * daysPerMonth
+  const costMonth = kwhPerMonth * tariffPerKwh
+  return {
+    kwhPerDay,
+    kwhPerMonth,
+    kwhPerYear: kwhPerMonth * 12,
+    costMonth,
+    costYear: costMonth * 12,
+  }
+}
+
+/** Battery bank Ah for DC loads (lead-acid / Li with DoD). */
+export function batteryAutonomyAh(params: {
+  loadW: number
+  hours: number
+  systemV: number
+  depthOfDischarge?: number
+  efficiency?: number
+}) {
+  const dod = params.depthOfDischarge ?? 0.5
+  const eff = params.efficiency ?? 0.9
+  const { loadW, hours, systemV } = params
+  if (loadW <= 0 || hours <= 0 || systemV <= 0 || dod <= 0 || dod > 1 || eff <= 0 || eff > 1) {
+    return null
+  }
+  const wh = loadW * hours
+  const ahRequired = wh / (systemV * dod * eff)
+  return { wh, ahRequired, usableWh: systemV * ahRequired * dod * eff }
+}
+
+/** Star (wye) ↔ delta conversions for balanced 3-phase. */
+export function starDeltaConvert(params: {
+  mode: 'starToDelta' | 'deltaToStar'
+  voltage: number
+  current?: number
+}) {
+  const { mode, voltage } = params
+  if (voltage <= 0) return null
+  if (mode === 'starToDelta') {
+    return {
+      lineVoltage: voltage * Math.sqrt(3),
+      phaseVoltage: voltage,
+      lineCurrent: params.current && params.current > 0 ? params.current : null,
+      phaseCurrent:
+        params.current && params.current > 0 ? params.current / Math.sqrt(3) : null,
+    }
+  }
+  return {
+    lineVoltage: voltage,
+    phaseVoltage: voltage / Math.sqrt(3),
+    lineCurrent: params.current && params.current > 0 ? params.current : null,
+    phaseCurrent:
+      params.current && params.current > 0 ? params.current / Math.sqrt(3) : null,
+  }
+}
+
+/** RC time constant τ = R×C and ~5τ settle. */
+export function rcTimeConstant(rOhm: number, cFarad: number) {
+  if (rOhm <= 0 || cFarad <= 0) return null
+  const tauS = rOhm * cFarad
+  return { tauS, settleS: 5 * tauS, tauMs: tauS * 1000 }
+}
+
+/** Frequency ↔ period. */
+export function frequencyPeriod(params: { frequencyHz?: number | null; periodS?: number | null }) {
+  const f = params.frequencyHz
+  const t = params.periodS
+  if (f != null && f > 0) return { frequencyHz: f, periodS: 1 / f, periodMs: 1000 / f }
+  if (t != null && t > 0) return { frequencyHz: 1 / t, periodS: t, periodMs: t * 1000 }
+  return null
+}
+
+/** Reactive power from active power and PF. */
+export function reactiveFromActivePf(realPowerKw: number, powerFactor: number) {
+  if (realPowerKw <= 0 || powerFactor <= 0 || powerFactor > 1) return null
+  const s = realPowerKw / powerFactor
+  const q = Math.sqrt(Math.max(0, s * s - realPowerKw * realPowerKw))
+  return { apparentKva: s, reactiveKvar: q, pf: powerFactor }
+}

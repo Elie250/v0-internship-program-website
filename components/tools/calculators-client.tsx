@@ -5,17 +5,26 @@ import Link from 'next/link'
 import { EngineeringToolsPanel } from '@/components/tools/engineering-tools-panel'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
+import {
+  CALCULATOR_FOLDERS,
+  CALCULATOR_TOOLS,
+} from '@/lib/engineering/calculator-catalog'
 
-const VALID_TABS = ['electrical', 'installation', 'embedded', 'solar'] as const
+const VALID_HASHES = new Set([
+  ...CALCULATOR_FOLDERS.map((f) => f.id),
+  ...CALCULATOR_TOOLS.map((t) => t.id),
+])
 
 export function CalculatorsClient() {
-  const [defaultTab, setDefaultTab] = useState<string>('electrical')
+  const [defaultTab, setDefaultTab] = useState<string | undefined>(undefined)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
-    if ((VALID_TABS as readonly string[]).includes(hash)) {
+    if (VALID_HASHES.has(hash)) {
       setDefaultTab(hash)
     }
+    setReady(true)
   }, [])
 
   return (
@@ -29,7 +38,13 @@ export function CalculatorsClient() {
           Tools Center
         </Link>
       </div>
-      <EngineeringToolsPanel key={defaultTab} defaultTab={defaultTab} className="mx-auto" />
+      {ready ? (
+        <EngineeringToolsPanel
+          key={defaultTab ?? 'folders'}
+          defaultTab={defaultTab}
+          className="mx-auto"
+        />
+      ) : null}
       <div className="text-center mt-8">
         <Link href="/tools/brain-training">
           <Button variant="outline" className="border-slate-300 text-slate-900">

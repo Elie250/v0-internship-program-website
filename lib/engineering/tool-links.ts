@@ -4,34 +4,34 @@ export const ARTICLE_TAG_TOOL_LINKS: Record<
   { label: string; href: string; description: string }
 > = {
   electrical: {
-    label: 'Electrical calculators',
+    label: 'Power & circuits',
     href: '/tools/calculators#electrical',
-    description: "Ohm's law, three-phase power, power factor, and motor HP conversions.",
+    description: "Ohm's law, three-phase power, PF correction, and star/delta helpers.",
   },
   plc: {
-    label: 'Solar & PLC tools',
+    label: 'Solar, PLC & energy',
     href: '/tools/calculators#solar',
-    description: 'PLC timer delays and solar array sizing helpers.',
+    description: 'PLC timers, solar sizing, battery Ah, and energy cost.',
   },
   embedded: {
-    label: 'Embedded calculators',
+    label: 'Electronics & embedded',
     href: '/tools/calculators#embedded',
-    description: 'Resistor codes, LED resistors, voltage dividers, and PWM duty.',
+    description: 'Resistor codes, LED resistors, PWM, RC timing, and frequency.',
   },
   solar: {
-    label: 'Solar sizing tools',
+    label: 'Solar & energy tools',
     href: '/tools/calculators#solar',
-    description: 'Panel array sizing and related field checks.',
+    description: 'Panel array sizing, battery autonomy, and tariff cost estimates.',
   },
   tools: {
     label: 'All engineering tools',
     href: '/tools',
-    description: 'Browse every calculator on the public tools page.',
+    description: 'Browse calculator folders on the public tools page.',
   },
   'field-work': {
-    label: 'Installation tools',
+    label: 'Wiring & cables',
     href: '/tools/calculators#installation',
-    description: 'Voltage drop, cable sizing, motor FLC, and conduit fill.',
+    description: 'Wire sizing, voltage drop, AWG↔mm², motor FLC, and conduit fill.',
   },
 }
 
