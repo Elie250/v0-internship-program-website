@@ -8,6 +8,8 @@ import { GameTimer } from '@/components/brain-training/timer'
 import { ScoreBoard } from '@/components/brain-training/score-board'
 import { GameAnswerBar } from '@/components/brain-training/game-answer-bar'
 import { GameLaunchScreen } from '@/components/brain-training/game-launch-screen'
+import { StageGate } from '@/components/brain-training/stage-gate'
+import { SchematicSymbol } from '@/components/brain-training/schematic-symbol'
 import {
   feedbackPulse,
   useLockBodyScroll,
@@ -17,6 +19,7 @@ import {
 } from '@/components/brain-training/use-brain-play'
 import {
   QUIZ_LEVELS,
+  STAGE_PASS_ACCURACY,
   computeScore,
   playSeconds,
   type GameResultPayload,
@@ -29,7 +32,7 @@ import {
   type QuizItem,
 } from '@/lib/brain-training/question-banks'
 import { cn } from '@/lib/utils'
-import type { DrillPhase } from '@/components/brain-training/types'
+import type { DrillPhase, StageGateState } from '@/components/brain-training/types'
 import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 type Flash = 'correct' | 'incorrect' | null
@@ -65,6 +68,7 @@ export function QuizYesNoGame({
   const [saved, setSaved] = useState(false)
   const [flash, setFlash] = useState<Flash>(null)
   const [coachLine, setCoachLine] = useState<string | null>(null)
+  const [stageGate, setStageGate] = useState<StageGateState | null>(null)
   const startedAt = useRef(0)
   const sessionStart = useRef(0)
   const answering = useRef(false)
@@ -84,13 +88,14 @@ export function QuizYesNoGame({
     [onPhaseChange, canPersist, gameSlug]
   )
 
-  useLockBodyScroll(phase === 'playing')
+  useLockBodyScroll(phase === 'playing' || phase === 'stage-gate')
 
   const levelConfig = QUIZ_LEVELS[Math.max(0, Math.min(level, QUIZ_LEVELS.length) - 1)]!
   const seconds = playSeconds(levelConfig.seconds, touchLayout)
   const progressPct = ((index + (phase === 'playing' ? 1 : 0)) / levelConfig.questions) * 100
   const challenge = deck[index] ?? null
-  const flashMs = reducedMotion ? 0 : challenge?.explain ? 1100 : 160
+  const flashMs = reducedMotion ? 0 : challenge?.explain ? 900 : 140
+  const hardDistract = level >= 4
 
   const result = useMemo(() => {
     const computed = computeScore({
@@ -127,6 +132,7 @@ export function QuizYesNoGame({
       setSaved(false)
       setFlash(null)
       setCoachLine(null)
+      setStageGate(null)
       setDeck(pickQuizRound(bankId, cfg.questions, nextLevel))
       sessionStart.current = Date.now()
       setSecondsLeft(nextSeconds)
@@ -145,6 +151,7 @@ export function QuizYesNoGame({
       clearFlashTimer()
       setFlash(null)
       setCoachLine(null)
+      setStageGate(null)
       setCorrect(finalCorrect)
       setTimes(finalTimes)
       setLevel(finalLevel)
@@ -183,13 +190,34 @@ export function QuizYesNoGame({
     clearFlashTimer()
     setFlash(null)
     setCoachLine(null)
-    if (times.length > 0 && phase === 'playing') {
+    if (times.length > 0 && (phase === 'playing' || phase === 'stage-gate')) {
       void finish(correct, times, level)
       return
     }
     answering.current = false
+    setStageGate(null)
     setDrillPhase('intro')
   }, [times, phase, correct, level, finish, setDrillPhase])
+
+  const openStageGate = useCallback(
+    (nextCorrect: number, nextTimes: number[], stageLevel: number) => {
+      const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
+      const passed = acc >= STAGE_PASS_ACCURACY
+      setCorrect(nextCorrect)
+      setTimes(nextTimes)
+      setLevel(stageLevel)
+      setStageGate({
+        passed,
+        level: stageLevel,
+        correct: nextCorrect,
+        total: nextTimes.length,
+        accuracy: Math.round(acc * 100),
+      })
+      answering.current = false
+      setDrillPhase('stage-gate')
+    },
+    [setDrillPhase]
+  )
 
   const advance = useCallback(
     (wasCorrect: boolean, responseMs: number) => {
@@ -205,13 +233,7 @@ export function QuizYesNoGame({
         setFlash(null)
         setCoachLine(null)
         if (nextIndex >= levelConfig.questions) {
-          const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < QUIZ_LEVELS.length) {
-            answering.current = false
-            startLevel(level + 1)
-            return
-          }
-          void finish(nextCorrect, nextTimes, level)
+          openStageGate(nextCorrect, nextTimes, level)
           return
         }
         setCorrect(nextCorrect)
@@ -236,8 +258,7 @@ export function QuizYesNoGame({
       levelConfig.questions,
       seconds,
       level,
-      startLevel,
-      finish,
+      openStageGate,
       flashMs,
       challenge,
     ]
@@ -267,15 +288,20 @@ export function QuizYesNoGame({
   )
 
   useYesNoShortcuts({
-    enabled: phase === 'intro' || phase === 'playing' || phase === 'result',
+    enabled: phase === 'intro' || phase === 'playing' || phase === 'result' || phase === 'stage-gate',
     onYes: () => {
       if (phase === 'playing') answer(true)
+      if (phase === 'stage-gate' && stageGate?.passed) {
+        if (stageGate.level < QUIZ_LEVELS.length) startLevel(stageGate.level + 1)
+        else void finish(stageGate.correct, times, stageGate.level)
+      }
     },
     onNo: () => {
       if (phase === 'playing') answer(false)
+      if (phase === 'stage-gate' && stageGate && !stageGate.passed) startLevel(stageGate.level)
     },
     onStart: phase === 'intro' ? () => startLevel(1) : undefined,
-    onExit: phase === 'playing' ? exitSession : undefined,
+    onExit: phase === 'playing' || phase === 'stage-gate' ? exitSession : undefined,
     onReplay: phase === 'result' ? () => startLevel(1) : undefined,
   })
 
@@ -307,8 +333,26 @@ export function QuizYesNoGame({
     )
   }
 
+  const gateLevel =
+    QUIZ_LEVELS[Math.max(0, Math.min((stageGate?.level || level) - 1, QUIZ_LEVELS.length - 1))]!
+
   return (
     <div className="max-w-xl mx-auto overscroll-none">
+      {phase === 'stage-gate' && stageGate ? (
+        <StageGate
+          level={stageGate.level}
+          levelLabel={gateLevel.label}
+          passed={stageGate.passed}
+          correct={stageGate.correct}
+          total={stageGate.total}
+          accuracy={stageGate.accuracy}
+          hasNextStage={stageGate.level < QUIZ_LEVELS.length}
+          onContinue={() => startLevel(stageGate.level + 1)}
+          onRetry={() => startLevel(stageGate.level)}
+          onFinish={() => void finish(stageGate.correct, times, stageGate.level)}
+        />
+      ) : null}
+
       <Card className="border-slate-200">
         <CardHeader className="pb-3 space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -320,33 +364,57 @@ export function QuizYesNoGame({
             </span>
           </div>
           <StageRail total={QUIZ_LEVELS.length} current={level} />
-          <p className="hidden sm:block text-xs text-slate-500">
-            {level <= 2
-              ? 'Basic / popular knowledge · extra thinking time'
-              : level <= 4
-                ? 'Core applied questions · moderate pace'
-                : 'Harder items · shorter time'}
-          </p>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
             <div
               className="h-full bg-[var(--brand-navy)] transition-all"
               style={{ width: `${Math.min(100, progressPct)}%` }}
             />
           </div>
-          <GameTimer secondsLeft={secondsLeft} totalSeconds={seconds} />
+          {phase === 'playing' ? <GameTimer secondsLeft={secondsLeft} totalSeconds={seconds} /> : null}
         </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[8.5rem] md:pb-4">
           <div
             className={cn(
-              'relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-slate-900 px-3 sm:px-4 py-6 sm:py-8 text-center transition-colors shadow-inner min-h-[8.5rem] flex items-center justify-center',
+              'relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 text-slate-900 px-3 sm:px-5 py-5 sm:py-6 text-center transition-colors shadow-inner min-h-[11rem] flex flex-col items-center justify-center gap-3',
               flash === 'correct' && 'from-emerald-50 to-emerald-50/40 border-emerald-300 text-emerald-950',
-              flash === 'incorrect' && 'from-red-50 to-red-50/40 border-red-300 text-red-950'
+              flash === 'incorrect' && 'from-red-50 to-red-50/40 border-red-300 text-red-950',
+              hardDistract && !flash && 'from-slate-50 via-amber-50/40 to-sky-50/50'
             )}
           >
-            <pre className="relative font-mono text-[15px] sm:text-lg whitespace-pre-wrap leading-relaxed font-semibold tracking-tight max-w-full break-words">
-              {challenge?.display}
-            </pre>
+            {hardDistract && !flash ? (
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.07]"
+                style={{
+                  backgroundImage:
+                    'repeating-linear-gradient(45deg,#0f172a 0,#0f172a 1px,transparent 1px,transparent 10px)',
+                }}
+                aria-hidden
+              />
+            ) : null}
+
+            {challenge?.symbolId ? (
+              <SchematicSymbol
+                id={challenge.symbolId}
+                caption={challenge.display}
+                className="relative w-full"
+              />
+            ) : (
+              <pre className="relative font-mono text-[15px] sm:text-lg whitespace-pre-wrap leading-relaxed font-semibold tracking-tight max-w-full break-words">
+                {challenge?.display}
+              </pre>
+            )}
+
+            {challenge?.symbolMeta ? (
+              <p className="relative text-sm font-semibold text-slate-700 bg-white/80 border border-slate-200 rounded-lg px-3 py-1">
+                {challenge.symbolMeta}
+              </p>
+            ) : null}
+
+            <p className="relative mt-1 max-w-md text-base sm:text-lg font-bold text-slate-900 leading-snug px-1">
+              {challenge?.prompt ?? 'YES or NO?'}
+            </p>
           </div>
+
           {coachLine ? (
             <p
               className={cn(
@@ -359,12 +427,12 @@ export function QuizYesNoGame({
               {coachLine}
             </p>
           ) : null}
+
           <div className="hidden md:block">
             <GameAnswerBar
-              prompt={challenge?.prompt ?? 'Answer YES or NO'}
               onYes={() => answer(true)}
               onNo={() => answer(false)}
-              disabled={Boolean(flash)}
+              disabled={Boolean(flash) || phase !== 'playing'}
               flash={flash}
             />
           </div>
@@ -372,10 +440,9 @@ export function QuizYesNoGame({
       </Card>
       <div className="md:hidden">
         <GameAnswerBar
-          prompt={challenge?.prompt ?? 'YES or NO?'}
           onYes={() => answer(true)}
           onNo={() => answer(false)}
-          disabled={Boolean(flash)}
+          disabled={Boolean(flash) || phase !== 'playing'}
           flash={flash}
           showShortcuts={false}
         />

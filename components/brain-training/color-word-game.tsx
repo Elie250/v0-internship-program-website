@@ -8,6 +8,7 @@ import { GameTimer } from '@/components/brain-training/timer'
 import { ScoreBoard } from '@/components/brain-training/score-board'
 import { GameAnswerBar } from '@/components/brain-training/game-answer-bar'
 import { GameLaunchScreen } from '@/components/brain-training/game-launch-screen'
+import { StageGate } from '@/components/brain-training/stage-gate'
 import {
   feedbackPulse,
   useLockBodyScroll,
@@ -17,25 +18,33 @@ import {
 } from '@/components/brain-training/use-brain-play'
 import {
   COLOR_WORD_LEVELS,
+  STAGE_PASS_ACCURACY,
+  bridgeLineCount,
   colorsForColorWordLevel,
   computeScore,
   playSeconds,
+  type ColorEntry,
   type GameResultPayload,
 } from '@/lib/brain-training/scoring'
 import { getGameDef } from '@/lib/brain-training/catalog'
 import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
-import type { DrillPhase } from '@/components/brain-training/types'
+import type { DrillPhase, StageGateState } from '@/components/brain-training/types'
 import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 export type { DrillPhase }
 
 type Flash = 'correct' | 'incorrect' | null
 
-type Challenge = {
+type ColorLine = {
   word: string
-  inkHex: string
-  inkName: string
+  ink: ColorEntry
+}
+
+type Challenge = {
+  /** classic = ink matches word; bridge = first ink vs last word meaning */
+  mode: 'classic' | 'bridge'
+  lines: ColorLine[]
   match: boolean
 }
 
@@ -44,18 +53,73 @@ function pick<T>(arr: readonly T[]): T {
 }
 
 function buildChallenge(level: number): Challenge {
-  // Starter: few popular colors. Hard stages: still popular words (beginner English).
   const palette = colorsForColorWordLevel(level)
-  const wordColor = pick(palette)
-  const shouldMatch = Math.random() < 0.48
-  const others = palette.filter((c) => c.name !== wordColor.name)
-  const inkColor = shouldMatch ? wordColor : pick(others.length ? others : palette)
-  return {
-    word: wordColor.name,
-    inkHex: inkColor.hex,
-    inkName: inkColor.name,
-    match: wordColor.name === inkColor.name,
+  const lineCount = bridgeLineCount(level)
+
+  if (lineCount <= 1) {
+    const wordColor = pick(palette)
+    const shouldMatch = Math.random() < 0.48
+    const others = palette.filter((c) => c.name !== wordColor.name)
+    const ink = shouldMatch ? wordColor : pick(others.length ? others : palette)
+    return {
+      mode: 'classic',
+      lines: [{ word: wordColor.name, ink }],
+      match: wordColor.name === ink.name,
+    }
   }
+
+  // Multi-line: does FIRST word's ink match LAST word's meaning?
+  const shouldMatch = Math.random() < 0.48
+  const lastMeaning = pick(palette)
+  const others = palette.filter((c) => c.name !== lastMeaning.name)
+  const firstInk = shouldMatch ? lastMeaning : pick(others.length ? others : palette)
+  const firstWord = pick(palette)
+
+  const lines: ColorLine[] = [{ word: firstWord.name, ink: firstInk }]
+  for (let i = 1; i < lineCount - 1; i++) {
+    lines.push({ word: pick(palette).name, ink: pick(palette) })
+  }
+  lines.push({ word: lastMeaning.name, ink: pick(palette) })
+
+  return {
+    mode: 'bridge',
+    lines,
+    match: firstInk.name === lastMeaning.name,
+  }
+}
+
+function InkWord({
+  word,
+  ink,
+  size = 'lg',
+}: {
+  word: string
+  ink: ColorEntry
+  size?: 'lg' | 'md' | 'sm'
+}) {
+  const sizeClass =
+    size === 'lg'
+      ? 'text-[2.5rem] sm:text-5xl tracking-[0.1em]'
+      : size === 'md'
+        ? 'text-2xl sm:text-3xl tracking-[0.08em]'
+        : 'text-lg sm:text-xl tracking-[0.06em]'
+  return (
+    <span
+      className={cn(
+        'inline-block font-black select-none px-2 py-0.5 rounded-md',
+        ink.onDark && 'bg-slate-800 ring-1 ring-slate-600',
+        sizeClass
+      )}
+      style={{
+        color: ink.hex,
+        textShadow: ink.onDark
+          ? '0 1px 0 rgba(0,0,0,0.35)'
+          : '0 1px 0 rgba(255,255,255,0.55), 0 0 1px rgba(15,23,42,0.35)',
+      }}
+    >
+      {word}
+    </span>
+  )
 }
 
 type Props = {
@@ -79,6 +143,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
   const [saved, setSaved] = useState(false)
   const [flash, setFlash] = useState<Flash>(null)
   const [warmupLeft, setWarmupLeft] = useState(3)
+  const [stageGate, setStageGate] = useState<StageGateState | null>(null)
   const startedAt = useRef(0)
   const sessionStart = useRef(0)
   const answering = useRef(false)
@@ -98,7 +163,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
     [onPhaseChange, canPersist]
   )
 
-  useLockBodyScroll(phase === 'playing' || phase === 'warmup')
+  useLockBodyScroll(phase === 'playing' || phase === 'warmup' || phase === 'stage-gate')
 
   const levelConfig =
     COLOR_WORD_LEVELS[Math.max(0, Math.min(level, COLOR_WORD_LEVELS.length) - 1)] ??
@@ -144,6 +209,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
       setTimes([])
       setSaved(false)
       setFlash(null)
+      setStageGate(null)
       sessionStart.current = Date.now()
       setChallenge(buildChallenge(nextLevel))
       setSecondsLeft(nextSeconds)
@@ -177,6 +243,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
       answering.current = false
       clearFlashTimer()
       setFlash(null)
+      setStageGate(null)
       setCorrect(finalCorrect)
       setTimes(finalTimes)
       setLevel(finalLevel)
@@ -213,6 +280,25 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
     [canPersist, onPersist, touchLayout, setDrillPhase]
   )
 
+  const openStageGate = useCallback(
+    (nextCorrect: number, nextTimes: number[], stageLevel: number) => {
+      const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
+      setCorrect(nextCorrect)
+      setTimes(nextTimes)
+      setLevel(stageLevel)
+      setStageGate({
+        passed: acc >= STAGE_PASS_ACCURACY,
+        level: stageLevel,
+        correct: nextCorrect,
+        total: nextTimes.length,
+        accuracy: Math.round(acc * 100),
+      })
+      answering.current = false
+      setDrillPhase('stage-gate')
+    },
+    [setDrillPhase]
+  )
+
   const advance = useCallback(
     (wasCorrect: boolean, responseMs: number) => {
       if (answering.current || sessionClosed.current || phase !== 'playing') return
@@ -225,13 +311,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
       const afterFlash = () => {
         setFlash(null)
         if (nextIndex >= levelConfig.questions) {
-          const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < COLOR_WORD_LEVELS.length) {
-            answering.current = false
-            startLevel(level + 1)
-            return
-          }
-          void finish(nextCorrect, nextTimes, level)
+          openStageGate(nextCorrect, nextTimes, level)
           return
         }
 
@@ -260,8 +340,7 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
       levelConfig.questions,
       seconds,
       level,
-      startLevel,
-      finish,
+      openStageGate,
       flashMs,
     ]
   )
@@ -310,17 +389,27 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
   )
 
   useYesNoShortcuts({
-    enabled: phase === 'intro' || phase === 'playing' || phase === 'warmup' || phase === 'result',
+    enabled:
+      phase === 'intro' ||
+      phase === 'playing' ||
+      phase === 'warmup' ||
+      phase === 'result' ||
+      phase === 'stage-gate',
     onYes: () => {
       if (phase === 'playing') answer(true)
       if (phase === 'warmup') answerWarmup(true)
+      if (phase === 'stage-gate' && stageGate?.passed) {
+        if (stageGate.level < COLOR_WORD_LEVELS.length) startLevel(stageGate.level + 1)
+        else void finish(stageGate.correct, times, stageGate.level)
+      }
     },
     onNo: () => {
       if (phase === 'playing') answer(false)
       if (phase === 'warmup') answerWarmup(false)
+      if (phase === 'stage-gate' && stageGate && !stageGate.passed) startLevel(stageGate.level)
     },
     onStart: phase === 'intro' ? () => startLevel(1) : undefined,
-    onExit: phase === 'playing' || phase === 'warmup' ? exitToIntro : undefined,
+    onExit: phase === 'playing' || phase === 'warmup' || phase === 'stage-gate' ? exitToIntro : undefined,
     onReplay: phase === 'result' ? () => startLevel(1) : undefined,
   })
 
@@ -353,13 +442,34 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
     )
   }
 
-  const prompt =
+  const isBridge = challenge?.mode === 'bridge'
+  const questionLine =
     phase === 'warmup'
-      ? `Warm-up · ${4 - warmupLeft}/3 — is the ink color the same as the word?`
-      : 'Is the displayed ink color the same as the word?'
+      ? `Warm-up ${4 - warmupLeft}/3 — same ink as the word?`
+      : isBridge
+        ? 'Does the FIRST word’s ink match the LAST word’s meaning?'
+        : 'Same ink color as the word?'
+  const firstLine = challenge?.lines[0]
+  const gateLevel =
+    COLOR_WORD_LEVELS[Math.max(0, Math.min((stageGate?.level || level) - 1, COLOR_WORD_LEVELS.length - 1))]!
 
   return (
     <div className="max-w-xl mx-auto overscroll-none">
+      {phase === 'stage-gate' && stageGate ? (
+        <StageGate
+          level={stageGate.level}
+          levelLabel={gateLevel.label}
+          passed={stageGate.passed}
+          correct={stageGate.correct}
+          total={stageGate.total}
+          accuracy={stageGate.accuracy}
+          hasNextStage={stageGate.level < COLOR_WORD_LEVELS.length}
+          onContinue={() => startLevel(stageGate.level + 1)}
+          onRetry={() => startLevel(stageGate.level)}
+          onFinish={() => void finish(stageGate.correct, times, stageGate.level)}
+        />
+      ) : null}
+
       <Card className="border-slate-200">
         <CardHeader className="pb-3 space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -374,7 +484,9 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
                 : `${index + 1} / ${levelConfig.questions}`}
             </span>
           </div>
-          {phase === 'playing' ? <StageRail total={COLOR_WORD_LEVELS.length} current={level} /> : null}
+          {phase === 'playing' || phase === 'stage-gate' ? (
+            <StageRail total={COLOR_WORD_LEVELS.length} current={level} />
+          ) : null}
           {phase === 'playing' ? (
             <>
               <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -385,52 +497,74 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
               </div>
               <GameTimer secondsLeft={secondsLeft} totalSeconds={seconds} />
             </>
-          ) : (
+          ) : phase === 'warmup' ? (
             <p className="text-xs text-slate-500">Practice only — nothing is scored or saved.</p>
-          )}
-          <p className="hidden sm:block text-sm text-slate-600 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2">
-            Tip: look at the <span className="font-semibold text-slate-800">ink color</span> of the
-            letters — not the meaning of the word.
-          </p>
+          ) : null}
         </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[8.5rem] md:pb-4">
           <div
             className={cn(
-              'relative overflow-hidden rounded-2xl border border-slate-200 px-3 sm:px-4 py-10 sm:py-14 text-center transition-colors',
+              'relative overflow-hidden rounded-2xl border border-slate-200 px-3 sm:px-4 py-6 sm:py-8 text-center transition-colors',
               !reducedMotion && 'duration-150',
               flash === 'correct' && 'bg-emerald-50 border-emerald-200',
               flash === 'incorrect' && 'bg-red-50 border-red-200',
-              !flash && 'bg-slate-50'
+              !flash && 'bg-slate-100'
             )}
           >
-            <div
-              className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full opacity-25 blur-2xl"
-              style={{ backgroundColor: challenge?.inkHex }}
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute -left-6 -bottom-10 h-28 w-28 rounded-full opacity-20 blur-xl"
-              style={{ backgroundColor: challenge?.inkHex }}
-              aria-hidden
-            />
-            <p
-              className="relative text-[2.75rem] leading-none sm:text-6xl font-black tracking-[0.12em] select-none drop-shadow-sm"
-              style={{ color: challenge?.inkHex }}
-            >
-              {challenge?.word}
-            </p>
-            {challenge ? (
-              <div className="relative mt-4 sm:mt-5 flex items-center justify-center gap-2">
-                <span
-                  className="h-5 w-5 sm:h-4 sm:w-4 rounded-full border-2 border-white shadow"
-                  style={{ backgroundColor: challenge.inkHex }}
-                  aria-hidden
-                />
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Ink color
-                </span>
+            {firstLine ? (
+              <div
+                className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full opacity-20 blur-2xl"
+                style={{ backgroundColor: firstLine.ink.hex }}
+                aria-hidden
+              />
+            ) : null}
+
+            {challenge?.mode === 'classic' && firstLine ? (
+              <div className="relative space-y-4">
+                <InkWord word={firstLine.word} ink={firstLine.ink} size="lg" />
+                <div className="flex items-center justify-center gap-2">
+                  <span
+                    className="h-5 w-5 rounded-full border-2 border-white shadow ring-1 ring-slate-300"
+                    style={{ backgroundColor: firstLine.ink.hex }}
+                    aria-hidden
+                  />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                    Look at ink
+                  </span>
+                </div>
               </div>
             ) : null}
+
+            {challenge?.mode === 'bridge' ? (
+              <div className="relative space-y-2.5 sm:space-y-3">
+                {challenge.lines.map((line, i) => {
+                  const isFirst = i === 0
+                  const isLast = i === challenge.lines.length - 1
+                  return (
+                    <div
+                      key={`${line.word}-${i}`}
+                      className={cn(
+                        'flex items-center justify-center gap-2 rounded-xl px-2 py-1.5',
+                        (isFirst || isLast) && 'bg-white/80 border border-slate-200 shadow-sm'
+                      )}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10 text-right shrink-0">
+                        {isFirst ? '1st' : isLast ? 'Last' : `L${i + 1}`}
+                      </span>
+                      <InkWord
+                        word={line.word}
+                        ink={line.ink}
+                        size={isFirst || isLast ? 'md' : 'sm'}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
+
+            <p className="relative mt-5 text-base sm:text-lg font-bold text-slate-900 leading-snug px-1">
+              {questionLine}
+            </p>
           </div>
           {phase === 'playing' ? (
             <p className="text-center text-xs text-slate-500 hidden md:block">
@@ -439,10 +573,9 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
           ) : null}
           <div className="hidden md:block">
             <GameAnswerBar
-              prompt={prompt}
               onYes={() => (phase === 'warmup' ? answerWarmup(true) : answer(true))}
               onNo={() => (phase === 'warmup' ? answerWarmup(false) : answer(false))}
-              disabled={Boolean(flash)}
+              disabled={Boolean(flash) || phase === 'stage-gate'}
               flash={flash}
             />
           </div>
@@ -450,14 +583,9 @@ export function ColorWordGame({ backHref, canPersist, onPersist, onPhaseChange }
       </Card>
       <div className="md:hidden">
         <GameAnswerBar
-          prompt={
-            phase === 'warmup'
-              ? `Warm-up ${4 - warmupLeft}/3 — ink matches word?`
-              : 'Is the ink color the same as the word?'
-          }
           onYes={() => (phase === 'warmup' ? answerWarmup(true) : answer(true))}
           onNo={() => (phase === 'warmup' ? answerWarmup(false) : answer(false))}
-          disabled={Boolean(flash)}
+          disabled={Boolean(flash) || phase === 'stage-gate'}
           flash={flash}
           showShortcuts={false}
         />

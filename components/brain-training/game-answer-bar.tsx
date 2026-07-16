@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils'
 type Flash = 'correct' | 'incorrect' | null
 
 type Props = {
-  prompt: string
+  /** Optional — prefer putting the question next to the symbol/formula instead. */
+  prompt?: string
   onYes: () => void
   onNo: () => void
   disabled?: boolean
@@ -34,9 +35,15 @@ export function GameAnswerBar({
         className
       )}
     >
-      <p className="text-center text-[13px] sm:text-base font-semibold text-slate-900 mb-2.5 md:mb-4 px-1 leading-snug line-clamp-2 md:line-clamp-none">
-        {prompt}
-      </p>
+      {prompt ? (
+        <p className="text-center text-[13px] sm:text-base font-semibold text-slate-900 mb-2.5 md:mb-4 px-1 leading-snug line-clamp-2 md:line-clamp-none">
+          {prompt}
+        </p>
+      ) : (
+        <p className="text-center text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2 md:mb-3">
+          Tap YES or NO
+        </p>
+      )}
       <div
         className={cn(
           'grid grid-cols-2 gap-2.5 sm:gap-3 max-w-xl mx-auto transition-colors duration-150 rounded-2xl',

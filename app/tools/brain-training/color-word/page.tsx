@@ -26,7 +26,7 @@ export default function ColorWordPublicPage() {
   }
 
   // Keep chrome stable through result screen (avoid layout remount crashes)
-  const focusMode = phase === 'playing' || phase === 'warmup'
+  const focusMode = phase === 'playing' || phase === 'warmup' || phase === 'stage-gate'
 
   return (
     <DrillPageShell academyHref="/tools/brain-training" focusMode={focusMode}>

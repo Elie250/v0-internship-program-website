@@ -60,62 +60,83 @@ export function xpFromScore(score: number): number {
   return Math.round(score)
 }
 
-/** Color-Word: harder = faster / more trials — still popular English color words. */
+/** Color-Word: 10 stages. 1–4 classic; 5–10 multi-line bridge (first ink vs last meaning). */
 export const COLOR_WORD_LEVELS: readonly StageConfig[] = [
-  { level: 1, questions: 8, seconds: 6, label: 'Starter' },
-  { level: 2, questions: 10, seconds: 5, label: 'Foundation' },
-  { level: 3, questions: 12, seconds: 4.5, label: 'Steady' },
-  { level: 4, questions: 14, seconds: 4, label: 'Focused' },
-  { level: 5, questions: 16, seconds: 3.5, label: 'Sharp' },
-  { level: 6, questions: 18, seconds: 3, label: 'Pro' },
+  { level: 1, questions: 8, seconds: 9, label: 'Starter' },
+  { level: 2, questions: 9, seconds: 8, label: 'Foundation' },
+  { level: 3, questions: 10, seconds: 7, label: 'Steady' },
+  { level: 4, questions: 12, seconds: 6, label: 'Focused' },
+  { level: 5, questions: 12, seconds: 7, label: 'Bridge' },
+  { level: 6, questions: 13, seconds: 6.5, label: 'Lines' },
+  { level: 7, questions: 14, seconds: 5.5, label: 'Busy' },
+  { level: 8, questions: 15, seconds: 5, label: 'Sharp' },
+  { level: 9, questions: 16, seconds: 4.2, label: 'Elite' },
+  { level: 10, questions: 18, seconds: 3.5, label: 'Master' },
 ]
 
+/** Sequence Spotter: 10 stages. 1–4 pair compare; 5–10 multi-line (first vs last). */
 export const SEQUENCE_LEVELS = [
-  { level: 1, length: 4, seconds: 6, questions: 8, label: 'Starter' },
-  { level: 2, length: 5, seconds: 5, questions: 10, label: 'Foundation' },
-  { level: 3, length: 7, seconds: 4.5, questions: 12, label: 'Steady' },
-  { level: 4, length: 9, seconds: 4, questions: 14, label: 'Focused' },
-  { level: 5, length: 12, seconds: 3.5, questions: 16, label: 'Sharp' },
-  { level: 6, length: 14, seconds: 3, questions: 18, label: 'Pro' },
+  { level: 1, length: 4, seconds: 9, questions: 8, label: 'Starter' },
+  { level: 2, length: 5, seconds: 8, questions: 9, label: 'Foundation' },
+  { level: 3, length: 6, seconds: 7, questions: 10, label: 'Steady' },
+  { level: 4, length: 8, seconds: 6, questions: 12, label: 'Focused' },
+  { level: 5, length: 8, seconds: 7, questions: 12, label: 'Bridge' },
+  { level: 6, length: 9, seconds: 6.5, questions: 13, label: 'Lines' },
+  { level: 7, length: 10, seconds: 5.5, questions: 14, label: 'Busy' },
+  { level: 8, length: 11, seconds: 5, questions: 15, label: 'Sharp' },
+  { level: 9, length: 12, seconds: 4.2, questions: 16, label: 'Elite' },
+  { level: 10, length: 14, seconds: 3.5, questions: 18, label: 'Master' },
 ] as const
+
+/** How many distraction lines for multi-line modes (2–5). */
+export function bridgeLineCount(level: number): number {
+  if (level <= 4) return 1
+  if (level === 5) return Math.random() < 0.55 ? 2 : 3
+  if (level === 6) return Math.random() < 0.45 ? 2 : 3
+  if (level === 7) return Math.random() < 0.5 ? 3 : 4
+  if (level === 8) return 4
+  if (level === 9) return Math.random() < 0.5 ? 4 : 5
+  return 5
+}
 
 /**
  * YES/NO engineering drills — six stages.
- * Early stages: more thinking time for basic knowledge.
- * Later stages: tighter clocks for harder items.
+ * Stages 1–3: roomy timers. Later stages: tighter clocks + harder items.
  */
 export const QUIZ_LEVELS: readonly StageConfig[] = [
-  { level: 1, questions: 8, seconds: 9, label: 'Starter' },
-  { level: 2, questions: 10, seconds: 8, label: 'Foundation' },
-  { level: 3, questions: 12, seconds: 6.5, label: 'Steady' },
+  { level: 1, questions: 8, seconds: 12, label: 'Starter' },
+  { level: 2, questions: 10, seconds: 10, label: 'Foundation' },
+  { level: 3, questions: 12, seconds: 8, label: 'Steady' },
   { level: 4, questions: 14, seconds: 5.5, label: 'Focused' },
-  { level: 5, questions: 16, seconds: 4.5, label: 'Sharp' },
-  { level: 6, questions: 18, seconds: 3.5, label: 'Pro' },
+  { level: 5, questions: 16, seconds: 4.2, label: 'Sharp' },
+  { level: 6, questions: 18, seconds: 3.2, label: 'Pro' },
 ]
 
-export type ColorEntry = { name: string; hex: string }
+/** Pass threshold to unlock the next stage (shown in stage-gate popup). */
+export const STAGE_PASS_ACCURACY = 0.7
 
-/** Level 1 only — very few, universally known words. */
-export const STARTER_COLORS: readonly ColorEntry[] = [
-  { name: 'RED', hex: '#dc2626' },
-  { name: 'BLUE', hex: '#2563eb' },
-  { name: 'GREEN', hex: '#16a34a' },
-  { name: 'YELLOW', hex: '#ca8a04' },
-]
+export type ColorEntry = { name: string; hex: string; onDark?: boolean }
 
 /**
- * All other stages (including hard) — popular color words only.
- * Aimed at beginners / non-fluent English speakers (no crimson/navy/teal/etc.).
+ * High-contrast palette — no brown/orange/yellow (too easy to confuse).
+ * WHITE uses onDark so ink stays readable.
  */
+export const STARTER_COLORS: readonly ColorEntry[] = [
+  { name: 'RED', hex: '#e11d48' },
+  { name: 'BLUE', hex: '#1d4ed8' },
+  { name: 'GREEN', hex: '#15803d' },
+  { name: 'PURPLE', hex: '#7c3aed' },
+]
+
 export const POPULAR_COLORS: readonly ColorEntry[] = [
-  { name: 'RED', hex: '#dc2626' },
-  { name: 'BLUE', hex: '#2563eb' },
-  { name: 'GREEN', hex: '#16a34a' },
-  { name: 'YELLOW', hex: '#ca8a04' },
-  { name: 'ORANGE', hex: '#ea580c' },
-  { name: 'BLACK', hex: '#171717' },
+  { name: 'RED', hex: '#e11d48' },
+  { name: 'BLUE', hex: '#1d4ed8' },
+  { name: 'GREEN', hex: '#15803d' },
+  { name: 'PURPLE', hex: '#7c3aed' },
   { name: 'PINK', hex: '#db2777' },
-  { name: 'BROWN', hex: '#92400e' },
+  { name: 'CYAN', hex: '#0891b2' },
+  { name: 'BLACK', hex: '#0f172a' },
+  { name: 'WHITE', hex: '#f8fafc', onDark: true },
 ]
 
 /** @deprecated use STARTER_COLORS / POPULAR_COLORS — kept for older imports */
@@ -124,7 +145,9 @@ export const BASIC_COLORS = POPULAR_COLORS
 export const SIMILAR_COLORS = POPULAR_COLORS
 
 export function colorsForColorWordLevel(level: number): readonly ColorEntry[] {
-  return level <= 1 ? STARTER_COLORS : POPULAR_COLORS
+  if (level <= 1) return STARTER_COLORS
+  if (level <= 3) return POPULAR_COLORS.slice(0, 6)
+  return POPULAR_COLORS
 }
 
 /** Softens high levels slightly on touch / narrow screens. */

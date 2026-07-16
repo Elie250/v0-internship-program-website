@@ -8,6 +8,7 @@ import { GameTimer } from '@/components/brain-training/timer'
 import { ScoreBoard } from '@/components/brain-training/score-board'
 import { GameAnswerBar } from '@/components/brain-training/game-answer-bar'
 import { GameLaunchScreen } from '@/components/brain-training/game-launch-screen'
+import { StageGate } from '@/components/brain-training/stage-gate'
 import {
   feedbackPulse,
   useLockBodyScroll,
@@ -17,6 +18,8 @@ import {
 } from '@/components/brain-training/use-brain-play'
 import {
   SEQUENCE_LEVELS,
+  STAGE_PASS_ACCURACY,
+  bridgeLineCount,
   computeScore,
   playSeconds,
   type GameResultPayload,
@@ -24,46 +27,113 @@ import {
 import { getGameDef } from '@/lib/brain-training/catalog'
 import { StageRail } from '@/components/brain-training/stage-rail'
 import { cn } from '@/lib/utils'
-import type { DrillPhase } from '@/components/brain-training/types'
+import type { DrillPhase, StageGateState } from '@/components/brain-training/types'
 import { trackBrainEngagement } from '@/lib/brain-training/client-engagement'
 
 type Flash = 'correct' | 'incorrect' | null
 type CharMode = 'numbers' | 'letters' | 'mixed'
 
 type Challenge = {
+  mode: 'pair' | 'bridge'
   left: string
   right: string
+  /** Multi-line mode: ask if first line === last line */
+  lines: string[]
   identical: boolean
 }
 
-function randomChar(mode: CharMode): string {
-  if (mode === 'numbers') return String(Math.floor(Math.random() * 10))
-  if (mode === 'letters') return String.fromCharCode(65 + Math.floor(Math.random() * 26))
-  const pool = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+function randomChar(mode: CharMode, hard = false): string {
+  if (mode === 'numbers') {
+    if (hard) {
+      const pool = '018356'
+      return pool[Math.floor(Math.random() * pool.length)]!
+    }
+    return String(Math.floor(Math.random() * 10))
+  }
+  if (mode === 'letters') {
+    if (hard) {
+      const pool = 'OQDBG8'
+      return pool[Math.floor(Math.random() * pool.length)]!
+    }
+    return String.fromCharCode(65 + Math.floor(Math.random() * 26))
+  }
+  const pool = hard ? '0O1I8B5S' : 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   return pool[Math.floor(Math.random() * pool.length)]!
 }
 
-function buildSequence(length: number, mode: CharMode): string {
-  return Array.from({ length }, () => randomChar(mode)).join('')
+function similarSwap(ch: string): string {
+  const map: Record<string, string[]> = {
+    '0': ['O', '8', 'Q'],
+    O: ['0', 'Q', 'D'],
+    '1': ['I', '7', 'L'],
+    I: ['1', 'L', 'T'],
+    '8': ['B', '0', '3'],
+    B: ['8', 'R', 'D'],
+    '5': ['S', '6'],
+    S: ['5', '8'],
+  }
+  const opts = map[ch]
+  if (!opts?.length) return ch
+  return opts[Math.floor(Math.random() * opts.length)]!
 }
 
-function buildChallenge(length: number, mode: CharMode): Challenge {
-  const left = buildSequence(length, mode)
-  const identical = Math.random() < 0.5
-  if (identical) return { left, right: left, identical: true }
+function buildSequence(length: number, mode: CharMode, hard = false): string {
+  return Array.from({ length }, () => randomChar(mode, hard)).join('')
+}
 
+function mutateSequence(left: string, mode: CharMode, hard: boolean): string {
   const chars = left.split('')
   const idx = Math.floor(Math.random() * chars.length)
-  let replacement = randomChar(mode)
-  while (replacement === chars[idx]) replacement = randomChar(mode)
-  chars[idx] = replacement
-  if (length >= 12 && Math.random() < 0.35) {
-    const idx2 = (idx + 3) % chars.length
-    let r2 = randomChar(mode)
-    while (r2 === chars[idx2]) r2 = randomChar(mode)
-    chars[idx2] = r2
+  if (hard && Math.random() < 0.65) {
+    const swap = similarSwap(chars[idx]!)
+    chars[idx] = swap === chars[idx] ? randomChar(mode, true) : swap
+  } else {
+    let replacement = randomChar(mode, hard)
+    while (replacement === chars[idx]) replacement = randomChar(mode, hard)
+    chars[idx] = replacement
   }
-  return { left, right: chars.join(''), identical: false }
+  if (left.length >= 10 && Math.random() < (hard ? 0.55 : 0.35)) {
+    const idx2 = (idx + 3) % chars.length
+    if (hard) {
+      const swap = similarSwap(chars[idx2]!)
+      chars[idx2] = swap === chars[idx2] ? randomChar(mode, true) : swap
+    } else {
+      let r2 = randomChar(mode)
+      while (r2 === chars[idx2]) r2 = randomChar(mode)
+      chars[idx2] = r2
+    }
+  }
+  return chars.join('')
+}
+
+function buildChallenge(length: number, mode: CharMode, level: number): Challenge {
+  const hard = level >= 4
+  const lineCount = bridgeLineCount(level)
+
+  if (lineCount <= 1) {
+    const left = buildSequence(length, mode, hard)
+    const identical = Math.random() < 0.5
+    if (identical) return { mode: 'pair', left, right: left, lines: [left], identical: true }
+    const right = mutateSequence(left, mode, hard)
+    return { mode: 'pair', left, right, lines: [left, right], identical: false }
+  }
+
+  // Multi-line: is the first line identical to the last?
+  const identical = Math.random() < 0.5
+  const first = buildSequence(length, mode, hard)
+  const last = identical ? first : mutateSequence(first, mode, hard)
+  const lines: string[] = [first]
+  for (let i = 1; i < lineCount - 1; i++) {
+    lines.push(buildSequence(length, mode, hard))
+  }
+  lines.push(last)
+  return {
+    mode: 'bridge',
+    left: first,
+    right: last,
+    lines,
+    identical,
+  }
 }
 
 type Props = {
@@ -88,6 +158,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
   const [saved, setSaved] = useState(false)
   const [flash, setFlash] = useState<Flash>(null)
   const [warmupLeft, setWarmupLeft] = useState(3)
+  const [stageGate, setStageGate] = useState<StageGateState | null>(null)
   const startedAt = useRef(0)
   const sessionStart = useRef(0)
   const answering = useRef(false)
@@ -107,7 +178,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
     [onPhaseChange, canPersist]
   )
 
-  useLockBodyScroll(phase === 'playing' || phase === 'warmup')
+  useLockBodyScroll(phase === 'playing' || phase === 'warmup' || phase === 'stage-gate')
 
   const levelConfig =
     SEQUENCE_LEVELS[Math.max(0, Math.min(level, SEQUENCE_LEVELS.length) - 1)] ??
@@ -157,10 +228,11 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       setTimes([])
       setSaved(false)
       setFlash(null)
+      setStageGate(null)
       sessionStart.current = Date.now()
       const m = nextMode(0)
       setMode(m)
-      setChallenge(buildChallenge(cfg.length, m))
+      setChallenge(buildChallenge(cfg.length, m, nextLevel))
       setSecondsLeft(nextSeconds)
       startedAt.current = Date.now()
       answering.current = false
@@ -173,7 +245,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
     clearFlashTimer()
     setWarmupLeft(3)
     setMode('numbers')
-    setChallenge(buildChallenge(5, 'numbers'))
+    setChallenge(buildChallenge(5, 'numbers', 1))
     setFlash(null)
     answering.current = false
     setDrillPhase('warmup')
@@ -193,6 +265,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       answering.current = false
       clearFlashTimer()
       setFlash(null)
+      setStageGate(null)
       setCorrect(finalCorrect)
       setTimes(finalTimes)
       setLevel(finalLevel)
@@ -229,6 +302,25 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
     [canPersist, onPersist, touchLayout, setDrillPhase]
   )
 
+  const openStageGate = useCallback(
+    (nextCorrect: number, nextTimes: number[], stageLevel: number) => {
+      const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
+      setCorrect(nextCorrect)
+      setTimes(nextTimes)
+      setLevel(stageLevel)
+      setStageGate({
+        passed: acc >= STAGE_PASS_ACCURACY,
+        level: stageLevel,
+        correct: nextCorrect,
+        total: nextTimes.length,
+        accuracy: Math.round(acc * 100),
+      })
+      answering.current = false
+      setDrillPhase('stage-gate')
+    },
+    [setDrillPhase]
+  )
+
   const advance = useCallback(
     (wasCorrect: boolean, responseMs: number) => {
       if (answering.current || sessionClosed.current || phase !== 'playing') return
@@ -241,13 +333,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       const afterFlash = () => {
         setFlash(null)
         if (nextIndex >= levelConfig.questions) {
-          const acc = nextTimes.length > 0 ? nextCorrect / nextTimes.length : 0
-          if (acc >= 0.7 && level < SEQUENCE_LEVELS.length) {
-            answering.current = false
-            startLevel(level + 1)
-            return
-          }
-          void finish(nextCorrect, nextTimes, level)
+          openStageGate(nextCorrect, nextTimes, level)
           return
         }
 
@@ -256,7 +342,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
         setIndex(nextIndex)
         const m = nextMode(nextIndex)
         setMode(m)
-        setChallenge(buildChallenge(levelConfig.length, m))
+        setChallenge(buildChallenge(levelConfig.length, m, level))
         setSecondsLeft(seconds)
         startedAt.current = Date.now()
         answering.current = false
@@ -279,8 +365,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       levelConfig.length,
       seconds,
       level,
-      startLevel,
-      finish,
+      openStageGate,
       flashMs,
     ]
   )
@@ -299,7 +384,7 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
         return
       }
       setWarmupLeft((n) => n - 1)
-      setChallenge(buildChallenge(5, 'numbers'))
+      setChallenge(buildChallenge(5, 'numbers', 1))
     }
     if (flashMs <= 0) done()
     else flashTimer.current = window.setTimeout(done, flashMs)
@@ -329,17 +414,27 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
   )
 
   useYesNoShortcuts({
-    enabled: phase === 'intro' || phase === 'playing' || phase === 'warmup' || phase === 'result',
+    enabled:
+      phase === 'intro' ||
+      phase === 'playing' ||
+      phase === 'warmup' ||
+      phase === 'result' ||
+      phase === 'stage-gate',
     onYes: () => {
       if (phase === 'playing') answer(true)
       if (phase === 'warmup') answerWarmup(true)
+      if (phase === 'stage-gate' && stageGate?.passed) {
+        if (stageGate.level < SEQUENCE_LEVELS.length) startLevel(stageGate.level + 1)
+        else void finish(stageGate.correct, times, stageGate.level)
+      }
     },
     onNo: () => {
       if (phase === 'playing') answer(false)
       if (phase === 'warmup') answerWarmup(false)
+      if (phase === 'stage-gate' && stageGate && !stageGate.passed) startLevel(stageGate.level)
     },
     onStart: phase === 'intro' ? () => startLevel(1) : undefined,
-    onExit: phase === 'playing' || phase === 'warmup' ? exitToIntro : undefined,
+    onExit: phase === 'playing' || phase === 'warmup' || phase === 'stage-gate' ? exitToIntro : undefined,
     onReplay: phase === 'result' ? () => startLevel(1) : undefined,
   })
 
@@ -372,13 +467,34 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
     )
   }
 
-  const prompt =
+  const isBridge = challenge?.mode === 'bridge'
+  const questionLine =
     phase === 'warmup'
-      ? `Warm-up · ${4 - warmupLeft}/3 — are these sequences identical?`
-      : 'Are these sequences identical?'
+      ? `Warm-up ${4 - warmupLeft}/3 — identical?`
+      : isBridge
+        ? 'Is the FIRST line identical to the LAST line?'
+        : 'Are A and B identical?'
+  const hardDistract = level >= 4 && phase === 'playing'
+  const gateLevel =
+    SEQUENCE_LEVELS[Math.max(0, Math.min((stageGate?.level || level) - 1, SEQUENCE_LEVELS.length - 1))]!
 
   return (
     <div className="max-w-xl mx-auto overscroll-none">
+      {phase === 'stage-gate' && stageGate ? (
+        <StageGate
+          level={stageGate.level}
+          levelLabel={gateLevel.label}
+          passed={stageGate.passed}
+          correct={stageGate.correct}
+          total={stageGate.total}
+          accuracy={stageGate.accuracy}
+          hasNextStage={stageGate.level < SEQUENCE_LEVELS.length}
+          onContinue={() => startLevel(stageGate.level + 1)}
+          onRetry={() => startLevel(stageGate.level)}
+          onFinish={() => void finish(stageGate.correct, times, stageGate.level)}
+        />
+      ) : null}
+
       <Card className="border-slate-200">
         <CardHeader className="pb-3 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -393,7 +509,9 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
                 : `${index + 1} / ${levelConfig.questions}`}
             </span>
           </div>
-          {phase === 'playing' ? <StageRail total={SEQUENCE_LEVELS.length} current={level} /> : null}
+          {phase === 'playing' || phase === 'stage-gate' ? (
+            <StageRail total={SEQUENCE_LEVELS.length} current={level} />
+          ) : null}
           {phase === 'playing' ? (
             <>
               <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -404,28 +522,51 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
               </div>
               <GameTimer secondsLeft={secondsLeft} totalSeconds={seconds} />
             </>
-          ) : (
+          ) : phase === 'warmup' ? (
             <p className="text-xs text-slate-500">Practice only — nothing is scored or saved.</p>
-          )}
+          ) : null}
         </CardHeader>
-        <CardContent className="space-y-3 sm:space-y-4 pb-[9.75rem] md:pb-4">
+        <CardContent className="space-y-3 sm:space-y-4 pb-[8.5rem] md:pb-4">
           <div
             className={cn(
-              'grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3 rounded-xl transition-colors',
+              'rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-3 py-4 sm:px-4 sm:py-5 space-y-3 transition-colors',
               !reducedMotion && 'duration-150',
-              flash === 'correct' && 'bg-emerald-50/60',
-              flash === 'incorrect' && 'bg-red-50/60'
+              flash === 'correct' && 'from-emerald-50 to-emerald-50/40 border-emerald-300',
+              flash === 'incorrect' && 'from-red-50 to-red-50/40 border-red-300',
+              hardDistract && !flash && 'from-amber-50/50 via-white to-sky-50/40'
             )}
           >
-            <SequenceBox label="Sequence A" value={challenge?.left ?? ''} />
-            <SequenceBox label="Sequence B" value={challenge?.right ?? ''} />
+            {isBridge && challenge ? (
+              <div className="space-y-2">
+                {challenge.lines.map((value, i) => {
+                  const isFirst = i === 0
+                  const isLast = i === challenge.lines.length - 1
+                  return (
+                    <SequenceBox
+                      key={`${value}-${i}`}
+                      label={isFirst ? '1st' : isLast ? 'Last' : `L${i + 1}`}
+                      value={value}
+                      hard={hardDistract || isFirst || isLast}
+                      emphasize={isFirst || isLast}
+                    />
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+                <SequenceBox label="A" value={challenge?.left ?? ''} hard={hardDistract} />
+                <SequenceBox label="B" value={challenge?.right ?? ''} hard={hardDistract} />
+              </div>
+            )}
+            <p className="text-center text-base sm:text-lg font-bold text-slate-900 leading-snug">
+              {questionLine}
+            </p>
           </div>
           <div className="hidden md:block">
             <GameAnswerBar
-              prompt={prompt}
               onYes={() => (phase === 'warmup' ? answerWarmup(true) : answer(true))}
               onNo={() => (phase === 'warmup' ? answerWarmup(false) : answer(false))}
-              disabled={Boolean(flash)}
+              disabled={Boolean(flash) || phase === 'stage-gate'}
               flash={flash}
             />
           </div>
@@ -433,14 +574,9 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
       </Card>
       <div className="md:hidden">
         <GameAnswerBar
-          prompt={
-            phase === 'warmup'
-              ? `Warm-up ${4 - warmupLeft}/3 — identical?`
-              : 'Are these sequences identical?'
-          }
           onYes={() => (phase === 'warmup' ? answerWarmup(true) : answer(true))}
           onNo={() => (phase === 'warmup' ? answerWarmup(false) : answer(false))}
-          disabled={Boolean(flash)}
+          disabled={Boolean(flash) || phase === 'stage-gate'}
           flash={flash}
           showShortcuts={false}
         />
@@ -449,14 +585,38 @@ export function SequenceMatchGame({ backHref, canPersist, onPersist, onPhaseChan
   )
 }
 
-function SequenceBox({ label, value }: { label: string; value: string }) {
+function SequenceBox({
+  label,
+  value,
+  hard,
+  emphasize,
+}: {
+  label: string
+  value: string
+  hard?: boolean
+  emphasize?: boolean
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3.5 sm:py-3 min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
-        {label}
+    <div
+      className={cn(
+        'rounded-xl border px-3 py-3 sm:py-2.5 min-w-0',
+        emphasize
+          ? 'border-[var(--brand-navy)]/30 bg-white shadow-sm'
+          : hard
+            ? 'border-slate-300 bg-white/80'
+            : 'border-slate-200 bg-slate-50'
+      )}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+        {label === 'A' || label === 'B' ? `Sequence ${label}` : label}
       </p>
       <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-        <p className="font-mono text-lg sm:text-lg md:text-xl tracking-[0.14em] sm:tracking-[0.12em] text-slate-900 whitespace-nowrap text-center font-bold inline-block min-w-full">
+        <p
+          className={cn(
+            'font-mono tracking-[0.14em] sm:tracking-[0.12em] text-slate-900 whitespace-nowrap text-center font-bold inline-block min-w-full',
+            emphasize || hard ? 'text-lg sm:text-xl' : 'text-base md:text-lg'
+          )}
+        >
           {value}
         </p>
       </div>

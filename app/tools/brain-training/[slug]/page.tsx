@@ -48,7 +48,7 @@ export default function BrainTrainingSlugPage() {
     }
   }
 
-  const focusMode = phase === 'playing' || phase === 'warmup'
+  const focusMode = phase === 'playing' || phase === 'warmup' || phase === 'stage-gate'
 
   return (
     <DrillPageShell academyHref="/tools/brain-training" focusMode={focusMode}>

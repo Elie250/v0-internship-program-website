@@ -46,11 +46,11 @@ export const BRAIN_GAME_CATALOG: readonly BrainGameDef[] = [
   {
     slug: 'color-word',
     name: 'Color-Word Rush',
-    shortTagline: 'Look at ink color — simple words only',
+    shortTagline: 'Clear colors · later stages use multi-line tricks',
     category: 'cognitive',
     categoryLabel: 'Cognitive',
     skills: ['Attention', 'Speed'],
-    maxLevel: 6,
+    maxLevel: 10,
     estimatedMinutes: 5,
     kind: 'custom',
     art: {
@@ -63,11 +63,11 @@ export const BRAIN_GAME_CATALOG: readonly BrainGameDef[] = [
   {
     slug: 'sequence-match',
     name: 'Sequence Spotter',
-    shortTagline: 'Catch the one different digit',
+    shortTagline: 'Spot differences · later stages stack more lines',
     category: 'memory',
     categoryLabel: 'Memory',
     skills: ['Memory', 'Detail'],
-    maxLevel: 6,
+    maxLevel: 10,
     estimatedMinutes: 5,
     kind: 'custom',
     art: {
