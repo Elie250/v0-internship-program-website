@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Clock3, Play, Zap } from 'lucide-react'
 import type { BrainGameDef } from '@/lib/brain-training/catalog'
 import { cn } from '@/lib/utils'
+import { normalizePublicMediaUrl } from '@/lib/media/safe-url'
 
 type Props = {
   game: BrainGameDef
@@ -25,9 +26,7 @@ export function GameLaunchScreen({
   className,
 }: Props) {
   const cover =
-    typeof thumbnailUrl === 'string' && /^https?:\/\//i.test(thumbnailUrl.trim())
-      ? thumbnailUrl.trim()
-      : null
+    typeof thumbnailUrl === 'string' ? normalizePublicMediaUrl(thumbnailUrl) : null
 
   return (
     <div

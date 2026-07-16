@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { GameCoverArt } from '@/components/brain-training/game-cover-art'
+import type { GameArtTheme } from '@/lib/brain-training/catalog'
 
 export type ShuffleCardItem = {
   id: string
@@ -14,6 +16,8 @@ export type ShuffleCardItem = {
   badge?: string
   artFrom?: string
   artTo?: string
+  /** Full Arcade cover art when no uploaded thumbnail */
+  art?: Pick<GameArtTheme, 'from' | 'to' | 'accent' | 'pattern'>
   ctaLabel?: string
 }
 
@@ -87,13 +91,11 @@ function ShuffleSlot({
             visible ? 'opacity-100' : 'opacity-0'
           )}
         >
-          {item.imageUrl ? (
-            <Image
-              src={item.imageUrl}
-              alt=""
-              fill
-              className="object-cover transition duration-500 group-hover:scale-105"
-              unoptimized
+          {item.art ? (
+            <GameCoverArt
+              art={item.art}
+              patternId={`home-game-${item.id}`}
+              className="absolute inset-0"
             />
           ) : (
             <div
@@ -103,6 +105,15 @@ function ShuffleSlot({
               }}
             />
           )}
+          {item.imageUrl ? (
+            <Image
+              src={item.imageUrl}
+              alt=""
+              fill
+              className="object-cover transition duration-500 group-hover:scale-105"
+              unoptimized
+            />
+          ) : null}
         </div>
       </div>
       <div

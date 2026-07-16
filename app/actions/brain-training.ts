@@ -181,35 +181,8 @@ export async function getBrainTrainingLeaderboard(gameSlug: string, limit = 10) 
 export async function getBrainGamesForHub(): Promise<
   Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
 > {
-  try {
-    if (!supabaseAdmin) return []
-
-    const withSort = await supabaseAdmin
-      .from('brain_games')
-      .select('slug, thumbnail_url, is_active, sort_order')
-      .order('sort_order', { ascending: true })
-
-    const rows =
-      withSort.error || !withSort.data
-        ? (
-            await supabaseAdmin.from('brain_games').select('slug, is_active')
-          ).data
-        : withSort.data
-
-    if (!rows) return []
-
-    return rows.map((row) => {
-      const thumb = (row as { thumbnail_url?: unknown }).thumbnail_url
-      const thumbStr = typeof thumb === 'string' ? thumb.trim() : ''
-      return {
-        slug: String(row.slug),
-        thumbnailUrl: /^https?:\/\//i.test(thumbStr) ? thumbStr : null,
-        isActive: row.is_active !== false,
-      }
-    })
-  } catch {
-    return []
-  }
+  const { fetchBrainGamesForHub } = await import('@/lib/brain-training/hub-catalog')
+  return fetchBrainGamesForHub()
 }
 
 export type MyBrainProgressRow = {

@@ -341,8 +341,27 @@ export default function BrainGamesManagement() {
               label="Game thumbnail / cover art"
               folder="brain-games"
               value={form.thumbnail_url}
-              onChange={(url) => setForm((f) => ({ ...f, thumbnail_url: url }))}
+              onChange={(url) => {
+                setForm((f) => ({ ...f, thumbnail_url: url }))
+                // Upload sets the full CDN URL in one shot — persist immediately
+                const isUploadUrl =
+                  Boolean(editing?.id) &&
+                  /^https?:\/\//i.test(url) &&
+                  (url.includes('/brain-games/') || url.includes('brain-games%2F'))
+                if (isUploadUrl) {
+                  void fetch('/api/admin/brain-games', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: editing!.id, thumbnail_url: url }),
+                  }).then((res) => {
+                    if (res.ok) void load()
+                  })
+                }
+              }}
             />
+            <p className="text-xs text-slate-500 -mt-1">
+              File upload saves the cover immediately. If you paste a URL, click Save changes.
+            </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Sort order</Label>

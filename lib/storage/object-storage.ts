@@ -28,11 +28,15 @@ export function getR2BucketName(): string {
 
 /** Public CDN base, e.g. https://media.energyandlogics.com */
 export function getMediaPublicBaseUrl(): string | null {
-  const base =
+  let base =
     process.env.R2_PUBLIC_BASE_URL?.trim() ||
     process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL?.trim() ||
     null
-  return base ? base.replace(/\/$/, '') : null
+  if (!base) return null
+  base = base.replace(/\/$/, '')
+  if (base.startsWith('//')) base = `https:${base}`
+  else if (!/^https?:\/\//i.test(base)) base = `https://${base}`
+  return base
 }
 
 function getR2Client(): S3Client {

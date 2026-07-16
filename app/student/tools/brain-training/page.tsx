@@ -8,7 +8,6 @@ import { getStudentPortalData } from '@/app/actions/student-learning'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
 import {
-  getBrainGamesForHub,
   getBrainTrainingLeaderboard,
   getMyBrainProgress,
   type MyBrainProgressRow,
@@ -27,8 +26,11 @@ export default function StudentBrainTrainingPage() {
   const [progress, setProgress] = useState<MyBrainProgressRow[]>([])
 
   useEffect(() => {
-    void getBrainGamesForHub()
-      .then(setCatalogRows)
+    void fetch('/api/public/brain-games', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data: { games?: Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }> }) => {
+        setCatalogRows(Array.isArray(data.games) ? data.games : [])
+      })
       .catch(() => setCatalogRows([]))
 
     getStudentPortalData().then((result) => {

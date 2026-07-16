@@ -9,7 +9,6 @@ import { isDeliveryPortalRole, deliveryLoginRoleForUser } from '@/lib/lecturer/d
 import { LecturerPortalShell } from '@/components/lecturer/lecturer-portal-shell'
 import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
 import {
-  getBrainGamesForHub,
   getBrainTrainingLeaderboard,
   getMyBrainProgress,
   type MyBrainProgressRow,
@@ -28,8 +27,11 @@ export default function LecturerBrainTrainingPage() {
   const [progress, setProgress] = useState<MyBrainProgressRow[]>([])
 
   useEffect(() => {
-    void getBrainGamesForHub()
-      .then(setCatalogRows)
+    void fetch('/api/public/brain-games', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data: { games?: Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }> }) => {
+        setCatalogRows(Array.isArray(data.games) ? data.games : [])
+      })
       .catch(() => setCatalogRows([]))
 
     void getCurrentUser().then((user) => {

@@ -6,7 +6,6 @@ import { ArrowLeft } from 'lucide-react'
 import { BrainAcademyHub } from '@/components/brain-training/brain-academy-hub'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import {
-  getBrainGamesForHub,
   getBrainTrainingLeaderboard,
   getMyBrainProgress,
   type MyBrainProgressRow,
@@ -17,6 +16,8 @@ type Props = {
   basePath?: string
   toolsHref?: string
 }
+
+type CatalogRow = { slug: string; thumbnailUrl: string | null; isActive: boolean }
 
 /**
  * Client island only — parent server page owns SiteHeader/SiteFooter so async
@@ -30,14 +31,15 @@ export function BrainArcadeClient({
   const [board, setBoard] = useState<
     Array<{ name: string; score: number; accuracy: number; level: number; game?: string }>
   >([])
-  const [catalogRows, setCatalogRows] = useState<
-    Array<{ slug: string; thumbnailUrl: string | null; isActive: boolean }>
-  >([])
+  const [catalogRows, setCatalogRows] = useState<CatalogRow[]>([])
   const [progress, setProgress] = useState<MyBrainProgressRow[]>([])
 
   useEffect(() => {
-    void getBrainGamesForHub()
-      .then(setCatalogRows)
+    void fetch('/api/public/brain-games', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data: { games?: CatalogRow[] }) => {
+        setCatalogRows(Array.isArray(data.games) ? data.games : [])
+      })
       .catch(() => setCatalogRows([]))
 
     void getCurrentUser()

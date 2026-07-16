@@ -1,5 +1,7 @@
 import { supabaseAdmin, supabaseAdminConfig } from '@/lib/supabaseAdmin'
 import { BRAIN_GAME_CATALOG } from '@/lib/brain-training/catalog'
+import { normalizePublicMediaUrl } from '@/lib/media/safe-url'
+import { revalidatePath } from 'next/cache'
 
 export type BrainGameCatalogRow = {
   id?: string
@@ -67,7 +69,7 @@ function mapBrainGameAdminRow(row: Record<string, unknown>): BrainGameCatalogRow
     name: String(row.name),
     description: String(row.description ?? ''),
     category: String(row.category ?? 'cognitive'),
-    thumbnail_url: (row.thumbnail_url as string | null) ?? null,
+    thumbnail_url: normalizePublicMediaUrl((row.thumbnail_url as string | null) ?? null),
     is_active: row.is_active !== false,
     sort_order: Number(row.sort_order) || 100,
     short_tagline: String(row.short_tagline ?? ''),
@@ -302,5 +304,14 @@ export async function updateBrainGameRow(input: {
 
   const { error } = await supabaseAdmin.from('brain_games').update(patch).eq('id', input.id)
   if (error) return { success: false, error: formatSupabaseError(error) }
+
+  try {
+    revalidatePath('/')
+    revalidatePath('/tools/brain-training')
+    revalidatePath('/api/public/brain-games')
+  } catch {
+    /* ignore — not all runtimes support path revalidation */
+  }
+
   return { success: true }
 }
