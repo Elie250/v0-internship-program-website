@@ -217,12 +217,14 @@ export async function PATCH(request: Request) {
 
     if (wantsNameChange && data) {
       const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
-      await supabaseAdmin
-        .from('students')
-        .update({ full_name: fullName, updated_at: new Date().toISOString() })
-        .eq('email', data.email)
-        .then(() => undefined)
-        .catch(() => undefined)
+      try {
+        await supabaseAdmin
+          .from('students')
+          .update({ full_name: fullName, updated_at: new Date().toISOString() })
+          .eq('email', data.email)
+      } catch {
+        // Legacy students table may be missing — name is already saved on users.
+      }
       await refreshSessionForUser(user.id)
     }
 
