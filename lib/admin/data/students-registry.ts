@@ -20,6 +20,7 @@ export type StudentRegistryRow = {
   role: string
   status: string
   createdAt: string
+  selfEditLocked: boolean
   enrollments: StudentEnrollmentSummary[]
   activeEnrollments: number
   pendingEnrollments: number
@@ -34,7 +35,7 @@ export async function queryStudentsRegistry(filters?: {
 
   let userQuery = supabaseAdmin
     .from('users')
-    .select('id, email, first_name, last_name, phone, role, status, created_at')
+    .select('id, email, first_name, last_name, phone, role, status, created_at, self_edit_locked')
     .in('role', ['student', 'registered'])
     .order('created_at', { ascending: false })
 
@@ -45,7 +46,23 @@ export async function queryStudentsRegistry(filters?: {
     )
   }
 
-  const { data: users, error: userError } = await userQuery
+  let { data: users, error: userError } = await userQuery
+  if (userError?.message?.includes('self_edit_locked')) {
+    let fallbackQuery = supabaseAdmin
+      .from('users')
+      .select('id, email, first_name, last_name, phone, role, status, created_at')
+      .in('role', ['student', 'registered'])
+      .order('created_at', { ascending: false })
+    if (filters?.search?.trim()) {
+      const term = filters.search.trim()
+      fallbackQuery = fallbackQuery.or(
+        `email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%,phone.ilike.%${term}%`
+      )
+    }
+    const fallback = await fallbackQuery
+    users = fallback.data
+    userError = fallback.error
+  }
   if (userError) return { students: [], error: userError.message }
 
   const userIds = (users ?? []).map((u) => u.id)
@@ -100,6 +117,7 @@ export async function queryStudentsRegistry(filters?: {
       role: String(u.role),
       status: String(u.status ?? 'active'),
       createdAt: u.created_at,
+      selfEditLocked: Boolean((u as { self_edit_locked?: boolean }).self_edit_locked),
       enrollments,
       activeEnrollments: enrollments.filter((e) => e.status === 'admitted').length,
       pendingEnrollments: enrollments.filter((e) =>

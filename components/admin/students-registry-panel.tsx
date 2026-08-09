@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { Download } from 'lucide-react'
 import { adminStatusClass } from '@/components/admin/admin-section-header'
 
@@ -16,6 +18,7 @@ type StudentRow = {
   role: string
   status: string
   createdAt: string
+  selfEditLocked: boolean
   enrollments: Array<{
     enrollmentId: string
     courseTitle: string
@@ -63,6 +66,10 @@ export function StudentsRegistryPanel() {
   const [debounced, setDebounced] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [accountEditsOpen, setAccountEditsOpen] = useState(true)
+  const [periodBusy, setPeriodBusy] = useState(false)
+  const [lockBusyId, setLockBusyId] = useState<string | null>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 300)
@@ -77,7 +84,14 @@ export function StudentsRegistryPanel() {
       const res = await fetch(`/api/admin/students${params}`, { credentials: 'same-origin' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load students')
-      setStudents(Array.isArray(data) ? data : [])
+      if (Array.isArray(data)) {
+        setStudents(data)
+      } else {
+        setStudents(Array.isArray(data.students) ? data.students : [])
+        if (typeof data.accountEditsOpen === 'boolean') {
+          setAccountEditsOpen(data.accountEditsOpen)
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load students')
       setStudents([])
@@ -86,12 +100,85 @@ export function StudentsRegistryPanel() {
     }
   }, [debounced])
 
+  const patchStudents = async (body: Record<string, unknown>) => {
+    const res = await fetch('/api/admin/students', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Update failed')
+    return data as { message?: string }
+  }
+
+  const togglePeriod = async (open: boolean) => {
+    setPeriodBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const data = await patchStudents({ action: 'set_period', open })
+      setAccountEditsOpen(open)
+      setNotice(data.message || 'Registration period updated.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update period')
+    } finally {
+      setPeriodBusy(false)
+    }
+  }
+
+  const toggleLock = async (student: StudentRow, locked: boolean) => {
+    setLockBusyId(student.id)
+    setError('')
+    setNotice('')
+    try {
+      const data = await patchStudents({ action: 'set_lock', id: student.id, locked })
+      setStudents((list) =>
+        list.map((s) => (s.id === student.id ? { ...s, selfEditLocked: locked } : s))
+      )
+      setNotice(data.message || 'Student edit access updated.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update student lock')
+    } finally {
+      setLockBusyId(null)
+    }
+  }
+
   useEffect(() => {
     void load()
   }, [load])
 
   return (
     <div className="space-y-4">
+      <Card className="border-slate-200 bg-white">
+        <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-slate-900">Registration period — name & password edits</p>
+            <p className="text-sm text-slate-600 mt-0.5">
+              Open: students may correct their name and password. Closed (admin selected): edits are denied.
+              You can also lock a single student below.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <Label htmlFor="reg-period" className="text-sm text-slate-800">
+              {accountEditsOpen ? 'Open' : 'Closed'}
+            </Label>
+            <Switch
+              id="reg-period"
+              checked={accountEditsOpen}
+              disabled={periodBusy}
+              onCheckedChange={(checked) => void togglePeriod(checked)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {notice ? (
+        <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md p-3">
+          {notice}
+        </p>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-600">
           All student accounts with contact details and programme enrollments.
@@ -141,6 +228,16 @@ export function StudentsRegistryPanel() {
                     </Badge>
                   </div>
                   <p className="text-sm text-slate-700">{s.phone ?? 'No phone'}</p>
+                  <div className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-3 py-2">
+                    <span className="text-xs text-slate-700">
+                      {s.selfEditLocked ? 'Name/password locked' : 'Can edit name/password'}
+                    </span>
+                    <Switch
+                      checked={!s.selfEditLocked}
+                      disabled={lockBusyId === s.id}
+                      onCheckedChange={(allowed) => void toggleLock(s, !allowed)}
+                    />
+                  </div>
                   <p className="text-sm text-slate-800">
                     <span className="font-semibold text-emerald-800">{s.activeEnrollments}</span> active
                     {s.pendingEnrollments > 0 ? (
@@ -173,6 +270,7 @@ export function StudentsRegistryPanel() {
                 <th className="py-3 px-4 font-semibold">Student</th>
                 <th className="py-3 px-4 font-semibold">Phone</th>
                 <th className="py-3 px-4 font-semibold">Account</th>
+                <th className="py-3 px-4 font-semibold">Self-edit</th>
                 <th className="py-3 px-4 font-semibold">Enrollments</th>
                 <th className="py-3 px-4 font-semibold">Programmes</th>
               </tr>
@@ -191,6 +289,18 @@ export function StudentsRegistryPanel() {
                   <td className="py-3 px-4">
                     <Badge variant="outline" className={adminStatusClass(s.status)}>{s.status}</Badge>
                     <p className="text-xs text-slate-500 mt-1">{s.role}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={!s.selfEditLocked}
+                        disabled={lockBusyId === s.id}
+                        onCheckedChange={(allowed) => void toggleLock(s, !allowed)}
+                      />
+                      <span className="text-xs text-slate-600">
+                        {s.selfEditLocked ? 'Denied' : accountEditsOpen ? 'Allowed' : 'Period closed'}
+                      </span>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-slate-700">
                     <span className="font-medium text-green-700">{s.activeEnrollments}</span> active

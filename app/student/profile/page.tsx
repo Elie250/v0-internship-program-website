@@ -11,8 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { User, Mail, BookOpen, Users, Camera } from 'lucide-react'
+import { User, Mail, BookOpen, Users, Camera, Lock } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
+
+type AccountEditAccess = {
+  periodOpen: boolean
+  lockedByAdmin: boolean
+  canEdit: boolean
+  reason: string | null
+}
 
 type StudentProfile = {
   phone: string
@@ -38,6 +45,17 @@ export default function StudentProfilePage() {
     lastName?: string
     email: string
   } | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [accountEdit, setAccountEdit] = useState<AccountEditAccess>({
+    periodOpen: false,
+    lockedByAdmin: false,
+    canEdit: false,
+    reason: 'Checking edit access…',
+  })
   const [profile, setProfile] = useState<StudentProfile>({
     phone: '',
     profile_photo_url: '',
@@ -63,6 +81,8 @@ export default function StudentProfilePage() {
         lastName: user.lastName,
         email: user.email,
       })
+      setFirstName(user.firstName ?? '')
+      setLastName(user.lastName ?? '')
       setUserName(
         [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
       )
@@ -81,6 +101,16 @@ export default function StudentProfilePage() {
             parent_guardian_email: data.parent_guardian_email ?? '',
             parent_guardian_relationship: data.parent_guardian_relationship ?? '',
           })
+          if (data.first_name) setFirstName(String(data.first_name))
+          if (data.last_name) setLastName(String(data.last_name))
+          if (data.accountEdit) {
+            setAccountEdit(data.accountEdit as AccountEditAccess)
+          }
+          setUserName(
+            [data.first_name ?? user.firstName, data.last_name ?? user.lastName]
+              .filter(Boolean)
+              .join(' ') || user.email
+          )
         })
       } else {
         setProfile((p) => ({ ...p, phone: user.phone ?? '' }))
@@ -92,6 +122,10 @@ export default function StudentProfilePage() {
 
   const saveProfile = async (overrides?: Partial<StudentProfile>) => {
     const payload = { ...profile, ...overrides }
+    if (accountEdit.canEdit && newPassword && newPassword !== confirmPassword) {
+      setSaveError('New password and confirmation do not match.')
+      return
+    }
     setSaving(true)
     setSaveError('')
     setSaveMessage('')
@@ -107,12 +141,45 @@ export default function StudentProfilePage() {
           parentGuardianPhone: payload.parent_guardian_phone,
           parentGuardianEmail: payload.parent_guardian_email,
           parentGuardianRelationship: payload.parent_guardian_relationship,
+          ...(accountEdit.canEdit
+            ? {
+                firstName,
+                lastName,
+                ...(newPassword
+                  ? { currentPassword, newPassword }
+                  : {}),
+              }
+            : {}),
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to save')
       if (overrides) setProfile(payload)
-      setSaveMessage('Profile saved. Your photo will appear on certificates when you print them.')
+      if (data.first_name || data.last_name) {
+        setAccount((prev) =>
+          prev
+            ? {
+                ...prev,
+                firstName: data.first_name ?? prev.firstName,
+                lastName: data.last_name ?? prev.lastName,
+              }
+            : prev
+        )
+        setUserName(
+          [data.first_name ?? firstName, data.last_name ?? lastName].filter(Boolean).join(' ') ||
+            account?.email ||
+            ''
+        )
+      }
+      if (data.accountEdit) setAccountEdit(data.accountEdit as AccountEditAccess)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setSaveMessage(
+        newPassword
+          ? 'Name and password saved.'
+          : 'Profile saved. Your photo will appear on certificates when you print them.'
+      )
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -165,18 +232,46 @@ export default function StudentProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-slate-900">
               <User className="h-5 w-5 text-[var(--brand-navy)]" />
-              Account details
+              Name &amp; password
             </CardTitle>
+            <p className="text-sm text-slate-600">
+              {accountEdit.canEdit
+                ? 'Registration period is open. You can correct your name and change your password.'
+                : accountEdit.reason ||
+                  'Name and password edits are locked. Contact an administrator.'}
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
+            {saveError ? (
+              <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-2">
+                {saveError}
+              </p>
+            ) : null}
+            {saveMessage ? (
+              <p className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md p-2">
+                {saveMessage}
+              </p>
+            ) : null}
             <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Name</p>
-                <p className="font-semibold text-slate-900 mt-1">
-                  {[account.firstName, account.lastName].filter(Boolean).join(' ') || '—'}
-                </p>
+              <div className="space-y-2">
+                <Label htmlFor="first-name">First name</Label>
+                <Input
+                  id="first-name"
+                  value={firstName}
+                  disabled={!accountEdit.canEdit}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
               </div>
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="last-name">Last name</Label>
+                <Input
+                  id="last-name"
+                  value={lastName}
+                  disabled={!accountEdit.canEdit}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Email</p>
                 <p className="font-semibold text-slate-900 mt-1 flex items-center gap-1.5">
                   <Mail className="h-4 w-4 text-slate-500" />
@@ -184,16 +279,69 @@ export default function StudentProfilePage() {
                 </p>
               </div>
             </div>
-            <p className="text-xs text-slate-500">
-              <Link href="/auth/forgot-password" className="text-[var(--brand-navy)] underline font-medium">
-                Reset your password
-              </Link>
-              {' '}or contact{' '}
-              <a href={`mailto:${COMPANY.email}`} className="text-[var(--brand-navy)] underline">
-                {COMPANY.email}
-              </a>
-              .
-            </p>
+
+            {accountEdit.canEdit ? (
+              <div className="border-t border-slate-200 pt-4 space-y-4">
+                <p className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  Change password (optional)
+                </p>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="current-password">Current password</Label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New password</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm new password</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Forgot your password?{' '}
+                <Link href="/auth/forgot-password" className="text-[var(--brand-navy)] underline font-medium">
+                  Request a reset
+                </Link>{' '}
+                or contact{' '}
+                <a href={`mailto:${COMPANY.email}`} className="text-[var(--brand-navy)] underline">
+                  {COMPANY.email}
+                </a>
+                .
+              </p>
+            )}
+
+            {accountEdit.canEdit ? (
+              <Button
+                onClick={() => void saveProfile()}
+                disabled={saving || uploading}
+                className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+              >
+                {saving ? 'Saving…' : 'Save name & password'}
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
 

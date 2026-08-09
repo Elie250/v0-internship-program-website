@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
+import bcrypt from 'bcryptjs'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { refreshSessionForUser } from '@/app/actions/auth-service'
+import { getStudentAccountEditAccess } from '@/lib/student/account-self-edit'
 
 const PROFILE_SELECT =
   'id, first_name, last_name, email, phone, role, profile_photo_url, parent_guardian_name, parent_guardian_phone, parent_guardian_email, parent_guardian_relationship'
@@ -83,7 +86,8 @@ export async function GET() {
       return NextResponse.json({ error: error?.message ?? 'Profile not found' }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    const accountEdit = await getStudentAccountEditAccess(user.id)
+    return NextResponse.json({ ...data, accountEdit })
   } catch {
     return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 })
   }
@@ -102,6 +106,64 @@ export async function PATCH(request: Request) {
     const body = await request.json()
     const payload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
+    }
+
+    const wantsNameChange = body.firstName !== undefined || body.lastName !== undefined
+    const newPassword = String(body.newPassword ?? '').trim()
+    const wantsPasswordChange = Boolean(newPassword)
+
+    if (wantsNameChange || wantsPasswordChange) {
+      const access = await getStudentAccountEditAccess(user.id)
+      if (!access.canEdit) {
+        return NextResponse.json(
+          { error: access.reason ?? 'Name and password edits are not allowed.' },
+          { status: 403 }
+        )
+      }
+    }
+
+    if (wantsNameChange) {
+      const firstName = String(body.firstName ?? '').trim()
+      const lastName = String(body.lastName ?? '').trim()
+      if (!firstName || !lastName) {
+        return NextResponse.json(
+          { error: 'First name and last name are required.' },
+          { status: 400 }
+        )
+      }
+      payload.first_name = firstName
+      payload.last_name = lastName
+    }
+
+    if (wantsPasswordChange) {
+      if (newPassword.length < 6) {
+        return NextResponse.json(
+          { error: 'New password must be at least 6 characters.' },
+          { status: 400 }
+        )
+      }
+      const currentPassword = String(body.currentPassword ?? '')
+      const { data: authRow, error: authError } = await supabaseAdmin
+        .from('users')
+        .select('password_hash')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (authError || !authRow?.password_hash) {
+        return NextResponse.json({ error: 'Could not verify current password.' }, { status: 500 })
+      }
+
+      const stored = String(authRow.password_hash)
+      const matches =
+        stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')
+          ? await bcrypt.compare(currentPassword, stored)
+          : currentPassword === stored
+
+      if (!matches) {
+        return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 })
+      }
+
+      payload.password_hash = await bcrypt.hash(newPassword, 10)
     }
 
     if (body.phone !== undefined) {
@@ -152,7 +214,20 @@ export async function PATCH(request: Request) {
     }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data as StudentProfileRow)
+
+    if (wantsNameChange && data) {
+      const fullName = [data.first_name, data.last_name].filter(Boolean).join(' ').trim()
+      await supabaseAdmin
+        .from('students')
+        .update({ full_name: fullName, updated_at: new Date().toISOString() })
+        .eq('email', data.email)
+        .then(() => undefined)
+        .catch(() => undefined)
+      await refreshSessionForUser(user.id)
+    }
+
+    const accountEdit = await getStudentAccountEditAccess(user.id)
+    return NextResponse.json({ ...(data as StudentProfileRow), accountEdit })
   } catch {
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })
   }

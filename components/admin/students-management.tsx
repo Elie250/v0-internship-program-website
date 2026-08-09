@@ -8,7 +8,7 @@ export default function StudentsManagement() {
     <div className="space-y-6">
       <AdminSectionHeader
         title="Students"
-        description="Monitor every learner account — contact details, enrollment status, and programme history. Export the registry for reporting."
+        description="Monitor learner accounts, open or close registration-period name/password edits, and lock individual students. Export the registry for reporting."
       />
       <StudentsRegistryPanel />
     </div>
