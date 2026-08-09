@@ -46,7 +46,22 @@ export async function queryStudentsRegistry(filters?: {
     )
   }
 
-  let { data: users, error: userError } = await userQuery
+  type UserRow = {
+    id: string
+    email: string
+    first_name?: string | null
+    last_name?: string | null
+    phone?: string | null
+    role?: string | null
+    status?: string | null
+    created_at: string
+    self_edit_locked?: boolean | null
+  }
+
+  const primary = await userQuery
+  let users = (primary.data as UserRow[] | null) ?? null
+  let userError = primary.error
+
   if (userError?.message?.includes('self_edit_locked')) {
     let fallbackQuery = supabaseAdmin
       .from('users')
@@ -60,7 +75,7 @@ export async function queryStudentsRegistry(filters?: {
       )
     }
     const fallback = await fallbackQuery
-    users = fallback.data
+    users = (fallback.data as UserRow[] | null) ?? null
     userError = fallback.error
   }
   if (userError) return { students: [], error: userError.message }
@@ -117,7 +132,7 @@ export async function queryStudentsRegistry(filters?: {
       role: String(u.role),
       status: String(u.status ?? 'active'),
       createdAt: u.created_at,
-      selfEditLocked: Boolean((u as { self_edit_locked?: boolean }).self_edit_locked),
+      selfEditLocked: Boolean(u.self_edit_locked),
       enrollments,
       activeEnrollments: enrollments.filter((e) => e.status === 'admitted').length,
       pendingEnrollments: enrollments.filter((e) =>
