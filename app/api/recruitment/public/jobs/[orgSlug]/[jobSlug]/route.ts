@@ -25,6 +25,7 @@ export async function GET(
         category: job.category,
         published_at: job.published_at,
         application_deadline: job.application_deadline,
+        status: job.status,
         acceptingApplications: isJobAcceptingApplications(job),
         organization: {
           name: job.organization?.name,

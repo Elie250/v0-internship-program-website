@@ -24,10 +24,10 @@ const JOB_SELECT =
   'id, organization_id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, department, skills, salary_min, salary_max, salary_currency, salary_visible, visibility, status, published_at, application_deadline, created_at, updated_at'
 
 const PUBLIC_JOB_CARD_SELECT =
-  'title, slug, description, location, employment_type, work_mode, category, published_at, application_deadline, organization:recruitment_organizations!inner(name, slug, logo_url, status)'
+  'id, title, slug, description, location, employment_type, work_mode, category, status, published_at, application_deadline, organization:recruitment_organizations!inner(name, slug, logo_url, status)'
 
 const PUBLIC_JOB_DETAIL_SELECT =
-  'title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, published_at, application_deadline, organization:recruitment_organizations!inner(name, slug, logo_url, status)'
+  'id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, status, published_at, application_deadline, organization:recruitment_organizations!inner(name, slug, logo_url, status)'
 
 export type PublicJobListFilters = {
   search?: string

@@ -15,6 +15,11 @@ function isJobAcceptingApplications(job) {
   return deadlineMs >= Date.now()
 }
 
+/** Regression: public job payloads must include status or apply UI stays closed. */
+function publicDetailIncludesStatus(select) {
+  return /(^|,\s*)status(,|$)/.test(select.replace(/\s+/g, ''))
+}
+
 function serializeApplicationDeadlineInput(value) {
   const raw = value?.trim?.() || String(value || '').trim()
   if (!raw) return null
@@ -83,10 +88,23 @@ console.log('\nJob visibility')
 assert(isJobAcceptingApplications({ status: 'published', application_deadline: null }), 'published without deadline accepts')
 assert(!isJobAcceptingApplications({ status: 'draft', application_deadline: null }), 'draft rejected')
 assert(!isJobAcceptingApplications({ status: 'closed', application_deadline: '2099-01-01T00:00:00.000Z' }), 'closed status rejects even with future deadline')
+assert(!isJobAcceptingApplications({ status: undefined, application_deadline: '2099-08-22T00:00:00.000Z' }), 'missing status must not look open')
 assert(!isJobAcceptingApplications({ status: 'published', application_deadline: '2000-01-01T00:00:00.000Z' }), 'expired deadline rejected')
 assert(
-  serializeApplicationDeadlineInput('2099-06-01T00:00').endsWith('T21:59:59.999Z') ||
-    serializeApplicationDeadlineInput('2099-06-01T00:00').includes('2099-06-01') ||
+  isJobAcceptingApplications({
+    status: 'published',
+    application_deadline: '2026-08-22T21:59:59.999Z',
+  }),
+  'published + future deadline accepts'
+)
+assert(
+  publicDetailIncludesStatus(
+    'id,title,slug,status,published_at,application_deadline,organization:recruitment_organizations!inner(name,slug,logo_url,status)'
+  ),
+  'public select must include job status column'
+)
+assert(
+  serializeApplicationDeadlineInput('2099-06-01T00:00').includes('2099-06-01') ||
     serializeApplicationDeadlineInput('2099-06-01T00:00').includes('2099-05-31'),
   'midnight local deadline serializes to end-of-day ISO'
 )
