@@ -376,6 +376,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: PERMISSIONS.USERS_EDIT,
       },
       {
+        id: 'recruitment-orgs',
+        label: 'Talent organizations',
+        href: '/admin/dashboard/recruitment-orgs',
+        icon: 'users',
+        permission: PERMISSIONS.RECRUITMENT_ORGS_MANAGE,
+        description: 'Employer tenants on Energy & Logics Talent (multi-org foundation)',
+      },
+      {
         id: 'audit-log',
         label: 'Audit log',
         href: '/admin/dashboard/audit-log',

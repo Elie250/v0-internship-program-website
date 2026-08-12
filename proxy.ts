@@ -59,6 +59,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
+  if (pathname.startsWith('/app') && !user) {
+    const loginUrl = new URL('/jobs/auth/continue', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  if (pathname.startsWith('/employer') && !user) {
+    const loginUrl = new URL('/jobs/auth/continue', request.url)
+    loginUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
   if (pathname.startsWith('/admin/dashboard')) {
     const isAdmin = isAdminUser(user, adminSession)
     if (!isAdmin) {
@@ -85,5 +97,9 @@ export const config = {
     '/engineer/:path*',
     '/lecturer/:path*',
     '/learning/:path*/enroll',
+    '/app',
+    '/app/:path*',
+    '/employer',
+    '/employer/:path*',
   ],
 }

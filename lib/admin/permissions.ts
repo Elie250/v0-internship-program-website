@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   CONTENT_SERVICES: 'content:services',
   SUPPORT_TICKETS: 'support:tickets',
   SETTINGS_MANAGE: 'settings:manage',
+  RECRUITMENT_ORGS_MANAGE: 'recruitment:orgs_manage',
 } as const
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -48,6 +49,11 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: PERMISSIONS.ADMIN_ACCESS, label: 'Admin panel', description: 'Sign in and open the admin dashboard' },
       { key: PERMISSIONS.REPORTS_VIEW, label: 'Reports & overview', description: 'View dashboard stats and reports' },
       { key: PERMISSIONS.SETTINGS_MANAGE, label: 'System settings', description: 'Branding, company info, and platform settings' },
+      {
+        key: PERMISSIONS.RECRUITMENT_ORGS_MANAGE,
+        label: 'Talent organizations',
+        description: 'Create and manage employer organizations on Energy & Logics Talent',
+      },
     ],
   },
   {

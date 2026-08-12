@@ -18,6 +18,7 @@ import {
 } from '@/lib/auth/staff-registration'
 import { verifyTotpCode } from '@/lib/auth/totp'
 import { clearAuthCookies } from '@/lib/auth/session-cookies'
+import { establishUserSession } from '@/lib/auth/establish-session'
 
 type AuthRole = 'student' | 'lecturer' | 'engineer' | 'admin' | 'mentor'
 
@@ -87,37 +88,6 @@ type SessionUser = {
   first_name?: string | null
   last_name?: string | null
   permissions?: unknown
-}
-
-async function establishUserSession(user: SessionUser) {
-  const permissions = resolvePermissions(user.role, user.permissions)
-  const cookieStore = await cookies()
-  cookieStore.set(
-    'user_session',
-    JSON.stringify({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      permissions,
-    }),
-    {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-    }
-  )
-
-  if (user.role === 'admin') {
-    cookieStore.set('admin_session', 'authenticated', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-    })
-  }
 }
 
 export async function registerUser(

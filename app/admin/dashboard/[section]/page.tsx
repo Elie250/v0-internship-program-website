@@ -46,6 +46,7 @@ const SECTIONS: Record<string, ComponentType> = {
   'audit-log': dynamic(() => import('@/components/admin/audit-log-management')),
   security: dynamic(() => import('@/components/admin/admin-security-panel')),
   'mentor-requests': dynamic(() => import('@/components/admin/mentor-requests-management')),
+  'recruitment-orgs': dynamic(() => import('@/components/admin/recruitment-orgs-management')),
 }
 
 export default async function AdminSectionPage({
