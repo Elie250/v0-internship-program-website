@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getPublicJobBySlugs, isJobAcceptingApplications } from '@/lib/recruitment/jobs'
+import { getPublicJobBySlugs, isJobAcceptingApplications, applicationClosedReason } from '@/lib/recruitment/jobs'
 import { formatEmploymentType, formatWorkMode } from '@/lib/recruitment/types'
 import { MetaChip, TalentShell } from '@/components/recruitment/talent-ui'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,7 @@ export default async function PublicJobDetailPage({
   if (!job) notFound()
 
   const accepting = isJobAcceptingApplications(job)
+  const closedReason = applicationClosedReason(job)
   const org = job.organization
 
   return (
@@ -95,7 +96,9 @@ export default async function PublicJobDetailPage({
                   ) : null}
                   {!accepting ? (
                     <Badge variant="outline" className="border-amber-200 text-amber-800 bg-amber-50">
-                      Applications closed
+                      {closedReason === 'deadline_passed'
+                        ? 'Deadline passed'
+                        : 'Applications closed'}
                     </Badge>
                   ) : null}
                 </div>

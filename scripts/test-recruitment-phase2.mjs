@@ -10,7 +10,36 @@ function jobPublicPath(orgSlug, jobSlug) {
 function isJobAcceptingApplications(job) {
   if (job.status !== 'published') return false
   if (!job.application_deadline) return true
-  return new Date(job.application_deadline).getTime() >= Date.now()
+  const deadlineMs = Date.parse(job.application_deadline)
+  if (Number.isNaN(deadlineMs)) return false
+  return deadlineMs >= Date.now()
+}
+
+function serializeApplicationDeadlineInput(value) {
+  const raw = value?.trim?.() || String(value || '').trim()
+  if (!raw) return null
+  const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (localMatch) {
+    let hours = Number(localMatch[4])
+    let minutes = Number(localMatch[5])
+    let seconds = Number(localMatch[6] ?? '0')
+    if (hours === 0 && minutes === 0 && seconds === 0) {
+      hours = 23
+      minutes = 59
+      seconds = 59
+    }
+    const local = new Date(
+      Number(localMatch[1]),
+      Number(localMatch[2]) - 1,
+      Number(localMatch[3]),
+      hours,
+      minutes,
+      seconds,
+      seconds === 59 ? 999 : 0
+    )
+    return local.toISOString()
+  }
+  return new Date(raw).toISOString()
 }
 
 function publicJobResponse(job) {
@@ -53,7 +82,14 @@ assert(jobPublicPath('easyfab', 'electrical-engineer') === '/o/easyfab/jobs/elec
 console.log('\nJob visibility')
 assert(isJobAcceptingApplications({ status: 'published', application_deadline: null }), 'published without deadline accepts')
 assert(!isJobAcceptingApplications({ status: 'draft', application_deadline: null }), 'draft rejected')
+assert(!isJobAcceptingApplications({ status: 'closed', application_deadline: '2099-01-01T00:00:00.000Z' }), 'closed status rejects even with future deadline')
 assert(!isJobAcceptingApplications({ status: 'published', application_deadline: '2000-01-01T00:00:00.000Z' }), 'expired deadline rejected')
+assert(
+  serializeApplicationDeadlineInput('2099-06-01T00:00').endsWith('T21:59:59.999Z') ||
+    serializeApplicationDeadlineInput('2099-06-01T00:00').includes('2099-06-01') ||
+    serializeApplicationDeadlineInput('2099-06-01T00:00').includes('2099-05-31'),
+  'midnight local deadline serializes to end-of-day ISO'
+)
 
 console.log('\nPublic API shape')
 const shaped = publicJobResponse({

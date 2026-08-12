@@ -13,6 +13,13 @@ import {
   type RecruitmentJobWithOrganization,
 } from '@/lib/recruitment/types'
 
+export {
+  applicationClosedReason,
+  isJobAcceptingApplications,
+  serializeApplicationDeadlineInput,
+  toDatetimeLocalValue,
+} from '@/lib/recruitment/job-deadline'
+
 const JOB_SELECT =
   'id, organization_id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, department, skills, salary_min, salary_max, salary_currency, salary_visible, visibility, status, published_at, application_deadline, created_at, updated_at'
 
@@ -30,15 +37,6 @@ export type PublicJobListFilters = {
   category?: string
   page?: number
   pageSize?: number
-}
-
-export function isJobAcceptingApplications(job: {
-  status: string
-  application_deadline: string | null
-}): boolean {
-  if (job.status !== 'published') return false
-  if (!job.application_deadline) return true
-  return new Date(job.application_deadline).getTime() >= Date.now()
 }
 
 async function getActiveOrganizationIdBySlug(slug: string): Promise<string | null> {

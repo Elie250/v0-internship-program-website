@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
+import { serializeApplicationDeadlineInput } from '@/lib/recruitment/job-deadline'
 
 export type JobFormValues = {
   title: string
@@ -85,7 +86,7 @@ export function JobEditor({
         salaryMax: form.salaryMax ? Number(form.salaryMax) : null,
         salaryCurrency: form.salaryCurrency,
         salaryVisible: form.salaryVisible,
-        applicationDeadline: form.applicationDeadline || null,
+        applicationDeadline: serializeApplicationDeadlineInput(form.applicationDeadline),
         status: form.status,
         visibility: form.visibility,
       }
@@ -164,6 +165,10 @@ export function JobEditor({
             onChange={(e) => set('applicationDeadline', e.target.value)}
             className="h-11 rounded-xl"
           />
+          <p className="text-xs text-slate-500">
+            Optional. Leave empty for no deadline. If you pick a date at 00:00, applications stay open
+            until the end of that day.
+          </p>
         </div>
       </div>
       <div className="space-y-2">
@@ -213,10 +218,14 @@ export function JobEditor({
             className="w-full h-11 rounded-xl border border-slate-300 px-3 text-sm"
           >
             <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="closed">Closed</option>
+            <option value="published">Published (accepting applications)</option>
+            <option value="closed">Closed (not accepting applications)</option>
             <option value="archived">Archived</option>
           </select>
+          <p className="text-xs text-slate-500">
+            Applications open only when status is <strong>Published</strong>. A deadline does not open
+            a Closed or Draft job.
+          </p>
         </div>
         <div className="space-y-2">
           <Label>Visibility</Label>

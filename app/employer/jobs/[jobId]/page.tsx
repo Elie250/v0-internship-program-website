@@ -7,6 +7,7 @@ import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer
 import { JobEditor } from '@/components/recruitment/job-editor'
 import { Button } from '@/components/ui/button'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
+import { toDatetimeLocalValue } from '@/lib/recruitment/job-deadline'
 
 type Member = { user_id: string; role: string; user?: { email?: string; first_name?: string } | null }
 
@@ -85,9 +86,9 @@ export default function EmployerJobDetailPage() {
     else await load()
   }
 
-  const deadline = job?.application_deadline
-    ? new Date(String(job.application_deadline)).toISOString().slice(0, 16)
-    : ''
+  const deadline = toDatetimeLocalValue(
+    job?.application_deadline != null ? String(job.application_deadline) : null
+  )
 
   return (
     <EmployerShell>
