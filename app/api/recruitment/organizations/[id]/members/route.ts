@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { normalizeRecruitmentEmail } from '@/lib/recruitment/email-normalize'
+import { findUserByNormalizedEmail } from '@/lib/recruitment/user-lookup'
 import { requireOrganizationAccess } from '@/lib/recruitment/authz'
 import {
   listOrganizationMembers,
@@ -39,24 +40,19 @@ export async function POST(
     if (!access.asPlatformAdmin && access.membership?.role !== 'organization_admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
-    }
 
     const body = await request.json()
-    const email = String(body.email ?? '')
-      .trim()
-      .toLowerCase()
+    const normalizedEmail = normalizeRecruitmentEmail(String(body.email ?? ''))
     const role = String(body.role ?? 'hr_recruiter')
-    if (!email || !isRecruitmentOrgRole(role)) {
+    if (!normalizedEmail || !isRecruitmentOrgRole(role)) {
       return NextResponse.json({ error: 'Valid email and role are required' }, { status: 400 })
     }
 
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .ilike('email', email)
-      .maybeSingle()
+    const { user, error: lookupError } = await findUserByNormalizedEmail(normalizedEmail)
+
+    if (lookupError) {
+      return NextResponse.json({ error: 'Could not look up user' }, { status: 500 })
+    }
 
     if (!user) {
       return NextResponse.json(

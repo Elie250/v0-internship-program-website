@@ -1,13 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export default function JobsContinueWithEmailPage() {
+function ContinueInner() {
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -22,11 +25,16 @@ export default function JobsContinueWithEmailPage() {
       const res = await fetch('/api/recruitment/auth/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, redirect: redirect ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Request failed')
       setMessage(data.message || 'Check your email for a sign-in link.')
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        setMessage(
+          `${data.message || 'Check your email for a sign-in link.'} After signing in, you will return to your previous page.`
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
     } finally {
@@ -87,5 +95,19 @@ export default function JobsContinueWithEmailPage() {
         </CardContent>
       </Card>
     </main>
+  )
+}
+
+export default function JobsContinueWithEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center text-slate-600">
+          Loading…
+        </main>
+      }
+    >
+      <ContinueInner />
+    </Suspense>
   )
 }

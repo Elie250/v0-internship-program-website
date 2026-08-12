@@ -34,6 +34,10 @@ export async function PATCH(
     }
 
     const body = await request.json()
+    // Lifecycle status (draft/active/suspended) is platform-admin only (W7)
+    const status =
+      access.asPlatformAdmin && body.status !== undefined ? body.status : undefined
+
     const result = await updateOrganization({
       id,
       name: body.name != null ? String(body.name) : undefined,
@@ -42,7 +46,7 @@ export async function PATCH(
       logoUrl: body.logoUrl !== undefined ? body.logoUrl : undefined,
       notificationEmail:
         body.notificationEmail !== undefined ? body.notificationEmail : undefined,
-      status: body.status,
+      status,
       actorUserId: access.user.id,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })

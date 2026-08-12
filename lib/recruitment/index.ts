@@ -1,5 +1,5 @@
 /**
- * Recruitment / Talent Phase 1 — foundation helpers.
+ * Recruitment / Talent — Phase 1 foundation + Phase 2 candidate platform helpers.
  */
 export * from '@/lib/recruitment/types'
 export * from '@/lib/recruitment/authz'
@@ -9,3 +9,12 @@ export * from '@/lib/recruitment/candidate-profile'
 export * from '@/lib/recruitment/audit'
 export * from '@/lib/recruitment/storage-paths'
 export * from '@/lib/recruitment/passwordless-auth'
+export * from '@/lib/recruitment/email-normalize'
+export * from '@/lib/recruitment/auth-rate-limit'
+export * from '@/lib/recruitment/user-lookup'
+export * from '@/lib/recruitment/query-utils'
+export * from '@/lib/recruitment/jobs'
+export * from '@/lib/recruitment/applications'
+export * from '@/lib/recruitment/documents'
+export * from '@/lib/recruitment/email-notifications'
+export * from '@/lib/recruitment/hosts'

@@ -31,8 +31,13 @@ export async function PATCH(request: Request) {
       location: body.location,
       linkedinUrl: body.linkedinUrl,
       portfolioUrl: body.portfolioUrl,
+      githubUrl: body.githubUrl,
       summary: body.summary,
+      skills: body.skills,
+      education: body.education,
+      experience: body.experience,
       consentPrivacy: body.consentPrivacy === true,
+      actorUserId: user.id,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ profile: result.profile })

@@ -25,6 +25,14 @@ type Member = {
   user?: { email?: string; first_name?: string; last_name?: string } | null
 }
 
+type Job = {
+  id: string
+  title: string
+  slug: string
+  status: string
+  location: string | null
+}
+
 export default function RecruitmentOrgsManagement() {
   const [orgs, setOrgs] = useState<Org[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,6 +44,10 @@ export default function RecruitmentOrgsManagement() {
   const [members, setMembers] = useState<Member[]>([])
   const [memberEmail, setMemberEmail] = useState('')
   const [memberRole, setMemberRole] = useState('hr_recruiter')
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [jobTitle, setJobTitle] = useState('')
+  const [jobSlug, setJobSlug] = useState('')
+  const [jobLocation, setJobLocation] = useState('Kigali, Rwanda')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -99,12 +111,62 @@ export default function RecruitmentOrgsManagement() {
   const loadMembers = async (orgId: string) => {
     setSelectedId(orgId)
     setMembers([])
-    const res = await fetch(`/api/recruitment/organizations/${orgId}/members`, {
-      credentials: 'same-origin',
-    })
-    const data = await res.json()
-    if (res.ok) setMembers(data.members ?? [])
-    else setError(data.error || 'Failed to load members')
+    setJobs([])
+    const [membersRes, jobsRes] = await Promise.all([
+      fetch(`/api/recruitment/organizations/${orgId}/members`, { credentials: 'same-origin' }),
+      fetch(`/api/recruitment/organizations/${orgId}/jobs`, { credentials: 'same-origin' }),
+    ])
+    const membersData = await membersRes.json()
+    const jobsData = await jobsRes.json()
+    if (membersRes.ok) setMembers(membersData.members ?? [])
+    else setError(membersData.error || 'Failed to load members')
+    if (jobsRes.ok) setJobs(jobsData.jobs ?? [])
+  }
+
+  const createJob = async () => {
+    if (!selectedId) return
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch(`/api/recruitment/organizations/${selectedId}/jobs`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: jobTitle,
+          slug: jobSlug || undefined,
+          location: jobLocation,
+          status: 'published',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Create job failed')
+      setJobTitle('')
+      setJobSlug('')
+      setNotice(`Published job ${data.job.title}`)
+      await loadMembers(selectedId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Create job failed')
+    }
+  }
+
+  const setJobStatus = async (jobId: string, status: string) => {
+    if (!selectedId) return
+    setError('')
+    try {
+      const res = await fetch(`/api/recruitment/organizations/${selectedId}/jobs`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, status }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Update failed')
+      setNotice(`Job status set to ${status}`)
+      await loadMembers(selectedId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed')
+    }
   }
 
   const addMember = async () => {
@@ -249,6 +311,51 @@ export default function RecruitmentOrgsManagement() {
                       </select>
                       <Button size="sm" onClick={() => void addMember()}>
                         Add member
+                      </Button>
+                    </div>
+                    <div className="border-t border-slate-200 pt-3 space-y-3">
+                      <p className="text-sm font-medium text-slate-800">Jobs (Phase 2)</p>
+                      {jobs.length === 0 ? (
+                        <p className="text-xs text-slate-500">No jobs yet for this organization.</p>
+                      ) : (
+                        <ul className="text-sm space-y-2">
+                          {jobs.map((job) => (
+                            <li key={job.id} className="flex flex-wrap items-center justify-between gap-2">
+                              <span>
+                                {job.title} · /o/{org.slug}/jobs/{job.slug} · {job.status}
+                              </span>
+                              {job.status === 'published' ? (
+                                <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'closed')}>
+                                  Close
+                                </Button>
+                              ) : job.status !== 'archived' ? (
+                                <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'published')}>
+                                  Publish
+                                </Button>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="grid sm:grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Job title"
+                          value={jobTitle}
+                          onChange={(e) => setJobTitle(e.target.value)}
+                        />
+                        <Input
+                          placeholder="Slug (optional)"
+                          value={jobSlug}
+                          onChange={(e) => setJobSlug(e.target.value)}
+                        />
+                      </div>
+                      <Input
+                        placeholder="Location"
+                        value={jobLocation}
+                        onChange={(e) => setJobLocation(e.target.value)}
+                      />
+                      <Button size="sm" onClick={() => void createJob()} disabled={!jobTitle.trim()}>
+                        Publish job
                       </Button>
                     </div>
                   </div>

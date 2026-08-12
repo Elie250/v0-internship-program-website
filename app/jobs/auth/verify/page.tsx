@@ -8,6 +8,11 @@ function VerifyInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
+  const redirectParam = searchParams.get('redirect')
+  const safeRedirect =
+    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
+      ? redirectParam
+      : '/app'
   const [error, setError] = useState('')
   const [status, setStatus] = useState('Verifying your sign-in link…')
 
@@ -28,7 +33,7 @@ function VerifyInner() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Verification failed')
         setStatus('Signed in. Redirecting…')
-        router.replace(data.redirectTo || '/app')
+        router.replace(data.redirectTo || safeRedirect)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Verification failed')
         setStatus('')

@@ -16,7 +16,6 @@ export async function GET(
 
     return NextResponse.json({
       organization: {
-        id: organization.id,
         name: organization.name,
         slug: organization.slug,
         description: organization.description,

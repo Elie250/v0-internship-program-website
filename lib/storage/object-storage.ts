@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
@@ -162,6 +163,36 @@ export async function createSignedPutUrl(
     publicUrl: getPublicUrl(normalized),
     path: normalized,
   }
+}
+
+export async function createSignedGetUrl(
+  path: string,
+  expiresInSeconds = 3600
+): Promise<string> {
+  const normalized = path.replace(/^\//, '')
+
+  if (isR2Configured()) {
+    const client = getR2Client()
+    const command = new GetObjectCommand({
+      Bucket: getR2BucketName(),
+      Key: normalized,
+    })
+    return getSignedUrl(client, command, { expiresIn: expiresInSeconds })
+  }
+
+  if (!supabaseAdmin) {
+    throw new Error('Storage not configured — add R2 credentials to Vercel')
+  }
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(SUPABASE_BUCKET)
+    .createSignedUrl(normalized, expiresInSeconds)
+
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message ?? 'Could not create download URL')
+  }
+
+  return data.signedUrl
 }
 
 export async function deleteObjectByUrl(publicUrl: string): Promise<void> {

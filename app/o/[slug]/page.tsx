@@ -22,13 +22,19 @@ export default async function OrganizationPublicPage({
         ) : organization.description ? (
           <p className="text-slate-700 leading-relaxed">{organization.description}</p>
         ) : (
-          <p className="text-slate-600 text-sm">Careers page foundation — jobs list comes later.</p>
+          <p className="text-slate-600 text-sm">Careers on Energy &amp; Logics Talent — browse published roles from this employer.</p>
         )}
         <Link
-          href="/jobs"
+          href={`/jobs?organization=${slug}`}
           className="inline-flex text-sm font-medium text-[var(--brand-navy)] underline"
         >
-          Browse Talent home
+          View open roles
+        </Link>
+        <Link
+          href="/jobs"
+          className="inline-flex text-sm font-medium text-[var(--brand-navy)] underline ml-4"
+        >
+          Browse all jobs
         </Link>
         <p className="text-xs text-slate-500 pt-8 border-t border-slate-200">
           Powered by {COMPANY.brandName}
