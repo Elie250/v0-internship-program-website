@@ -76,46 +76,8 @@ export function RecruitmentNav() {
 export function RecruitmentFooter() {
   return (
     <footer className="mt-16 border-t border-slate-200/80 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 grid gap-8 sm:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-3">
-          <BrandMark compact />
-          <p className="text-sm text-slate-600 max-w-md leading-relaxed">
-            A multi-employer careers platform for engineers, technicians, and professionals —
-            operated by {COMPANY.brandName}.
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-6 text-sm">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Candidates</p>
-            <Link href="/jobs" className="block text-slate-700 hover:text-[var(--brand-navy)]">
-              Browse jobs
-            </Link>
-            <Link href="/jobs/auth/continue" className="block text-slate-700 hover:text-[var(--brand-navy)]">
-              Continue with Email
-            </Link>
-            <Link href="/app" className="block text-slate-700 hover:text-[var(--brand-navy)]">
-              Application dashboard
-            </Link>
-          </div>
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Platform</p>
-            <a
-              href={COMPANY.publicSiteUrl}
-              className="block text-slate-700 hover:text-[var(--brand-navy)]"
-            >
-              {COMPANY.brandName} website
-            </a>
-            <Link href="/employer" className="block text-slate-700 hover:text-[var(--brand-navy)]">
-              Employer access
-            </Link>
-          </div>
-        </div>
-      </div>
-      <div className="border-t border-slate-100">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-          <p>Powered by {COMPANY.brandName}</p>
-          <p>{COMPANY.address}</p>
-        </div>
+      <div className="mx-auto max-w-6xl px-4 py-5">
+        <p className="text-xs text-slate-500">Powered by {COMPANY.brandName}</p>
       </div>
     </footer>
   )
@@ -190,6 +152,18 @@ export function MetaChip({ children }: { children: React.ReactNode }) {
   )
 }
 
+function formatDeadline(deadline: string | null | undefined): string {
+  if (!deadline) return 'Open — no deadline'
+  const date = new Date(deadline)
+  if (Number.isNaN(date.getTime())) return 'Open — no deadline'
+  const label = date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+  return date.getTime() < Date.now() ? `Closed ${label}` : `Apply by ${label}`
+}
+
 export function JobCard({ job }: { job: RecruitmentJobWithOrganization }) {
   const org = job.organization
   const href = jobPublicPath(job)
@@ -230,6 +204,7 @@ export function JobCard({ job }: { job: RecruitmentJobWithOrganization }) {
           {job.location ? <MetaChip>{job.location}</MetaChip> : null}
           {job.employment_type ? <MetaChip>{formatEmploymentType(job.employment_type)}</MetaChip> : null}
           {job.work_mode ? <MetaChip>{formatWorkMode(job.work_mode)}</MetaChip> : null}
+          <MetaChip>{formatDeadline(job.application_deadline)}</MetaChip>
         </div>
 
         {job.description ? (

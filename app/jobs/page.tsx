@@ -136,19 +136,6 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
             })}
           </div>
         ) : null}
-
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Link href="/jobs/auth/continue">
-            <Button className="h-11 rounded-xl bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]">
-              Continue with Email
-            </Button>
-          </Link>
-          <Link href="/app">
-            <Button variant="outline" className="h-11 rounded-xl border-slate-300 bg-white/70">
-              My applications
-            </Button>
-          </Link>
-        </div>
       </div>
     </section>
   )
@@ -158,11 +145,8 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
       <div className="mx-auto max-w-6xl px-4 py-10 sm:py-12">
         {featuredEmployers.length > 0 ? (
           <section className="mb-10">
-            <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Hiring employers</h2>
-                <p className="text-sm text-slate-600">Open roles across partner organizations</p>
-              </div>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-slate-900">Hiring partners</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {featuredEmployers.map((org) => (
@@ -208,9 +192,6 @@ export default async function JobsPage({ searchParams }: { searchParams: SearchP
                 <p className="text-sm font-medium text-slate-900">
                   {total} open role{total === 1 ? '' : 's'}
                   {hasActiveFilters ? ' matching your search' : ''}
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  One candidate profile works across every employer
                 </p>
               </div>
             </div>
