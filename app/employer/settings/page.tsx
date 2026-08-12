@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +16,7 @@ export default function EmployerSettingsPage() {
     description: '',
     careersBlurb: '',
     notificationEmail: '',
+    logoUrl: '',
   })
   const [credentials, setCredentials] = useState<
     Array<{ id: string; name: string; keyId: string; status: string; scopes: string[] }>
@@ -28,6 +30,8 @@ export default function EmployerSettingsPage() {
   const [oneTimeSecret, setOneTimeSecret] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   const loadOrg = async () => {
     if (!orgId) return
@@ -39,6 +43,7 @@ export default function EmployerSettingsPage() {
         description: data.organization.description ?? '',
         careersBlurb: data.organization.careers_blurb ?? '',
         notificationEmail: data.organization.notification_email ?? '',
+        logoUrl: data.organization.logo_url ?? '',
       })
     }
   }
@@ -71,11 +76,64 @@ export default function EmployerSettingsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        name: form.name,
+        description: form.description,
+        careersBlurb: form.careersBlurb,
+        notificationEmail: form.notificationEmail,
+        logoUrl: form.logoUrl || null,
+      }),
     })
     const data = await res.json()
     if (!res.ok) setError(data.error || 'Save failed')
-    else setMessage('Organization settings saved.')
+    else {
+      setMessage('Organization settings saved.')
+      if (data.organization?.logo_url !== undefined) {
+        setForm((f) => ({ ...f, logoUrl: data.organization.logo_url ?? '' }))
+      }
+    }
+  }
+
+  const uploadLogo = async (file: File) => {
+    if (!orgId) return
+    setUploadingLogo(true)
+    setError('')
+    setMessage('')
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch(`/api/recruitment/organizations/${orgId}/logo`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.hint ? `${data.error} — ${data.hint}` : data.error || 'Upload failed')
+      }
+      setForm((f) => ({ ...f, logoUrl: data.url || data.organization?.logo_url || '' }))
+      setMessage('Logo uploaded and saved.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Logo upload failed')
+    } finally {
+      setUploadingLogo(false)
+      if (logoInputRef.current) logoInputRef.current.value = ''
+    }
+  }
+
+  const removeLogo = async () => {
+    setError('')
+    setMessage('')
+    setForm((f) => ({ ...f, logoUrl: '' }))
+    const res = await fetch(`/api/recruitment/organizations/${orgId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ logoUrl: null }),
+    })
+    const data = await res.json()
+    if (!res.ok) setError(data.error || 'Could not remove logo')
+    else setMessage('Logo removed.')
   }
 
   const createCredential = async () => {
@@ -161,9 +219,57 @@ export default function EmployerSettingsPage() {
       ) : null}
 
       {!canSettings ? (
-        <p className="text-sm text-slate-600">Only organization admins can change organization profile settings.</p>
+        <p className="text-sm text-slate-600">
+          Only organization admins can change organization profile settings.
+        </p>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 max-w-2xl">
+          <div className="space-y-2">
+            <Label>Company logo</Label>
+            <p className="text-xs text-slate-500">
+              Shown on your public careers pages. PNG, JPEG, WebP, or GIF · max 2 MB.
+            </p>
+            {form.logoUrl ? (
+              <div className="relative h-24 w-24 rounded-xl border border-slate-200 overflow-hidden bg-slate-50">
+                <Image
+                  src={form.logoUrl}
+                  alt="Organization logo"
+                  fill
+                  className="object-contain p-1"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="h-24 w-24 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-xs text-slate-400">
+                No logo
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 items-center">
+              <Input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={uploadingLogo}
+                className="max-w-xs"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void uploadLogo(file)
+                }}
+              />
+              {form.logoUrl ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingLogo}
+                  onClick={() => void removeLogo()}
+                >
+                  Remove logo
+                </Button>
+              ) : null}
+            </div>
+            {uploadingLogo ? <p className="text-xs text-slate-600">Uploading logo…</p> : null}
+          </div>
           <div className="space-y-2">
             <Label>Name</Label>
             <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
@@ -216,7 +322,10 @@ export default function EmployerSettingsPage() {
           </div>
           <ul className="space-y-2 text-sm">
             {credentials.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2"
+              >
                 <span>
                   {c.name} · <code>{c.keyId}</code> · {c.status}
                 </span>
