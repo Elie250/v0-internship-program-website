@@ -848,3 +848,11 @@
     color: #0f172a;
   }
 }
+
+/* Careers / recruitment portal — quieter surface than Academy marketing */
+.recruitment-surface {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(126, 184, 232, 0.14), transparent 55%),
+    linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
+  color: #0f172a;
+}

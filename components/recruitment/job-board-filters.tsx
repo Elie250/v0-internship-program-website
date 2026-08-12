@@ -13,7 +13,16 @@ type FilterOptions = {
   employmentTypes: string[]
 }
 
-export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
+const selectClass =
+  'w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]/25 focus-visible:border-[var(--brand-navy)]'
+
+export function JobBoardFilters({
+  filters,
+  compact = false,
+}: {
+  filters: FilterOptions
+  compact?: boolean
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [pending, startTransition] = useTransition()
@@ -38,18 +47,50 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
     })
   }
 
+  const clear = () => {
+    startTransition(() => {
+      router.push('/jobs')
+    })
+  }
+
+  const hasFilters = Object.values(current).some(Boolean)
+
   return (
     <form
-      className="rounded-xl border border-slate-200 bg-white p-4 space-y-4 sticky top-4"
+      className={
+        compact
+          ? 'space-y-3'
+          : 'rounded-2xl border border-slate-200 bg-white p-5 space-y-4 sticky top-24 shadow-[0_1px_0_rgba(15,23,42,0.04)]'
+      }
       onSubmit={(e) => {
         e.preventDefault()
         apply(e.currentTarget)
       }}
     >
-      <p className="font-semibold text-slate-900">Search &amp; filter</p>
+      {!compact ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-semibold text-slate-900">Refine search</p>
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={clear}
+              className="text-xs font-medium text-[var(--brand-navy)] hover:underline"
+            >
+              Clear all
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         <Label htmlFor="search">Keywords</Label>
-        <Input id="search" name="search" defaultValue={current.search} placeholder="Role, skill, keyword" />
+        <Input
+          id="search"
+          name="search"
+          defaultValue={current.search}
+          placeholder="Role, skill, or keyword"
+          className="h-11 rounded-lg"
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="organization">Employer</Label>
@@ -57,7 +98,7 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
           id="organization"
           name="organization"
           defaultValue={current.organization}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={selectClass}
         >
           <option value="">All employers</option>
           {filters.organizations.map((org) => (
@@ -69,12 +110,7 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="location">Location</Label>
-        <select
-          id="location"
-          name="location"
-          defaultValue={current.location}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        >
+        <select id="location" name="location" defaultValue={current.location} className={selectClass}>
           <option value="">Any location</option>
           {filters.locations.map((loc) => (
             <option key={loc} value={loc}>
@@ -89,7 +125,7 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
           id="employmentType"
           name="employmentType"
           defaultValue={current.employmentType}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className={selectClass}
         >
           <option value="">Any type</option>
           {filters.employmentTypes.map((type) => (
@@ -100,14 +136,9 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
         </select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <select
-          id="category"
-          name="category"
-          defaultValue={current.category}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="">Any category</option>
+        <Label htmlFor="category">Discipline</Label>
+        <select id="category" name="category" defaultValue={current.category} className={selectClass}>
+          <option value="">Any discipline</option>
           {filters.categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
@@ -115,8 +146,12 @@ export function JobBoardFilters({ filters }: { filters: FilterOptions }) {
           ))}
         </select>
       </div>
-      <Button type="submit" disabled={pending} className="w-full bg-[var(--brand-navy)] text-white">
-        {pending ? 'Applying…' : 'Apply filters'}
+      <Button
+        type="submit"
+        disabled={pending}
+        className="w-full h-11 bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]"
+      >
+        {pending ? 'Updating…' : 'Show matching roles'}
       </Button>
     </form>
   )

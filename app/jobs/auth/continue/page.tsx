@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { BrandMark, StatusBanner, TalentShell } from '@/components/recruitment/talent-ui'
 
 function ContinueInner() {
   const searchParams = useSearchParams()
@@ -43,22 +43,15 @@ function ContinueInner() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-md border-slate-200 shadow-sm">
-        <CardHeader>
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-navy)]">
-            Energy &amp; Logics Talent
-          </p>
-          <CardTitle className="text-slate-900">Continue with Email</CardTitle>
-          <p className="text-sm text-slate-600">
-            Passwordless sign-in. We email you a one-time link — no recruitment password to create
-            or reset.
-          </p>
-        </CardHeader>
-        <CardContent>
+    <TalentShell title="Continue with Email" subtitle="Passwordless sign-in for candidates. No password to create or reset.">
+      <div className="mx-auto max-w-md">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-[0_18px_50px_-36px_rgba(30,58,95,0.45)] space-y-6">
+          <div className="sm:hidden">
+            <BrandMark compact />
+          </div>
           <form onSubmit={(e) => void submit(e)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Work or personal email</Label>
               <Input
                 id="email"
                 type="email"
@@ -67,34 +60,31 @@ function ContinueInner() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                className="h-11 rounded-xl"
               />
             </div>
-            {error ? (
-              <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-2">
-                {error}
-              </p>
-            ) : null}
-            {message ? (
-              <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-md p-2">
-                {message}
-              </p>
-            ) : null}
+            {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+            {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
             <Button
               type="submit"
               disabled={busy}
-              className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90"
+              className="w-full h-11 rounded-xl bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]"
             >
               {busy ? 'Sending…' : 'Email me a sign-in link'}
             </Button>
           </form>
-          <p className="text-xs text-slate-500 mt-4">
-            <Link href="/jobs" className="underline text-[var(--brand-navy)]">
-              Back to Talent home
+          <p className="text-xs text-slate-500 leading-relaxed">
+            We send a one-time link to your inbox. Use the same email whenever you apply — your
+            profile and CV stay with you across employers.
+          </p>
+          <p className="text-sm">
+            <Link href="/jobs" className="font-medium text-[var(--brand-navy)] hover:underline">
+              ← Back to job board
             </Link>
           </p>
-        </CardContent>
-      </Card>
-    </main>
+        </div>
+      </div>
+    </TalentShell>
   )
 }
 
@@ -102,9 +92,9 @@ export default function JobsContinueWithEmailPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center text-slate-600">
-          Loading…
-        </main>
+        <TalentShell title="Continue with Email">
+          <p className="text-slate-600">Loading…</p>
+        </TalentShell>
       }
     >
       <ContinueInner />

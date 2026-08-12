@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  EmptyState,
+  LoadingBlock,
+  TalentShell,
+} from '@/components/recruitment/talent-ui'
+import { Button } from '@/components/ui/button'
 
 export default function EmployerPortalPage() {
   const router = useRouter()
@@ -20,7 +25,7 @@ export default function EmployerPortalPage() {
     void (async () => {
       const res = await fetch('/api/recruitment/me', { credentials: 'same-origin' })
       if (res.status === 401) {
-        router.replace('/jobs/auth/continue')
+        router.replace('/jobs/auth/continue?redirect=/employer')
         return
       }
       const data = await res.json()
@@ -45,69 +50,66 @@ export default function EmployerPortalPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center text-slate-600">
-        Loading…
-      </main>
+      <TalentShell title="Employer access">
+        <LoadingBlock label="Loading organizations…" />
+      </TalentShell>
     )
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--brand-navy)]">
-            Employer portal · Phase 1 foundation
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">Your organizations</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Tenant memberships only. Job posting and screening arrive in later phases.
-          </p>
-        </div>
-
+    <TalentShell
+      title="Employer access"
+      subtitle="Your organization memberships on this careers platform"
+    >
+      <div className="max-w-2xl space-y-5">
         {memberships.length === 0 ? (
-          <Card className="border-slate-200">
-            <CardContent className="py-8 text-sm text-slate-600">
-              You are not a member of any employer organization yet. Platform admins can add you
-              under Admin → Talent organizations.
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No employer memberships yet"
+            description="Platform admins can add you to an organization when employer tools are available for your team."
+            action={
+              <Link href="/jobs">
+                <Button variant="outline" className="rounded-xl">
+                  Browse candidate job board
+                </Button>
+              </Link>
+            }
+          />
         ) : (
           <div className="space-y-3">
             {memberships.map((m) => (
-              <Card key={m.id} className="border-slate-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base text-slate-900">
-                    {m.organization?.name ?? 'Organization'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-slate-700 space-y-1">
-                  <p>
-                    Role: <span className="font-medium">{m.role}</span>
-                  </p>
-                  {m.organization?.slug ? (
-                    <Link
-                      href={`/o/${m.organization.slug}`}
-                      className="text-[var(--brand-navy)] underline text-xs"
-                    >
-                      Public page /o/{m.organization.slug}
-                    </Link>
-                  ) : null}
-                </CardContent>
-              </Card>
+              <div
+                key={m.id}
+                className="rounded-2xl border border-slate-200 bg-white p-5 space-y-2 shadow-[0_1px_0_rgba(15,23,42,0.04)]"
+              >
+                <p className="text-lg font-semibold text-slate-900">
+                  {m.organization?.name ?? 'Organization'}
+                </p>
+                <p className="text-sm text-slate-600">
+                  Role: <span className="font-medium text-slate-800">{m.role}</span>
+                </p>
+                {m.organization?.slug ? (
+                  <Link
+                    href={`/o/${m.organization.slug}`}
+                    className="inline-block text-sm font-medium text-[var(--brand-navy)] hover:underline"
+                  >
+                    View public employer page
+                  </Link>
+                ) : null}
+              </div>
             ))}
           </div>
         )}
 
-        <p className="text-xs text-slate-500">
-          <Link href="/jobs" className="underline text-[var(--brand-navy)]">
-            Talent home
+        <p className="text-sm text-slate-600">
+          <Link href="/jobs" className="font-medium text-[var(--brand-navy)] hover:underline">
+            Job board
           </Link>
           {' · '}
-          <Link href="/app" className="underline text-[var(--brand-navy)]">
-            Candidate app
+          <Link href="/app" className="font-medium text-[var(--brand-navy)] hover:underline">
+            Candidate dashboard
           </Link>
         </p>
       </div>
-    </main>
+    </TalentShell>
   )
 }
