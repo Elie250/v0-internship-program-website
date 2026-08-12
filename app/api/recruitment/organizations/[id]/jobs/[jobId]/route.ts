@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireOrganizationAccess } from '@/lib/recruitment/authz'
 import { JOB_READ_ROLES } from '@/lib/recruitment/rbac'
 import { getOrganizationJob } from '@/lib/recruitment/jobs'
+import { assertCanAccessJob } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
   _request: Request,
@@ -9,7 +10,8 @@ export async function GET(
 ) {
   try {
     const { id: organizationId, jobId } = await context.params
-    await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
+    const access = await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
+    await assertCanAccessJob({ access, organizationId, jobId })
     const { job, error } = await getOrganizationJob(jobId, organizationId)
     if (error) return NextResponse.json({ error }, { status: 500 })
     if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })

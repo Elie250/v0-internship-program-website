@@ -8,7 +8,7 @@ import {
 } from '@/lib/recruitment/types'
 
 const CONFIG_SELECT =
-  'id, job_id, organization_id, enabled, duration_minutes, question_count, categories, difficulty_distribution, passing_score, passing_criteria, attempt_policy, question_selection, randomized, dynamic_parameters, per_question_time_seconds, integrity_monitoring, created_at, updated_at'
+  'id, job_id, organization_id, enabled, duration_minutes, question_count, categories, difficulty_distribution, passing_score, passing_criteria, attempt_policy, question_selection, randomized, dynamic_parameters, per_question_time_seconds, integrity_monitoring, status, published_at, section_minimums, max_attempts, created_at, updated_at'
 
 function isAttemptPolicy(value: string): value is RecruitmentAttemptPolicy {
   return value === 'single' || value === 'retry_once' || value === 'unlimited'
@@ -47,6 +47,10 @@ export async function upsertJobScreeningConfig(input: {
   dynamicParameters?: boolean
   perQuestionTimeSeconds?: number | null
   integrityMonitoring?: boolean
+  status?: 'draft' | 'published'
+  sectionMinimums?: Record<string, number>
+  maxAttempts?: number | null
+  publish?: boolean
 }): Promise<{ config?: Record<string, unknown>; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
@@ -62,7 +66,12 @@ export async function upsertJobScreeningConfig(input: {
       ? input.questionSelection
       : 'manual'
 
-  const payload = {
+  const publish = Boolean(input.publish) || input.status === 'published'
+  const now = new Date().toISOString()
+
+  const { config: existing } = await getJobScreeningConfig(input.jobId, input.organizationId)
+
+  const payload: Record<string, unknown> = {
     job_id: input.jobId,
     organization_id: input.organizationId,
     enabled: Boolean(input.enabled),
@@ -78,7 +87,18 @@ export async function upsertJobScreeningConfig(input: {
     dynamic_parameters: Boolean(input.dynamicParameters),
     per_question_time_seconds: input.perQuestionTimeSeconds ?? null,
     integrity_monitoring: Boolean(input.integrityMonitoring),
-    updated_at: new Date().toISOString(),
+    section_minimums:
+      input.sectionMinimums && typeof input.sectionMinimums === 'object'
+        ? input.sectionMinimums
+        : (existing?.section_minimums ?? {}),
+    max_attempts: input.maxAttempts ?? existing?.max_attempts ?? null,
+    status: publish ? 'published' : input.status === 'draft' ? 'draft' : (existing?.status ?? 'draft'),
+    published_at: publish ? now : existing?.published_at ?? null,
+    updated_at: now,
+  }
+
+  if (publish) {
+    payload.enabled = true
   }
 
   const { data, error } = await supabaseAdmin
@@ -92,10 +112,10 @@ export async function upsertJobScreeningConfig(input: {
   await writeRecruitmentAudit({
     actorUserId: input.actorUserId,
     organizationId: input.organizationId,
-    action: 'screening_config_updated',
+    action: publish ? 'screening_published' : 'screening_config_updated',
     entityType: 'recruitment_screening_configs',
     entityId: data.id,
-    metadata: { jobId: input.jobId, enabled: payload.enabled },
+    metadata: { jobId: input.jobId, enabled: data.enabled, status: data.status },
   })
 
   return { config: data as Record<string, unknown> }

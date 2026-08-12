@@ -7,6 +7,7 @@ import {
   updateOrganizationApplicationStatus,
 } from '@/lib/recruitment/employer-applications'
 import { listApplicationNotes } from '@/lib/recruitment/application-notes'
+import { assertCanAccessApplication } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
   _request: Request,
@@ -14,7 +15,8 @@ export async function GET(
 ) {
   try {
     const { id: organizationId, applicationId } = await context.params
-    await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    await assertCanAccessApplication({ access, organizationId, applicationId })
     const [{ application, error }, { history }, { notes }] = await Promise.all([
       getOrganizationApplication(applicationId, organizationId),
       listApplicationStatusHistory(applicationId, organizationId),
@@ -37,12 +39,15 @@ export async function PATCH(
   try {
     const { id: organizationId, applicationId } = await context.params
     const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    await assertCanAccessApplication({ access, organizationId, applicationId })
     const body = await request.json()
     const result = await updateOrganizationApplicationStatus({
       applicationId,
       organizationId,
       status: String(body.status ?? ''),
       actorUserId: access.user.id,
+      asPlatformAdmin: access.asPlatformAdmin,
+      membershipRole: access.membership?.role ?? null,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ application: result.application })

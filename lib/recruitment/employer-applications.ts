@@ -1,10 +1,22 @@
+/**
+ * Employer application listing, status pipeline, and dashboard metrics.
+ */
+
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
 import {
   EMPLOYER_PIPELINE_STATUSES,
   isRecruitmentApplicationStatus,
   type RecruitmentApplicationStatus,
+  type RecruitmentOrgRole,
 } from '@/lib/recruitment/types'
+import {
+  canRoleSetStatus,
+  isAllowedPipelineTransition,
+} from '@/lib/recruitment/pipeline'
+import { notifyApplicationStatusChanged } from '@/lib/recruitment/recruitment-notifications'
+import { getOrganizationById } from '@/lib/recruitment/organizations'
+import { createEventId, enqueueWebhookEvent } from '@/lib/recruitment/api-webhooks'
 
 const EMPLOYER_APPLICATION_SELECT = `
   id, job_id, candidate_user_id, status, cv_document_id, profile_snapshot, submitted_at, created_at, updated_at,
@@ -27,16 +39,24 @@ export type EmployerApplicationRow = {
 export async function listOrganizationApplications(input: {
   organizationId: string
   jobId?: string
+  /** When set (including empty), restricts to these job IDs. null/undefined = all org jobs. */
+  jobIds?: string[] | null
   status?: string
 }): Promise<{ applications: EmployerApplicationRow[]; error?: string }> {
   if (!supabaseAdmin) return { applications: [], error: 'Database not configured' }
+
+  if (input.jobIds && input.jobIds.length === 0) return { applications: [] }
 
   const { data: jobs, error: jobsError } = await supabaseAdmin
     .from('recruitment_jobs')
     .select('id')
     .eq('organization_id', input.organizationId)
   if (jobsError) return { applications: [], error: jobsError.message }
-  const jobIds = (jobs ?? []).map((job) => job.id)
+  let jobIds = (jobs ?? []).map((job) => job.id)
+  if (input.jobIds) {
+    const allowed = new Set(input.jobIds)
+    jobIds = jobIds.filter((id) => allowed.has(id))
+  }
   if (jobIds.length === 0) return { applications: [] }
   if (input.jobId && !jobIds.includes(input.jobId)) return { applications: [] }
 
@@ -80,7 +100,9 @@ export async function updateOrganizationApplicationStatus(input: {
   applicationId: string
   organizationId: string
   status: string
-  actorUserId: string
+  actorUserId?: string | null
+  asPlatformAdmin?: boolean
+  membershipRole?: RecruitmentOrgRole | null
 }): Promise<{ application?: EmployerApplicationRow; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
   if (!isRecruitmentApplicationStatus(input.status)) return { error: 'Invalid status' }
@@ -91,12 +113,28 @@ export async function updateOrganizationApplicationStatus(input: {
     return { error: 'Invalid pipeline status' }
   }
 
+  if (
+    !canRoleSetStatus(
+      Boolean(input.asPlatformAdmin),
+      input.membershipRole,
+      input.status
+    )
+  ) {
+    return {
+      error:
+        'Your role cannot set this status. Offer, hire, and reject require HR or organization admin.',
+    }
+  }
+
   const current = await getOrganizationApplication(input.applicationId, input.organizationId)
   if (current.error) return { error: current.error }
   if (!current.application) return { error: 'Application not found' }
 
   const fromStatus = current.application.status
   if (fromStatus === input.status) return { application: current.application }
+
+  const transition = isAllowedPipelineTransition(fromStatus, input.status)
+  if (!transition.ok) return { error: transition.error }
 
   const { data, error } = await supabaseAdmin
     .from('recruitment_applications')
@@ -119,17 +157,72 @@ export async function updateOrganizationApplicationStatus(input: {
       organization_id: input.organizationId,
       from_status: fromStatus,
       to_status: input.status,
-      actor_user_id: input.actorUserId,
+      actor_user_id: input.actorUserId || null,
     },
   ])
 
+  const action =
+    input.status === 'shortlisted'
+      ? 'candidate_shortlisted'
+      : input.status === 'rejected'
+        ? 'candidate_rejected'
+        : input.status === 'hired'
+          ? 'candidate_hired'
+          : input.status === 'offer'
+            ? 'decision_recorded'
+            : 'application_status_changed'
+
   await writeRecruitmentAudit({
-    actorUserId: input.actorUserId,
+    actorUserId: input.actorUserId || null,
     organizationId: input.organizationId,
-    action: 'application_status_changed',
+    action,
     entityType: 'recruitment_applications',
     entityId: input.applicationId,
-    metadata: { fromStatus, toStatus: input.status, jobId: current.application.job_id },
+    metadata: {
+      fromStatus,
+      toStatus: input.status,
+      jobId: current.application.job_id,
+      previousValues: { status: fromStatus },
+    },
+  })
+
+  // Notify candidate (non-blocking failures recorded as notification events)
+  const snapshot = (current.application.profile_snapshot ?? {}) as Record<string, unknown>
+  let candidateEmail = String(snapshot.email || '').trim()
+  if (!candidateEmail && supabaseAdmin) {
+    const { data: userRow } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', current.application.candidate_user_id)
+      .maybeSingle()
+    candidateEmail = String(userRow?.email || '').trim()
+  }
+  const { organization } = await getOrganizationById(input.organizationId)
+  if (candidateEmail && organization) {
+    void notifyApplicationStatusChanged({
+      organizationId: input.organizationId,
+      applicationId: input.applicationId,
+      candidateUserId: current.application.candidate_user_id,
+      candidateEmail,
+      candidateName: String(snapshot.full_name || '') || null,
+      jobTitle: job.title,
+      organizationName: organization.name,
+      status: input.status as RecruitmentApplicationStatus,
+    })
+  }
+
+  const webhookType =
+    input.status === 'hired' ? 'candidate.hired' : 'application.status_changed'
+  void enqueueWebhookEvent({
+    organizationId: input.organizationId,
+    eventType: webhookType,
+    eventId: createEventId(webhookType, input.applicationId, Date.now()),
+    data: {
+      application_id: input.applicationId,
+      job_id: current.application.job_id,
+      status: input.status,
+      previous_status: fromStatus,
+    },
   })
 
   return { application: data as unknown as EmployerApplicationRow }
@@ -150,30 +243,53 @@ export async function listApplicationStatusHistory(
   return { history: data ?? [] }
 }
 
-export async function getEmployerDashboardMetrics(organizationId: string) {
+export async function getEmployerDashboardMetrics(
+  organizationId: string,
+  options?: { jobIds?: string[] | null }
+) {
   if (!supabaseAdmin) {
     return {
       activeJobs: 0,
+      newApplications: 0,
       applications: 0,
       underReview: 0,
       screeningsPending: 0,
+      screeningCompleted: 0,
       shortlisted: 0,
+      interviewsUpcoming: 0,
+      offers: 0,
+      hires: 0,
       error: 'Database not configured',
     }
   }
 
-  const { data: jobs } = await supabaseAdmin
-    .from('recruitment_jobs')
-    .select('id')
-    .eq('organization_id', organizationId)
-  const jobIds = (jobs ?? []).map((job) => job.id)
-  const { count: activeJobs } = await supabaseAdmin
-    .from('recruitment_jobs')
-    .select('id', { count: 'exact', head: true })
-    .eq('organization_id', organizationId)
-    .eq('status', 'published')
+  if (options?.jobIds && options.jobIds.length === 0) {
+    return {
+      activeJobs: 0,
+      newApplications: 0,
+      applications: 0,
+      underReview: 0,
+      screeningsPending: 0,
+      screeningCompleted: 0,
+      shortlisted: 0,
+      interviewsUpcoming: 0,
+      offers: 0,
+      hires: 0,
+    }
+  }
 
-  let rows: Array<{ status: string }> = []
+  let jobsQuery = supabaseAdmin
+    .from('recruitment_jobs')
+    .select('id, status')
+    .eq('organization_id', organizationId)
+  if (options?.jobIds && options.jobIds.length > 0) {
+    jobsQuery = jobsQuery.in('id', options.jobIds)
+  }
+  const { data: jobs } = await jobsQuery
+  const jobIds = (jobs ?? []).map((job) => job.id)
+  const activeJobs = (jobs ?? []).filter((job) => job.status === 'published').length
+
+  let rows: Array<{ id: string; status: string }> = []
   if (jobIds.length > 0) {
     const { data: apps } = await supabaseAdmin
       .from('recruitment_applications')
@@ -181,11 +297,41 @@ export async function getEmployerDashboardMetrics(organizationId: string) {
       .in('job_id', jobIds)
     rows = apps ?? []
   }
+
+  let interviewsQuery = supabaseAdmin
+    .from('recruitment_interviews')
+    .select('id', { count: 'exact', head: true })
+    .eq('organization_id', organizationId)
+    .in('status', ['scheduled', 'rescheduled'])
+    .gte('scheduled_at', new Date().toISOString())
+  if (options?.jobIds && options.jobIds.length > 0) {
+    interviewsQuery = interviewsQuery.in('job_id', options.jobIds)
+  }
+  const { count: interviewsUpcoming } = await interviewsQuery
+
+  let screeningCompleted = 0
+  if (rows.length > 0) {
+    const appIds = rows.map((r) => r.id)
+    const { data: sessions } = await supabaseAdmin
+      .from('recruitment_screening_sessions')
+      .select('application_id, status')
+      .eq('organization_id', organizationId)
+      .in('application_id', appIds)
+      .in('status', ['submitted', 'expired'])
+    const seen = new Set((sessions ?? []).map((s) => s.application_id))
+    screeningCompleted = seen.size
+  }
+
   return {
-    activeJobs: activeJobs ?? 0,
+    activeJobs,
+    newApplications: rows.filter((row) => row.status === 'submitted').length,
     applications: rows.length,
     underReview: rows.filter((row) => row.status === 'under_review').length,
     screeningsPending: rows.filter((row) => row.status === 'screening').length,
+    screeningCompleted,
     shortlisted: rows.filter((row) => row.status === 'shortlisted').length,
+    interviewsUpcoming: interviewsUpcoming ?? 0,
+    offers: rows.filter((row) => row.status === 'offer').length,
+    hires: rows.filter((row) => row.status === 'hired').length,
   }
 }

@@ -1,12 +1,16 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
-import { isRecruitmentQuestionDifficulty } from '@/lib/recruitment/types'
+import {
+  isRecruitmentQuestionDifficulty,
+  isRecruitmentQuestionType,
+  type RecruitmentQuestionType,
+} from '@/lib/recruitment/types'
 
 const ORG_QUESTION_SELECT =
-  'id, owner_type, organization_id, discipline, difficulty, prompt, expected_time_seconds, answer_key, created_at, updated_at'
+  'id, owner_type, organization_id, discipline, difficulty, prompt, expected_time_seconds, answer_key, question_type, options, parameters, answer_spec, weight, section, status, created_at, updated_at'
 
 const PLATFORM_QUESTION_SELECT =
-  'id, owner_type, organization_id, discipline, difficulty, prompt, expected_time_seconds, created_at, updated_at'
+  'id, owner_type, organization_id, discipline, difficulty, prompt, expected_time_seconds, question_type, options, parameters, weight, section, status, created_at, updated_at'
 
 export async function listAvailableQuestions(organizationId: string) {
   if (!supabaseAdmin) return { questions: [], error: 'Database not configured' }
@@ -17,12 +21,14 @@ export async function listAvailableQuestions(organizationId: string) {
         .from('recruitment_questions')
         .select(PLATFORM_QUESTION_SELECT)
         .eq('owner_type', 'platform')
+        .neq('status', 'archived')
         .order('created_at', { ascending: false }),
       supabaseAdmin
         .from('recruitment_questions')
         .select(ORG_QUESTION_SELECT)
         .eq('owner_type', 'organization')
         .eq('organization_id', organizationId)
+        .neq('status', 'archived')
         .order('created_at', { ascending: false }),
     ])
 
@@ -34,6 +40,11 @@ export async function listAvailableQuestions(organizationId: string) {
   }
 }
 
+function parseQuestionType(value: unknown): RecruitmentQuestionType {
+  const raw = String(value ?? 'short_text')
+  return isRecruitmentQuestionType(raw) ? raw : 'short_text'
+}
+
 export async function createOrganizationQuestion(input: {
   organizationId: string
   actorUserId: string
@@ -42,6 +53,12 @@ export async function createOrganizationQuestion(input: {
   difficulty?: string
   expectedTimeSeconds?: number | null
   answerKey?: string | null
+  questionType?: string
+  options?: unknown
+  parameters?: unknown
+  answerSpec?: unknown
+  weight?: number
+  section?: string | null
 }): Promise<{ question?: Record<string, unknown>; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
   const prompt = input.prompt.trim()
@@ -63,6 +80,13 @@ export async function createOrganizationQuestion(input: {
         difficulty,
         expected_time_seconds: input.expectedTimeSeconds ?? null,
         answer_key: input.answerKey?.trim() || null,
+        question_type: parseQuestionType(input.questionType),
+        options: Array.isArray(input.options) ? input.options : [],
+        parameters: Array.isArray(input.parameters) ? input.parameters : [],
+        answer_spec:
+          input.answerSpec && typeof input.answerSpec === 'object' ? input.answerSpec : {},
+        weight: input.weight != null && Number(input.weight) > 0 ? Number(input.weight) : 1,
+        section: input.section?.trim() || input.discipline?.trim() || null,
         created_by: input.actorUserId,
       },
     ])
@@ -77,7 +101,7 @@ export async function createOrganizationQuestion(input: {
     action: 'question_created',
     entityType: 'recruitment_questions',
     entityId: data.id,
-    metadata: { ownerType: 'organization' },
+    metadata: { ownerType: 'organization', questionType: data.question_type },
   })
 
   return { question: data as Record<string, unknown> }
@@ -92,6 +116,12 @@ export async function updateOrganizationQuestion(input: {
   difficulty?: string | null
   expectedTimeSeconds?: number | null
   answerKey?: string | null
+  questionType?: string
+  options?: unknown
+  parameters?: unknown
+  answerSpec?: unknown
+  weight?: number
+  section?: string | null
 }): Promise<{ question?: Record<string, unknown>; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
@@ -108,6 +138,19 @@ export async function updateOrganizationQuestion(input: {
     updates.expected_time_seconds = input.expectedTimeSeconds
   }
   if (input.answerKey !== undefined) updates.answer_key = input.answerKey?.trim() || null
+  if (input.questionType !== undefined) updates.question_type = parseQuestionType(input.questionType)
+  if (input.options !== undefined) updates.options = Array.isArray(input.options) ? input.options : []
+  if (input.parameters !== undefined) {
+    updates.parameters = Array.isArray(input.parameters) ? input.parameters : []
+  }
+  if (input.answerSpec !== undefined) {
+    updates.answer_spec =
+      input.answerSpec && typeof input.answerSpec === 'object' ? input.answerSpec : {}
+  }
+  if (input.weight !== undefined) {
+    updates.weight = input.weight != null && Number(input.weight) > 0 ? Number(input.weight) : 1
+  }
+  if (input.section !== undefined) updates.section = input.section?.trim() || null
 
   const { data, error } = await supabaseAdmin
     .from('recruitment_questions')

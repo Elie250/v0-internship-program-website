@@ -3,6 +3,7 @@ import { requireOrganizationAccess } from '@/lib/recruitment/authz'
 import { APPLICATION_REVIEW_ROLES } from '@/lib/recruitment/rbac'
 import { getOrganizationApplication } from '@/lib/recruitment/employer-applications'
 import { createEmployerDocumentDownloadUrl } from '@/lib/recruitment/documents'
+import { assertCanAccessApplication } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
   _request: Request,
@@ -10,7 +11,8 @@ export async function GET(
 ) {
   try {
     const { id: organizationId, applicationId } = await context.params
-    await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    await assertCanAccessApplication({ access, organizationId, applicationId })
     const { application, error } = await getOrganizationApplication(applicationId, organizationId)
     if (error) return NextResponse.json({ error }, { status: 500 })
     if (!application?.cv_document_id) {

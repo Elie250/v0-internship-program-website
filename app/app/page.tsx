@@ -27,6 +27,17 @@ type Application = {
   } | null
 }
 
+type Interview = {
+  id: string
+  applicationId: string
+  interviewType: string
+  status: string
+  scheduledAt: string
+  location: string | null
+  meetingUrl: string | null
+  candidateInstructions: string | null
+}
+
 type MeResponse = {
   user: { email: string; firstName?: string; lastName?: string }
   profileCompletion: { percent: number; missing: string[] }
@@ -56,6 +67,7 @@ export default function CandidateDashboardPage() {
   const [busyId, setBusyId] = useState('')
   const [error, setError] = useState('')
   const [me, setMe] = useState<MeResponse | null>(null)
+  const [interviews, setInterviews] = useState<Interview[]>([])
 
   const load = async () => {
     const res = await fetch('/api/recruitment/me', { credentials: 'same-origin' })
@@ -70,6 +82,13 @@ export default function CandidateDashboardPage() {
       return
     }
     setMe(data)
+    const interviewRes = await fetch('/api/recruitment/candidate/interviews', {
+      credentials: 'same-origin',
+    })
+    if (interviewRes.ok) {
+      const body = await interviewRes.json()
+      setInterviews(body.interviews ?? [])
+    }
     setLoading(false)
   }
 
@@ -172,6 +191,32 @@ export default function CandidateDashboardPage() {
               </Button>
             </Link>
           </section>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 space-y-3 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
+            <h2 className="text-base font-semibold text-slate-900">Interviews</h2>
+            <p className="text-sm text-slate-600">
+              Schedule details from employers. Internal HR notes and scorecards stay private.
+            </p>
+            {interviews.length === 0 ? (
+              <p className="text-sm text-slate-600">No interviews scheduled.</p>
+            ) : (
+              <div className="space-y-3">
+                {interviews.map((row) => (
+                  <div key={row.id} className="rounded-xl border border-slate-200 p-3 text-sm space-y-1">
+                    <p className="font-medium text-slate-900">
+                      {new Date(row.scheduledAt).toLocaleString()} ·{' '}
+                      {row.interviewType.replace('_', ' ')}
+                    </p>
+                    <p className="text-slate-600">Status: {row.status}</p>
+                    {row.location ? <p>Location: {row.location}</p> : null}
+                    {row.meetingUrl ? <p>Meeting: {row.meetingUrl}</p> : null}
+                    {row.candidateInstructions ? (
+                      <p className="text-slate-700 whitespace-pre-wrap">{row.candidateInstructions}</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 space-y-4 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
@@ -230,6 +275,14 @@ export default function CandidateDashboardPage() {
                           className="text-sm font-medium text-[var(--brand-navy)] hover:underline"
                         >
                           View job
+                        </Link>
+                      ) : null}
+                      {app.status !== 'withdrawn' && app.status !== 'rejected' ? (
+                        <Link
+                          href={`/app/applications/${app.id}/screening`}
+                          className="text-sm font-medium text-[var(--brand-navy)] hover:underline"
+                        >
+                          Technical screening
                         </Link>
                       ) : null}
                       {canWithdraw ? (

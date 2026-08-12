@@ -1,38 +1,193 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
-import { EMPLOYER_PIPELINE_STATUSES, formatApplicationStatus } from '@/lib/recruitment/types'
+import { EMPLOYER_PIPELINE_STATUSES } from '@/lib/recruitment/types'
+import { formatPipelineLabel } from '@/lib/recruitment/pipeline'
+
+type ScreeningSessionSummary = {
+  id: string
+  attemptNumber: number
+  status: string
+  technicalScore: number | null
+  sectionScores: Record<string, { percent: number }> | null
+  passed: boolean | null
+  completionState: string | null
+  submittedAt: string | null
+  startedAt: string
+  integrityBand?: string | null
+}
 
 export default function EmployerApplicationDetailPage() {
   const params = useParams<{ applicationId: string }>()
-  const { orgId } = useEmployerOrg()
+  const { orgId, canDecide, canInterview } = useEmployerOrg()
   const [data, setData] = useState<{
     application?: {
       id: string
       status: string
       cv_document_id: string | null
       profile_snapshot: Record<string, unknown>
-      job?: { title?: string }
+      submitted_at?: string
+      job?: { id?: string; title?: string }
     }
     history?: Array<{ id: string; from_status: string | null; to_status: string; created_at: string }>
     notes?: Array<{ id: string; body: string; created_at: string }>
   } | null>(null)
+  const [interviews, setInterviews] = useState<
+    Array<{
+      id: string
+      interview_type: string
+      status: string
+      scheduled_at: string
+      location: string | null
+      meeting_url: string | null
+    }>
+  >([])
+  const [inviteAt, setInviteAt] = useState('')
+  const [inviteType, setInviteType] = useState('online')
+  const [inviteLocation, setInviteLocation] = useState('')
+  const [inviteMeeting, setInviteMeeting] = useState('')
+  const [inviteInstructions, setInviteInstructions] = useState('')
+  const [inviteNotes, setInviteNotes] = useState('')
+  const [screening, setScreening] = useState<{ sessions: ScreeningSessionSummary[] } | null>(null)
+  const [review, setReview] = useState<{
+    session?: {
+      technicalScore?: number | null
+      passed?: boolean | null
+      integrityBand?: string | null
+    }
+    items?: Array<{
+      id: string
+      prompt: string
+      scoringStatus: string
+      pointsAwarded: number | null
+      maxPoints: number
+      timeSpentMs: number | null
+      expectedTimeSec: number | null
+      answer: Record<string, unknown> | null
+    }>
+  } | null>(null)
+  const [integrity, setIntegrity] = useState<{
+    technicalScore?: number | null
+    integrity?: {
+      band: string
+      summaryText: string
+      recommendation: string
+      reasons: Array<{ message: string }>
+      eventCount: number
+      categories?: Record<string, number>
+    }
+    timeline?: Array<{
+      eventType: string
+      serverReceivedAt: string
+      item?: { sortOrder?: number; prompt?: string } | null
+    }>
+    reviews?: Array<{ id: string; outcome: string; notes: string | null; created_at: string }>
+  } | null>(null)
+  const [reviewOutcome, setReviewOutcome] = useState('reviewed')
+  const [reviewNotes, setReviewNotes] = useState('')
+  const [activeIntegritySessionId, setActiveIntegritySessionId] = useState('')
+  const [aiAnalyses, setAiAnalyses] = useState<
+    Array<{
+      id: string
+      status: string
+      analysis_type: string
+      model: string | null
+      prompt_version: string
+      created_at: string
+      result?: {
+        advisory?: {
+          candidateSummary?: string
+          technicalStrengths?: string[]
+          technicalWeaknesses?: string[]
+          openAnswerObservations?: string[]
+          cvObservations?: string[]
+          suggestedInterviewAreas?: string[]
+          integrityContext?: string
+          limitations?: string
+          disclaimer?: string
+        }
+        platformFacts?: {
+          technicalScore?: number | null
+          integrityBand?: string | null
+        }
+      }
+      error_message?: string | null
+    }>
+  >([])
+  const [aiProvider, setAiProvider] = useState<{ available?: boolean; model?: string | null } | null>(
+    null
+  )
+  const [aiBusy, setAiBusy] = useState(false)
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  const load = async () => {
+  const loadAi = async () => {
     if (!orgId) return
     const res = await fetch(
-      `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}`,
+      `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}/ai`,
       { credentials: 'same-origin' }
     )
-    if (res.ok) setData(await res.json())
+    if (!res.ok) return
+    const body = await res.json()
+    setAiAnalyses(body.analyses ?? [])
+    setAiProvider(body.provider ?? null)
+  }
+
+  const load = async () => {
+    if (!orgId) return
+    const [appRes, screenRes, interviewRes] = await Promise.all([
+      fetch(`/api/recruitment/organizations/${orgId}/applications/${params.applicationId}`, {
+        credentials: 'same-origin',
+      }),
+      fetch(
+        `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}/screening`,
+        { credentials: 'same-origin' }
+      ),
+      fetch(
+        `/api/recruitment/organizations/${orgId}/interviews?applicationId=${params.applicationId}`,
+        { credentials: 'same-origin' }
+      ),
+    ])
+    if (appRes.ok) setData(await appRes.json())
+    if (screenRes.ok) setScreening(await screenRes.json())
+    if (interviewRes.ok) {
+      const body = await interviewRes.json()
+      setInterviews(body.interviews ?? [])
+    }
+    await loadAi()
+  }
+
+  const inviteInterview = async () => {
+    setError('')
+    setMessage('')
+    const res = await fetch(`/api/recruitment/organizations/${orgId}/interviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        applicationId: params.applicationId,
+        interviewType: inviteType,
+        scheduledAt: inviteAt,
+        location: inviteLocation || null,
+        meetingUrl: inviteMeeting || null,
+        candidateInstructions: inviteInstructions || null,
+        internalNotes: inviteNotes || null,
+      }),
+    })
+    const body = await res.json()
+    if (!res.ok) setError(body.error || 'Could not schedule interview')
+    else {
+      setMessage('Interview invitation created. Application status was not changed automatically.')
+      setInviteAt('')
+      await load()
+    }
   }
 
   useEffect(() => {
@@ -85,32 +240,123 @@ export default function EmployerApplicationDetailPage() {
     else if (body.url) window.open(body.url, '_blank', 'noopener,noreferrer')
   }
 
+  const openReview = async (sessionId: string) => {
+    setError('')
+    setActiveIntegritySessionId(sessionId)
+    const [res, integrityRes] = await Promise.all([
+      fetch(`/api/recruitment/organizations/${orgId}/screening/sessions/${sessionId}`, {
+        credentials: 'same-origin',
+      }),
+      fetch(
+        `/api/recruitment/organizations/${orgId}/screening/sessions/${sessionId}/integrity`,
+        { credentials: 'same-origin' }
+      ),
+    ])
+    const body = await res.json()
+    const integrityBody = await integrityRes.json()
+    if (!res.ok) setError(body.error || 'Could not load screening review')
+    else setReview(body)
+    if (integrityRes.ok) setIntegrity(integrityBody)
+    else if (!res.ok) {
+      /* keep prior error */
+    } else if (!integrityRes.ok) {
+      setError(integrityBody.error || 'Could not load integrity report')
+    }
+  }
+
+  const saveIntegrityReview = async () => {
+    if (!activeIntegritySessionId) return
+    setError('')
+    setMessage('')
+    const res = await fetch(
+      `/api/recruitment/organizations/${orgId}/screening/sessions/${activeIntegritySessionId}/integrity/review`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ outcome: reviewOutcome, notes: reviewNotes }),
+      }
+    )
+    const body = await res.json()
+    if (!res.ok) setError(body.error || 'Could not save integrity review')
+    else {
+      setMessage('Integrity review recorded. Original event evidence is unchanged.')
+      setReviewNotes('')
+      await openReview(activeIntegritySessionId)
+    }
+  }
+
+  const requestAiAnalysis = async () => {
+    setError('')
+    setMessage('')
+    setAiBusy(true)
+    try {
+      const res = await fetch(
+        `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}/ai`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ analysisType: 'application_advisory' }),
+        }
+      )
+      const body = await res.json()
+      if (!res.ok) setError(body.error || 'Could not run AI analysis')
+      else {
+        setMessage('AI advisory analysis updated. It does not change scores or hiring decisions.')
+        await loadAi()
+      }
+    } finally {
+      setAiBusy(false)
+    }
+  }
+
+  const latestAi = aiAnalyses[0]
+  const advisory = latestAi?.result?.advisory
+  const aiStatusLabel =
+    !latestAi
+      ? 'Not analyzed'
+      : latestAi.status === 'analyzing'
+        ? 'Analyzing'
+        : latestAi.status === 'available'
+          ? 'Analysis available'
+          : latestAi.status === 'failed'
+            ? 'Analysis failed'
+            : latestAi.status
+
   const snapshot = data?.application?.profile_snapshot ?? {}
+  const latestSession = screening?.sessions?.[0]
+  const decisionStatuses = new Set(['offer', 'hired', 'rejected'])
 
   return (
     <EmployerShell>
-      <h1 className="text-2xl font-semibold">
-        {String(snapshot.full_name || 'Candidate')} · {data?.application?.job?.title}
-      </h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            {String(snapshot.full_name || 'Candidate')}
+          </h1>
+          <p className="text-sm text-slate-600">
+            {data?.application?.job?.title} · Applied{' '}
+            {data?.application?.submitted_at
+              ? new Date(data.application.submitted_at).toLocaleString()
+              : '—'}
+          </p>
+        </div>
+        {data?.application?.job?.id ? (
+          <Link href={`/employer/jobs/${data.application.job.id}/compare`}>
+            <Button variant="outline">Compare for this job</Button>
+          </Link>
+        ) : null}
+      </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <h2 className="font-semibold">Candidate profile</h2>
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium">
-            Status: {data?.application ? formatApplicationStatus(data.application.status as never) : '—'}
+            Pipeline: {data?.application ? formatPipelineLabel(data.application.status) : '—'}
           </span>
-          <select
-            value={data?.application?.status ?? ''}
-            onChange={(e) => void setStatus(e.target.value)}
-            className="h-10 rounded-xl border border-slate-300 px-3 text-sm"
-          >
-            {EMPLOYER_PIPELINE_STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {formatApplicationStatus(status)}
-              </option>
-            ))}
-          </select>
           {data?.application?.cv_document_id ? (
             <Button variant="outline" onClick={() => void openCv()}>
               Open CV (signed link)
@@ -137,7 +383,426 @@ export default function EmployerApplicationDetailPage() {
             <dd>{String(snapshot.phone || '—')}</dd>
           </div>
         </dl>
-        {snapshot.summary ? <p className="text-sm text-slate-700 whitespace-pre-wrap">{String(snapshot.summary)}</p> : null}
+        {snapshot.summary ? (
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{String(snapshot.summary)}</p>
+        ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <h2 className="font-semibold">HR decision</h2>
+        <p className="text-xs text-slate-500">
+          Technical Score, Integrity, AI Advisory, and Interview Evaluation inform HR — they never
+          auto-change this decision.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs uppercase text-slate-500">Technical score</p>
+            <p className="font-semibold mt-1">
+              {latestSession?.technicalScore != null ? `${latestSession.technicalScore}%` : '—'}
+            </p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs uppercase text-slate-500">Integrity</p>
+            <p className="font-semibold mt-1">{latestSession?.integrityBand ?? '—'}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs uppercase text-slate-500">AI advisory</p>
+            <p className="font-semibold mt-1">{aiStatusLabel}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs uppercase text-slate-500">Interview evaluation</p>
+            <p className="font-semibold mt-1">
+              {interviews.some((i) => i.status === 'completed') ? 'Recorded' : '—'}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={data?.application?.status ?? ''}
+            onChange={(e) => void setStatus(e.target.value)}
+            className="h-10 rounded-xl border border-slate-300 px-3 text-sm"
+          >
+            {EMPLOYER_PIPELINE_STATUSES.filter((status) => {
+              if (status === data?.application?.status) return true
+              if (!decisionStatuses.has(status)) return true
+              return canDecide
+            }).map((status) => (
+              <option key={status} value={status}>
+                {formatPipelineLabel(status)}
+              </option>
+            ))}
+          </select>
+          {!canDecide ? (
+            <span className="text-xs text-slate-500">
+              Offer / hire / reject require HR or organization admin.
+            </span>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <h2 className="font-semibold">Technical score</h2>
+        <p className="text-xs text-slate-500">
+          Authoritative screening score. Separate from integrity and AI.
+        </p>
+        {(screening?.sessions ?? []).length === 0 ? (
+          <p className="text-sm text-slate-600">No screening attempts yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {(screening?.sessions ?? []).map((s) => (
+              <div key={s.id} className="rounded-xl border border-slate-200 p-3 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm space-y-1">
+                    <p className="font-medium">
+                      Attempt {s.attemptNumber} · {s.status}
+                    </p>
+                    <p>
+                      Technical Score:{' '}
+                      {s.technicalScore != null ? `${s.technicalScore}%` : '—'}
+                      {s.passed != null ? (s.passed ? ' · pass criteria met' : ' · below threshold') : ''}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => void openReview(s.id)}>
+                    View results & integrity
+                  </Button>
+                </div>
+                {s.sectionScores ? (
+                  <p className="text-xs text-slate-600">
+                    Section scores:{' '}
+                    {Object.entries(s.sectionScores)
+                      .map(([name, val]) => `${name} ${val.percent}%`)
+                      .join(' · ')}
+                  </p>
+                ) : null}
+                <p className="text-xs text-slate-500">
+                  Started {new Date(s.startedAt).toLocaleString()}
+                  {s.submittedAt ? ` · Submitted ${new Date(s.submittedAt).toLocaleString()}` : ''}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+        {review?.items ? (
+          <div className="rounded-xl bg-slate-50 p-4 space-y-3">
+            <p className="text-sm font-medium">
+              Question-level results
+              {review.session?.technicalScore != null
+                ? ` · ${review.session.technicalScore}%`
+                : ''}
+            </p>
+            {review.items.map((item, idx) => (
+              <div key={item.id} className="text-sm border-t border-slate-200 pt-2">
+                <p className="font-medium">
+                  {idx + 1}. {item.prompt}
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  {item.scoringStatus} · {item.pointsAwarded ?? 0}/{item.maxPoints}
+                  {item.timeSpentMs != null
+                    ? ` · ${(item.timeSpentMs / 1000).toFixed(1)}s`
+                    : ''}
+                  {item.expectedTimeSec != null ? ` (expected ~${item.expectedTimeSec}s)` : ''}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <h2 className="font-semibold">Integrity</h2>
+        <p className="text-xs text-slate-500">
+          Authoritative integrity band from server signals. Not a cheating verdict. Does not overwrite
+          technical score.
+        </p>
+        {integrity?.integrity ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <p className="text-sm font-medium">Integrity band: {integrity.integrity.band}</p>
+            <p className="text-sm text-slate-700">{integrity.integrity.summaryText}</p>
+            <StatusBanner tone="info">
+              Recommendation: {integrity.integrity.recommendation}
+            </StatusBanner>
+            <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
+              {(integrity.integrity.reasons ?? []).map((reason, idx) => (
+                <li key={idx}>{reason.message}</li>
+              ))}
+            </ul>
+            <p className="text-xs text-slate-500">
+              {integrity.integrity.eventCount} browser signal events recorded (server timeline).
+            </p>
+            {(integrity.timeline ?? []).length > 0 ? (
+              <div className="max-h-48 overflow-auto space-y-1 border-t border-slate-200 pt-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Integrity timeline
+                </p>
+                {(integrity.timeline ?? []).slice(0, 40).map((row, idx) => (
+                  <p key={idx} className="text-xs text-slate-600">
+                    {new Date(row.serverReceivedAt).toLocaleString()} · {row.eventType}
+                    {row.item?.sortOrder != null ? ` · Q${row.item.sortOrder + 1}` : ''}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <div className="border-t border-slate-200 pt-3 space-y-2">
+              <p className="text-sm font-medium">HR integrity review</p>
+              <select
+                value={reviewOutcome}
+                onChange={(e) => setReviewOutcome(e.target.value)}
+                className="h-10 rounded-xl border px-3 text-sm"
+              >
+                <option value="reviewed">Reviewed</option>
+                <option value="no_concern">No concern</option>
+                <option value="concern_confirmed">Concern confirmed</option>
+                <option value="inconclusive">Inconclusive</option>
+              </select>
+              <Textarea
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+                placeholder="Optional notes for the hiring file"
+                className="rounded-xl min-h-20"
+              />
+              <Button
+                onClick={() => void saveIntegrityReview()}
+                className="bg-[var(--brand-navy)] text-white"
+              >
+                Save integrity review
+              </Button>
+              {(integrity.reviews ?? []).map((item) => (
+                <p key={item.id} className="text-xs text-slate-600">
+                  {item.outcome} · {new Date(item.created_at).toLocaleString()}
+                  {item.notes ? ` — ${item.notes}` : ''}
+                </p>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">
+            Open a screening attempt above to load the integrity timeline.
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">AI Analysis — Advisory</h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Status: {aiStatusLabel}
+              {latestAi?.model ? ` · ${latestAi.model}` : ''}
+              {latestAi?.prompt_version ? ` · ${latestAi.prompt_version}` : ''}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            disabled={aiBusy}
+            onClick={() => void requestAiAnalysis()}
+          >
+            {aiBusy ? 'Analyzing…' : latestAi ? 'Re-run advisory analysis' : 'Request advisory analysis'}
+          </Button>
+        </div>
+        <StatusBanner tone="info">
+          AI-generated analysis is advisory and does not determine hiring decisions.
+        </StatusBanner>
+        {aiProvider && !aiProvider.available ? (
+          <p className="text-sm text-slate-600">
+            AI provider is not configured on the server. You can continue hiring without AI.
+          </p>
+        ) : null}
+        {latestAi?.status === 'failed' ? (
+          <StatusBanner tone="error">
+            {latestAi.error_message || 'Analysis failed. Screening and scores are unaffected.'}
+          </StatusBanner>
+        ) : null}
+        {advisory ? (
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl bg-slate-50 p-3 space-y-1">
+              <p className="font-medium">Snapshot</p>
+              <p>
+                Technical Score:{' '}
+                {latestAi?.result?.platformFacts?.technicalScore != null
+                  ? `${latestAi.result.platformFacts.technicalScore}%`
+                  : '—'}
+              </p>
+              <p>Integrity: {latestAi?.result?.platformFacts?.integrityBand ?? '—'}</p>
+              <p>AI Analysis: Advisory</p>
+              <p>HR Decision: Pending (human)</p>
+            </div>
+            {advisory.candidateSummary ? (
+              <div>
+                <p className="font-medium">Candidate summary</p>
+                <p className="text-slate-700 whitespace-pre-wrap">{advisory.candidateSummary}</p>
+              </div>
+            ) : null}
+            {(advisory.technicalStrengths?.length ?? 0) > 0 ? (
+              <div>
+                <p className="font-medium">Technical strengths</p>
+                <ul className="list-disc pl-5 text-slate-700">
+                  {advisory.technicalStrengths!.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(advisory.technicalWeaknesses?.length ?? 0) > 0 ? (
+              <div>
+                <p className="font-medium">Technical weaknesses</p>
+                <ul className="list-disc pl-5 text-slate-700">
+                  {advisory.technicalWeaknesses!.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(advisory.openAnswerObservations?.length ?? 0) > 0 ? (
+              <div>
+                <p className="font-medium">Open-answer observations</p>
+                <ul className="list-disc pl-5 text-slate-700">
+                  {advisory.openAnswerObservations!.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(advisory.cvObservations?.length ?? 0) > 0 ? (
+              <div>
+                <p className="font-medium">CV / profile observations</p>
+                <ul className="list-disc pl-5 text-slate-700">
+                  {advisory.cvObservations!.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {(advisory.suggestedInterviewAreas?.length ?? 0) > 0 ? (
+              <div>
+                <p className="font-medium">Suggested interview areas</p>
+                <ul className="list-disc pl-5 text-slate-700">
+                  {advisory.suggestedInterviewAreas!.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {advisory.integrityContext ? (
+              <div>
+                <p className="font-medium">Integrity context</p>
+                <p className="text-slate-700 whitespace-pre-wrap">{advisory.integrityContext}</p>
+              </div>
+            ) : null}
+            {advisory.limitations ? (
+              <p className="text-xs text-slate-500">{advisory.limitations}</p>
+            ) : null}
+            <p className="text-xs text-slate-500">
+              {advisory.disclaimer ||
+                'AI-generated analysis is advisory and does not determine hiring decisions.'}
+            </p>
+            {aiAnalyses.length > 1 ? (
+              <p className="text-xs text-slate-500">
+                {aiAnalyses.length} analysis versions on file (latest shown).
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-600">
+            No advisory analysis yet. Request one when you want assistance — it is optional.
+          </p>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <div>
+          <h2 className="font-semibold">Interviews</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Interview evaluation is advisory. Completing an interview never auto-hires or rejects.
+          </p>
+        </div>
+        {(interviews ?? []).length === 0 ? (
+          <p className="text-sm text-slate-600">No interviews scheduled yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {interviews.map((row) => (
+              <div
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 p-3 text-sm"
+              >
+                <div>
+                  <p className="font-medium">
+                    {new Date(row.scheduled_at).toLocaleString()} ·{' '}
+                    {row.interview_type.replace('_', ' ')}
+                  </p>
+                  <p className="text-slate-600">{row.status}</p>
+                </div>
+                <Link href={`/employer/interviews/${row.id}`}>
+                  <Button variant="outline" size="sm">
+                    Open
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+        {canInterview ? (
+          <div className="border-t border-slate-200 pt-4 space-y-3">
+            <p className="text-sm font-medium">Invite to interview</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <label className="text-sm space-y-1">
+                <span>Date / time</span>
+                <input
+                  type="datetime-local"
+                  value={inviteAt}
+                  onChange={(e) => setInviteAt(e.target.value)}
+                  className="h-10 w-full rounded-xl border px-3"
+                />
+              </label>
+              <label className="text-sm space-y-1">
+                <span>Type</span>
+                <select
+                  value={inviteType}
+                  onChange={(e) => setInviteType(e.target.value)}
+                  className="h-10 w-full rounded-xl border px-3"
+                >
+                  <option value="online">Online</option>
+                  <option value="in_person">In person</option>
+                  <option value="phone">Phone</option>
+                </select>
+              </label>
+              <label className="text-sm space-y-1">
+                <span>Location</span>
+                <input
+                  value={inviteLocation}
+                  onChange={(e) => setInviteLocation(e.target.value)}
+                  className="h-10 w-full rounded-xl border px-3"
+                />
+              </label>
+              <label className="text-sm space-y-1">
+                <span>Meeting URL</span>
+                <input
+                  value={inviteMeeting}
+                  onChange={(e) => setInviteMeeting(e.target.value)}
+                  className="h-10 w-full rounded-xl border px-3"
+                />
+              </label>
+            </div>
+            <Textarea
+              value={inviteInstructions}
+              onChange={(e) => setInviteInstructions(e.target.value)}
+              placeholder="Instructions visible to the candidate"
+              className="rounded-xl min-h-20"
+            />
+            <Textarea
+              value={inviteNotes}
+              onChange={(e) => setInviteNotes(e.target.value)}
+              placeholder="Internal notes (HR only)"
+              className="rounded-xl min-h-16"
+            />
+            <Button
+              onClick={() => void inviteInterview()}
+              className="bg-[var(--brand-navy)] text-white"
+              disabled={!inviteAt}
+            >
+              Send interview invitation
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
@@ -169,6 +834,11 @@ export default function EmployerApplicationDetailPage() {
           ))
         )}
       </section>
+      <p className="text-sm">
+        <Link href="/employer/applications" className="text-[var(--brand-navy)] hover:underline">
+          ← Applications
+        </Link>
+      </p>
     </EmployerShell>
   )
 }

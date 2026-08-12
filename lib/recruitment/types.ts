@@ -502,6 +502,23 @@ export type RecruitmentAttemptPolicy = (typeof RECRUITMENT_ATTEMPT_POLICIES)[num
 export const RECRUITMENT_QUESTION_SELECTIONS = ['manual', 'random_from_bank', 'mixed'] as const
 export type RecruitmentQuestionSelection = (typeof RECRUITMENT_QUESTION_SELECTIONS)[number]
 
+export const RECRUITMENT_QUESTION_TYPES = [
+  'multiple_choice',
+  'multiple_select',
+  'numeric',
+  'short_text',
+] as const
+export type RecruitmentQuestionType = (typeof RECRUITMENT_QUESTION_TYPES)[number]
+
+export const RECRUITMENT_SCREENING_SESSION_STATUSES = [
+  'in_progress',
+  'submitted',
+  'expired',
+  'cancelled',
+] as const
+export type RecruitmentScreeningSessionStatus =
+  (typeof RECRUITMENT_SCREENING_SESSION_STATUSES)[number]
+
 export function isRecruitmentJobVisibility(value: string): value is RecruitmentJobVisibility {
   return (RECRUITMENT_JOB_VISIBILITIES as readonly string[]).includes(value)
 }
@@ -510,6 +527,10 @@ export function isRecruitmentQuestionDifficulty(
   value: string
 ): value is RecruitmentQuestionDifficulty {
   return (RECRUITMENT_QUESTION_DIFFICULTIES as readonly string[]).includes(value)
+}
+
+export function isRecruitmentQuestionType(value: string): value is RecruitmentQuestionType {
+  return (RECRUITMENT_QUESTION_TYPES as readonly string[]).includes(value)
 }
 
 

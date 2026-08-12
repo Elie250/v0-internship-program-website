@@ -14,6 +14,19 @@ export const APPLICATION_REVIEW_ROLES: RecruitmentOrgRole[] = [
   'hiring_manager',
 ]
 
+/** Invite / schedule / complete interviews */
+export const INTERVIEW_MANAGE_ROLES: RecruitmentOrgRole[] = [
+  'organization_admin',
+  'hr_recruiter',
+  'hiring_manager',
+]
+
+/** Offer / hire / reject decisions */
+export const DECISION_WRITE_ROLES: RecruitmentOrgRole[] = [
+  'organization_admin',
+  'hr_recruiter',
+]
+
 export const SCREENING_WRITE_ROLES: RecruitmentOrgRole[] = ['organization_admin', 'hr_recruiter']
 
 export const MEMBER_WRITE_ROLES: RecruitmentOrgRole[] = ['organization_admin']

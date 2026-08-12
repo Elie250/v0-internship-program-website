@@ -161,16 +161,27 @@ export async function getJobByIdWithOrganization(id: string): Promise<{
   return { job: (data as unknown as RecruitmentJobWithOrganization | null) ?? null }
 }
 
-export async function listOrganizationJobs(organizationId: string): Promise<{
+export async function listOrganizationJobs(
+  organizationId: string,
+  options?: { jobIds?: string[] | null }
+): Promise<{
   jobs: RecruitmentJob[]
   error?: string
 }> {
   if (!supabaseAdmin) return { jobs: [], error: 'Database not configured' }
-  const { data, error } = await supabaseAdmin
+  if (options?.jobIds && options.jobIds.length === 0) return { jobs: [] }
+
+  let query = supabaseAdmin
     .from('recruitment_jobs')
     .select(JOB_SELECT)
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: false })
+
+  if (options?.jobIds && options.jobIds.length > 0) {
+    query = query.in('id', options.jobIds)
+  }
+
+  const { data, error } = await query
   if (error) return { jobs: [], error: error.message }
   return { jobs: (data ?? []) as RecruitmentJob[] }
 }
@@ -270,7 +281,7 @@ export async function createOrganizationJob(input: {
   visibility?: string
   status?: RecruitmentJobStatus
   applicationDeadline?: string | null
-  actorUserId: string
+  actorUserId?: string | null
 }): Promise<{ job?: RecruitmentJob; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
@@ -379,7 +390,7 @@ export async function updateOrganizationJob(input: {
   visibility?: string
   status?: RecruitmentJobStatus
   applicationDeadline?: string | null
-  actorUserId: string
+  actorUserId?: string | null
 }): Promise<{ job?: RecruitmentJob; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 

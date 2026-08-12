@@ -33,7 +33,7 @@ export default function EmployerApplicationsPage() {
   return (
     <EmployerShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Applications</h1>
+        <h1 className="text-2xl font-semibold">Applicants</h1>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}

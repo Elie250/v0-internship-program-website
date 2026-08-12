@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireOrganizationAccess } from '@/lib/recruitment/authz'
 import { APPLICATION_REVIEW_ROLES } from '@/lib/recruitment/rbac'
 import { listOrganizationApplications } from '@/lib/recruitment/employer-applications'
+import { resolveScopedJobIds } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
   request: Request,
@@ -9,11 +10,19 @@ export async function GET(
 ) {
   try {
     const { id: organizationId } = await context.params
-    await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
     const { searchParams } = new URL(request.url)
+    const requestedJobId = searchParams.get('jobId')
+    const scoped = await resolveScopedJobIds({
+      access,
+      organizationId,
+      requestedJobId,
+    })
+    if (scoped.error) return NextResponse.json({ error: scoped.error }, { status: 403 })
+
     const { applications, error } = await listOrganizationApplications({
       organizationId,
-      jobId: searchParams.get('jobId') ?? undefined,
+      jobIds: scoped.jobIds,
       status: searchParams.get('status') ?? undefined,
     })
     if (error) return NextResponse.json({ error }, { status: 500 })

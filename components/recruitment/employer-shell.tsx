@@ -17,10 +17,11 @@ type OrgOption = {
 const NAV = [
   { href: '/employer', label: 'Dashboard' },
   { href: '/employer/jobs', label: 'Jobs' },
-  { href: '/employer/applications', label: 'Applications' },
+  { href: '/employer/applications', label: 'Applicants' },
+  { href: '/employer/interviews', label: 'Interviews' },
   { href: '/employer/screening', label: 'Screening' },
   { href: '/employer/team', label: 'Team' },
-  { href: '/employer/settings', label: 'Organization Settings' },
+  { href: '/employer/settings', label: 'Settings' },
 ]
 
 export function EmployerShell({ children }: { children: React.ReactNode }) {
@@ -187,5 +188,19 @@ export function useEmployerOrg() {
       setRole(data.organization?.role ?? '')
     })()
   }, [])
-  return { orgId, role, canWriteJobs: role === 'organization_admin' || role === 'hr_recruiter' || role === 'platform_admin', canManageTeam: role === 'organization_admin' || role === 'platform_admin', canWriteScreening: role === 'organization_admin' || role === 'hr_recruiter' || role === 'platform_admin', canSettings: role === 'organization_admin' || role === 'platform_admin' }
+  return {
+    orgId,
+    role,
+    canWriteJobs: role === 'organization_admin' || role === 'hr_recruiter' || role === 'platform_admin',
+    canManageTeam: role === 'organization_admin' || role === 'platform_admin',
+    canWriteScreening: role === 'organization_admin' || role === 'hr_recruiter' || role === 'platform_admin',
+    canSettings: role === 'organization_admin' || role === 'platform_admin',
+    canDecide:
+      role === 'organization_admin' || role === 'hr_recruiter' || role === 'platform_admin',
+    canInterview:
+      role === 'organization_admin' ||
+      role === 'hr_recruiter' ||
+      role === 'hiring_manager' ||
+      role === 'platform_admin',
+  }
 }

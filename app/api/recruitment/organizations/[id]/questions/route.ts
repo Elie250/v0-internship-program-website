@@ -43,6 +43,12 @@ export async function POST(
       expectedTimeSeconds:
         body.expectedTimeSeconds != null ? Number(body.expectedTimeSeconds) : null,
       answerKey: body.answerKey != null ? String(body.answerKey) : null,
+      questionType: body.questionType != null ? String(body.questionType) : undefined,
+      options: body.options,
+      parameters: body.parameters,
+      answerSpec: body.answerSpec,
+      weight: body.weight != null ? Number(body.weight) : undefined,
+      section: body.section != null ? String(body.section) : undefined,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ question: result.question })

@@ -7,6 +7,7 @@ import {
   setJobScreeningItems,
   upsertJobScreeningConfig,
 } from '@/lib/recruitment/screening'
+import { assertCanAccessJob } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
   _request: Request,
@@ -14,7 +15,8 @@ export async function GET(
 ) {
   try {
     const { id: organizationId, jobId } = await context.params
-    await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
+    const access = await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
+    await assertCanAccessJob({ access, organizationId, jobId })
     const [{ config, error }, { items }] = await Promise.all([
       getJobScreeningConfig(jobId, organizationId),
       listJobScreeningItems(jobId, organizationId),
@@ -60,6 +62,15 @@ export async function PUT(
       perQuestionTimeSeconds:
         body.perQuestionTimeSeconds != null ? Number(body.perQuestionTimeSeconds) : null,
       integrityMonitoring: Boolean(body.integrityMonitoring),
+      status: body.status === 'published' || body.status === 'draft' ? body.status : undefined,
+      sectionMinimums:
+        body.sectionMinimums && typeof body.sectionMinimums === 'object'
+          ? Object.fromEntries(
+              Object.entries(body.sectionMinimums).map(([k, v]) => [k, Number(v)])
+            )
+          : undefined,
+      maxAttempts: body.maxAttempts != null ? Number(body.maxAttempts) : null,
+      publish: Boolean(body.publish),
     })
     if (configResult.error) {
       return NextResponse.json({ error: configResult.error }, { status: 400 })

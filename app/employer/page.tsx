@@ -8,17 +8,27 @@ import { formatApplicationStatus } from '@/lib/recruitment/types'
 
 type Metrics = {
   activeJobs: number
+  newApplications: number
   applications: number
   underReview: number
   screeningsPending: number
+  screeningCompleted: number
   shortlisted: number
+  interviewsUpcoming: number
+  offers: number
+  hires: number
 }
 
 export default function EmployerDashboardPage() {
   const [data, setData] = useState<{
     metrics: Metrics
     recentJobs: Array<{ id: string; title: string; status: string }>
-    recentApplications: Array<{ id: string; status: string; job?: { title?: string } | null; profile_snapshot?: { full_name?: string } }>
+    recentApplications: Array<{
+      id: string
+      status: string
+      job?: { title?: string } | null
+      profile_snapshot?: { full_name?: string }
+    }>
     organization?: { id: string; name: string }
   } | null>(null)
 
@@ -35,21 +45,29 @@ export default function EmployerDashboardPage() {
     <EmployerShell>
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">HR dashboard</h1>
           <p className="text-sm text-slate-600">{data?.organization?.name ?? 'Employer workspace'}</p>
         </div>
-        <Link href="/employer/jobs/new">
-          <Button className="bg-[var(--brand-navy)] text-white">Create job</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/employer/interviews">
+            <Button variant="outline">Interviews</Button>
+          </Link>
+          <Link href="/employer/jobs/new">
+            <Button className="bg-[var(--brand-navy)] text-white">Create job</Button>
+          </Link>
+        </div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          ['Active Jobs', metrics?.activeJobs ?? 0],
-          ['Applications', metrics?.applications ?? 0],
-          ['Under Review', metrics?.underReview ?? 0],
-          ['Screenings Pending', metrics?.screeningsPending ?? 0],
-          ['Shortlisted', metrics?.shortlisted ?? 0],
+          ['Active jobs', metrics?.activeJobs ?? 0],
+          ['New applications', metrics?.newApplications ?? 0],
+          ['Under review', metrics?.underReview ?? 0],
+          ['Screening completed', metrics?.screeningCompleted ?? 0],
+          ['Interviews upcoming', metrics?.interviewsUpcoming ?? 0],
+          ['Offers', metrics?.offers ?? 0],
+          ['Hires', metrics?.hires ?? 0],
+          ['In screening', metrics?.screeningsPending ?? 0],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-4">
             <p className="text-xs uppercase tracking-wider text-slate-500">{label}</p>
@@ -73,7 +91,12 @@ export default function EmployerDashboardPage() {
           )}
         </section>
         <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
-          <h2 className="font-semibold">Recent applications</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Recent applicants</h2>
+            <Link href="/employer/applications" className="text-xs text-[var(--brand-navy)]">
+              View all
+            </Link>
+          </div>
           {(data?.recentApplications ?? []).length === 0 ? (
             <p className="text-sm text-slate-600">No applications yet.</p>
           ) : (

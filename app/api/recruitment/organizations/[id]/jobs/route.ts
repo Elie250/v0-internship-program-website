@@ -6,6 +6,7 @@ import {
   listOrganizationJobs,
   updateOrganizationJob,
 } from '@/lib/recruitment/jobs'
+import { resolveScopedJobIds } from '@/lib/recruitment/job-assignments'
 
 function jobFieldsFromBody(body: Record<string, unknown>) {
   return {
@@ -38,8 +39,12 @@ export async function GET(
 ) {
   try {
     const { id: organizationId } = await context.params
-    await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
-    const { jobs, error } = await listOrganizationJobs(organizationId)
+    const access = await requireOrganizationAccess(organizationId, JOB_READ_ROLES)
+    const scoped = await resolveScopedJobIds({ access, organizationId })
+    if (scoped.error) return NextResponse.json({ error: scoped.error }, { status: 403 })
+    const { jobs, error } = await listOrganizationJobs(organizationId, {
+      jobIds: scoped.jobIds,
+    })
     if (error) return NextResponse.json({ error }, { status: 500 })
     return NextResponse.json({ jobs })
   } catch (error) {
