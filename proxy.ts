@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  getMainSiteOrigin,
+  isAcademyPath,
+  isRecruitmentHost,
+} from '@/lib/recruitment/hosts'
 
 function getUserSession(request: NextRequest) {
   const session = request.cookies.get('user_session')
@@ -24,7 +29,20 @@ function isAdminUser(
 }
 
 export function proxy(request: NextRequest) {
+  const hostname = request.headers.get('host')
   const pathname = request.nextUrl.pathname
+
+  // jobs.energyandlogics.com → Talent at /jobs; Academy paths on main domain
+  if (isRecruitmentHost(hostname)) {
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/jobs', request.url))
+    }
+    if (isAcademyPath(pathname) && !pathname.startsWith('/auth/logout')) {
+      const target = new URL(pathname + request.nextUrl.search, getMainSiteOrigin())
+      return NextResponse.redirect(target)
+    }
+  }
+
   const user = getUserSession(request)
   const adminSession = request.cookies.get('admin_session')
 
@@ -91,15 +109,19 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/admin/:path*',
     '/dashboard/:path*',
     '/student/:path*',
     '/engineer/:path*',
     '/lecturer/:path*',
     '/learning/:path*/enroll',
+    '/jobs',
+    '/jobs/:path*',
     '/app',
     '/app/:path*',
     '/employer',
     '/employer/:path*',
+    '/o/:path*',
   ],
 }
