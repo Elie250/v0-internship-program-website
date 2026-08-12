@@ -33,40 +33,92 @@ type Job = {
   location: string | null
 }
 
+type OrgRequest = {
+  id: string
+  company_name: string
+  contact_email: string
+  request_type: string
+  status: string
+  requester_notes: string | null
+  review_notes: string | null
+  created_at: string
+  reviewed_at: string | null
+  requester_user_id: string
+}
+
 export default function RecruitmentOrgsManagement() {
   const [orgs, setOrgs] = useState<Org[]>([])
+  const [requests, setRequests] = useState<OrgRequest[]>([])
+  const [requestFilter, setRequestFilter] = useState<'pending' | 'all'>('pending')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [memberEmail, setMemberEmail] = useState('')
-  const [memberRole, setMemberRole] = useState('hr_recruiter')
+  const [memberRole, setMemberRole] = useState('organization_admin')
   const [jobs, setJobs] = useState<Job[]>([])
   const [jobTitle, setJobTitle] = useState('')
   const [jobSlug, setJobSlug] = useState('')
   const [jobLocation, setJobLocation] = useState('Kigali, Rwanda')
+  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/recruitment/organizations', { credentials: 'same-origin' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to load')
-      setOrgs(data.organizations ?? [])
+      const [orgsRes, reqRes] = await Promise.all([
+        fetch('/api/recruitment/organizations', { credentials: 'same-origin' }),
+        fetch(`/api/recruitment/organization-requests?status=${requestFilter}`, {
+          credentials: 'same-origin',
+        }),
+      ])
+      const orgsData = await orgsRes.json()
+      const reqData = await reqRes.json()
+      if (!orgsRes.ok) throw new Error(orgsData.error || 'Failed to load organizations')
+      if (!reqRes.ok) throw new Error(reqData.error || 'Failed to load organization requests')
+      setOrgs(orgsData.organizations ?? [])
+      setRequests(reqData.requests ?? [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [requestFilter])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  const reviewRequest = async (requestId: string, action: 'approve' | 'reject') => {
+    setError('')
+    setNotice('')
+    try {
+      const res = await fetch('/api/recruitment/organization-requests', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          action,
+          reviewNotes: reviewNotes[requestId] || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Review failed')
+      setNotice(
+        action === 'approve'
+          ? 'Organization approved and initial admin assigned. Requester notified.'
+          : 'Request rejected. Requester notified.'
+      )
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Review failed')
+    }
+  }
 
   const createOrg = async () => {
     setError('')
@@ -76,14 +128,25 @@ export default function RecruitmentOrgsManagement() {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug: slug || undefined, status: 'active' }),
+        body: JSON.stringify({
+          name,
+          slug: slug || undefined,
+          status: 'active',
+          adminEmail: adminEmail || undefined,
+          adminRole: 'organization_admin',
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Create failed')
       setName('')
       setSlug('')
-      setNotice(`Created ${data.organization.name}`)
+      setAdminEmail('')
+      const parts = [`Created and activated ${data.organization.name}`]
+      if (data.membership) parts.push('Hiring access granted to the company admin email.')
+      if (data.membershipWarning) parts.push(data.membershipWarning)
+      setNotice(parts.join(' '))
       await load()
+      if (data.organization?.id) await loadMembers(data.organization.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Create failed')
     }
@@ -183,7 +246,9 @@ export default function RecruitmentOrgsManagement() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Add failed')
       setMemberEmail('')
-      setNotice('Member added')
+      setNotice(
+        'Hiring access granted. That person can open the employer workspace at /employer after signing in.'
+      )
       await loadMembers(selectedId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Add failed')
@@ -194,8 +259,100 @@ export default function RecruitmentOrgsManagement() {
     <div className="space-y-6">
       <AdminSectionHeader
         title="Talent organizations"
-        description="Multi-tenant employer organizations on Energy & Logics Talent. EasyFab (and any future employer) is ordinary organization data — never hardcoded as platform owner."
+        description="Review employer organization requests, activate or suspend company workspaces, and grant hiring access. Employer self-signup creates a pending request — not an active workspace."
       />
+
+      <Card className="border-slate-200 bg-slate-50">
+        <CardContent className="p-4 text-sm text-slate-700 space-y-2">
+          <p className="font-semibold text-slate-900">How employer access works</p>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>Employer registers → pending organization request (or awaits company invite).</li>
+            <li>Energy &amp; Logics approves new-company requests below (creates active workspace + admin).</li>
+            <li>Company admins invite employees from Team — no further E&amp;L approval per employee.</li>
+            <li>Suspend an organization to revoke employer workspace access immediately.</li>
+          </ol>
+        </CardContent>
+      </Card>
+
+      <Card className="border-amber-200 bg-amber-50/60">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-slate-900">Organization requests</p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={requestFilter === 'pending' ? 'default' : 'outline'}
+                onClick={() => setRequestFilter('pending')}
+              >
+                Pending
+              </Button>
+              <Button
+                size="sm"
+                variant={requestFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setRequestFilter('all')}
+              >
+                All history
+              </Button>
+            </div>
+          </div>
+          {requests.length === 0 ? (
+            <p className="text-sm text-slate-600">No {requestFilter === 'pending' ? 'pending ' : ''}requests.</p>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((req) => (
+                <div key={req.id} className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                  <div className="flex flex-wrap justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-slate-900">{req.company_name}</p>
+                      <p className="text-xs text-slate-600">
+                        {req.contact_email} · {req.request_type.replace(/_/g, ' ')} · submitted{' '}
+                        {new Date(req.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className={adminStatusClass(req.status)}>
+                      {req.status}
+                    </Badge>
+                  </div>
+                  {req.status === 'pending' && req.request_type === 'new_organization' ? (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Review notes (optional)"
+                        value={reviewNotes[req.id] ?? ''}
+                        onChange={(e) =>
+                          setReviewNotes((prev) => ({ ...prev, [req.id]: e.target.value }))
+                        }
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" onClick={() => void reviewRequest(req.id, 'approve')}>
+                          Approve &amp; activate
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void reviewRequest(req.id, 'reject')}
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ) : req.status === 'pending' ? (
+                    <p className="text-xs text-slate-600">
+                      Waiting for a company admin invite (not platform approval).
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-600">
+                      {req.reviewed_at
+                        ? `Reviewed ${new Date(req.reviewed_at).toLocaleString()}`
+                        : null}
+                      {req.review_notes ? ` · ${req.review_notes}` : ''}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {error ? (
         <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-md p-3">{error}</p>
@@ -208,11 +365,16 @@ export default function RecruitmentOrgsManagement() {
 
       <Card className="border-slate-200">
         <CardContent className="p-4 space-y-3">
-          <p className="font-semibold text-slate-900">Create organization</p>
+          <p className="font-semibold text-slate-900">Create company workspace + grant admin</p>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="org-name">Name</Label>
-              <Input id="org-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor="org-name">Company name</Label>
+              <Input
+                id="org-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. EasyFab Ltd"
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="org-slug">Slug (optional)</Label>
@@ -223,19 +385,33 @@ export default function RecruitmentOrgsManagement() {
                 onChange={(e) => setSlug(e.target.value)}
               />
             </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="admin-email">Company admin email (must already have signed in on Talent)</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                placeholder="hiring@company.com"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+              />
+            </div>
           </div>
           <Button
             onClick={() => void createOrg()}
             disabled={!name.trim()}
             className="bg-[var(--brand-navy)] text-white"
           >
-            Create
+            Create active workspace
           </Button>
         </CardContent>
       </Card>
 
       {loading ? (
         <p className="text-sm text-slate-600">Loading organizations…</p>
+      ) : orgs.length === 0 ? (
+        <p className="text-sm text-slate-600">
+          No company workspaces yet. Create one above to onboard the first hiring partner.
+        </p>
       ) : (
         <div className="space-y-3">
           {orgs.map((org) => (
@@ -255,7 +431,7 @@ export default function RecruitmentOrgsManagement() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => void loadMembers(org.id)}>
-                    Members
+                    Manage members & jobs
                   </Button>
                   {org.status !== 'active' ? (
                     <Button size="sm" variant="outline" onClick={() => void setStatus(org.id, 'active')}>
@@ -279,9 +455,11 @@ export default function RecruitmentOrgsManagement() {
                 </div>
                 {selectedId === org.id ? (
                   <div className="border-t border-slate-200 pt-3 space-y-3">
-                    <p className="text-sm font-medium text-slate-800">Members</p>
+                    <p className="text-sm font-medium text-slate-800">Grant hiring access</p>
                     {members.length === 0 ? (
-                      <p className="text-xs text-slate-500">No members yet.</p>
+                      <p className="text-xs text-slate-500">
+                        No members yet. Add the person who already registered on Talent.
+                      </p>
                     ) : (
                       <ul className="text-sm space-y-1">
                         {members.map((m) => {
@@ -310,11 +488,11 @@ export default function RecruitmentOrgsManagement() {
                         <option value="hiring_manager">hiring_manager</option>
                       </select>
                       <Button size="sm" onClick={() => void addMember()}>
-                        Add member
+                        Grant access
                       </Button>
                     </div>
                     <div className="border-t border-slate-200 pt-3 space-y-3">
-                      <p className="text-sm font-medium text-slate-800">Jobs (Phase 2)</p>
+                      <p className="text-sm font-medium text-slate-800">Jobs</p>
                       {jobs.length === 0 ? (
                         <p className="text-xs text-slate-500">No jobs yet for this organization.</p>
                       ) : (

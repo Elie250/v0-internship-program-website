@@ -15,6 +15,14 @@ function capabilitiesFromState(input) {
   }
 }
 
+function resolveEmployerOnboardingKind(input) {
+  if (input.hasActiveEmployerMembership || input.isPlatformAdmin) return 'active_employer'
+  if (input.hasPendingInvite) return 'pending_invite'
+  if (input.hasPendingOrganizationRequest) return 'pending_request'
+  if (input.latestRequestStatus === 'rejected') return 'rejected_request'
+  return 'none'
+}
+
 function isEmployerPath(path) {
   return path === '/employer' || path.startsWith('/employer/')
 }
@@ -29,21 +37,55 @@ function isCandidatePath(path) {
   )
 }
 
+const PUBLIC_EMPLOYER_ONBOARDING_PATHS = [
+  '/employer/pending',
+  '/employer/invitation',
+  '/employer/get-access',
+]
+
+function isAllowedEmployerOnboardingPath(path) {
+  return PUBLIC_EMPLOYER_ONBOARDING_PATHS.some(
+    (allowed) => path === allowed || path.startsWith(`${allowed}?`)
+  )
+}
+
 function resolvePostAuthRedirect(input) {
   const requested = safeRecruitmentRedirect(input.requestedRedirect)
   const { canUseEmployer } = input.capabilities
+  const kind =
+    input.onboardingKind ?? (canUseEmployer ? 'active_employer' : 'none')
 
-  if (input.registerIntent === 'employer' || (requested && isEmployerPath(requested))) {
-    if (!canUseEmployer) return '/employer/get-access'
-    if (
-      requested &&
-      isEmployerPath(requested) &&
-      !requested.startsWith('/employer/auth') &&
-      requested !== '/employer/get-access'
-    ) {
+  if (requested && requested.startsWith('/employer/invitation')) {
+    return requested
+  }
+
+  if (kind === 'active_employer' || canUseEmployer) {
+    if (input.registerIntent === 'employer' || (requested && isEmployerPath(requested))) {
+      if (
+        requested &&
+        isEmployerPath(requested) &&
+        !requested.startsWith('/employer/auth') &&
+        !isAllowedEmployerOnboardingPath(requested)
+      ) {
+        return requested
+      }
+      return '/employer'
+    }
+    if (input.registerIntent === 'candidate') {
+      if (requested && isCandidatePath(requested) && !requested.startsWith('/jobs/auth')) {
+        return requested
+      }
+      return '/app'
+    }
+    if (requested && (requested.startsWith('/app') || requested.startsWith('/o/'))) {
       return requested
     }
-    return '/employer'
+    return '/jobs/auth/choose'
+  }
+
+  if (input.registerIntent === 'employer' || (requested && isEmployerPath(requested))) {
+    if (kind === 'pending_invite') return '/employer/invitation'
+    return '/employer/pending'
   }
 
   if (input.registerIntent === 'candidate') {
@@ -57,7 +99,6 @@ function resolvePostAuthRedirect(input) {
     return requested
   }
 
-  if (canUseEmployer) return '/jobs/auth/choose'
   return '/app'
 }
 
@@ -126,9 +167,12 @@ assert(candidateOnly.canUseEmployer === false, 'candidate register does not gran
 
 console.log('\nEmployer registration / onboarding')
 assert(
-  resolvePostAuthRedirect({ capabilities: candidateOnly, registerIntent: 'employer' }) ===
-    '/employer/get-access',
-  'employer register without company access → get-access'
+  resolvePostAuthRedirect({
+    capabilities: candidateOnly,
+    registerIntent: 'employer',
+    onboardingKind: 'pending_request',
+  }) === '/employer/pending',
+  'employer register without company access → pending'
 )
 assert(
   resolvePostAuthRedirect({ capabilities: employerMember, registerIntent: 'employer' }) ===
@@ -145,7 +189,16 @@ assert(
     hasActiveEmployerMembership: false,
     isPlatformAdmin: false,
   }),
-  'new employer registrant cannot enter hiring workspace until invited'
+  'new employer registrant cannot enter hiring workspace until invited/approved'
+)
+assert(
+  resolveEmployerOnboardingKind({
+    hasActiveEmployerMembership: false,
+    isPlatformAdmin: false,
+    hasPendingOrganizationRequest: true,
+    hasPendingInvite: false,
+  }) === 'pending_request',
+  'pending organization request is an explicit onboarding state'
 )
 
 console.log('\nShared user identity')
@@ -215,8 +268,9 @@ assert(
   resolvePostAuthRedirect({
     capabilities: candidateOnly,
     requestedRedirect: '/employer/jobs',
-  }) === '/employer/get-access',
-  'candidate hitting employer path is sent to get-access, not the workspace'
+    onboardingKind: 'pending_request',
+  }) === '/employer/pending',
+  'candidate hitting employer path is sent to pending, not the workspace'
 )
 
 console.log('\nCandidate cannot access employer workspace without membership')

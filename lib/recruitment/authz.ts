@@ -63,13 +63,18 @@ export async function getActiveMembership(
   if (!supabaseAdmin) return null
   const { data, error } = await supabaseAdmin
     .from('recruitment_organization_memberships')
-    .select('id, role, organization_id, status')
+    .select(
+      'id, role, organization_id, status, organization:recruitment_organizations(id, status)'
+    )
     .eq('user_id', userId)
     .eq('organization_id', organizationId)
     .eq('status', 'active')
     .maybeSingle()
 
   if (error || !data) return null
+  const org = Array.isArray(data.organization) ? data.organization[0] : data.organization
+  // Suspended / draft orgs never grant employer workspace access (platform admin bypasses separately).
+  if (!org || String(org.status) !== 'active') return null
   return {
     id: String(data.id),
     role: data.role as RecruitmentOrgRole,
@@ -118,5 +123,8 @@ export async function listUserMemberships(userId: string) {
     .order('created_at', { ascending: false })
 
   if (error) return []
-  return data ?? []
+  return (data ?? []).filter((row) => {
+    const org = Array.isArray(row.organization) ? row.organization[0] : row.organization
+    return org && String(org.status) === 'active'
+  })
 }

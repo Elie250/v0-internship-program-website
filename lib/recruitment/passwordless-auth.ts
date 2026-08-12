@@ -8,7 +8,11 @@ import { ensureCandidateProfile } from '@/lib/recruitment/candidate-profile'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
 import { normalizeRecruitmentEmail } from '@/lib/recruitment/email-normalize'
 import { checkRecruitmentAuthRateLimit, hashClientIp } from '@/lib/recruitment/auth-rate-limit'
-import { findOrCreateRecruitmentUser, findUserByNormalizedEmail, type RecruitmentUserRow } from '@/lib/recruitment/user-lookup'
+import {
+  findOrCreateRecruitmentUser,
+  findUserByNormalizedEmail,
+  type RecruitmentUserRow,
+} from '@/lib/recruitment/user-lookup'
 import { listUserMemberships } from '@/lib/recruitment/authz'
 import { hasPermission, PERMISSIONS, resolvePermissions } from '@/lib/admin/permissions'
 import {
@@ -18,6 +22,15 @@ import {
   type RecruitmentAuthMode,
   type RecruitmentRegisterIntent,
 } from '@/lib/recruitment/post-auth'
+import { getRecruitmentPublicUrl } from '@/lib/recruitment/public-url'
+import {
+  ensureEmployerOrganizationRequest,
+  getLatestOrganizationRequestForUser,
+  getPendingOrganizationRequestForUser,
+} from '@/lib/recruitment/organization-requests'
+import { getPendingInviteForEmail } from '@/lib/recruitment/organization-invites'
+import { resolveEmployerOnboardingKind } from '@/lib/recruitment/onboarding-state'
+import { sendEmployerRequestConfirmationEmail } from '@/lib/recruitment/employer-onboarding-emails'
 
 const LOGIN_TTL_MS = 30 * 60 * 1000
 
@@ -25,13 +38,7 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-export function getRecruitmentPublicUrl(): string {
-  const url =
-    process.env.RECRUITMENT_PUBLIC_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_RECRUITMENT_URL?.trim() ||
-    'https://jobs.energyandlogics.com'
-  return url.replace(/\/$/, '')
-}
+export { getRecruitmentPublicUrl }
 
 const GENERIC_SUCCESS_MESSAGE =
   'If that email can receive mail, we sent a sign-in link. Check your inbox and spam folder.'
@@ -126,6 +133,20 @@ export async function requestRecruitmentMagicLink(
     await ensureCandidateProfile(user.id)
   }
 
+  let employerVerifyRedirect = safeRecruitmentRedirect(redirectAfter)
+  if (mode === 'register' && options?.registerIntent === 'employer') {
+    const requestResult = await ensureEmployerOrganizationRequest({
+      userId: user.id,
+      email: normalized,
+      companyName: options.companyName,
+      sendConfirmationEmail: false,
+    })
+    if (requestResult.error) {
+      return { success: false, message: 'Could not start employer onboarding. Please try again.' }
+    }
+    employerVerifyRedirect = '/employer/pending'
+  }
+
   const token = crypto.randomBytes(32).toString('hex')
   const tokenHash = hashToken(token)
   const expires = new Date(Date.now() + LOGIN_TTL_MS).toISOString()
@@ -158,7 +179,10 @@ export async function requestRecruitmentMagicLink(
     }
   }
 
-  const safeRedirect = safeRecruitmentRedirect(redirectAfter)
+  const safeRedirect =
+    mode === 'register' && options?.registerIntent === 'employer'
+      ? employerVerifyRedirect
+      : safeRecruitmentRedirect(redirectAfter)
   const verifyParams = new URLSearchParams({ token })
   if (safeRedirect) verifyParams.set('redirect', safeRedirect)
   if (options?.registerIntent) verifyParams.set('intent', options.registerIntent)
@@ -166,16 +190,29 @@ export async function requestRecruitmentMagicLink(
 
   const name = user.first_name ? escapeHtml(String(user.first_name)) : 'there'
   const isRegister = mode === 'register'
+  const isEmployerRegister = isRegister && options?.registerIntent === 'employer'
 
-  await sendEmail({
-    to: user.email,
-    subject: isRegister
-      ? `Confirm your ${COMPANY.brandName} account`
-      : `Sign in to ${COMPANY.brandName}`,
-    html: emailLayout({
-      title: isRegister ? 'Confirm your account' : 'Continue with Email',
-      subtitle: COMPANY.brandName,
-      bodyHtml: `
+  if (isEmployerRegister) {
+    const pending = await getPendingOrganizationRequestForUser(user.id)
+    await sendEmployerRequestConfirmationEmail({
+      to: normalized,
+      companyName:
+        pending.request?.company_name || options?.companyName?.trim() || 'your organization',
+      requestType:
+        pending.request?.request_type ||
+        (options?.companyName?.trim() ? 'new_organization' : 'access_existing'),
+      verifyUrl,
+    })
+  } else {
+    await sendEmail({
+      to: user.email,
+      subject: isRegister
+        ? `Confirm your ${COMPANY.brandName} account`
+        : `Sign in to ${COMPANY.brandName}`,
+      html: emailLayout({
+        title: isRegister ? 'Confirm your account' : 'Continue with Email',
+        subtitle: COMPANY.brandName,
+        bodyHtml: `
         <p>Hi ${name},</p>
         <p>${
           isRegister
@@ -188,8 +225,9 @@ export async function requestRecruitmentMagicLink(
         <p style="font-size:13px;color:#64748b">If you did not request this, you can ignore this email.</p>
         <p style="font-size:12px;color:#94a3b8;word-break:break-all">${verifyUrl}</p>
       `,
-    }),
-  })
+      }),
+    })
+  }
 
   await writeRecruitmentAudit({
     actorUserId: user.id,
@@ -261,14 +299,32 @@ export async function consumeRecruitmentMagicLink(
   await establishUserSession(user)
 
   const memberships = await listUserMemberships(user.id)
+  const isPlatformAdmin = isPlatformAdminUser(user)
   const capabilities = capabilitiesFromState({
     hasActiveEmployerMembership: memberships.length > 0,
-    isPlatformAdmin: isPlatformAdminUser(user),
+    isPlatformAdmin,
   })
+
+  const [{ request: pendingRequest }, { request: latestRequest }, pendingInvite] = await Promise.all([
+    getPendingOrganizationRequestForUser(user.id),
+    getLatestOrganizationRequestForUser(user.id),
+    getPendingInviteForEmail(user.email),
+  ])
+
+  const onboardingKind = resolveEmployerOnboardingKind({
+    hasActiveEmployerMembership: memberships.length > 0,
+    isPlatformAdmin,
+    hasPendingOrganizationRequest: Boolean(pendingRequest),
+    hasPendingInvite: Boolean(pendingInvite.invite),
+    latestRequestStatus: latestRequest?.status ?? null,
+  })
+
   const redirectTo = resolvePostAuthRedirect({
     requestedRedirect,
     capabilities,
-    registerIntent: registerIntent === 'employer' || registerIntent === 'candidate' ? registerIntent : null,
+    registerIntent:
+      registerIntent === 'employer' || registerIntent === 'candidate' ? registerIntent : null,
+    onboardingKind,
   })
 
   await writeRecruitmentAudit({
@@ -276,7 +332,11 @@ export async function consumeRecruitmentMagicLink(
     action: 'magic_link_consumed',
     entityType: 'users',
     entityId: user.id,
-    metadata: { redirectTo, canUseEmployer: capabilities.canUseEmployer },
+    metadata: {
+      redirectTo,
+      canUseEmployer: capabilities.canUseEmployer,
+      onboardingKind,
+    },
   })
 
   return { success: true, redirectTo }

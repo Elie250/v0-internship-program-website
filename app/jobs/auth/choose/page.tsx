@@ -9,6 +9,8 @@ import { LoadingBlock, StatusBanner, TalentShell } from '@/components/recruitmen
 type MePayload = {
   isPlatformAdmin?: boolean
   memberships?: unknown[]
+  onboardingKind?: string
+  error?: string
 }
 
 export default function AuthChoosePage() {
@@ -16,21 +18,51 @@ export default function AuthChoosePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [canHire, setCanHire] = useState(false)
+  const [hiringHref, setHiringHref] = useState('/employer/pending')
+  const [hiringLabel, setHiringLabel] = useState('Hiring access pending')
+  const [hiringBlurb, setHiringBlurb] = useState(
+    'Your hiring request is awaiting approval or a company invitation.'
+  )
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch('/api/recruitment/me', { credentials: 'same-origin' })
-      if (res.status === 401) {
+      const [meRes, onboardingRes] = await Promise.all([
+        fetch('/api/recruitment/me', { credentials: 'same-origin' }),
+        fetch('/api/recruitment/employer/onboarding', { credentials: 'same-origin' }),
+      ])
+      if (meRes.status === 401) {
         router.replace('/jobs/auth/continue')
         return
       }
-      const data = (await res.json()) as MePayload
-      if (!res.ok) {
-        setError(data && typeof data === 'object' && 'error' in data ? String((data as { error?: string }).error) : 'Could not load your account')
+      const data = (await meRes.json()) as MePayload
+      if (!meRes.ok) {
+        setError(data.error || 'Could not load your account')
         setLoading(false)
         return
       }
-      setCanHire(Boolean(data.isPlatformAdmin) || (Array.isArray(data.memberships) && data.memberships.length > 0))
+
+      const onboarding = onboardingRes.ok ? await onboardingRes.json() : null
+      const active =
+        Boolean(data.isPlatformAdmin) ||
+        (Array.isArray(data.memberships) && data.memberships.length > 0) ||
+        onboarding?.canUseEmployerWorkspace
+      setCanHire(Boolean(active))
+
+      if (active) {
+        setHiringHref('/employer')
+        setHiringLabel('Hiring workspace')
+        setHiringBlurb('Jobs, applications, and your company team.')
+      } else if (onboarding?.kind === 'pending_invite') {
+        setHiringHref('/employer/invitation')
+        setHiringLabel('Accept company invitation')
+        setHiringBlurb('You have a pending invitation to a hiring workspace.')
+      } else {
+        setHiringHref('/employer/pending')
+        setHiringLabel('Hiring access pending')
+        setHiringBlurb(
+          'Your account is ready. Energy & Logics approval or a company invite unlocks hiring.'
+        )
+      }
       setLoading(false)
     })()
   }, [router])
@@ -54,35 +86,25 @@ export default function AuthChoosePage() {
           href="/app"
           className="rounded-2xl border border-slate-200 bg-white p-6 hover:border-[var(--brand-navy)]/30 hover:shadow-sm transition-all"
         >
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)]">Candidate</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-900">Looking for a job</h2>
-          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-            Profile, CV, and applications.
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)]">
+            Candidate
           </p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">Looking for a job</h2>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">Profile, CV, and applications.</p>
         </Link>
-        {canHire ? (
-          <Link
-            href="/employer"
-            className="rounded-2xl border border-slate-200 bg-white p-6 hover:border-[var(--brand-navy)]/30 hover:shadow-sm transition-all"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)]">Hiring</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">Hiring workspace</h2>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              Jobs, applications, and your company team.
-            </p>
-          </Link>
-        ) : (
-          <Link
-            href="/employer/get-access"
-            className="rounded-2xl border border-slate-200 bg-white p-6 hover:border-[var(--brand-navy)]/30 hover:shadow-sm transition-all"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)]">Hiring</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">Hiring access</h2>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              Your account is ready. A company workspace is added by Energy &amp; Logics or a company admin.
-            </p>
-          </Link>
-        )}
+        <Link
+          href={hiringHref}
+          className="rounded-2xl border border-slate-200 bg-white p-6 hover:border-[var(--brand-navy)]/30 hover:shadow-sm transition-all"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy)]">
+            Hiring
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-slate-900">{hiringLabel}</h2>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">{hiringBlurb}</p>
+          {!canHire ? (
+            <p className="mt-3 text-xs text-slate-500">Workspace unlocks after approval or invite.</p>
+          ) : null}
+        </Link>
       </div>
       <p className="mx-auto max-w-2xl mt-6">
         <Link href="/jobs">

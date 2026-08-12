@@ -377,11 +377,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       },
       {
         id: 'recruitment-orgs',
-        label: 'Talent organizations',
+        label: 'Talent orgs (hiring partners)',
         href: '/admin/dashboard/recruitment-orgs',
         icon: 'users',
         permission: PERMISSIONS.RECRUITMENT_ORGS_MANAGE,
-        description: 'Employer tenants on Energy & Logics Talent (multi-org foundation)',
+        description: 'Create company workspaces and grant employer hiring access',
       },
       {
         id: 'audit-log',

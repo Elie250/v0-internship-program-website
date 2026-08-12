@@ -40,7 +40,7 @@ export function EmployerShell({ children }: { children: React.ReactNode }) {
       return
     }
     if (res.status === 403) {
-      router.replace('/employer/get-access')
+      router.replace('/employer/pending')
       return
     }
     const data = await res.json()

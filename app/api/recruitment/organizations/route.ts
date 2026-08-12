@@ -40,7 +40,47 @@ export async function POST(request: Request) {
       actorUserId: admin.id,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
-    return NextResponse.json({ organization: result.organization })
+
+    let membership = null
+    let membershipWarning: string | null = null
+    const adminEmail = String(body.adminEmail ?? body.initialAdminEmail ?? '').trim()
+    if (adminEmail && result.organization) {
+      const { normalizeRecruitmentEmail } = await import('@/lib/recruitment/email-normalize')
+      const { findUserByNormalizedEmail } = await import('@/lib/recruitment/user-lookup')
+      const { upsertOrganizationMember } = await import('@/lib/recruitment/memberships')
+      const { isRecruitmentOrgRole } = await import('@/lib/recruitment/types')
+
+      const normalizedEmail = normalizeRecruitmentEmail(adminEmail)
+      const role = String(body.adminRole ?? 'organization_admin')
+      if (normalizedEmail && isRecruitmentOrgRole(role)) {
+        const { user, error: lookupError } = await findUserByNormalizedEmail(normalizedEmail)
+        if (lookupError) {
+          membershipWarning = 'Organization created, but user lookup failed for the admin email.'
+        } else if (!user) {
+          membershipWarning =
+            'Organization created. No platform user with that email yet — ask them to sign in on Talent once, then add them under Members.'
+        } else {
+          const memberResult = await upsertOrganizationMember({
+            organizationId: result.organization.id,
+            userId: user.id,
+            role,
+            status: 'active',
+            actorUserId: admin.id,
+          })
+          if (memberResult.error) {
+            membershipWarning = `Organization created, but could not grant hiring access: ${memberResult.error}`
+          } else {
+            membership = memberResult.membership
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({
+      organization: result.organization,
+      membership,
+      membershipWarning,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     const status = message === 'Unauthorized' ? 401 : 403

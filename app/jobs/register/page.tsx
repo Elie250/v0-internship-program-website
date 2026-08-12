@@ -32,8 +32,8 @@ export default function RegisterChoicePage() {
             I&apos;m hiring / representing an organization
           </h2>
           <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-            Create an account for hiring. Access to a company workspace is granted by Energy &amp;
-            Logics or an existing company admin.
+            Create a hiring login and submit an organization request. A company workspace opens only
+            after Energy &amp; Logics approval, or when an existing company admin invites you.
           </p>
         </Link>
       </div>

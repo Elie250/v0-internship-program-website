@@ -27,7 +27,7 @@ export async function listEmployerOrganizations(): Promise<{
   if (!user) throw new Error('Unauthorized')
 
   if (isRecruitmentPlatformAdmin(user)) {
-    const { organizations } = await listOrganizations({ status: 'all' })
+    const { organizations } = await listOrganizations({ status: 'active' })
     return {
       userId: user.id,
       asPlatformAdmin: true,

@@ -189,6 +189,16 @@ function buildHubs(
           stat: `${stats.applications} applications`,
         }
       : null,
+    hasPermission(permissions, PERMISSIONS.RECRUITMENT_ORGS_MANAGE)
+      ? {
+          id: 'talent-orgs',
+          title: 'Talent hiring partners',
+          description:
+            'Create company workspaces and grant employer access (not a pending-approval queue).',
+          icon: Users,
+          href: '/admin/dashboard/recruitment-orgs',
+        }
+      : null,
     hasPermission(permissions, PERMISSIONS.SUPPORT_TICKETS)
       ? {
           id: 'support',
