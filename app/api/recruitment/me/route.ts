@@ -10,6 +10,7 @@ import {
   ensureCandidateProfile,
 } from '@/lib/recruitment/candidate-profile'
 import { listCandidateDocuments } from '@/lib/recruitment/documents'
+import { capabilitiesFromState } from '@/lib/recruitment/post-auth'
 
 export async function GET() {
   try {
@@ -27,6 +28,11 @@ export async function GET() {
 
     const completion = calculateProfileCompletion(profile ?? null)
     const latestCv = documents.find((doc) => doc.document_type === 'cv') ?? null
+    const isPlatformAdmin = isRecruitmentPlatformAdmin(user)
+    const capabilities = capabilitiesFromState({
+      hasActiveEmployerMembership: memberships.length > 0,
+      isPlatformAdmin,
+    })
 
     return NextResponse.json({
       user: {
@@ -43,7 +49,8 @@ export async function GET() {
         : { hasCv: false },
       applications,
       memberships,
-      isPlatformAdmin: isRecruitmentPlatformAdmin(user),
+      isPlatformAdmin,
+      capabilities,
     })
   } catch {
     return NextResponse.json({ error: 'Failed to load session' }, { status: 500 })

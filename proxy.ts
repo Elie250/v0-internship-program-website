@@ -85,7 +85,8 @@ export function proxy(request: NextRequest) {
 
   if (pathname.startsWith('/employer') && !user) {
     const loginUrl = new URL('/jobs/auth/continue', request.url)
-    loginUrl.searchParams.set('redirect', pathname)
+    const dest = pathname.startsWith('/employer/auth') ? '/employer' : pathname
+    loginUrl.searchParams.set('redirect', dest)
     return NextResponse.redirect(loginUrl)
   }
 

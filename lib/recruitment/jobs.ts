@@ -4,15 +4,17 @@ import { parsePositiveInt, sanitizeRecruitmentSearchTerm } from '@/lib/recruitme
 import {
   isRecruitmentEmploymentType,
   isRecruitmentJobStatus,
+  isRecruitmentJobVisibility,
   isRecruitmentWorkMode,
   slugifyJobTitle,
   type RecruitmentJob,
   type RecruitmentJobStatus,
+  type RecruitmentJobVisibility,
   type RecruitmentJobWithOrganization,
 } from '@/lib/recruitment/types'
 
 const JOB_SELECT =
-  'id, organization_id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, status, published_at, application_deadline, created_at, updated_at'
+  'id, organization_id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, department, skills, salary_min, salary_max, salary_currency, salary_visible, visibility, status, published_at, application_deadline, created_at, updated_at'
 
 const PUBLIC_JOB_CARD_SELECT =
   'title, slug, description, location, employment_type, work_mode, category, published_at, application_deadline, organization:recruitment_organizations!inner(name, slug, logo_url, status)'
@@ -68,6 +70,7 @@ export async function listPublicJobs(filters: PublicJobListFilters = {}): Promis
     .from('recruitment_jobs')
     .select(PUBLIC_JOB_CARD_SELECT, { count: 'exact' })
     .eq('status', 'published')
+    .eq('visibility', 'public')
     .eq('organization.status', 'active')
     .order('published_at', { ascending: false })
     .range(from, to)
@@ -189,6 +192,7 @@ export async function listPublicJobFilterOptions(): Promise<{
       'location, employment_type, category, organization:recruitment_organizations!inner(name, slug, status)'
     )
     .eq('status', 'published')
+    .eq('visibility', 'public')
     .eq('organization.status', 'active')
 
   if (error) {
@@ -216,6 +220,35 @@ export async function listPublicJobFilterOptions(): Promise<{
   }
 }
 
+function parseJobSkills(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean).slice(0, 40)
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 40)
+  }
+  return []
+}
+
+export async function getOrganizationJob(
+  jobId: string,
+  organizationId: string
+): Promise<{ job: RecruitmentJob | null; error?: string }> {
+  if (!supabaseAdmin) return { job: null, error: 'Database not configured' }
+  const { data, error } = await supabaseAdmin
+    .from('recruitment_jobs')
+    .select(JOB_SELECT)
+    .eq('id', jobId)
+    .eq('organization_id', organizationId)
+    .maybeSingle()
+  if (error) return { job: null, error: error.message }
+  return { job: (data as RecruitmentJob | null) ?? null }
+}
+
 export async function createOrganizationJob(input: {
   organizationId: string
   title: string
@@ -228,6 +261,13 @@ export async function createOrganizationJob(input: {
   employmentType?: string
   workMode?: string
   category?: string
+  department?: string
+  skills?: unknown
+  salaryMin?: number | null
+  salaryMax?: number | null
+  salaryCurrency?: string | null
+  salaryVisible?: boolean
+  visibility?: string
   status?: RecruitmentJobStatus
   applicationDeadline?: string | null
   actorUserId: string
@@ -240,6 +280,10 @@ export async function createOrganizationJob(input: {
   const slug = (input.slug?.trim() || slugifyJobTitle(title)).toLowerCase()
   const status =
     input.status && isRecruitmentJobStatus(input.status) ? input.status : 'draft'
+  const visibility: RecruitmentJobVisibility =
+    input.visibility && isRecruitmentJobVisibility(input.visibility)
+      ? input.visibility
+      : 'public'
 
   const employmentType =
     input.employmentType && isRecruitmentEmploymentType(input.employmentType)
@@ -265,6 +309,13 @@ export async function createOrganizationJob(input: {
         employment_type: employmentType,
         work_mode: workMode,
         category: input.category?.trim() || null,
+        department: input.department?.trim() || null,
+        skills: parseJobSkills(input.skills),
+        salary_min: input.salaryMin ?? null,
+        salary_max: input.salaryMax ?? null,
+        salary_currency: input.salaryCurrency?.trim() || null,
+        salary_visible: Boolean(input.salaryVisible),
+        visibility,
         status,
         published_at: publishedAt,
         application_deadline: input.applicationDeadline || null,
@@ -319,6 +370,13 @@ export async function updateOrganizationJob(input: {
   employmentType?: string | null
   workMode?: string | null
   category?: string | null
+  department?: string | null
+  skills?: unknown
+  salaryMin?: number | null
+  salaryMax?: number | null
+  salaryCurrency?: string | null
+  salaryVisible?: boolean
+  visibility?: string
   status?: RecruitmentJobStatus
   applicationDeadline?: string | null
   actorUserId: string
@@ -339,6 +397,18 @@ export async function updateOrganizationJob(input: {
   }
   if (input.location !== undefined) updates.location = input.location?.trim() || null
   if (input.category !== undefined) updates.category = input.category?.trim() || null
+  if (input.department !== undefined) updates.department = input.department?.trim() || null
+  if (input.skills !== undefined) updates.skills = parseJobSkills(input.skills)
+  if (input.salaryMin !== undefined) updates.salary_min = input.salaryMin
+  if (input.salaryMax !== undefined) updates.salary_max = input.salaryMax
+  if (input.salaryCurrency !== undefined) {
+    updates.salary_currency = input.salaryCurrency?.trim() || null
+  }
+  if (input.salaryVisible !== undefined) updates.salary_visible = Boolean(input.salaryVisible)
+  if (input.visibility !== undefined) {
+    if (!isRecruitmentJobVisibility(input.visibility)) return { error: 'Invalid visibility' }
+    updates.visibility = input.visibility
+  }
   if (input.applicationDeadline !== undefined) {
     updates.application_deadline = input.applicationDeadline || null
   }

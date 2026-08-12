@@ -179,3 +179,55 @@ export async function createCandidateDocumentDownloadUrl(input: {
     return { error: err instanceof Error ? err.message : 'Could not create download link' }
   }
 }
+
+export async function createEmployerDocumentDownloadUrl(input: {
+  documentId: string
+  organizationId: string
+}): Promise<{ url?: string; error?: string }> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const { data: application, error } = await supabaseAdmin
+    .from('recruitment_applications')
+    .select('id, cv_document_id, job_id')
+    .eq('cv_document_id', input.documentId)
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!application) {
+    return { error: 'No authorized application found for this document.' }
+  }
+
+  const { data: job } = await supabaseAdmin
+    .from('recruitment_jobs')
+    .select('id, organization_id')
+    .eq('id', application.job_id)
+    .maybeSingle()
+
+  if (!job || job.organization_id !== input.organizationId) {
+    return { error: 'No authorized application found for this document.' }
+  }
+
+  const { data: document, error: docError } = await supabaseAdmin
+    .from('recruitment_documents')
+    .select(DOCUMENT_SELECT)
+    .eq('id', input.documentId)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (docError) return { error: docError.message }
+  if (!document) return { error: 'Document not found' }
+
+  try {
+    const url = await createSignedGetUrl(document.storage_key, 120)
+    await writeRecruitmentAudit({
+      organizationId: input.organizationId,
+      action: 'employer_cv_accessed',
+      entityType: 'recruitment_documents',
+      entityId: document.id,
+      metadata: { applicationId: application.id },
+    })
+    return { url }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not create download link' }
+  }
+}

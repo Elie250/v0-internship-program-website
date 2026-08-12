@@ -32,6 +32,7 @@ type MeResponse = {
   profileCompletion: { percent: number; missing: string[] }
   cvStatus: { hasCv: boolean; filename?: string; uploadedAt?: string }
   applications: Application[]
+  capabilities?: { canUseCandidate: boolean; canUseEmployer: boolean }
 }
 
 function orgName(app: Application): string {
@@ -111,6 +112,16 @@ export default function CandidateDashboardPage() {
       title="My applications"
       subtitle={me?.user.email ? `Signed in as ${me.user.email}` : undefined}
     >
+      {me?.capabilities?.canUseEmployer ? (
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-600">This account also has hiring access.</p>
+          <Link href="/employer">
+            <Button variant="outline" size="sm" className="rounded-lg">
+              Open hiring workspace
+            </Button>
+          </Link>
+        </div>
+      ) : null}
       <div className="grid lg:grid-cols-[1fr_1.35fr] gap-6 lg:gap-8">
         <div className="space-y-4">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 space-y-4 shadow-[0_1px_0_rgba(15,23,42,0.04)]">

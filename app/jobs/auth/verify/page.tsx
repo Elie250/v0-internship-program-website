@@ -10,10 +10,8 @@ function VerifyInner() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const redirectParam = searchParams.get('redirect')
-  const safeRedirect =
-    redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')
-      ? redirectParam
-      : '/app'
+  const intentParam = searchParams.get('intent')
+  const intent = intentParam === 'employer' || intentParam === 'candidate' ? intentParam : undefined
   const [error, setError] = useState('')
   const [status, setStatus] = useState('Verifying your sign-in link…')
 
@@ -29,18 +27,22 @@ function VerifyInner() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({
+            token,
+            redirect: redirectParam,
+            intent,
+          }),
         })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Verification failed')
         setStatus('Signed in. Redirecting…')
-        router.replace(data.redirectTo || safeRedirect)
+        router.replace(data.redirectTo || '/app')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Verification failed')
         setStatus('')
       }
     })()
-  }, [token, router, safeRedirect])
+  }, [token, router, redirectParam, intent])
 
   return (
     <TalentShell title="Signing you in">

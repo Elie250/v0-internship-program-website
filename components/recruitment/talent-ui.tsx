@@ -17,9 +17,11 @@ export function jobPublicPath(job: RecruitmentJobWithOrganization): string {
 export function BrandMark({
   href = COMPANY.publicSiteUrl,
   compact = false,
+  light = false,
 }: {
   href?: string
   compact?: boolean
+  light?: boolean
 }) {
   return (
     <a
@@ -31,15 +33,19 @@ export function BrandMark({
         alt={`${COMPANY.brandName} logo`}
         width={compact ? 36 : 44}
         height={compact ? 36 : 44}
-        className="h-9 w-9 sm:h-11 sm:w-11 object-contain"
+        className="h-9 w-9 sm:h-11 sm:w-11 object-contain bg-white rounded-md p-0.5"
         priority
       />
       <span className="min-w-0">
-        <span className="block text-base sm:text-lg font-semibold tracking-tight text-[var(--brand-navy)] group-hover:text-[var(--brand-navy-deep)] transition-colors">
+        <span
+          className={`block text-base sm:text-lg font-semibold tracking-tight transition-colors ${
+            light ? 'text-white group-hover:text-white/90' : 'text-[var(--brand-navy)] group-hover:text-[var(--brand-navy-deep)]'
+          }`}
+        >
           {COMPANY.brandName}
         </span>
         {!compact ? (
-          <span className="block text-[11px] sm:text-xs text-slate-500 leading-snug">
+          <span className={`block text-[11px] sm:text-xs leading-snug ${light ? 'text-white/70' : 'text-slate-500'}`}>
             {COMPANY.slogan}.
           </span>
         ) : null}
@@ -64,10 +70,10 @@ export function RecruitmentNav() {
         Sign in
       </Link>
       <Link
-        href="/app"
+        href="/jobs/register"
         className="rounded-md px-3 py-2 font-medium text-[var(--brand-navy)] hover:bg-[var(--brand-navy)]/5 transition-colors"
       >
-        My applications
+        Create an account
       </Link>
     </nav>
   )
