@@ -102,6 +102,7 @@ export async function GET(request: Request) {
               inProgressAttemptId: access.inProgressAttemptId,
               expiresAt: access.expiresAt,
               requireLessonsComplete: access.policy.requireLessonsComplete,
+              requireFullscreen: access.policy.requireFullscreen,
             }
           : {
               maxAttempts: 3,
@@ -112,6 +113,7 @@ export async function GET(request: Request) {
               inProgressAttemptId: null,
               expiresAt: null,
               requireLessonsComplete: true,
+              requireFullscreen: false,
             },
       }
     })

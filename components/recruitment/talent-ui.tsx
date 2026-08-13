@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { COMPANY } from '@/lib/company/constants'
+import { RecruitmentAccountNav } from '@/components/recruitment/account-menu'
 import {
   formatEmploymentType,
   formatWorkMode,
@@ -55,6 +56,7 @@ export function BrandMark({
 }
 
 export function RecruitmentNav() {
+  // Kept for compatibility; account-aware nav lives in RecruitmentAccountNav (client).
   return (
     <nav className="flex flex-wrap items-center gap-1 sm:gap-2 text-sm" aria-label="Careers navigation">
       <Link
@@ -247,7 +249,7 @@ export function TalentShell({
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto max-w-6xl px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
           <BrandMark />
-          <RecruitmentNav />
+          <RecruitmentAccountNav />
         </div>
       </header>
 

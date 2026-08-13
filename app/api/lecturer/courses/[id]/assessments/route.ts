@@ -26,7 +26,7 @@ export async function GET(
     const { data: submissions, error } = await supabaseAdmin
       .from('assessment_submissions')
       .select(
-        'id, score, passed, lecturer_approved, admin_confirmed, submitted_at, enrollment:course_enrollments(applicant_name, applicant_email, course_id)'
+        'id, assessment_id, score, passed, lecturer_approved, admin_confirmed, submitted_at, best_attempt_id, enrollment:course_enrollments(applicant_name, applicant_email, course_id)'
       )
       .in('assessment_id', assessmentIds)
       .order('submitted_at', { ascending: false })
@@ -36,7 +36,35 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(submissions ?? [])
+    const bestIds = (submissions ?? [])
+      .map((s) => s.best_attempt_id)
+      .filter(Boolean)
+      .map(String)
+
+    const bandByAttempt = new Map<string, string | null>()
+    if (bestIds.length) {
+      const { data: attempts } = await supabaseAdmin
+        .from('assessment_attempts')
+        .select('id, integrity_band')
+        .in('id', bestIds)
+      for (const row of attempts ?? []) {
+        bandByAttempt.set(String(row.id), row.integrity_band != null ? String(row.integrity_band) : null)
+      }
+    }
+
+    return NextResponse.json(
+      (submissions ?? []).map((row) => ({
+        ...row,
+        integrityBand: row.best_attempt_id
+          ? bandByAttempt.get(String(row.best_attempt_id)) ?? null
+          : null,
+        integrityNeedsReview:
+          row.best_attempt_id != null &&
+          ['REVIEW', 'HIGH_CONCERN'].includes(
+            String(bandByAttempt.get(String(row.best_attempt_id)) ?? '')
+          ),
+      }))
+    )
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load'
     return NextResponse.json({ error: message }, { status: 403 })
@@ -66,7 +94,11 @@ export async function PATCH(
     })
 
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      // Approval is never blocked by integrity — advisory only
+      integrityDoesNotBlockApproval: true,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update'
     return NextResponse.json({ error: message }, { status: 403 })

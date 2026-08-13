@@ -11,8 +11,9 @@ import {
   StatusBanner,
   TalentShell,
 } from '@/components/recruitment/talent-ui'
+import { AccountSignOutButton } from '@/components/recruitment/account-menu'
 import {
-  formatApplicationStatus,
+  formatCandidateApplicationStatus,
   type RecruitmentApplicationStatus,
 } from '@/lib/recruitment/types'
 
@@ -70,18 +71,35 @@ export default function CandidateDashboardPage() {
   const [interviews, setInterviews] = useState<Interview[]>([])
 
   const load = async () => {
-    const res = await fetch('/api/recruitment/me', { credentials: 'same-origin' })
-    if (res.status === 401) {
+    setError('')
+    const [meRes, appsRes] = await Promise.all([
+      fetch('/api/recruitment/me', { credentials: 'same-origin' }),
+      fetch('/api/recruitment/candidate/applications', { credentials: 'same-origin' }),
+    ])
+    if (meRes.status === 401 || appsRes.status === 401) {
       router.replace('/jobs/auth/continue?redirect=/app')
       return
     }
-    const data = await res.json()
-    if (!res.ok) {
+    const data = await meRes.json()
+    if (!meRes.ok) {
       setError(data.error || 'Failed to load dashboard')
       setLoading(false)
       return
     }
-    setMe(data)
+
+    const appsBody = await appsRes.json().catch(() => ({}))
+    if (!appsRes.ok) {
+      setError(
+        (appsBody as { error?: string }).error ||
+          'Could not load your applications from the database.'
+      )
+    }
+
+    setMe({
+      ...data,
+      // Prefer dedicated applications endpoint so dashboard always mirrors DB rows.
+      applications: (appsBody as { applications?: Application[] }).applications ?? data.applications ?? [],
+    })
     const interviewRes = await fetch('/api/recruitment/candidate/interviews', {
       credentials: 'same-origin',
     })
@@ -131,6 +149,20 @@ export default function CandidateDashboardPage() {
       title="My applications"
       subtitle={me?.user.email ? `Signed in as ${me.user.email}` : undefined}
     >
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-900">Your account</p>
+          <p className="text-sm text-slate-600 truncate">{me?.user.email}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/app/profile">
+            <Button variant="outline" size="sm" className="rounded-lg">
+              Profile &amp; CV
+            </Button>
+          </Link>
+          <AccountSignOutButton redirectTo="/jobs" />
+        </div>
+      </div>
       {me?.capabilities?.canUseEmployer ? (
         <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-600">This account also has hiring access.</p>
@@ -237,7 +269,7 @@ export default function CandidateDashboardPage() {
           {!me?.applications?.length ? (
             <EmptyState
               title="No applications yet"
-              description="Browse open roles and apply with your reusable profile and CV."
+              description="Browse open roles and apply once from the job page. Your application then appears here — you do not apply again from this dashboard."
               action={
                 <Link href="/jobs">
                   <Button className="rounded-xl bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]">
@@ -265,7 +297,7 @@ export default function CandidateDashboardPage() {
                         </p>
                       </div>
                       <Badge variant="outline" className="border-slate-200 font-normal">
-                        {formatApplicationStatus(app.status as RecruitmentApplicationStatus)}
+                        {formatCandidateApplicationStatus(app.status as RecruitmentApplicationStatus)}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -277,12 +309,12 @@ export default function CandidateDashboardPage() {
                           View job
                         </Link>
                       ) : null}
-                      {app.status !== 'withdrawn' && app.status !== 'rejected' ? (
+                      {app.status === 'screening' ? (
                         <Link
                           href={`/app/applications/${app.id}/screening`}
                           className="text-sm font-medium text-[var(--brand-navy)] hover:underline"
                         >
-                          Technical screening
+                          Open technical assessment
                         </Link>
                       ) : null}
                       {canWithdraw ? (

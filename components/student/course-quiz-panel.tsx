@@ -28,6 +28,7 @@ type QuizSecurity = {
   inProgressAttemptId: string | null
   expiresAt: string | null
   requireLessonsComplete: boolean
+  requireFullscreen?: boolean
 }
 
 type StudentQuiz = {
@@ -127,14 +128,14 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
   }, [load])
 
   const logIntegrity = useCallback(
-    async (eventType: string) => {
+    async (eventType: string, metadata?: Record<string, unknown>) => {
       if (!activeQuiz || !attemptId) return
       try {
         await fetch(`/api/student/quizzes/${activeQuiz.id}/integrity`, {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attemptId, eventType }),
+          body: JSON.stringify({ attemptId, eventType, metadata }),
         })
       } catch {
         /* best effort */
@@ -152,9 +153,7 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
     const tick = () => {
       const left = new Date(expiresAt).getTime() - Date.now()
       setTimeLeftMs(left)
-      if (left <= 0) {
-        void logIntegrity('attempt_expired')
-      }
+      // Timer expiry is enforced server-side on submit — do not POST invalid integrity events
     }
 
     tick()
@@ -170,15 +169,23 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
     }
     const onBlur = () => void logIntegrity('window_blur')
     const onFocus = () => void logIntegrity('window_focus')
+    const onFullscreen = () => {
+      const active = Boolean(document.fullscreenElement)
+      void logIntegrity(active ? 'fullscreen_change' : 'fullscreen_exit', {
+        fullscreen: active,
+      })
+    }
 
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('blur', onBlur)
     window.addEventListener('focus', onFocus)
+    document.addEventListener('fullscreenchange', onFullscreen)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('blur', onBlur)
       window.removeEventListener('focus', onFocus)
+      document.removeEventListener('fullscreenchange', onFullscreen)
     }
   }, [attemptId, gradeResult, logIntegrity])
 
@@ -227,6 +234,20 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
       setAttemptId(body.attemptId)
       setAttemptQuestions(body.questions ?? [])
       setExpiresAt(body.expiresAt ?? null)
+
+      if (body.requireFullscreen || quiz.security.requireFullscreen) {
+        try {
+          const shell = quizShellRef.current
+          if (shell?.requestFullscreen) await shell.requestFullscreen()
+          else if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen()
+          }
+        } catch {
+          setError(
+            'Fullscreen was requested for this assessment but could not be entered. Continue — exits are logged for lecturer review.'
+          )
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start assessment')
     } finally {
@@ -235,6 +256,9 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
   }
 
   const closeQuiz = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined)
+    }
     setActiveQuiz(null)
     setAttemptId(null)
     setAttemptQuestions([])
@@ -360,7 +384,8 @@ export function CourseQuizPanel({ courseId }: { courseId: string }) {
                 </p>
                 {gradeResult.integrityFlags.length > 0 ? (
                   <p className="text-xs text-amber-800 mt-2">
-                    Integrity note: {gradeResult.integrityFlags.join(', ').replaceAll('_', ' ')}
+                    Integrity note: some browser attention signals were recorded during this attempt.
+                    Your lecturer may review them — this does not change your score automatically.
                   </p>
                 ) : null}
               </div>

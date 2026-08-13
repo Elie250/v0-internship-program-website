@@ -10,6 +10,8 @@ import {
   type IntegrityEventRecord,
 } from '@/lib/recruitment/screening-integrity-aggregate'
 import {
+  integritySuggestedActions,
+  isIntegrityBand,
   isIntegrityReviewOutcome,
   type IntegrityBand,
   type IntegrityReviewOutcome,
@@ -75,7 +77,8 @@ export async function recomputeSessionIntegrity(sessionId: string, organizationI
   const thresholds = await loadThresholdsForSession(session)
   const assessment = aggregateIntegrityAssessment(
     (events ?? []) as IntegrityEventRecord[],
-    thresholds
+    thresholds,
+    { product: 'talent', dedupeLeaves: true }
   )
 
   const summary = {
@@ -86,7 +89,10 @@ export async function recomputeSessionIntegrity(sessionId: string, organizationI
     categories: assessment.categories,
     categoryBands: assessment.categoryBands,
     eventCount: assessment.eventCount,
+    suggestedActions: integritySuggestedActions(assessment.band),
     usesTechnicalScore: false,
+    isCheatingVerdict: false,
+    doesNotAutoReject: true,
     technicalScoreUnchanged: session.technical_score,
   }
 
@@ -261,7 +267,10 @@ export async function getEmployerIntegrityReport(
   )
 
   const thresholds = await loadThresholdsForSession(session)
-  const live = aggregateIntegrityAssessment((events ?? []) as IntegrityEventRecord[], thresholds)
+  const live = aggregateIntegrityAssessment((events ?? []) as IntegrityEventRecord[], thresholds, {
+    product: 'talent',
+    dedupeLeaves: true,
+  })
   const band = (session.integrity_band as IntegrityBand | null) ?? live.band
   const summary =
     session.integrity_summary && typeof session.integrity_summary === 'object'
@@ -288,12 +297,14 @@ export async function getEmployerIntegrityReport(
     )
   )
 
+  const resolvedBand: IntegrityBand = isIntegrityBand(String(band)) ? (band as IntegrityBand) : live.band
+
   return {
     technicalScore: session.technical_score,
     sectionScores: session.section_scores,
     passed: session.passed,
     integrity: {
-      band,
+      band: resolvedBand,
       summaryText: String(summary.summaryText ?? live.summaryText),
       recommendation: String(summary.recommendation ?? live.recommendation),
       reasons: (summary.reasons as unknown[]) ?? live.reasons,
@@ -301,8 +312,12 @@ export async function getEmployerIntegrityReport(
       categoryBands: live.categoryBands,
       eventCount: events?.length ?? 0,
       computedAt: session.integrity_computed_at,
+      suggestedActions: integritySuggestedActions(resolvedBand),
+      decisionGuidance:
+        'This is an advisory integrity report for hiring managers. It is not proof of cheating and does not reject the candidate. Record a review decision below, then update pipeline status yourself if needed.',
       // Never claim cheating
       isCheatingVerdict: false,
+      doesNotAutoReject: true,
     },
     timeline,
     affectedQuestions: affectedItemIds.map((id) => itemMap.get(id)).filter(Boolean),
@@ -384,9 +399,4 @@ export async function recordIntegrityReview(input: {
   }
 
   return { review }
-}
-
-/** Events have no update/delete API — immutability invariant for tests. */
-export function integrityEventsAreImmutable(): boolean {
-  return true
 }

@@ -17,6 +17,7 @@ type Standing = {
     score: number | null
     passed: boolean
     attemptCount: number
+    integrityBand?: string | null
   }>
   completedQuizzes: number
   totalQuizzes: number
@@ -24,6 +25,8 @@ type Standing = {
   eligible: boolean
   certificateCode: string | null
   certificateStatus: string | null
+  integrityBand?: string | null
+  integrityNeedsReview?: boolean
 }
 
 export function LecturerResultsPanel({ courseId }: { courseId: string }) {
@@ -56,8 +59,11 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
     void load()
   }, [load])
 
-  const certify = async (enrollmentId: string, name: string) => {
-    if (!confirm(`Confirm passing average for ${name}? The certificate goes to admin for final approval.`)) return
+  const certify = async (enrollmentId: string, name: string, needsReview?: boolean, band?: string | null) => {
+    const reviewNote = needsReview
+      ? `\n\nIntegrity band is ${band}. This is advisory only and does not change scores. Review the Integrity decision reports panel if needed before confirming.`
+      : ''
+    if (!confirm(`Confirm passing average for ${name}? The certificate goes to admin for final approval.${reviewNote}`)) return
     setCertifying(enrollmentId)
     setError('')
     setMessage('')
@@ -122,7 +128,11 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
                       ) : (
                         'no attempts yet'
                       )}
+                      {student.integrityBand ? ` · Integrity: ${student.integrityBand}` : ''}
                     </p>
+                    {student.integrityNeedsReview ? (
+                      <Badge className="mt-1 bg-amber-100 text-amber-900">Integrity review recommended</Badge>
+                    ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {student.certificateCode && student.certificateStatus === 'pending_admin' ? (
@@ -140,7 +150,14 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
                         size="sm"
                         className="bg-[var(--brand-navy)] text-white"
                         disabled={certifying === student.enrollmentId}
-                        onClick={() => certify(student.enrollmentId, student.name)}
+                        onClick={() =>
+                          certify(
+                            student.enrollmentId,
+                            student.name,
+                            student.integrityNeedsReview,
+                            student.integrityBand
+                          )
+                        }
                       >
                         <Award className="h-4 w-4 mr-1" />
                         {certifying === student.enrollmentId
@@ -169,6 +186,7 @@ export function LecturerResultsPanel({ courseId }: { courseId: string }) {
                         )}
                       >
                         {sub.assessmentTitle}: {sub.score != null ? `${sub.score}%` : '—'}
+                        {sub.integrityBand ? ` · ${sub.integrityBand}` : ''}
                       </Badge>
                     ))}
                   </div>

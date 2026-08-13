@@ -90,7 +90,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
     }
     const data = await res.json()
     if (!res.ok) {
-      setError(data.error || 'Could not load screening')
+      setError(data.error || 'Could not load assessment')
       setLoading(false)
       return
     }
@@ -279,8 +279,8 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
 
   if (loading) {
     return (
-      <TalentShell title="Technical screening">
-        <LoadingBlock label="Loading screening…" />
+      <TalentShell title="Technical assessment">
+        <LoadingBlock label="Loading assessment…" />
       </TalentShell>
     )
   }
@@ -293,7 +293,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
       sectionScores: null as SessionView['session']['sectionScores'],
     }
     return (
-      <TalentShell title="Screening complete" subtitle={eligibility?.jobTitle ?? undefined}>
+      <TalentShell title="Assessment complete" subtitle={eligibility?.jobTitle ?? undefined}>
         <div className="mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
           <p className="text-sm text-slate-600">
             Your responses were recorded. The hiring team will review your technical result.
@@ -319,14 +319,14 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
   if (phase === 'briefing') {
     return (
       <TalentShell
-        title="Technical screening"
+        title="Technical assessment"
         subtitle={eligibility?.jobTitle ? `Role: ${eligibility.jobTitle}` : undefined}
       >
         <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 space-y-5">
           {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
           {!eligibility?.canStart && !eligibility?.activeSessionId ? (
             <>
-              <StatusBanner tone="info">{eligibility?.reason || 'Screening unavailable'}</StatusBanner>
+              <StatusBanner tone="info">{eligibility?.reason || 'Assessment unavailable'}</StatusBanner>
               <Link href="/app" className="text-sm font-medium text-[var(--brand-navy)] hover:underline">
                 ← Back to applications
               </Link>
@@ -376,7 +376,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
                 onClick={() => void start()}
                 className="w-full h-11 rounded-xl bg-[var(--brand-navy)] text-white"
               >
-                {busy ? 'Starting…' : 'Start screening'}
+                {busy ? 'Starting…' : eligibility?.activeSessionId ? 'Continue assessment' : 'Start assessment'}
               </Button>
             </>
           )}
@@ -399,7 +399,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
             onClick={() => void submitAll()}
             className="w-full h-11 rounded-xl bg-[var(--brand-navy)] text-white"
           >
-            {busy ? 'Submitting…' : 'Submit screening'}
+            {busy ? 'Submitting…' : 'Submit assessment'}
           </Button>
         </div>
       </TalentShell>
@@ -407,7 +407,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
   }
 
   return (
-    <TalentShell title="Technical screening">
+    <TalentShell title="Technical assessment">
       <div className="mx-auto max-w-2xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
           <p className="text-sm text-slate-600">

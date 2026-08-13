@@ -16,6 +16,10 @@ type QuizQuestion = {
   options: string[]
   correct_index: number
   explanation: string | null
+  /** STEM placeholders e.g. [{ key: 'V', min: 10, max: 24, type: 'integer', unit: 'V' }] */
+  parameters?: unknown[]
+  /** Optional { expression, distractorExpressions } for numeric MCQ variants */
+  answer_spec?: { expression?: string; distractorExpressions?: string[]; decimals?: number }
 }
 
 type Quiz = {
@@ -31,8 +35,10 @@ type Quiz = {
   shuffle_options?: boolean
   require_lessons_complete?: boolean
   lock_after_pass?: boolean
+  require_fullscreen?: boolean
   cooldown_minutes?: number
   reveal_answers?: string
+  integrity_thresholds?: Record<string, number> | null
 }
 
 const emptyQuestion = (): QuizQuestion => ({
@@ -40,6 +46,8 @@ const emptyQuestion = (): QuizQuestion => ({
   options: ['', ''],
   correct_index: 0,
   explanation: null,
+  parameters: [],
+  answer_spec: {},
 })
 
 export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
@@ -57,7 +65,14 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
   const [maxAttempts, setMaxAttempts] = useState('3')
   const [timeLimitMinutes, setTimeLimitMinutes] = useState('45')
   const [shuffleQuestions, setShuffleQuestions] = useState(true)
+  const [shuffleOptions, setShuffleOptions] = useState(true)
+  const [requireLessonsComplete, setRequireLessonsComplete] = useState(true)
   const [lockAfterPass, setLockAfterPass] = useState(true)
+  const [requireFullscreen, setRequireFullscreen] = useState(false)
+  const [cooldownMinutes, setCooldownMinutes] = useState('60')
+  const [revealAnswers, setRevealAnswers] = useState('after_all_attempts')
+  const [visibilityReview, setVisibilityReview] = useState('')
+  const [clipboardReview, setClipboardReview] = useState('')
   const [questions, setQuestions] = useState<QuizQuestion[]>([emptyQuestion()])
 
   const load = useCallback(async () => {
@@ -89,7 +104,14 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
     setMaxAttempts('3')
     setTimeLimitMinutes('45')
     setShuffleQuestions(true)
+    setShuffleOptions(true)
+    setRequireLessonsComplete(true)
     setLockAfterPass(true)
+    setRequireFullscreen(false)
+    setCooldownMinutes('60')
+    setRevealAnswers('after_all_attempts')
+    setVisibilityReview('')
+    setClipboardReview('')
     setQuestions([emptyQuestion()])
     setEditorOpen(true)
     setError('')
@@ -104,7 +126,22 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
     setMaxAttempts(String(quiz.max_attempts ?? 3))
     setTimeLimitMinutes(String(quiz.time_limit_minutes ?? 45))
     setShuffleQuestions(quiz.shuffle_questions !== false)
+    setShuffleOptions(quiz.shuffle_options !== false)
+    setRequireLessonsComplete(quiz.require_lessons_complete !== false)
     setLockAfterPass(quiz.lock_after_pass !== false)
+    setRequireFullscreen(quiz.require_fullscreen === true)
+    setCooldownMinutes(String(quiz.cooldown_minutes ?? 60))
+    setRevealAnswers(quiz.reveal_answers ?? 'after_all_attempts')
+    setVisibilityReview(
+      quiz.integrity_thresholds?.visibilityReview != null
+        ? String(quiz.integrity_thresholds.visibilityReview)
+        : ''
+    )
+    setClipboardReview(
+      quiz.integrity_thresholds?.clipboardReview != null
+        ? String(quiz.integrity_thresholds.clipboardReview)
+        : ''
+    )
     setQuestions(
       quiz.questions.length
         ? quiz.questions.map((q) => ({
@@ -112,6 +149,9 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
             options: [...q.options],
             correct_index: q.correct_index,
             explanation: q.explanation,
+            parameters: Array.isArray(q.parameters) ? q.parameters : [],
+            answer_spec:
+              q.answer_spec && typeof q.answer_spec === 'object' ? q.answer_spec : {},
           }))
         : [emptyQuestion()]
     )
@@ -132,12 +172,23 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
         max_attempts: Number(maxAttempts) || 3,
         time_limit_minutes: Number(timeLimitMinutes) || 45,
         shuffle_questions: shuffleQuestions,
+        shuffle_options: shuffleOptions,
+        require_lessons_complete: requireLessonsComplete,
         lock_after_pass: lockAfterPass,
+        require_fullscreen: requireFullscreen,
+        cooldown_minutes: Number(cooldownMinutes) || 0,
+        reveal_answers: revealAnswers,
+        integrity_thresholds: {
+          ...(visibilityReview ? { visibilityReview: Number(visibilityReview) } : {}),
+          ...(clipboardReview ? { clipboardReview: Number(clipboardReview) } : {}),
+        },
         questions: questions.map((q) => ({
           question: q.question,
           options: q.options,
           correct_index: q.correct_index,
           explanation: q.explanation,
+          parameters: q.parameters ?? [],
+          answer_spec: q.answer_spec ?? {},
         })),
       }
 
@@ -280,7 +331,7 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
               />
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-lg border border-slate-200 bg-white p-3">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 rounded-lg border border-slate-200 bg-white p-3">
               <div>
                 <Label className="text-xs">Max attempts</Label>
                 <Input className="mt-1" type="number" min={1} max={10} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
@@ -289,16 +340,75 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
                 <Label className="text-xs">Time limit (min)</Label>
                 <Input className="mt-1" type="number" min={5} max={180} value={timeLimitMinutes} onChange={(e) => setTimeLimitMinutes(e.target.value)} />
               </div>
+              <div>
+                <Label className="text-xs">Cooldown between attempts (min)</Label>
+                <Input className="mt-1" type="number" min={0} max={10080} value={cooldownMinutes} onChange={(e) => setCooldownMinutes(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">Reveal answers</Label>
+                <select
+                  className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
+                  value={revealAnswers}
+                  onChange={(e) => setRevealAnswers(e.target.value)}
+                >
+                  <option value="never">Never</option>
+                  <option value="after_pass">After pass</option>
+                  <option value="after_all_attempts">After all attempts</option>
+                </select>
+              </div>
               <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
                 <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
                 Shuffle questions
               </label>
               <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
+                <input type="checkbox" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
+                Shuffle answer choices
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
+                <input type="checkbox" checked={requireLessonsComplete} onChange={(e) => setRequireLessonsComplete(e.target.checked)} />
+                Require lessons complete
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
                 <input type="checkbox" checked={lockAfterPass} onChange={(e) => setLockAfterPass(e.target.checked)} />
                 Lock after pass
               </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700 pt-5">
+                <input type="checkbox" checked={requireFullscreen} onChange={(e) => setRequireFullscreen(e.target.checked)} />
+                Request fullscreen
+              </label>
+            </div>
+            <p className="text-xs text-slate-500">
+              Shuffle questions/choices give each attempt a unique order (anti-sharing). Integrity
+              bands are advisory and never auto-void scores.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3">
+              <div>
+                <Label className="text-xs">Integrity: visibility review threshold (optional)</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min={1}
+                  placeholder="default 4"
+                  value={visibilityReview}
+                  onChange={(e) => setVisibilityReview(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Integrity: clipboard review threshold (optional)</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min={1}
+                  placeholder="default 2"
+                  value={clipboardReview}
+                  onChange={(e) => setClipboardReview(e.target.value)}
+                />
+              </div>
             </div>
 
+            <p className="text-xs text-slate-500 mb-2">
+              Example STEM question text: <code>Power when V={'{V}'} V and I={'{I}'} A?</code>
+            </p>
             <div className="space-y-4">
               {questions.map((q, qIndex) => (
                 <div key={qIndex} className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
@@ -321,7 +431,7 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
                     rows={2}
                     value={q.question}
                     onChange={(e) => updateQuestion(qIndex, { question: e.target.value })}
-                    placeholder="Type the question"
+                    placeholder="Type the question (optional placeholders like {V})"
                   />
 
                   <div className="space-y-2">
@@ -368,6 +478,68 @@ export function LecturerQuizBuilder({ courseId }: { courseId: string }) {
                       <Plus className="h-3 w-3 mr-1" />
                       Add choice
                     </Button>
+                  </div>
+
+                  <div className="rounded-md border border-dashed border-slate-300 p-3 space-y-2 bg-slate-50/80">
+                    <p className="text-xs font-medium text-slate-700">STEM variants (optional)</p>
+                    <p className="text-[11px] text-slate-500">
+                      Use placeholders like {'{V}'} in the question/choices, or set an expression with
+                      distractors so each attempt gets unique numbers.
+                    </p>
+                    <div>
+                      <Label className="text-xs">Parameters JSON</Label>
+                      <Textarea
+                        className="mt-1 font-mono text-xs"
+                        rows={2}
+                        value={JSON.stringify(q.parameters ?? [], null, 0)}
+                        onChange={(e) => {
+                          try {
+                            const parsed = JSON.parse(e.target.value || '[]')
+                            if (Array.isArray(parsed)) updateQuestion(qIndex, { parameters: parsed })
+                          } catch {
+                            /* keep typing */
+                          }
+                        }}
+                        placeholder='[{"key":"V","min":10,"max":24,"type":"integer","unit":"V"},{"key":"I","min":1,"max":5,"type":"integer","unit":"A"}]'
+                      />
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Correct expression</Label>
+                        <Input
+                          className="mt-1 font-mono text-xs"
+                          value={q.answer_spec?.expression ?? ''}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, {
+                              answer_spec: {
+                                ...(q.answer_spec ?? {}),
+                                expression: e.target.value || undefined,
+                              },
+                            })
+                          }
+                          placeholder="V * I"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Distractor expressions (comma-separated)</Label>
+                        <Input
+                          className="mt-1 font-mono text-xs"
+                          value={(q.answer_spec?.distractorExpressions ?? []).join(', ')}
+                          onChange={(e) =>
+                            updateQuestion(qIndex, {
+                              answer_spec: {
+                                ...(q.answer_spec ?? {}),
+                                distractorExpressions: e.target.value
+                                  .split(',')
+                                  .map((s) => s.trim())
+                                  .filter(Boolean),
+                              },
+                            })
+                          }
+                          placeholder="V + I, V - I, V / I"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div>

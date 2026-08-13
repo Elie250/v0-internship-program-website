@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CourseContentPanel } from '@/components/admin/course-content-panel'
+import { AdminCourseIntegrityPanel } from '@/components/admin/admin-course-integrity-panel'
 import {
   Select,
   SelectContent,
@@ -488,6 +489,7 @@ export default function CourseManagementTab() {
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
+          {editing ? <AdminCourseIntegrityPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
             <Button onClick={handleUpdate} disabled={saving} className="bg-[var(--brand-navy)] text-white">Save changes</Button>

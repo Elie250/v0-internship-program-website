@@ -195,6 +195,35 @@ export async function createSignedGetUrl(
   return data.signedUrl
 }
 
+/** Read object bytes for server-side use (e.g. email attachments). */
+export async function downloadObject(path: string): Promise<Buffer> {
+  const normalized = path.replace(/^\//, '')
+
+  if (isR2Configured()) {
+    const client = getR2Client()
+    const result = await client.send(
+      new GetObjectCommand({
+        Bucket: getR2BucketName(),
+        Key: normalized,
+      })
+    )
+    const bytes = await result.Body?.transformToByteArray()
+    if (!bytes) throw new Error('Empty object body')
+    return Buffer.from(bytes)
+  }
+
+  if (!supabaseAdmin) {
+    throw new Error('Storage not configured — add R2 credentials to Vercel')
+  }
+
+  const { data, error } = await supabaseAdmin.storage.from(SUPABASE_BUCKET).download(normalized)
+  if (error || !data) {
+    throw new Error(error?.message ?? 'Could not download object')
+  }
+  const arrayBuffer = await data.arrayBuffer()
+  return Buffer.from(arrayBuffer)
+}
+
 export async function deleteObjectByUrl(publicUrl: string): Promise<void> {
   const path = parseObjectPath(publicUrl)
   if (!path) return

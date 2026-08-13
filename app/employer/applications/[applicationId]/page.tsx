@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
 import { EMPLOYER_PIPELINE_STATUSES } from '@/lib/recruitment/types'
 import { formatPipelineLabel } from '@/lib/recruitment/pipeline'
+import { INTEGRITY_DECISION_LABELS, TALENT_INTEGRITY_REVIEW_OUTCOMES } from '@/lib/recruitment/screening-integrity-types'
 
 type ScreeningSessionSummary = {
   id: string
@@ -81,6 +82,10 @@ export default function EmployerApplicationDetailPage() {
       reasons: Array<{ message: string }>
       eventCount: number
       categories?: Record<string, number>
+      suggestedActions?: string[]
+      decisionGuidance?: string
+      isCheatingVerdict?: boolean
+      doesNotAutoReject?: boolean
     }
     timeline?: Array<{
       eventType: string
@@ -89,7 +94,7 @@ export default function EmployerApplicationDetailPage() {
     }>
     reviews?: Array<{ id: string; outcome: string; notes: string | null; created_at: string }>
   } | null>(null)
-  const [reviewOutcome, setReviewOutcome] = useState('reviewed')
+  const [reviewOutcome, setReviewOutcome] = useState('proceed')
   const [reviewNotes, setReviewNotes] = useState('')
   const [activeIntegritySessionId, setActiveIntegritySessionId] = useState('')
   const [aiAnalyses, setAiAnalyses] = useState<
@@ -191,11 +196,26 @@ export default function EmployerApplicationDetailPage() {
   }
 
   useEffect(() => {
+    setIntegrity(null)
+    setReview(null)
+    setActiveIntegritySessionId('')
+    setReviewNotes('')
+    setReviewOutcome('proceed')
     void load()
   }, [orgId, params.applicationId])
 
+  useEffect(() => {
+    const sessions = screening?.sessions ?? []
+    if (!orgId || sessions.length === 0 || activeIntegritySessionId) return
+    const preferred =
+      sessions.find((s) => s.status === 'submitted' || s.status === 'finalized') ?? sessions[0]
+    if (preferred?.id) void openReview(preferred.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once when sessions first arrive
+  }, [orgId, screening?.sessions, activeIntegritySessionId])
+
   const setStatus = async (status: string) => {
     setError('')
+    setMessage('')
     const res = await fetch(
       `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}`,
       {
@@ -207,7 +227,15 @@ export default function EmployerApplicationDetailPage() {
     )
     const body = await res.json()
     if (!res.ok) setError(body.error || 'Could not update status')
-    else await load()
+    else {
+      if (body.warning) setMessage(body.warning)
+      else if (status === 'screening') {
+        setMessage(
+          'Candidate notified to complete the technical assessment (email sent when delivery is configured).'
+        )
+      }
+      await load()
+    }
   }
 
   const addNote = async () => {
@@ -280,7 +308,9 @@ export default function EmployerApplicationDetailPage() {
     const body = await res.json()
     if (!res.ok) setError(body.error || 'Could not save integrity review')
     else {
-      setMessage('Integrity review recorded. Original event evidence is unchanged.')
+      setMessage(
+        'Integrity decision recorded for the hiring file. Application status was not changed — update pipeline status separately if needed.'
+      )
       setReviewNotes('')
       await openReview(activeIntegritySessionId)
     }
@@ -349,7 +379,11 @@ export default function EmployerApplicationDetailPage() {
         ) : null}
       </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
-      {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
+      {message ? (
+        <StatusBanner tone={message.includes('not published') || message.includes('no assessment') ? 'info' : 'success'}>
+          {message}
+        </StatusBanner>
+      ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
         <h2 className="font-semibold">Candidate profile</h2>
@@ -402,8 +436,9 @@ export default function EmployerApplicationDetailPage() {
             </p>
           </div>
           <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs uppercase text-slate-500">Integrity</p>
+            <p className="text-xs uppercase text-slate-500">Integrity (advisory)</p>
             <p className="font-semibold mt-1">{latestSession?.integrityBand ?? '—'}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Not an auto-reject</p>
           </div>
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="text-xs uppercase text-slate-500">AI advisory</p>
@@ -509,18 +544,44 @@ export default function EmployerApplicationDetailPage() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
-        <h2 className="font-semibold">Integrity</h2>
+        <h2 className="font-semibold">Integrity decision report</h2>
         <p className="text-xs text-slate-500">
-          Authoritative integrity band from server signals. Not a cheating verdict. Does not overwrite
-          technical score.
+          Advisory report for hiring managers and admins. Browser signals only — not a cheating
+          verdict, does not overwrite technical score, and never auto-rejects the candidate.
         </p>
         {integrity?.integrity ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-            <p className="text-sm font-medium">Integrity band: {integrity.integrity.band}</p>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-medium">
+                Review band:{' '}
+                <span className="font-semibold tracking-wide">{integrity.integrity.band}</span>
+              </p>
+              <p className="text-xs text-slate-500">
+                Technical score unchanged:{' '}
+                {integrity.technicalScore != null ? `${integrity.technicalScore}%` : '—'}
+              </p>
+            </div>
             <p className="text-sm text-slate-700">{integrity.integrity.summaryText}</p>
             <StatusBanner tone="info">
-              Recommendation: {integrity.integrity.recommendation}
+              {integrity.integrity.decisionGuidance ??
+                'Record a human decision below. Pipeline reject remains a separate manual action.'}
             </StatusBanner>
+            <p className="text-sm text-slate-700">
+              <span className="font-medium">Recommendation: </span>
+              {integrity.integrity.recommendation}
+            </p>
+            {(integrity.integrity.suggestedActions ?? []).length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  Suggested next steps
+                </p>
+                <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
+                  {integrity.integrity.suggestedActions!.map((action, idx) => (
+                    <li key={idx}>{action}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
               {(integrity.integrity.reasons ?? []).map((reason, idx) => (
                 <li key={idx}>{reason.message}</li>
@@ -543,32 +604,39 @@ export default function EmployerApplicationDetailPage() {
               </div>
             ) : null}
             <div className="border-t border-slate-200 pt-3 space-y-2">
-              <p className="text-sm font-medium">HR integrity review</p>
+              <p className="text-sm font-medium">Record hiring-manager decision</p>
+              <p className="text-xs text-slate-500">
+                Saving a decision does not change application status. Use HR decision above to reject
+                or advance manually.
+              </p>
               <select
                 value={reviewOutcome}
                 onChange={(e) => setReviewOutcome(e.target.value)}
-                className="h-10 rounded-xl border px-3 text-sm"
+                className="h-10 w-full max-w-xl rounded-xl border px-3 text-sm"
               >
-                <option value="reviewed">Reviewed</option>
-                <option value="no_concern">No concern</option>
-                <option value="concern_confirmed">Concern confirmed</option>
-                <option value="inconclusive">Inconclusive</option>
+                {TALENT_INTEGRITY_REVIEW_OUTCOMES.map((key) => (
+                  <option key={key} value={key}>
+                    {INTEGRITY_DECISION_LABELS[key]}
+                  </option>
+                ))}
               </select>
               <Textarea
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Optional notes for the hiring file"
+                placeholder="Notes for the hiring file (why you proceed, caution, or recommend not advancing)"
                 className="rounded-xl min-h-20"
               />
               <Button
                 onClick={() => void saveIntegrityReview()}
                 className="bg-[var(--brand-navy)] text-white"
               >
-                Save integrity review
+                Save integrity decision
               </Button>
               {(integrity.reviews ?? []).map((item) => (
                 <p key={item.id} className="text-xs text-slate-600">
-                  {item.outcome} · {new Date(item.created_at).toLocaleString()}
+                  {(INTEGRITY_DECISION_LABELS as Record<string, string>)[item.outcome] ??
+                    item.outcome}{' '}
+                  · {new Date(item.created_at).toLocaleString()}
                   {item.notes ? ` — ${item.notes}` : ''}
                 </p>
               ))}
@@ -576,7 +644,9 @@ export default function EmployerApplicationDetailPage() {
           </div>
         ) : (
           <p className="text-sm text-slate-600">
-            Open a screening attempt above to load the integrity timeline.
+            {(screening?.sessions ?? []).length === 0
+              ? 'No screening attempt yet — integrity report appears after a session.'
+              : 'Loading integrity report… or open a screening attempt above.'}
           </p>
         )}
       </section>

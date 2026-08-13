@@ -83,6 +83,7 @@ export async function notifyApplicationStatusChanged(input: {
       jobTitle: input.jobTitle,
       organizationName: input.organizationName,
       status: input.status,
+      applicationId: input.applicationId,
     })
     await recordNotificationEvent({
       organizationId: input.organizationId,
@@ -127,31 +128,40 @@ export async function notifyInterviewEvent(input: {
   const dashboardUrl = `${getRecruitmentPublicUrl()}/app`
   const when = new Date(input.scheduledAt).toLocaleString()
   const titles = {
-    interview_invitation: 'Interview invitation',
-    interview_rescheduled: 'Interview rescheduled',
-    interview_cancelled: 'Interview cancelled',
+    interview_invitation: 'You are invited to an interview',
+    interview_rescheduled: 'Your interview has been rescheduled',
+    interview_cancelled: 'Your interview has been cancelled',
+  }
+  const subjects = {
+    interview_invitation: `Interview invitation — ${input.jobTitle} at ${input.organizationName}`,
+    interview_rescheduled: `Interview rescheduled — ${input.jobTitle}`,
+    interview_cancelled: `Interview cancelled — ${input.jobTitle}`,
   }
 
   try {
     await sendEmail({
       to: input.candidateEmail,
-      subject: `${titles[input.eventType]} — ${input.jobTitle}`,
+      subject: subjects[input.eventType],
       html: emailLayout({
         title: titles[input.eventType],
-        subtitle: `${COMPANY.brandName} Talent`,
+        subtitle: `${COMPANY.brandName} Talent · ${escapeHtml(input.organizationName)}`,
+        headerTone: input.eventType === 'interview_cancelled' ? 'warning' : 'primary',
         bodyHtml: `
-          <p>Hi ${escapeHtml(name)},</p>
-          <p>Regarding <strong>${escapeHtml(input.jobTitle)}</strong> at <strong>${escapeHtml(input.organizationName)}</strong>.</p>
+          <p>Dear ${escapeHtml(name)},</p>
+          <p>Regarding your application for <strong>${escapeHtml(input.jobTitle)}</strong> at <strong>${escapeHtml(input.organizationName)}</strong>.</p>
           <p><strong>When:</strong> ${escapeHtml(when)}</p>
-          <p><strong>Type:</strong> ${escapeHtml(input.interviewType.replace('_', ' '))}</p>
+          <p><strong>Format:</strong> ${escapeHtml(input.interviewType.replace('_', ' '))}</p>
           ${input.location ? `<p><strong>Location:</strong> ${escapeHtml(input.location)}</p>` : ''}
-          ${input.meetingUrl ? `<p><strong>Meeting link:</strong> ${escapeHtml(input.meetingUrl)}</p>` : ''}
+          ${input.meetingUrl ? `<p><strong>Meeting link:</strong> <a href="${escapeHtml(input.meetingUrl)}">${escapeHtml(input.meetingUrl)}</a></p>` : ''}
           ${
             input.candidateInstructions
-              ? `<p><strong>Notes:</strong> ${escapeHtml(input.candidateInstructions)}</p>`
+              ? `<p><strong>Notes from the hiring team:</strong> ${escapeHtml(input.candidateInstructions)}</p>`
               : ''
           }
-          <p style="margin:24px 0"><a href="${dashboardUrl}" style="display:inline-block;background:#1e3a5f;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">View your applications</a></p>
+          <p style="margin:28px 0 12px"><a href="${dashboardUrl}" style="display:inline-block;background:#1e3a5f;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">View your applications</a></p>
+          <p style="font-size:12px;color:#94a3b8;margin-top:24px">
+            This message was sent by ${escapeHtml(COMPANY.brandName)} Talent on behalf of ${escapeHtml(input.organizationName)}.
+          </p>
         `,
       }),
     })

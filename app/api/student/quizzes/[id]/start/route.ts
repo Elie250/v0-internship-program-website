@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { startAssessmentAttempt } from '@/lib/learning/assessment-integrity'
 
 async function sessionUser() {
@@ -22,17 +22,23 @@ export async function POST(
   if (!user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: assessmentId } = await params
-  const result = await startAssessmentAttempt(assessmentId, user.id)
+  const hdrs = await headers()
+  const result = await startAssessmentAttempt(assessmentId, user.id, {
+    userAgent: hdrs.get('user-agent'),
+    ip: hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip'),
+  })
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
+  // Never include integrity band / answer keys
   return NextResponse.json({
     attemptId: result.attemptId,
     attemptNumber: result.attemptNumber,
     expiresAt: result.expiresAt,
     timeLimitMinutes: result.timeLimitMinutes,
+    requireFullscreen: result.requireFullscreen,
     questions: result.questions,
   })
 }

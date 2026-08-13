@@ -413,11 +413,15 @@ export function ApplyFlow({
               <p className="text-sm text-slate-600 mt-2 max-w-sm mx-auto">
                 {message || 'Application complete. Track status from your dashboard.'}
               </p>
+              <p className="text-xs text-slate-500 mt-3 max-w-md mx-auto leading-relaxed">
+                You only need to apply once per role. If you open this job again, we will show your
+                existing application instead of asking you to submit twice.
+              </p>
             </div>
             <div className="flex flex-wrap justify-center gap-3">
               <Link href="/app">
                 <Button className="rounded-xl bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]">
-                  Go to dashboard
+                  View my applications
                 </Button>
               </Link>
               <Link href="/jobs">

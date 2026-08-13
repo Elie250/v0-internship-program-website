@@ -64,6 +64,19 @@ export async function POST(request: Request) {
       jobTitle: result.jobTitle ?? 'Role',
       organizationName: result.organizationName ?? 'Employer',
       organizationNotificationEmail: result.organizationNotificationEmail,
+      applicationId: result.application.id,
+      cvDocumentId: result.application.cv_document_id,
+      candidate: {
+        email: profileSnapshot.email || user.email,
+        phone: profileSnapshot.phone,
+        location: profileSnapshot.location,
+        headline: profileSnapshot.headline,
+        linkedinUrl: profileSnapshot.linkedin_url,
+        portfolioUrl: profileSnapshot.portfolio_url,
+        githubUrl: profileSnapshot.github_url,
+        summary: profileSnapshot.summary,
+        skills: profileSnapshot.skills,
+      },
     })
 
     return NextResponse.json({ application: result.application })

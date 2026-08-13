@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 
 const SESSION_COOKIE = 'user_session'
 const ADMIN_COOKIE = 'admin_session'
+const EMPLOYER_ORG_COOKIE = 'recruitment_employer_org'
 
 function clearCookieOptions() {
   return {
@@ -19,4 +20,5 @@ export async function clearAuthCookies() {
   const opts = clearCookieOptions()
   cookieStore.set(SESSION_COOKIE, '', opts)
   cookieStore.set(ADMIN_COOKIE, '', opts)
+  cookieStore.set(EMPLOYER_ORG_COOKIE, '', opts)
 }
