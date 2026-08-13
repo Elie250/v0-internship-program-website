@@ -74,14 +74,90 @@ export async function listCandidateApplications(candidateUserId: string): Promis
 }> {
   if (!supabaseAdmin) return { applications: [], error: 'Database not configured' }
 
-  const { data, error } = await supabaseAdmin
+  const nested = await supabaseAdmin
     .from('recruitment_applications')
     .select(APPLICATION_WITH_JOB_SELECT)
     .eq('candidate_user_id', candidateUserId)
     .order('submitted_at', { ascending: false })
 
-  if (error) return { applications: [], error: error.message }
-  return { applications: (data ?? []) as unknown as RecruitmentApplicationWithJob[] }
+  if (!nested.error) {
+    return {
+      applications: normalizeApplicationRows(nested.data ?? []),
+    }
+  }
+
+  // Fallback if nested job/org embed fails (schema cache / relationship issues).
+  const flat = await supabaseAdmin
+    .from('recruitment_applications')
+    .select(APPLICATION_SELECT)
+    .eq('candidate_user_id', candidateUserId)
+    .order('submitted_at', { ascending: false })
+
+  if (flat.error) {
+    return {
+      applications: [],
+      error: nested.error.message || flat.error.message,
+    }
+  }
+
+  const rows = (flat.data ?? []) as RecruitmentApplication[]
+  if (rows.length === 0) return { applications: [] }
+
+  const jobIds = [...new Set(rows.map((row) => row.job_id).filter(Boolean))]
+  const { data: jobs, error: jobsError } = await supabaseAdmin
+    .from('recruitment_jobs')
+    .select(
+      'id, title, slug, status, location, employment_type, work_mode, application_deadline, organization:recruitment_organizations(name, slug, logo_url, status)'
+    )
+    .in('id', jobIds)
+
+  if (jobsError) {
+    // Still return applications without job titles rather than an empty dashboard.
+    return {
+      applications: rows.map((row) => ({ ...row, job: null })) as RecruitmentApplicationWithJob[],
+      error: undefined,
+    }
+  }
+
+  const jobById = new Map(
+    (jobs ?? []).map((job) => {
+      const orgRaw = Array.isArray(job.organization) ? job.organization[0] : job.organization
+      return [
+        String(job.id),
+        {
+          ...job,
+          organization: orgRaw ?? null,
+        },
+      ] as const
+    })
+  )
+
+  return {
+    applications: rows.map((row) => ({
+      ...row,
+      job: jobById.get(row.job_id) ?? null,
+    })) as unknown as RecruitmentApplicationWithJob[],
+  }
+}
+
+function normalizeApplicationRows(rows: unknown[]): RecruitmentApplicationWithJob[] {
+  return rows.map((raw) => {
+    const row = raw as RecruitmentApplicationWithJob & {
+      job?: RecruitmentApplicationWithJob['job'] | RecruitmentApplicationWithJob['job'][] | null
+    }
+    const jobRaw = Array.isArray(row.job) ? row.job[0] : row.job
+    if (!jobRaw) return { ...row, job: null }
+    const orgRaw = Array.isArray(jobRaw.organization)
+      ? jobRaw.organization[0]
+      : jobRaw.organization
+    return {
+      ...row,
+      job: {
+        ...jobRaw,
+        organization: orgRaw ?? null,
+      },
+    }
+  })
 }
 
 export async function getCandidateApplication(
@@ -98,7 +174,8 @@ export async function getCandidateApplication(
     .maybeSingle()
 
   if (error) return { application: null, error: error.message }
-  return { application: (data as unknown as RecruitmentApplicationWithJob | null) ?? null }
+  if (!data) return { application: null }
+  return { application: normalizeApplicationRows([data])[0] ?? null }
 }
 
 export async function getActiveApplicationForJob(

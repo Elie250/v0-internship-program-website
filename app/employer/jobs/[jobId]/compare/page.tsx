@@ -52,7 +52,8 @@ export default function EmployerJobComparePage() {
         </Link>
       </div>
       <StatusBanner tone="info">
-        Objective fields only. This view does not auto-rank a “best hire”. AI does not determine ranking.
+        Objective fields only. Integrity is an advisory review signal — never a cheating verdict or
+        auto-reject. This view does not auto-rank a “best hire”.
       </StatusBanner>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
@@ -62,7 +63,7 @@ export default function EmployerJobComparePage() {
               <th className="px-4 py-3">Candidate</th>
               <th className="px-4 py-3">Technical score</th>
               <th className="px-4 py-3">Screening</th>
-              <th className="px-4 py-3">Integrity</th>
+              <th className="px-4 py-3">Integrity (advisory)</th>
               <th className="px-4 py-3">Applied</th>
               <th className="px-4 py-3">Status</th>
             </tr>

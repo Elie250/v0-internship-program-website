@@ -34,6 +34,8 @@ export type EmployerApplicationRow = {
   created_at: string
   updated_at: string
   job?: { id: string; title: string; slug: string; organization_id: string; status: string } | null
+  /** Latest screening session integrity band (advisory only). */
+  latestIntegrityBand?: string | null
 }
 
 export async function listOrganizationApplications(input: {
@@ -72,7 +74,33 @@ export async function listOrganizationApplications(input: {
 
   const { data, error } = await query
   if (error) return { applications: [], error: error.message }
-  return { applications: (data ?? []) as unknown as EmployerApplicationRow[] }
+  const applications = (data ?? []) as unknown as EmployerApplicationRow[]
+  if (applications.length === 0) return { applications }
+
+  const applicationIds = applications.map((row) => row.id)
+  const { data: sessions } = await supabaseAdmin
+    .from('recruitment_screening_sessions')
+    .select('application_id, integrity_band, submitted_at, finalized_at, started_at')
+    .eq('organization_id', input.organizationId)
+    .in('application_id', applicationIds)
+    .order('started_at', { ascending: false })
+
+  const latestBandByApp = new Map<string, string | null>()
+  for (const session of sessions ?? []) {
+    const appId = String(session.application_id)
+    if (latestBandByApp.has(appId)) continue
+    latestBandByApp.set(
+      appId,
+      session.integrity_band != null ? String(session.integrity_band) : null
+    )
+  }
+
+  return {
+    applications: applications.map((row) => ({
+      ...row,
+      latestIntegrityBand: latestBandByApp.get(row.id) ?? null,
+    })),
+  }
 }
 
 export async function getOrganizationApplication(
@@ -103,7 +131,7 @@ export async function updateOrganizationApplicationStatus(input: {
   actorUserId?: string | null
   asPlatformAdmin?: boolean
   membershipRole?: RecruitmentOrgRole | null
-}): Promise<{ application?: EmployerApplicationRow; error?: string }> {
+}): Promise<{ application?: EmployerApplicationRow; error?: string; warning?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
   if (!isRecruitmentApplicationStatus(input.status)) return { error: 'Invalid status' }
   if (input.status === 'withdrawn') {
@@ -135,6 +163,27 @@ export async function updateOrganizationApplicationStatus(input: {
 
   const transition = isAllowedPipelineTransition(fromStatus, input.status)
   if (!transition.ok) return { error: transition.error }
+
+  let warning: string | undefined
+  if (input.status === 'screening') {
+    const { getJobScreeningConfig } = await import('@/lib/recruitment/screening')
+    const { listJobScreeningItems } = await import('@/lib/recruitment/screening')
+    const { config } = await getJobScreeningConfig(
+      current.application.job_id,
+      input.organizationId
+    )
+    const { items } = await listJobScreeningItems(
+      current.application.job_id,
+      input.organizationId
+    )
+    if (!config || !config.enabled || config.status !== 'published') {
+      warning =
+        'Candidate invited, but the technical assessment is not published yet. Publish it under Screening so the candidate can start.'
+    } else if (!items?.length) {
+      warning =
+        'Candidate invited, but this role has no assessment questions. Add questions under Screening before the candidate can start.'
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from('recruitment_applications')
@@ -225,7 +274,7 @@ export async function updateOrganizationApplicationStatus(input: {
     },
   })
 
-  return { application: data as unknown as EmployerApplicationRow }
+  return { application: data as unknown as EmployerApplicationRow, warning }
 }
 
 export async function listApplicationStatusHistory(

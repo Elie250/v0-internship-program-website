@@ -50,7 +50,7 @@ export async function PATCH(
       membershipRole: access.membership?.role ?? null,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
-    return NextResponse.json({ application: result.application })
+    return NextResponse.json({ application: result.application, warning: result.warning ?? null })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     const status = message === 'Unauthorized' ? 401 : 403

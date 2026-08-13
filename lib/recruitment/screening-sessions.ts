@@ -114,28 +114,12 @@ export async function getCandidateScreeningEligibility(
   if (application.status === 'withdrawn' || application.status === 'rejected') {
     return {
       eligible: false,
-      reason: 'This application is no longer eligible for screening.',
+      canStart: false,
+      reason: 'This application is no longer eligible for a technical assessment.',
       application,
       job,
     }
   }
-
-  const { config } = await getJobScreeningConfig(String(application.job_id), String(job.organization_id))
-  if (!config || !config.enabled || config.status !== 'published') {
-    return {
-      eligible: false,
-      reason: 'Technical screening is not available for this role yet.',
-      application,
-      job,
-      config,
-    }
-  }
-
-  const attempts = await countAttempts(applicationId)
-  const maxAttempts = maxAttemptsFromPolicy(
-    String(config.attempt_policy ?? 'single'),
-    config.max_attempts != null ? Number(config.max_attempts) : null
-  )
 
   const { data: active } = await supabaseAdmin!
     .from('recruitment_screening_sessions')
@@ -153,22 +137,104 @@ export async function getCandidateScreeningEligibility(
     .limit(1)
     .maybeSingle()
 
-  const canStart = !active && attempts < maxAttempts
+  // Resume an in-progress session even if pipeline status changed
+  if (active) {
+    const { config } = await getJobScreeningConfig(
+      String(application.job_id),
+      String(job.organization_id)
+    )
+    return {
+      eligible: true,
+      canStart: false,
+      reason: 'You have an assessment in progress. Continue where you left off.',
+      application,
+      job,
+      config,
+      attemptsUsed: await countAttempts(applicationId),
+      maxAttempts: maxAttemptsFromPolicy(
+        String(config?.attempt_policy ?? 'single'),
+        config?.max_attempts != null ? Number(config.max_attempts) : null
+      ),
+      activeSession: active,
+      latestSession: latest,
+    }
+  }
+
+  // New attempts require an explicit employer invitation (pipeline status = screening)
+  if (application.status !== 'screening') {
+    return {
+      eligible: false,
+      canStart: false,
+      reason:
+        application.status === 'submitted' || application.status === 'under_review'
+          ? 'The employer has not invited you to the technical assessment yet. You will receive an email when it is ready.'
+          : 'A technical assessment is not available for this application right now.',
+      application,
+      job,
+      attemptsUsed: await countAttempts(applicationId),
+      maxAttempts: 1,
+      activeSession: null,
+      latestSession: latest,
+    }
+  }
+
+  const { config } = await getJobScreeningConfig(String(application.job_id), String(job.organization_id))
+  if (!config || !config.enabled || config.status !== 'published') {
+    return {
+      eligible: false,
+      canStart: false,
+      reason:
+        'You are invited to the assessment, but the employer has not published it yet. Please try again shortly, or contact the employer if this persists.',
+      application,
+      job,
+      config,
+      attemptsUsed: await countAttempts(applicationId),
+      maxAttempts: 1,
+      activeSession: null,
+      latestSession: latest,
+    }
+  }
+
+  const { items } = await listJobScreeningItems(
+    String(application.job_id),
+    String(job.organization_id)
+  )
+  if (!items?.length) {
+    return {
+      eligible: false,
+      canStart: false,
+      reason:
+        'The assessment invitation is open, but no questions are configured for this role yet. Please try again later.',
+      application,
+      job,
+      config,
+      attemptsUsed: await countAttempts(applicationId),
+      maxAttempts: maxAttemptsFromPolicy(
+        String(config.attempt_policy ?? 'single'),
+        config.max_attempts != null ? Number(config.max_attempts) : null
+      ),
+      activeSession: null,
+      latestSession: latest,
+    }
+  }
+
+  const attempts = await countAttempts(applicationId)
+  const maxAttempts = maxAttemptsFromPolicy(
+    String(config.attempt_policy ?? 'single'),
+    config.max_attempts != null ? Number(config.max_attempts) : null
+  )
+  const canStart = attempts < maxAttempts
 
   return {
-    eligible: canStart || Boolean(active),
+    eligible: canStart,
     canStart,
-    reason: canStart
-      ? null
-      : active
-        ? 'You have an active screening session.'
-        : 'No attempts remaining for this application.',
+    reason: canStart ? null : 'You have used all available assessment attempts for this application.',
     application,
     job,
     config,
     attemptsUsed: attempts,
     maxAttempts,
-    activeSession: active,
+    activeSession: null,
     latestSession: latest,
   }
 }
@@ -180,7 +246,7 @@ export async function startScreeningSession(input: {
 }) {
   if (!supabaseAdmin) return { error: 'Database not configured' }
   if (!input.consentAcknowledged) {
-    return { error: 'Please acknowledge the screening instructions before starting.' }
+    return { error: 'Please acknowledge the assessment instructions before starting.' }
   }
 
   const eligibility = await getCandidateScreeningEligibility(
@@ -192,7 +258,7 @@ export async function startScreeningSession(input: {
     return { session: eligibility.activeSession, resumed: true }
   }
   if (!eligibility.canStart || !eligibility.config || !eligibility.job) {
-    return { error: eligibility.reason || 'Cannot start screening' }
+    return { error: eligibility.reason || 'Cannot start the technical assessment' }
   }
 
   const organizationId = String(eligibility.job.organization_id)
@@ -214,7 +280,7 @@ export async function startScreeningSession(input: {
   })
 
   if (!selected.length) {
-    return { error: 'No screening questions are configured for this role.' }
+    return { error: 'No assessment questions are configured for this role.' }
   }
 
   const materialized = materializeSessionItems({

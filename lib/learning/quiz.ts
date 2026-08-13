@@ -9,6 +9,8 @@ export type QuizQuestion = {
   correct_index: number
   explanation: string | null
   sort_order: number
+  parameters?: unknown
+  answer_spec?: unknown
 }
 
 export type Quiz = {
@@ -20,6 +22,7 @@ export type Quiz = {
   sort_order: number
   is_published: boolean
   questions: QuizQuestion[]
+  integrity_thresholds?: Record<string, unknown> | null
 }
 
 function isMissingTable(message: string | undefined): boolean {
@@ -39,59 +42,119 @@ export async function queryCourseQuizzes(
 ): Promise<{ quizzes: Quiz[]; error?: string }> {
   if (!supabaseAdmin) return { quizzes: [], error: 'Database not configured' }
 
-  let query = supabaseAdmin
-    .from('course_assessments')
-    .select(
-      'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers'
-    )
-    .eq('course_id', courseId)
-    .order('sort_order', { ascending: true })
+  let rows: Array<Record<string, unknown>> = []
+  {
+    const full = await supabaseAdmin
+      .from('course_assessments')
+      .select(
+        'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers, integrity_thresholds, require_fullscreen'
+      )
+      .eq('course_id', courseId)
+      .order('sort_order', { ascending: true })
 
-  const { data: assessments, error } = await query
-  if (error) return { quizzes: [], error: error.message }
+    if (
+      full.error &&
+      (full.error.message.includes('integrity_thresholds') ||
+        full.error.message.includes('require_fullscreen') ||
+        full.error.message.includes('schema cache'))
+    ) {
+      const basic = await supabaseAdmin
+        .from('course_assessments')
+        .select(
+          'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers'
+        )
+        .eq('course_id', courseId)
+        .order('sort_order', { ascending: true })
+      if (basic.error) return { quizzes: [], error: basic.error.message }
+      rows = (basic.data ?? []) as Array<Record<string, unknown>>
+    } else if (full.error) {
+      return { quizzes: [], error: full.error.message }
+    } else {
+      rows = (full.data ?? []) as Array<Record<string, unknown>>
+    }
+  }
 
-  let rows = assessments ?? []
   if (opts.publishedOnly) {
     rows = rows.filter((row) => row.is_published !== false)
   }
   if (!rows.length) return { quizzes: [] }
 
-  const { data: questions, error: qError } = await supabaseAdmin
-    .from('assessment_questions')
-    .select('id, assessment_id, question, options, correct_index, explanation, sort_order')
-    .in('assessment_id', rows.map((r) => r.id))
-    .order('sort_order', { ascending: true })
+  let questions: Array<Record<string, unknown>> = []
+  {
+    const assessmentIds = rows.map((r) => String(r.id))
+    const full = await supabaseAdmin
+      .from('assessment_questions')
+      .select(
+        'id, assessment_id, question, options, correct_index, explanation, sort_order, parameters, answer_spec'
+      )
+      .in('assessment_id', assessmentIds)
+      .order('sort_order', { ascending: true })
 
-  if (qError) {
-    if (isMissingTable(qError.message)) {
-      return {
-        quizzes: rows.map((row) => ({
-          ...row,
-          is_published: row.is_published !== false,
-          questions: [],
-        })),
+    if (
+      full.error &&
+      (full.error.message.includes('parameters') ||
+        full.error.message.includes('answer_spec') ||
+        full.error.message.includes('schema cache'))
+    ) {
+      const basic = await supabaseAdmin
+        .from('assessment_questions')
+        .select('id, assessment_id, question, options, correct_index, explanation, sort_order')
+        .in('assessment_id', assessmentIds)
+        .order('sort_order', { ascending: true })
+      if (basic.error) {
+        if (isMissingTable(basic.error.message)) {
+          return {
+            quizzes: rows.map((row) => ({
+              ...(row as unknown as Quiz),
+              is_published: row.is_published !== false,
+              questions: [],
+            })),
+          }
+        }
+        return { quizzes: [], error: basic.error.message }
       }
+      questions = (basic.data ?? []) as Array<Record<string, unknown>>
+    } else if (full.error) {
+      if (isMissingTable(full.error.message)) {
+        return {
+          quizzes: rows.map((row) => ({
+            ...(row as unknown as Quiz),
+            is_published: row.is_published !== false,
+            questions: [],
+          })),
+        }
+      }
+      return { quizzes: [], error: full.error.message }
+    } else {
+      questions = (full.data ?? []) as Array<Record<string, unknown>>
     }
-    return { quizzes: [], error: qError.message }
   }
 
   const byAssessment = new Map<string, QuizQuestion[]>()
-  for (const q of questions ?? []) {
+  for (const q of questions) {
     const list = byAssessment.get(String(q.assessment_id)) ?? []
     list.push({
-      id: q.id,
-      question: q.question,
+      id: String(q.id),
+      question: String(q.question),
       options: Array.isArray(q.options) ? q.options.map(String) : [],
       correct_index: opts.includeAnswers ? Number(q.correct_index) : -1,
-      explanation: opts.includeAnswers ? (q.explanation ?? null) : null,
+      explanation: opts.includeAnswers ? ((q.explanation as string | null) ?? null) : null,
       sort_order: Number(q.sort_order ?? 0),
+      parameters: opts.includeAnswers ? q.parameters ?? [] : undefined,
+      answer_spec: opts.includeAnswers ? q.answer_spec ?? {} : undefined,
     })
     byAssessment.set(String(q.assessment_id), list)
   }
 
   return {
     quizzes: rows.map((row) => ({
-      ...row,
+      ...(row as unknown as Quiz),
+      id: String(row.id),
+      course_id: String(row.course_id),
+      title: String(row.title),
+      description: (row.description as string | null) ?? null,
+      passing_score: Number(row.passing_score ?? 70),
+      sort_order: Number(row.sort_order ?? 0),
       is_published: row.is_published !== false,
       questions: byAssessment.get(String(row.id)) ?? [],
     })),
@@ -233,6 +296,7 @@ export type StudentQuizStanding = {
     passed: boolean
     attemptCount: number
     submittedAt: string | null
+    integrityBand?: string | null
   }>
   completedQuizzes: number
   totalQuizzes: number
@@ -240,6 +304,9 @@ export type StudentQuizStanding = {
   eligible: boolean
   certificateCode: string | null
   certificateStatus: string | null
+  /** Worst advisory integrity band across best attempts (null if none). */
+  integrityBand?: string | null
+  integrityNeedsReview?: boolean
 }
 
 /** Roster with per-quiz scores and average; eligible = all published quizzes taken and average >= pass mark. */
@@ -278,10 +345,25 @@ export async function queryCourseQuizStandings(
   if (enrollmentIds.length && quizIds.length) {
     const { data } = await supabaseAdmin
       .from('assessment_submissions')
-      .select('assessment_id, enrollment_id, score, passed, attempt_count, submitted_at')
+      .select('assessment_id, enrollment_id, score, passed, attempt_count, submitted_at, best_attempt_id')
       .in('assessment_id', quizIds)
       .in('enrollment_id', enrollmentIds)
     submissions = data ?? []
+  }
+
+  const bestAttemptIds = submissions
+    .map((s) => s.best_attempt_id)
+    .filter(Boolean)
+    .map(String)
+  const bandByAttempt = new Map<string, string>()
+  if (bestAttemptIds.length) {
+    const { data: attempts } = await supabaseAdmin
+      .from('assessment_attempts')
+      .select('id, integrity_band')
+      .in('id', bestAttemptIds)
+    for (const row of attempts ?? []) {
+      if (row.integrity_band) bandByAttempt.set(String(row.id), String(row.integrity_band))
+    }
   }
 
   let certificates: Array<{
@@ -309,6 +391,9 @@ export async function queryCourseQuizStandings(
     const mine = submissions.filter((s) => String(s.enrollment_id) === String(enrollment.id))
     const subs = gradedQuizzes.map((quiz) => {
       const sub = mine.find((s) => String(s.assessment_id) === quiz.id)
+      const band = sub?.best_attempt_id
+        ? bandByAttempt.get(String(sub.best_attempt_id)) ?? null
+        : null
       return {
         assessmentId: quiz.id,
         assessmentTitle: quizTitleById.get(quiz.id) ?? 'Quiz',
@@ -316,6 +401,7 @@ export async function queryCourseQuizStandings(
         passed: Boolean(sub?.passed),
         attemptCount: Number(sub?.attempt_count ?? 0),
         submittedAt: (sub?.submitted_at as string | null) ?? null,
+        integrityBand: band,
       }
     })
 
@@ -331,6 +417,13 @@ export async function queryCourseQuizStandings(
       averageScore >= passingScore
 
     const cert = certByEnrollment.get(String(enrollment.id)) ?? null
+    const bandRank = (b: string | null | undefined) =>
+      b === 'HIGH_CONCERN' ? 3 : b === 'REVIEW' ? 2 : b === 'LOW_CONCERN' ? 1 : 0
+    const worstBand =
+      subs
+        .map((s) => s.integrityBand)
+        .filter(Boolean)
+        .sort((a, b) => bandRank(b) - bandRank(a))[0] ?? null
 
     return {
       enrollmentId: enrollment.id,
@@ -344,6 +437,8 @@ export async function queryCourseQuizStandings(
       eligible,
       certificateCode: cert?.code ?? null,
       certificateStatus: cert?.status ?? null,
+      integrityBand: worstBand,
+      integrityNeedsReview: worstBand === 'REVIEW' || worstBand === 'HIGH_CONCERN',
     }
   })
 

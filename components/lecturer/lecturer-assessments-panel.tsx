@@ -11,6 +11,9 @@ type Submission = {
   passed: boolean
   lecturer_approved: boolean
   admin_confirmed: boolean
+  integrityBand?: string | null
+  integrityNeedsReview?: boolean
+  best_attempt_id?: string | null
   enrollment?: { applicant_name?: string; applicant_email?: string }
 }
 
@@ -32,12 +35,21 @@ export function LecturerAssessmentsPanel({ courseId }: { courseId: string }) {
     void load()
   }, [courseId])
 
-  const approve = async (submissionId: string, approved: boolean) => {
+  const approve = async (row: Submission, approved: boolean) => {
+    if (
+      approved &&
+      row.integrityNeedsReview &&
+      !window.confirm(
+        `Integrity band is ${row.integrityBand}. This is advisory only and will not change the score. Approve anyway? (Open Integrity decision reports below to review the timeline first.)`
+      )
+    ) {
+      return
+    }
     await fetch(`/api/lecturer/courses/${courseId}/assessments`, {
       method: 'PATCH',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ submissionId, approved }),
+      body: JSON.stringify({ submissionId: row.id, approved }),
     })
     void load()
   }
@@ -46,6 +58,9 @@ export function LecturerAssessmentsPanel({ courseId }: { courseId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Assessment results</CardTitle>
+        <p className="text-xs text-slate-500 mt-1">
+          Integrity bands are advisory. Approving never auto-voids an attempt.
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -55,13 +70,20 @@ export function LecturerAssessmentsPanel({ courseId }: { courseId: string }) {
         ) : (
           <ul className="space-y-3">
             {rows.map((row) => (
-              <li key={row.id} className="rounded border p-3 text-sm flex flex-wrap justify-between gap-2">
+              <li
+                key={row.id}
+                className="rounded border p-3 text-sm flex flex-wrap justify-between gap-2"
+              >
                 <div>
                   <p className="font-medium">{row.enrollment?.applicant_name ?? 'Student'}</p>
                   <p className="text-slate-600">
                     Score: {row.score ?? '—'}% · {row.passed ? 'Passed' : 'Below pass mark'}
+                    {row.integrityBand ? ` · Integrity: ${row.integrityBand}` : ''}
                   </p>
-                  <div className="flex gap-1 mt-1">
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {row.integrityNeedsReview ? (
+                      <Badge className="bg-amber-100 text-amber-900">Integrity review recommended</Badge>
+                    ) : null}
                     {row.lecturer_approved ? (
                       <Badge className="bg-green-100 text-green-800">Lecturer approved</Badge>
                     ) : null}
@@ -74,7 +96,7 @@ export function LecturerAssessmentsPanel({ courseId }: { courseId: string }) {
                   <Button
                     size="sm"
                     className="bg-[var(--brand-navy)] text-white"
-                    onClick={() => approve(row.id, true)}
+                    onClick={() => void approve(row, true)}
                   >
                     Mark pass
                   </Button>

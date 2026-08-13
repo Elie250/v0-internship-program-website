@@ -449,9 +449,33 @@ export function formatWorkMode(value: RecruitmentWorkMode | null): string {
 
 
 export function formatApplicationStatus(value: RecruitmentApplicationStatus): string {
-
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
+/** Candidate-facing labels — avoid internal pipeline jargon like “Screening”. */
+export function formatCandidateApplicationStatus(value: RecruitmentApplicationStatus): string {
+  switch (value) {
+    case 'submitted':
+      return 'Application received'
+    case 'under_review':
+      return 'Under review'
+    case 'screening':
+      return 'Assessment invited'
+    case 'shortlisted':
+      return 'Shortlisted'
+    case 'interview':
+      return 'Interview stage'
+    case 'offer':
+      return 'Offer'
+    case 'hired':
+      return 'Hired'
+    case 'rejected':
+      return 'Not selected'
+    case 'withdrawn':
+      return 'Withdrawn'
+    default:
+      return formatApplicationStatus(value)
+  }
 }
 
 

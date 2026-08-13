@@ -56,6 +56,8 @@ export async function POST(
     attemptCount: result.attemptCount,
     revealAnswers: result.revealAnswers,
     results: result.results,
-    integrityFlags: result.integrityFlags,
+    // Soft signal only — never expose band / severity codes to students
+    integrityFlags:
+      result.integrityFlags.length > 0 ? ['attention_signals_recorded'] : [],
   })
 }

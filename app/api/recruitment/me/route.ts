@@ -19,13 +19,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [{ profile }, memberships, { applications }, { documents }] = await Promise.all([
+    const [
+      profileResult,
+      memberships,
+      applicationsResult,
+      documentsResult,
+    ] = await Promise.all([
       ensureCandidateProfile(user.id),
       listUserMemberships(user.id),
       listCandidateApplications(user.id),
       listCandidateDocuments(user.id),
     ])
 
+    if (applicationsResult.error) {
+      return NextResponse.json(
+        { error: `Could not load applications: ${applicationsResult.error}` },
+        { status: 500 }
+      )
+    }
+    if (documentsResult.error) {
+      return NextResponse.json(
+        { error: `Could not load documents: ${documentsResult.error}` },
+        { status: 500 }
+      )
+    }
+
+    const profile = profileResult.profile
+    const documents = documentsResult.documents ?? []
+    const applications = applicationsResult.applications ?? []
     const completion = calculateProfileCompletion(profile ?? null)
     const latestCv = documents.find((doc) => doc.document_type === 'cv') ?? null
     const isPlatformAdmin = isRecruitmentPlatformAdmin(user)

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { BrandMark, LoadingBlock, StatusBanner } from '@/components/recruitment/talent-ui'
+import { AccountSignOutButton } from '@/components/recruitment/account-menu'
 import { Button } from '@/components/ui/button'
 
 type OrgOption = {
@@ -98,6 +99,7 @@ export function EmployerShell({ children }: { children: React.ReactNode }) {
             <Link href="/jobs">
               <Button className="bg-[var(--brand-navy)] text-white">Browse jobs</Button>
             </Link>
+            <AccountSignOutButton redirectTo="/jobs" />
           </div>
         </main>
       </div>
@@ -136,6 +138,7 @@ export function EmployerShell({ children }: { children: React.ReactNode }) {
             <Link href="/jobs/auth/choose" className="text-xs text-white/80 hover:text-white">
               Switch workspace
             </Link>
+            <AccountSignOutButton redirectTo="/jobs" light className="rounded-lg h-8 border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white" />
           </div>
         </div>
       </header>

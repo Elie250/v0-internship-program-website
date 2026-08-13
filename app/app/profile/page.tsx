@@ -13,6 +13,7 @@ import {
   StatusBanner,
   TalentShell,
 } from '@/components/recruitment/talent-ui'
+import { AccountSignOutButton } from '@/components/recruitment/account-menu'
 
 type Document = { id: string; original_filename: string; created_at: string; document_type: string }
 
@@ -152,9 +153,12 @@ export default function CandidateProfilePage() {
       subtitle="Reusable across every employer on this platform"
     >
       <div className="max-w-2xl space-y-6">
-        <Link href="/app" className="text-sm font-medium text-[var(--brand-navy)] hover:underline">
-          ← Back to dashboard
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/app" className="text-sm font-medium text-[var(--brand-navy)] hover:underline">
+            ← Back to dashboard
+          </Link>
+          <AccountSignOutButton redirectTo="/jobs" />
+        </div>
 
         {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
         {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}

@@ -2,6 +2,12 @@ import { createHash } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { courseLessonsComplete } from '@/lib/learning/lesson-integrity'
 import { maybeAutoRequestCertificate } from '@/lib/learning/certificate-auto'
+import {
+  materializeAttemptVariants,
+  newVariantSeed,
+  seededOptionOrder,
+} from '@/lib/learning/assessment-parameters'
+import { shuffleWithSeed } from '@/lib/recruitment/screening-rng'
 
 export const INTEGRITY_HINT =
   'Assessment integrity tables missing. Run scripts/35-assessment-integrity.sql in Supabase.'
@@ -15,6 +21,7 @@ export type AssessmentPolicy = {
   lockAfterPass: boolean
   cooldownMinutes: number
   revealAnswers: 'never' | 'after_pass' | 'after_all_attempts'
+  requireFullscreen: boolean
 }
 
 export type AttemptQuestion = {
@@ -53,6 +60,15 @@ function shuffle<T>(items: T[]): T[] {
   return copy
 }
 
+function shuffleQuestionsForAttempt<T extends { id: string }>(
+  questions: T[],
+  shuffleEnabled: boolean,
+  seed: string
+): T[] {
+  if (!shuffleEnabled) return [...questions]
+  return shuffleWithSeed(questions, `qorder:${seed}`)
+}
+
 function parseQuestionOrder(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   return value.map((id: unknown) => String(id))
@@ -70,6 +86,7 @@ function policyFromRow(row: Record<string, unknown>): AssessmentPolicy {
     cooldownMinutes: Math.max(0, Number(row.cooldown_minutes ?? 60)),
     revealAnswers:
       reveal === 'never' || reveal === 'after_pass' ? reveal : 'after_all_attempts',
+    requireFullscreen: row.require_fullscreen === true,
   }
 }
 
@@ -102,6 +119,17 @@ function buildDisplayQuestion(
   }
 }
 
+export type AssessmentQuestionRow = {
+  id: string
+  question: string
+  options: unknown
+  correct_index: number
+  explanation: string | null
+  sort_order?: number
+  parameters?: unknown
+  answer_spec?: unknown
+}
+
 async function loadAssessmentContext(assessmentId: string, userId: string) {
   if (!supabaseAdmin) return { ok: false as const, error: 'Database not configured' }
 
@@ -127,13 +155,52 @@ async function loadAssessmentContext(assessmentId: string, userId: string) {
     return { ok: false as const, error: 'You are not admitted to this programme' }
   }
 
-  const { data: questions } = await supabaseAdmin
-    .from('assessment_questions')
-    .select('id, question, options, correct_index, explanation, sort_order')
-    .eq('assessment_id', assessmentId)
-    .order('sort_order', { ascending: true })
+  let questions: AssessmentQuestionRow[] = []
 
-  if (!questions?.length) {
+  {
+    const full = await supabaseAdmin
+      .from('assessment_questions')
+      .select('id, question, options, correct_index, explanation, sort_order, parameters, answer_spec')
+      .eq('assessment_id', assessmentId)
+      .order('sort_order', { ascending: true })
+
+    if (
+      full.error &&
+      (full.error.message.includes('parameters') ||
+        full.error.message.includes('answer_spec') ||
+        full.error.message.includes('schema cache'))
+    ) {
+      const basic = await supabaseAdmin
+        .from('assessment_questions')
+        .select('id, question, options, correct_index, explanation, sort_order')
+        .eq('assessment_id', assessmentId)
+        .order('sort_order', { ascending: true })
+      if (basic.error) return { ok: false as const, error: basic.error.message }
+      questions = (basic.data ?? []).map((q) => ({
+        id: String(q.id),
+        question: String(q.question),
+        options: q.options,
+        correct_index: Number(q.correct_index),
+        explanation: (q.explanation as string | null) ?? null,
+        sort_order: Number(q.sort_order ?? 0),
+      }))
+    } else if (full.error) {
+      return { ok: false as const, error: full.error.message }
+    } else {
+      questions = (full.data ?? []).map((q) => ({
+        id: String(q.id),
+        question: String(q.question),
+        options: q.options,
+        correct_index: Number(q.correct_index),
+        explanation: (q.explanation as string | null) ?? null,
+        sort_order: Number(q.sort_order ?? 0),
+        parameters: q.parameters,
+        answer_spec: q.answer_spec,
+      }))
+    }
+  }
+
+  if (!questions.length) {
     return { ok: false as const, error: 'This assessment has no questions yet' }
   }
 
@@ -161,6 +228,7 @@ export async function getAssessmentAccessSummary(
       blockReason: string | null
       inProgressAttemptId: string | null
       expiresAt: string | null
+      requireFullscreen: boolean
     }
   | { ok: false; error: string }
 > {
@@ -246,12 +314,14 @@ export async function getAssessmentAccessSummary(
     blockReason,
     inProgressAttemptId: activeInProgress ? String(activeInProgress.id) : null,
     expiresAt: activeInProgress?.expires_at ? String(activeInProgress.expires_at) : null,
+    requireFullscreen: policy.requireFullscreen,
   }
 }
 
 export async function startAssessmentAttempt(
   assessmentId: string,
-  userId: string
+  userId: string,
+  clientMeta?: { userAgent?: string | null; ip?: string | null }
 ): Promise<
   | {
       ok: true
@@ -259,6 +329,7 @@ export async function startAssessmentAttempt(
       attemptNumber: number
       expiresAt: string | null
       timeLimitMinutes: number | null
+      requireFullscreen: boolean
       questions: AttemptQuestion[]
     }
   | { ok: false; error: string }
@@ -279,23 +350,44 @@ export async function startAssessmentAttempt(
 
   const { policy, enrollment, questions } = ctx
   const attemptNumber = access.attemptsUsed + 1
-  const orderedQuestions = policy.shuffleQuestions
-    ? shuffle(questions)
-    : [...questions]
+  const variantSeed = newVariantSeed(attemptNumber, userId, assessmentId)
+  const orderedQuestions = shuffleQuestionsForAttempt(questions, policy.shuffleQuestions, variantSeed)
+
+  const sources = orderedQuestions.map((q) => ({
+    id: String(q.id),
+    question: String(q.question),
+    options: Array.isArray(q.options) ? q.options.map(String) : [],
+    correct_index: Number(q.correct_index),
+    explanation: (q.explanation as string | null) ?? null,
+    parameters: (q as { parameters?: unknown }).parameters,
+    answer_spec: (q as { answer_spec?: unknown }).answer_spec,
+  }))
+
+  const { byQuestionId } = materializeAttemptVariants(sources, variantSeed)
 
   const questionOrder = orderedQuestions.map((q) => String(q.id))
   const optionOrders: Record<string, number[]> = {}
 
   for (const question of orderedQuestions) {
-    const optionCount = Array.isArray(question.options) ? question.options.length : 0
-    const base = Array.from({ length: optionCount }, (_, i) => i)
-    optionOrders[String(question.id)] = policy.shuffleOptions ? shuffle(base) : base
+    const qid = String(question.id)
+    const materialized = byQuestionId[qid]
+    const optionCount = materialized?.options.length ?? 0
+    optionOrders[qid] = seededOptionOrder(
+      optionCount,
+      `opts:${variantSeed}:${qid}`,
+      policy.shuffleOptions
+    )
   }
 
   const startedAt = new Date()
   const expiresAt =
     policy.timeLimitMinutes && policy.timeLimitMinutes > 0
       ? new Date(startedAt.getTime() + policy.timeLimitMinutes * 60 * 1000).toISOString()
+      : null
+
+  const clientMetaHash =
+    clientMeta?.userAgent || clientMeta?.ip
+      ? hashClientMeta(clientMeta.userAgent ?? null, clientMeta.ip ?? null)
       : null
 
   const { data: attempt, error } = await supabaseAdmin!.from('assessment_attempts').insert([
@@ -309,25 +401,82 @@ export async function startAssessmentAttempt(
       expires_at: expiresAt,
       question_order: questionOrder,
       option_orders: optionOrders,
+      variant_seed: variantSeed,
+      parameters_resolved: byQuestionId,
+      client_meta_hash: clientMetaHash,
     },
   ]).select('id').single()
 
   if (error) {
+    // Fallback without variant columns if migration 81 not applied
+    if (
+      error.message.includes('variant_seed') ||
+      error.message.includes('parameters_resolved') ||
+      error.message.includes('client_meta_hash') ||
+      error.message.includes('schema cache')
+    ) {
+      const legacy = await supabaseAdmin!.from('assessment_attempts').insert([
+        {
+          assessment_id: assessmentId,
+          enrollment_id: enrollment.id,
+          user_id: userId,
+          attempt_number: attemptNumber,
+          status: 'in_progress',
+          started_at: startedAt.toISOString(),
+          expires_at: expiresAt,
+          question_order: questionOrder,
+          option_orders: optionOrders,
+        },
+      ]).select('id').single()
+      if (legacy.error) {
+        return {
+          ok: false,
+          error: isMissingIntegrityTable(legacy.error.message)
+            ? INTEGRITY_HINT
+            : legacy.error.message,
+        }
+      }
+      const displayQuestions = orderedQuestions.map((q) => {
+        const qid = String(q.id)
+        const materialized = byQuestionId[qid]
+        return buildDisplayQuestion(
+          {
+            id: qid,
+            question: materialized?.question ?? String(q.question),
+            options: materialized?.options ?? (Array.isArray(q.options) ? q.options.map(String) : []),
+            correct_index: materialized?.correctIndex ?? Number(q.correct_index),
+            explanation: (q.explanation as string | null) ?? null,
+          },
+          optionOrders[qid] ?? []
+        )
+      })
+      return {
+        ok: true,
+        attemptId: String(legacy.data.id),
+        attemptNumber,
+        expiresAt,
+        timeLimitMinutes: policy.timeLimitMinutes,
+        requireFullscreen: policy.requireFullscreen,
+        questions: displayQuestions,
+      }
+    }
     return { ok: false, error: isMissingIntegrityTable(error.message) ? INTEGRITY_HINT : error.message }
   }
 
-  const displayQuestions = orderedQuestions.map((q) =>
-    buildDisplayQuestion(
+  const displayQuestions = orderedQuestions.map((q) => {
+    const qid = String(q.id)
+    const materialized = byQuestionId[qid]
+    return buildDisplayQuestion(
       {
-        id: String(q.id),
-        question: String(q.question),
-        options: Array.isArray(q.options) ? q.options.map(String) : [],
-        correct_index: Number(q.correct_index),
+        id: qid,
+        question: materialized?.question ?? String(q.question),
+        options: materialized?.options ?? (Array.isArray(q.options) ? q.options.map(String) : []),
+        correct_index: materialized?.correctIndex ?? Number(q.correct_index),
         explanation: (q.explanation as string | null) ?? null,
       },
-      optionOrders[String(q.id)] ?? []
+      optionOrders[qid] ?? []
     )
-  )
+  })
 
   return {
     ok: true,
@@ -335,6 +484,7 @@ export async function startAssessmentAttempt(
     attemptNumber,
     expiresAt,
     timeLimitMinutes: policy.timeLimitMinutes,
+    requireFullscreen: policy.requireFullscreen,
     questions: displayQuestions,
   }
 }
@@ -349,6 +499,7 @@ export async function resumeAssessmentAttempt(
       attemptNumber: number
       expiresAt: string | null
       timeLimitMinutes: number | null
+      requireFullscreen: boolean
       questions: AttemptQuestion[]
     }
   | { ok: false; error: string }
@@ -376,34 +527,64 @@ export async function resumeAssessmentAttempt(
 
   const { data: assessment } = await supabaseAdmin
     .from('course_assessments')
-    .select('time_limit_minutes')
+    .select('time_limit_minutes, require_fullscreen')
     .eq('id', attempt.assessment_id)
     .maybeSingle()
 
   const questionOrder = parseQuestionOrder(attempt.question_order)
   const optionOrders = (attempt.option_orders ?? {}) as Record<string, number[]>
+  const resolved = (attempt.parameters_resolved ?? {}) as Record<
+    string,
+    {
+      question?: string
+      options?: string[]
+      correctIndex?: number
+    }
+  >
 
   const { data: questions } = await supabaseAdmin
     .from('assessment_questions')
-    .select('id, question, options, correct_index, explanation')
+    .select('id, question, options, correct_index, explanation, parameters, answer_spec')
     .in('id', questionOrder)
 
   const byId = new Map((questions ?? []).map((q) => [String(q.id), q]))
+
+  // Re-materialize if resolved missing (pre-migration attempts)
+  let byResolved = resolved
+  if (!Object.keys(byResolved).length && attempt.variant_seed) {
+    const sources = questionOrder
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((q) => ({
+        id: String(q!.id),
+        question: String(q!.question),
+        options: Array.isArray(q!.options) ? q!.options.map(String) : [],
+        correct_index: Number(q!.correct_index),
+        parameters: (q as { parameters?: unknown }).parameters,
+        answer_spec: (q as { answer_spec?: unknown }).answer_spec,
+      }))
+    byResolved = materializeAttemptVariants(sources, String(attempt.variant_seed)).byQuestionId
+  }
+
   const displayQuestions = questionOrder
     .map((id) => byId.get(id))
     .filter(Boolean)
-    .map((q) =>
-      buildDisplayQuestion(
+    .map((q) => {
+      const qid = String(q!.id)
+      const materialized = byResolved[qid]
+      return buildDisplayQuestion(
         {
-          id: String(q!.id),
-          question: String(q!.question),
-          options: Array.isArray(q!.options) ? q!.options.map(String) : [],
-          correct_index: Number(q!.correct_index),
+          id: qid,
+          question: materialized?.question ?? String(q!.question),
+          options:
+            materialized?.options ??
+            (Array.isArray(q!.options) ? q!.options.map(String) : []),
+          correct_index: materialized?.correctIndex ?? Number(q!.correct_index),
           explanation: (q!.explanation as string | null) ?? null,
         },
-        optionOrders[String(q!.id)] ?? []
+        optionOrders[qid] ?? []
       )
-    )
+    })
 
   return {
     ok: true,
@@ -412,6 +593,7 @@ export async function resumeAssessmentAttempt(
     expiresAt: attempt.expires_at ? String(attempt.expires_at) : null,
     timeLimitMinutes:
       assessment?.time_limit_minutes != null ? Number(assessment.time_limit_minutes) : null,
+    requireFullscreen: assessment?.require_fullscreen === true,
     questions: displayQuestions,
   }
 }
@@ -421,50 +603,23 @@ export async function logAttemptIntegrityEvent(input: {
   userId: string
   eventType: string
   metadata?: Record<string, unknown>
-}): Promise<{ ok: boolean; tabSwitchCount?: number }> {
-  if (!supabaseAdmin) return { ok: false }
-
-  const { data: attempt } = await supabaseAdmin
-    .from('assessment_attempts')
-    .select('id, status, tab_switch_count, integrity_flags')
-    .eq('id', input.attemptId)
-    .eq('user_id', input.userId)
-    .maybeSingle()
-
-  if (!attempt || attempt.status !== 'in_progress') return { ok: false }
-
-  await supabaseAdmin.from('assessment_attempt_events').insert([
-    {
-      attempt_id: input.attemptId,
-      event_type: input.eventType,
-      metadata: input.metadata ?? {},
-    },
-  ])
-
-  let tabSwitchCount = Number(attempt.tab_switch_count ?? 0)
-  const flags = Array.isArray(attempt.integrity_flags) ? [...attempt.integrity_flags] : []
-
-  if (input.eventType === 'tab_hidden' || input.eventType === 'window_blur') {
-    tabSwitchCount += 1
-    if (tabSwitchCount >= 5 && !flags.includes('excessive_tab_switch')) {
-      flags.push('excessive_tab_switch')
-    }
+  clientMeta?: { userAgent?: string | null; ip?: string | null }
+}): Promise<{ ok: boolean; tabSwitchCount?: number; error?: string }> {
+  const { ingestAssessmentIntegrityEvent } = await import(
+    '@/lib/learning/assessment-integrity-report'
+  )
+  const result = await ingestAssessmentIntegrityEvent({
+    attemptId: input.attemptId,
+    userId: input.userId,
+    eventType: input.eventType,
+    metadata: input.metadata,
+    clientMeta: input.clientMeta,
+  })
+  return {
+    ok: result.ok,
+    tabSwitchCount: result.tabSwitchCount,
+    error: result.error,
   }
-
-  if (input.eventType === 'paste_blocked') {
-    if (!flags.includes('paste_blocked')) flags.push('paste_blocked')
-  }
-
-  await supabaseAdmin
-    .from('assessment_attempts')
-    .update({
-      tab_switch_count: tabSwitchCount,
-      integrity_flags: flags,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', input.attemptId)
-
-  return { ok: true, tabSwitchCount }
 }
 
 export async function submitAssessmentAttempt(input: {
@@ -512,6 +667,14 @@ export async function submitAssessmentAttempt(input: {
   const { policy, enrollment, questions } = ctx
   const questionOrder = parseQuestionOrder(attempt.question_order)
   const optionOrders = (attempt.option_orders ?? {}) as Record<string, number[]>
+  const resolved = (attempt.parameters_resolved ?? {}) as Record<
+    string,
+    {
+      question?: string
+      options?: string[]
+      correctIndex?: number
+    }
+  >
   const byId = new Map(questions.map((q) => [String(q.id), q]))
 
   const results: GradedAnswer[] = questionOrder
@@ -521,18 +684,23 @@ export async function submitAssessmentAttempt(input: {
       const questionId = String(q!.id)
       const displayIndex = Number(input.answers[questionId])
       const optionOrder = optionOrders[questionId] ?? []
+      const materialized = resolved[questionId]
+      const optionsSource =
+        materialized?.options ?? (Array.isArray(q!.options) ? q!.options.map(String) : [])
+      const correctOriginal =
+        materialized?.correctIndex != null
+          ? Number(materialized.correctIndex)
+          : Number(q!.correct_index)
       const chosenOriginal = mapDisplayToOriginal(optionOrder, displayIndex)
-      const correctIndex = Number(q!.correct_index)
-      const options = Array.isArray(q!.options) ? q!.options.map(String) : []
-      const displayOptions = optionOrder.map((idx) => options[idx] ?? '')
+      const displayOptions = optionOrder.map((idx) => optionsSource[idx] ?? '')
 
       return {
         questionId,
-        question: String(q!.question),
+        question: materialized?.question ?? String(q!.question),
         options: displayOptions,
         chosenIndex: displayIndex,
-        correctIndex: optionOrder.indexOf(correctIndex),
-        correct: chosenOriginal === correctIndex,
+        correctIndex: optionOrder.indexOf(correctOriginal),
+        correct: chosenOriginal === correctOriginal,
         explanation: (q!.explanation as string | null) ?? null,
       }
     })
@@ -561,6 +729,26 @@ export async function submitAssessmentAttempt(input: {
       total_questions: totalQuestions,
     })
     .eq('id', input.attemptId)
+
+  // Recompute advisory integrity band after submit (does not change score)
+  try {
+    const { recomputeAttemptIntegrity } = await import(
+      '@/lib/learning/assessment-integrity-report'
+    )
+    await recomputeAttemptIntegrity(input.attemptId)
+  } catch {
+    /* migration may not be applied yet */
+  }
+
+  const { data: attemptAfter } = await supabaseAdmin
+    .from('assessment_attempts')
+    .select('integrity_flags, integrity_band')
+    .eq('id', input.attemptId)
+    .maybeSingle()
+
+  const finalFlags = Array.isArray(attemptAfter?.integrity_flags)
+    ? attemptAfter!.integrity_flags.map(String)
+    : integrityFlags
 
   const { data: existingSubmission } = await supabaseAdmin
     .from('assessment_submissions')
@@ -642,7 +830,7 @@ export async function submitAssessmentAttempt(input: {
           correctIndex: -1,
           explanation: null,
         })),
-    integrityFlags,
+    integrityFlags: finalFlags,
   }
 }
 

@@ -1,4 +1,4 @@
-import { createSignedGetUrl, storageConfigured, uploadObject } from '@/lib/storage/object-storage'
+import { createSignedGetUrl, downloadObject, storageConfigured, uploadObject } from '@/lib/storage/object-storage'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
 import { recruitmentCandidateCvObjectKey } from '@/lib/recruitment/storage-paths'
@@ -229,5 +229,36 @@ export async function createEmployerDocumentDownloadUrl(input: {
     return { url }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not create download link' }
+  }
+}
+
+/** Load CV bytes for employer notification emails (server-side only). */
+export async function loadDocumentAttachment(documentId: string): Promise<{
+  filename?: string
+  content?: Buffer
+  contentType?: string
+  error?: string
+}> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const { data: document, error } = await supabaseAdmin
+    .from('recruitment_documents')
+    .select(DOCUMENT_SELECT)
+    .eq('id', documentId)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (error) return { error: error.message }
+  if (!document) return { error: 'Document not found' }
+
+  try {
+    const content = await downloadObject(document.storage_key)
+    return {
+      filename: document.original_filename || 'candidate-cv.pdf',
+      content,
+      contentType: document.mime_type || 'application/octet-stream',
+    }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not load document' }
   }
 }

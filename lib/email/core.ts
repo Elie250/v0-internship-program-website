@@ -16,11 +16,18 @@ export function getAppUrl(): string {
 
 export type SendEmailResult = { success: boolean; error?: unknown }
 
+export type EmailAttachment = {
+  filename: string
+  content: Buffer | string
+  contentType?: string
+}
+
 export async function sendEmail(input: {
   to: string | string[]
   subject: string
   html: string
   replyTo?: string
+  attachments?: EmailAttachment[]
 }): Promise<SendEmailResult> {
   const recipients = (Array.isArray(input.to) ? input.to : [input.to]).filter(Boolean)
   if (!recipients.length) {
@@ -39,6 +46,15 @@ export async function sendEmail(input: {
       subject: input.subject,
       html: input.html,
       ...(input.replyTo ? { reply_to: input.replyTo } : {}),
+      ...(input.attachments?.length
+        ? {
+            attachments: input.attachments.map((file) => ({
+              filename: file.filename,
+              content: file.content,
+              ...(file.contentType ? { contentType: file.contentType } : {}),
+            })),
+          }
+        : {}),
     })
     return { success: true }
   } catch (error) {

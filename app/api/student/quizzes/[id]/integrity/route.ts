@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { logAttemptIntegrityEvent } from '@/lib/learning/assessment-integrity'
+import { normalizeEventType } from '@/lib/integrity/validate'
 
 async function sessionUser() {
   const cookieStore = await cookies()
@@ -12,17 +13,6 @@ async function sessionUser() {
     return null
   }
 }
-
-const ALLOWED_EVENTS = new Set([
-  'tab_hidden',
-  'tab_visible',
-  'window_blur',
-  'window_focus',
-  'paste_blocked',
-  'copy_blocked',
-  'context_menu_blocked',
-  'fullscreen_exit',
-])
 
 /** Record proctoring-style integrity signals during an active attempt. */
 export async function POST(
@@ -37,10 +27,11 @@ export async function POST(
   const attemptId = String(body.attemptId ?? '')
   const eventType = String(body.eventType ?? '')
 
-  if (!attemptId || !ALLOWED_EVENTS.has(eventType)) {
+  if (!attemptId || !normalizeEventType(eventType)) {
     return NextResponse.json({ error: 'Invalid integrity event' }, { status: 400 })
   }
 
+  const hdrs = await headers()
   const result = await logAttemptIntegrityEvent({
     attemptId,
     userId: user.id,
@@ -49,11 +40,19 @@ export async function POST(
       assessmentId,
       ...(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
     },
+    clientMeta: {
+      userAgent: hdrs.get('user-agent'),
+      ip: hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() || hdrs.get('x-real-ip'),
+    },
   })
 
   if (!result.ok) {
-    return NextResponse.json({ error: 'Attempt not active' }, { status: 400 })
+    return NextResponse.json(
+      { error: result.error || 'Attempt not active' },
+      { status: result.error?.includes('Too many') ? 429 : 400 }
+    )
   }
 
+  // Never return integrity_band to students
   return NextResponse.json({ ok: true, tabSwitchCount: result.tabSwitchCount })
 }
