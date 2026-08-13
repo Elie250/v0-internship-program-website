@@ -87,6 +87,7 @@ export async function createOrganizationQuestion(input: {
           input.answerSpec && typeof input.answerSpec === 'object' ? input.answerSpec : {},
         weight: input.weight != null && Number(input.weight) > 0 ? Number(input.weight) : 1,
         section: input.section?.trim() || input.discipline?.trim() || null,
+        status: 'active',
         created_by: input.actorUserId,
       },
     ])
@@ -182,9 +183,10 @@ export async function deleteOrganizationQuestion(input: {
 }): Promise<{ success: boolean; error?: string }> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
+  // Soft-delete (archive) so historical screening sessions keep question references
   const { data, error } = await supabaseAdmin
     .from('recruitment_questions')
-    .delete()
+    .update({ status: 'archived', updated_at: new Date().toISOString() })
     .eq('id', input.questionId)
     .eq('owner_type', 'organization')
     .eq('organization_id', input.organizationId)
@@ -194,10 +196,17 @@ export async function deleteOrganizationQuestion(input: {
   if (error) return { success: false, error: error.message }
   if (!data) return { success: false, error: 'Question not found' }
 
+  // Detach from future job assessments
+  await supabaseAdmin
+    .from('recruitment_job_screening_items')
+    .delete()
+    .eq('question_id', input.questionId)
+    .eq('organization_id', input.organizationId)
+
   await writeRecruitmentAudit({
     actorUserId: input.actorUserId,
     organizationId: input.organizationId,
-    action: 'question_deleted',
+    action: 'question_archived',
     entityType: 'recruitment_questions',
     entityId: data.id,
   })

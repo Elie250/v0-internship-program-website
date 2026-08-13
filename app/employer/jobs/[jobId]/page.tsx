@@ -99,7 +99,7 @@ export default function EmployerJobDetailPage() {
             <Button variant="outline">Compare candidates</Button>
           </Link>
           <Link href={`/employer/jobs/${params.jobId}/screening`}>
-            <Button variant="outline">Screening configuration</Button>
+            <Button variant="outline">Technical assessment</Button>
           </Link>
         </div>
       </div>

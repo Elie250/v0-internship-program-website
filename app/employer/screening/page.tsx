@@ -30,10 +30,16 @@ export default function EmployerScreeningPage() {
       prompt: string
       owner_type: string
       discipline?: string | null
+      difficulty?: string | null
       question_type?: string
       section?: string | null
+      options?: Array<{ id: string; label: string }>
+      parameters?: Array<{ key: string; min: number; max: number; unit?: string }>
+      answer_spec?: Record<string, unknown>
+      answer_key?: string | null
     }>
   >([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   const [discipline, setDiscipline] = useState('')
   const [section, setSection] = useState('')
@@ -48,6 +54,7 @@ export default function EmployerScreeningPage() {
   const [acceptedAnswers, setAcceptedAnswers] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const isChoiceType = questionType === 'multiple_choice' || questionType === 'multiple_select'
   const isNumeric = questionType === 'numeric'
@@ -70,6 +77,7 @@ export default function EmployerScreeningPage() {
   }, [orgId])
 
   const resetForm = () => {
+    setEditingId(null)
     setPrompt('')
     setDiscipline('')
     setSection('')
@@ -87,14 +95,71 @@ export default function EmployerScreeningPage() {
     setAcceptedAnswers('')
   }
 
-  const createQuestion = async () => {
+  const beginEdit = (q: (typeof questions)[number]) => {
+    if (q.owner_type !== 'organization') return
     setError('')
     setMessage('')
+    setEditingId(q.id)
+    setPrompt(q.prompt ?? '')
+    setDiscipline(q.discipline ?? '')
+    setSection(q.section ?? '')
+    setDifficulty(q.difficulty || 'medium')
+    const type = q.question_type || 'multiple_choice'
+    setQuestionType(type)
 
-    if (!prompt.trim()) {
-      setError('Enter the question text.')
-      return
+    const opts = Array.isArray(q.options)
+      ? q.options.map((o) => ({ id: String(o.id), label: String(o.label ?? '') }))
+      : []
+    setChoices(opts.length >= 2 ? opts : EMPTY_CHOICES.map((c) => ({ ...c, id: newChoiceId() })))
+
+    const spec = (q.answer_spec ?? {}) as Record<string, unknown>
+    if (type === 'multiple_choice') {
+      setCorrectOptionId(String(spec.correctOptionId ?? q.answer_key ?? ''))
+      setCorrectOptionIds([])
+    } else if (type === 'multiple_select') {
+      setCorrectOptionIds(
+        Array.isArray(spec.correctOptionIds) ? spec.correctOptionIds.map(String) : []
+      )
+      setCorrectOptionId('')
+    } else if (type === 'numeric') {
+      setExpression(String(spec.expression ?? ''))
+      setTolerance(String(spec.tolerance ?? '0.5'))
+      setParameters(
+        Array.isArray(q.parameters)
+          ? q.parameters.map((p) => ({
+              key: String(p.key ?? ''),
+              min: String(p.min ?? ''),
+              max: String(p.max ?? ''),
+              unit: String(p.unit ?? ''),
+            }))
+          : []
+      )
+    } else if (type === 'short_text') {
+      const answers = Array.isArray(spec.acceptedAnswers)
+        ? spec.acceptedAnswers.map(String)
+        : q.answer_key
+          ? [String(q.answer_key)]
+          : []
+      setAcceptedAnswers(answers.join('\n'))
     }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const buildPayload = ():
+    | { error: string }
+    | {
+        prompt: string
+        discipline: string
+        section: string
+        difficulty: string
+        questionType: string
+        options: Array<{ id: string; label: string }>
+        parameters: Array<{ key: string; min: number; max: number; unit?: string }>
+        answerSpec: Record<string, unknown>
+        answerKey: string | null
+      } => {
+    if (!prompt.trim()) return { error: 'Enter the question text.' }
 
     let options: Array<{ id: string; label: string }> = []
     let parametersPayload: Array<{ key: string; min: number; max: number; unit?: string }> = []
@@ -105,23 +170,16 @@ export default function EmployerScreeningPage() {
       options = choices
         .map((c) => ({ id: c.id, label: c.label.trim() }))
         .filter((c) => c.label.length > 0)
-      if (options.length < 2) {
-        setError('Add at least two answer choices.')
-        return
-      }
+      if (options.length < 2) return { error: 'Add at least two answer choices.' }
       if (questionType === 'multiple_choice') {
         if (!correctOptionId || !options.some((o) => o.id === correctOptionId)) {
-          setError('Select the correct answer.')
-          return
+          return { error: 'Select the correct answer.' }
         }
         answerSpec = { correctOptionId }
         answerKey = correctOptionId
       } else {
         const selected = correctOptionIds.filter((id) => options.some((o) => o.id === id))
-        if (selected.length === 0) {
-          setError('Select at least one correct answer.')
-          return
-        }
+        if (selected.length === 0) return { error: 'Select at least one correct answer.' }
         answerSpec = { correctOptionIds: selected }
       }
     }
@@ -135,10 +193,7 @@ export default function EmployerScreeningPage() {
           unit: p.unit.trim() || undefined,
         }))
         .filter((p) => p.key)
-      if (!expression.trim()) {
-        setError('Enter the numeric formula (for example: V * I).')
-        return
-      }
+      if (!expression.trim()) return { error: 'Enter the numeric formula (for example: V * I).' }
       const tol = Number(tolerance)
       answerSpec = {
         expression: expression.trim(),
@@ -151,35 +206,70 @@ export default function EmployerScreeningPage() {
         .split(/[\n,]/)
         .map((s) => s.trim())
         .filter(Boolean)
-      if (answers.length === 0) {
-        setError('Add at least one accepted text answer.')
-        return
-      }
+      if (answers.length === 0) return { error: 'Add at least one accepted text answer.' }
       answerSpec = { acceptedAnswers: answers }
       answerKey = answers[0] ?? null
     }
 
-    const res = await fetch(`/api/recruitment/organizations/${orgId}/questions`, {
-      method: 'POST',
+    return {
+      prompt,
+      discipline,
+      section: section || discipline,
+      difficulty,
+      questionType,
+      options,
+      parameters: parametersPayload,
+      answerSpec,
+      answerKey,
+    }
+  }
+
+  const saveQuestion = async () => {
+    setError('')
+    setMessage('')
+    const payload = buildPayload()
+    if ('error' in payload) {
+      setError(payload.error)
+      return
+    }
+
+    setBusy(true)
+    const url = editingId
+      ? `/api/recruitment/organizations/${orgId}/questions/${editingId}`
+      : `/api/recruitment/organizations/${orgId}/questions`
+    const res = await fetch(url, {
+      method: editingId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({
-        prompt,
-        discipline,
-        section: section || discipline,
-        difficulty,
-        questionType,
-        options,
-        parameters: parametersPayload,
-        answerSpec,
-        answerKey,
-      }),
+      body: JSON.stringify(payload),
     })
     const data = await res.json()
-    if (!res.ok) setError(data.error || 'Could not create question')
+    setBusy(false)
+    if (!res.ok) setError(data.error || 'Could not save question')
     else {
       resetForm()
-      setMessage('Question saved to your company question bank.')
+      setMessage(editingId ? 'Question updated.' : 'Question saved to your company question bank.')
+      await load()
+    }
+  }
+
+  const deleteQuestion = async (questionId: string) => {
+    if (!window.confirm('Remove this question from the bank? It will be detached from future assessments.')) {
+      return
+    }
+    setError('')
+    setMessage('')
+    setBusy(true)
+    const res = await fetch(`/api/recruitment/organizations/${orgId}/questions/${questionId}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    })
+    const data = await res.json()
+    setBusy(false)
+    if (!res.ok) setError(data.error || 'Could not delete question')
+    else {
+      if (editingId === questionId) resetForm()
+      setMessage('Question removed from the bank.')
       await load()
     }
   }
@@ -202,14 +292,18 @@ export default function EmployerScreeningPage() {
     <EmployerShell>
       <h1 className="text-2xl font-semibold">Screening</h1>
       <p className="text-sm text-slate-600">
-        Configure job screening and manage company questions. Platform answer keys are never shown
-        here.
+        Step 1: build your question bank here. Step 2: open a job → Technical assessment → select
+        questions → <strong>Publish assessment</strong>. Inviting a candidate (application status
+        Screening) only works after that publish.
       </p>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-2">
-        <h2 className="font-semibold">Jobs</h2>
+        <h2 className="font-semibold">Publish per job</h2>
+        <p className="text-sm text-slate-600">
+          Creating questions does not publish them. Configure and publish for each role:
+        </p>
         {jobs.length === 0 ? (
           <p className="text-sm text-slate-600">No jobs yet. Create a job first.</p>
         ) : (
@@ -219,7 +313,7 @@ export default function EmployerScreeningPage() {
               href={`/employer/jobs/${job.id}/screening`}
               className="block text-sm text-[var(--brand-navy)] hover:underline"
             >
-              Configure screening · {job.title}
+              Configure &amp; publish assessment · {job.title}
             </Link>
           ))
         )}
@@ -227,9 +321,11 @@ export default function EmployerScreeningPage() {
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
         <div>
-          <h2 className="font-semibold">Question bank</h2>
+          <h2 className="font-semibold">{editingId ? 'Edit question' : 'Question bank'}</h2>
           <p className="text-sm text-slate-600 mt-1">
-            Add questions your candidates may see in technical screening. No JSON required.
+            {editingId
+              ? 'Update the question, then save. Platform questions cannot be edited.'
+              : 'Add questions your candidates may see. After saving, publish them on the job assessment page.'}
           </p>
         </div>
 
@@ -479,9 +575,20 @@ export default function EmployerScreeningPage() {
               </div>
             ) : null}
 
-            <Button onClick={() => void createQuestion()} className="bg-[var(--brand-navy)] text-white">
-              Add question
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={busy}
+                onClick={() => void saveQuestion()}
+                className="bg-[var(--brand-navy)] text-white"
+              >
+                {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add question'}
+              </Button>
+              {editingId ? (
+                <Button disabled={busy} type="button" variant="outline" onClick={() => resetForm()}>
+                  Cancel edit
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : (
           <p className="text-sm text-slate-600">
@@ -494,15 +601,41 @@ export default function EmployerScreeningPage() {
             <li className="text-slate-600">No questions in the bank yet.</li>
           ) : (
             questions.map((q) => (
-              <li key={q.id} className="rounded-xl border border-slate-200 p-3">
-                <span className="text-xs uppercase text-slate-500">
-                  {q.owner_type === 'platform' ? 'Platform' : 'Company'}
-                  {q.question_type ? ` · ${q.question_type.replace(/_/g, ' ')}` : ''}
-                </span>
-                <p className="mt-1">{q.prompt}</p>
-                {q.section || q.discipline ? (
-                  <p className="text-xs text-slate-500 mt-1">{q.section || q.discipline}</p>
-                ) : null}
+              <li key={q.id} className="rounded-xl border border-slate-200 p-3 space-y-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-xs uppercase text-slate-500">
+                      {q.owner_type === 'platform' ? 'Platform' : 'Company'}
+                      {q.question_type ? ` · ${q.question_type.replace(/_/g, ' ')}` : ''}
+                    </span>
+                    <p className="mt-1">{q.prompt}</p>
+                    {q.section || q.discipline ? (
+                      <p className="text-xs text-slate-500 mt-1">{q.section || q.discipline}</p>
+                    ) : null}
+                  </div>
+                  {canWriteScreening && q.owner_type === 'organization' ? (
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => beginEdit(q)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => void deleteQuestion(q.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               </li>
             ))
           )}

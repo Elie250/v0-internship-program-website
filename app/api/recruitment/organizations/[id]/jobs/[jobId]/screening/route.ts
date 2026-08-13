@@ -41,11 +41,32 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     const body = await request.json()
+    const publish = Boolean(body.publish) || body.status === 'published'
+    const unpublish = body.status === 'draft' && !publish
+
+    let attachedCount: number | null = null
+    let items: unknown[] | undefined
+
+    // Attach questions first so publish validation sees the latest selection
+    if (Array.isArray(body.questionIds)) {
+      const itemsResult = await setJobScreeningItems({
+        jobId,
+        organizationId,
+        actorUserId: access.user.id,
+        questionIds: body.questionIds.map(String),
+      })
+      if (itemsResult.error) {
+        return NextResponse.json({ error: itemsResult.error }, { status: 400 })
+      }
+      items = itemsResult.items
+      attachedCount = body.questionIds.length
+    }
+
     const configResult = await upsertJobScreeningConfig({
       jobId,
       organizationId,
       actorUserId: access.user.id,
-      enabled: Boolean(body.enabled),
+      enabled: unpublish ? false : Boolean(body.enabled) || publish,
       durationMinutes: body.durationMinutes != null ? Number(body.durationMinutes) : null,
       questionCount: body.questionCount != null ? Number(body.questionCount) : null,
       categories: Array.isArray(body.categories) ? body.categories.map(String) : [],
@@ -62,7 +83,7 @@ export async function PUT(
       perQuestionTimeSeconds:
         body.perQuestionTimeSeconds != null ? Number(body.perQuestionTimeSeconds) : null,
       integrityMonitoring: Boolean(body.integrityMonitoring),
-      status: body.status === 'published' || body.status === 'draft' ? body.status : undefined,
+      status: publish ? 'published' : unpublish ? 'draft' : undefined,
       sectionMinimums:
         body.sectionMinimums && typeof body.sectionMinimums === 'object'
           ? Object.fromEntries(
@@ -70,26 +91,18 @@ export async function PUT(
             )
           : undefined,
       maxAttempts: body.maxAttempts != null ? Number(body.maxAttempts) : null,
-      publish: Boolean(body.publish),
+      publish,
+      attachedQuestionCount: attachedCount,
     })
     if (configResult.error) {
       return NextResponse.json({ error: configResult.error }, { status: 400 })
     }
 
-    if (Array.isArray(body.questionIds)) {
-      const itemsResult = await setJobScreeningItems({
-        jobId,
-        organizationId,
-        actorUserId: access.user.id,
-        questionIds: body.questionIds.map(String),
-      })
-      if (itemsResult.error) {
-        return NextResponse.json({ error: itemsResult.error }, { status: 400 })
-      }
-      return NextResponse.json({ config: configResult.config, items: itemsResult.items })
+    if (!items) {
+      const listed = await listJobScreeningItems(jobId, organizationId)
+      items = listed.items
     }
 
-    const { items } = await listJobScreeningItems(jobId, organizationId)
     return NextResponse.json({ config: configResult.config, items })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
