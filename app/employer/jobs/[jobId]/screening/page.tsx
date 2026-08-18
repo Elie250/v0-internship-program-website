@@ -110,6 +110,11 @@ export default function JobScreeningPage() {
         mixOpen: String(mix.open),
         candidateInstructions: String(cfg.config.candidate_instructions ?? ''),
       }))
+      if (cfg.config.instructions_schema_missing) {
+        setError(
+          'Pre-instructions cannot be stored until you run scripts/84-recruitment-assessment-instructions.sql in Supabase SQL Editor.'
+        )
+      }
     }
     setSelected(
       ((cfg.items ?? []) as Array<{ question_id: string }>)

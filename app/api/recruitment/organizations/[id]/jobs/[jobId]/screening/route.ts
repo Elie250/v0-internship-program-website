@@ -91,7 +91,11 @@ export async function PUT(
       passingScore: body.passingScore != null ? Number(body.passingScore) : null,
       passingCriteria: body.passingCriteria != null ? String(body.passingCriteria) : null,
       candidateInstructions:
-        body.candidateInstructions != null ? String(body.candidateInstructions) : null,
+        body.candidateInstructions !== undefined
+          ? body.candidateInstructions != null
+            ? String(body.candidateInstructions)
+            : null
+          : undefined,
       attemptPolicy: body.attemptPolicy != null ? String(body.attemptPolicy) : undefined,
       questionSelection,
       randomized: body.randomized !== false,

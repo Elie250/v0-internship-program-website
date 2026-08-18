@@ -17,6 +17,13 @@ const CONFIG_SELECT =
 
 const OPTIONAL_CONFIG_COLUMNS = ['question_type_mix', 'candidate_instructions'] as const
 
+const INSTRUCTIONS_SCHEMA_ERROR =
+  'Pre-instructions did not save. In Supabase SQL Editor run scripts/84-recruitment-assessment-instructions.sql, then save again. That script adds the column and reloads the API schema.'
+
+function missingOptionalColumn(message: string, column: string) {
+  return new RegExp(column, 'i').test(message)
+}
+
 export function sanitizeCandidateInstructions(raw: unknown): string | null {
   const text = String(raw ?? '')
     .replace(/\r\n/g, '\n')
@@ -58,7 +65,7 @@ export async function getJobScreeningConfig(
   }
 
   // Pre-migration fallback if optional columns are missing
-  if (OPTIONAL_CONFIG_COLUMNS.some((col) => new RegExp(col, 'i').test(primary.error.message))) {
+  if (OPTIONAL_CONFIG_COLUMNS.some((col) => missingOptionalColumn(primary.error.message, col))) {
     let fallbackSelect = CONFIG_SELECT
     for (const col of OPTIONAL_CONFIG_COLUMNS) {
       if (new RegExp(col, 'i').test(primary.error.message)) {
@@ -74,11 +81,13 @@ export async function getJobScreeningConfig(
     if (fallback.error) return { config: null, error: fallback.error.message }
     if (!fallback.data) return { config: null }
     const row = fallback.data as unknown as Record<string, unknown>
+    const instructionsMissing = missingOptionalColumn(primary.error.message, 'candidate_instructions')
     return {
       config: {
         ...row,
         question_type_mix: normalizeQuestionTypeMix(row.question_type_mix ?? DEFAULT_QUESTION_TYPE_MIX),
         candidate_instructions: sanitizeCandidateInstructions(row.candidate_instructions),
+        instructions_schema_missing: instructionsMissing,
       },
     }
   }
@@ -220,14 +229,20 @@ export async function upsertJobScreeningConfig(input: {
 
   if (error) {
     const errMsg = error.message
-    if (OPTIONAL_CONFIG_COLUMNS.some((col) => new RegExp(col, 'i').test(errMsg))) {
+    if (missingOptionalColumn(errMsg, 'candidate_instructions') && payload.candidate_instructions) {
+      return { error: INSTRUCTIONS_SCHEMA_ERROR }
+    }
+    if (OPTIONAL_CONFIG_COLUMNS.some((col) => missingOptionalColumn(errMsg, col))) {
       const stripped = { ...payload }
       let retrySelect = CONFIG_SELECT
       for (const col of OPTIONAL_CONFIG_COLUMNS) {
-        if (new RegExp(col, 'i').test(errMsg)) {
+        if (missingOptionalColumn(errMsg, col)) {
           delete stripped[col]
           retrySelect = retrySelect.replace(`, ${col}`, '')
         }
+      }
+      if (stripped.candidate_instructions == null && payload.candidate_instructions) {
+        return { error: INSTRUCTIONS_SCHEMA_ERROR }
       }
       const retry = await supabaseAdmin
         .from('recruitment_screening_configs')
@@ -242,6 +257,9 @@ export async function upsertJobScreeningConfig(input: {
           } as typeof data)
         : null
       error = retry.error
+      if (!error && missingOptionalColumn(errMsg, 'candidate_instructions') && payload.candidate_instructions) {
+        return { error: INSTRUCTIONS_SCHEMA_ERROR }
+      }
     }
   }
 
