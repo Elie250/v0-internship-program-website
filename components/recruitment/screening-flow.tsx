@@ -69,14 +69,21 @@ function formatRemaining(ms: number) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+function formatDurationMinutes(minutes: number | null | undefined) {
+  const value = Number(minutes)
+  if (!Number.isFinite(value) || value <= 0) return null
+  const total = Math.round(value)
+  return `${total} minute${total === 1 ? '' : 's'}`
+}
+
 function formatPerQuestionTime(seconds: number | null | undefined) {
   const value = Number(seconds)
   if (!Number.isFinite(value) || value <= 0) return null
   const total = Math.round(value)
-  if (total < 60) return `${total} second${total === 1 ? '' : 's'}`
+  if (total < 60) return `${total} sec`
   const minutes = Math.floor(total / 60)
   const remainder = total % 60
-  if (remainder === 0) return `${minutes} minute${minutes === 1 ? '' : 's'}`
+  if (remainder === 0) return `${minutes} min`
   return `${minutes} min ${remainder} sec`
 }
 
@@ -364,7 +371,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
             </>
           ) : (
             <>
-              <div className="space-y-2 text-sm text-slate-600 leading-relaxed">
+              <div className="space-y-4 text-sm text-slate-700 leading-relaxed">
                 <p>You are about to start a timed technical assessment.</p>
                 {eligibility?.config?.candidateInstructions ? (
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
@@ -376,28 +383,33 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
                     </p>
                   </div>
                 ) : null}
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>
-                    Duration:{' '}
-                    {eligibility?.config?.durationMinutes
-                      ? `${eligibility.config.durationMinutes} minutes`
-                      : 'as configured'}
-                  </li>
-                  <li>
-                    For each question:{' '}
-                    {formatPerQuestionTime(eligibility?.config?.perQuestionTimeSeconds) ??
-                      'as configured'}
-                  </li>
-                  <li>
-                    Questions: {eligibility?.config?.questionCount ?? 'as configured'}
-                  </li>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-slate-900 shrink-0">Duration:</dt>
+                    <dd>{formatDurationMinutes(eligibility?.config?.durationMinutes) ?? 'Not set'}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-slate-900 shrink-0">For each question:</dt>
+                    <dd>
+                      {formatPerQuestionTime(eligibility?.config?.perQuestionTimeSeconds) ?? 'Not set'}
+                    </dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-slate-900 shrink-0">Questions:</dt>
+                    <dd>{eligibility?.config?.questionCount ?? 'Not set'}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="font-medium text-slate-900 shrink-0">Attempts used:</dt>
+                    <dd>
+                      {eligibility?.attemptsUsed ?? 0} / {eligibility?.maxAttempts ?? 1}
+                    </dd>
+                  </div>
+                </dl>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
                   <li>One question at a time. Answers are saved on the server.</li>
                   <li>Use a desktop computer when possible for the best experience.</li>
-                  <li>Attempts used: {eligibility?.attemptsUsed ?? 0} / {eligibility?.maxAttempts ?? 1}</li>
+                  <li>On-screen timers are for display only. The official clock is kept by the server.</li>
                 </ul>
-                <p className="text-xs text-slate-500">
-                  Browser timers are for display only. The official clock is kept by the server.
-                </p>
                 <p className="text-xs text-slate-500">
                   During the assessment we may record ordinary browser signals such as tab
                   visibility, focus changes, fullscreen changes, and copy/paste attempts. We do not
