@@ -7,6 +7,7 @@ import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
 import {
   allocateCountsFromMix,
@@ -36,6 +37,7 @@ export default function JobScreeningPage() {
     mixMultiple: '50',
     mixShort: '30',
     mixOpen: '20',
+    candidateInstructions: '',
   })
   const [questions, setQuestions] = useState<
     Array<{ id: string; prompt: string; owner_type: string; question_type?: string; section?: string }>
@@ -106,6 +108,7 @@ export default function JobScreeningPage() {
         mixMultiple: String(mix.multiple),
         mixShort: String(mix.short),
         mixOpen: String(mix.open),
+        candidateInstructions: String(cfg.config.candidate_instructions ?? ''),
       }))
     }
     setSelected(
@@ -159,6 +162,7 @@ export default function JobScreeningPage() {
         passingScore: Number(config.passingScore),
         sectionMinimums: parseSectionMinimums(),
         passingCriteria: config.passingCriteria,
+        candidateInstructions: config.candidateInstructions,
         attemptPolicy: config.attemptPolicy,
         questionSelection: config.questionSelection,
         randomized: config.randomized,
@@ -324,6 +328,19 @@ export default function JobScreeningPage() {
               onChange={(e) => setConfig((c) => ({ ...c, sectionMinimums: e.target.value }))}
               placeholder="Electrical:60, Embedded:60"
             />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="candidate-instructions">Pre-instructions for candidates</Label>
+            <Textarea
+              id="candidate-instructions"
+              value={config.candidateInstructions}
+              onChange={(e) => setConfig((c) => ({ ...c, candidateInstructions: e.target.value }))}
+              className="rounded-xl min-h-28"
+              placeholder="Shown before they start. e.g. Have a calculator ready. Answer in SI units. Do not use AI tools."
+            />
+            <p className="text-xs text-slate-500">
+              Optional. Candidates must acknowledge these instructions before the timer starts.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Attempt policy</Label>

@@ -90,6 +90,8 @@ export async function PUT(
           : undefined,
       passingScore: body.passingScore != null ? Number(body.passingScore) : null,
       passingCriteria: body.passingCriteria != null ? String(body.passingCriteria) : null,
+      candidateInstructions:
+        body.candidateInstructions != null ? String(body.candidateInstructions) : null,
       attemptPolicy: body.attemptPolicy != null ? String(body.attemptPolicy) : undefined,
       questionSelection,
       randomized: body.randomized !== false,

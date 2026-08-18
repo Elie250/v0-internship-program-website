@@ -26,6 +26,10 @@ export async function GET(
             questionCount: result.config.question_count,
             passingScore: result.config.passing_score,
             attemptPolicy: result.config.attempt_policy,
+            candidateInstructions:
+              typeof result.config.candidate_instructions === 'string'
+                ? result.config.candidate_instructions
+                : null,
           }
         : null,
       jobTitle: result.job?.title ?? null,

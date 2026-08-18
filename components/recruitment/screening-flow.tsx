@@ -19,6 +19,7 @@ type Eligibility = {
     durationMinutes: number | null
     questionCount: number | null
     passingScore: number | null
+    candidateInstructions?: string | null
   } | null
   jobTitle: string | null
   activeSessionId: string | null
@@ -353,6 +354,16 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
             <>
               <div className="space-y-2 text-sm text-slate-600 leading-relaxed">
                 <p>You are about to start a timed technical assessment.</p>
+                {eligibility?.config?.candidateInstructions ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Instructions from the employer
+                    </p>
+                    <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                      {eligibility.config.candidateInstructions}
+                    </p>
+                  </div>
+                ) : null}
                 <ul className="list-disc pl-5 space-y-1">
                   <li>
                     Duration:{' '}

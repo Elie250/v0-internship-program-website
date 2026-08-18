@@ -13,7 +13,17 @@ import {
 } from '@/lib/recruitment/question-type-mix'
 
 const CONFIG_SELECT =
-  'id, job_id, organization_id, enabled, duration_minutes, question_count, categories, difficulty_distribution, question_type_mix, passing_score, passing_criteria, attempt_policy, question_selection, randomized, dynamic_parameters, per_question_time_seconds, integrity_monitoring, status, published_at, section_minimums, max_attempts, created_at, updated_at'
+  'id, job_id, organization_id, enabled, duration_minutes, question_count, categories, difficulty_distribution, question_type_mix, passing_score, passing_criteria, candidate_instructions, attempt_policy, question_selection, randomized, dynamic_parameters, per_question_time_seconds, integrity_monitoring, status, published_at, section_minimums, max_attempts, created_at, updated_at'
+
+const OPTIONAL_CONFIG_COLUMNS = ['question_type_mix', 'candidate_instructions'] as const
+
+export function sanitizeCandidateInstructions(raw: unknown): string | null {
+  const text = String(raw ?? '')
+    .replace(/\r\n/g, '\n')
+    .trim()
+  if (!text) return null
+  return text.slice(0, 8000)
+}
 
 function isAttemptPolicy(value: string): value is RecruitmentAttemptPolicy {
   return value === 'single' || value === 'retry_once' || value === 'unlimited'
@@ -42,13 +52,19 @@ export async function getJobScreeningConfig(
       config: {
         ...row,
         question_type_mix: normalizeQuestionTypeMix(row.question_type_mix),
+        candidate_instructions: sanitizeCandidateInstructions(row.candidate_instructions),
       },
     }
   }
 
-  // Pre-migration fallback if question_type_mix column is missing
-  if (/question_type_mix/i.test(primary.error.message)) {
-    const fallbackSelect = CONFIG_SELECT.replace(', question_type_mix', '')
+  // Pre-migration fallback if optional columns are missing
+  if (OPTIONAL_CONFIG_COLUMNS.some((col) => new RegExp(col, 'i').test(primary.error.message))) {
+    let fallbackSelect = CONFIG_SELECT
+    for (const col of OPTIONAL_CONFIG_COLUMNS) {
+      if (new RegExp(col, 'i').test(primary.error.message)) {
+        fallbackSelect = fallbackSelect.replace(`, ${col}`, '')
+      }
+    }
     const fallback = await supabaseAdmin
       .from('recruitment_screening_configs')
       .select(fallbackSelect)
@@ -61,7 +77,8 @@ export async function getJobScreeningConfig(
     return {
       config: {
         ...row,
-        question_type_mix: { ...DEFAULT_QUESTION_TYPE_MIX },
+        question_type_mix: normalizeQuestionTypeMix(row.question_type_mix ?? DEFAULT_QUESTION_TYPE_MIX),
+        candidate_instructions: sanitizeCandidateInstructions(row.candidate_instructions),
       },
     }
   }
@@ -81,6 +98,7 @@ export async function upsertJobScreeningConfig(input: {
   questionTypeMix?: QuestionTypeMix | Record<string, number> | null
   passingScore?: number | null
   passingCriteria?: string | null
+  candidateInstructions?: string | null
   attemptPolicy?: string
   questionSelection?: string
   randomized?: boolean
@@ -161,6 +179,10 @@ export async function upsertJobScreeningConfig(input: {
     question_type_mix: typeMix,
     passing_score: input.passingScore ?? null,
     passing_criteria: input.passingCriteria?.trim() || null,
+    candidate_instructions:
+      input.candidateInstructions !== undefined
+        ? sanitizeCandidateInstructions(input.candidateInstructions)
+        : sanitizeCandidateInstructions(existing?.candidate_instructions),
     attempt_policy: attemptPolicy,
     question_selection: questionSelection,
     randomized: input.randomized !== false,
@@ -196,20 +218,31 @@ export async function upsertJobScreeningConfig(input: {
     .select(CONFIG_SELECT)
     .single()
 
-  if (error && /question_type_mix/i.test(error.message)) {
-    const { question_type_mix: _omit, ...withoutMix } = payload
-    const retry = await supabaseAdmin
-      .from('recruitment_screening_configs')
-      .upsert([withoutMix], { onConflict: 'job_id' })
-      .select(CONFIG_SELECT.replace(', question_type_mix', ''))
-      .single()
-    data = retry.data
-      ? ({
-          ...(retry.data as unknown as Record<string, unknown>),
-          question_type_mix: typeMix,
-        } as typeof data)
-      : null
-    error = retry.error
+  if (error) {
+    const errMsg = error.message
+    if (OPTIONAL_CONFIG_COLUMNS.some((col) => new RegExp(col, 'i').test(errMsg))) {
+      const stripped = { ...payload }
+      let retrySelect = CONFIG_SELECT
+      for (const col of OPTIONAL_CONFIG_COLUMNS) {
+        if (new RegExp(col, 'i').test(errMsg)) {
+          delete stripped[col]
+          retrySelect = retrySelect.replace(`, ${col}`, '')
+        }
+      }
+      const retry = await supabaseAdmin
+        .from('recruitment_screening_configs')
+        .upsert([stripped], { onConflict: 'job_id' })
+        .select(retrySelect)
+        .single()
+      data = retry.data
+        ? ({
+            ...(retry.data as unknown as Record<string, unknown>),
+            question_type_mix: typeMix,
+            candidate_instructions: payload.candidate_instructions ?? null,
+          } as typeof data)
+        : null
+      error = retry.error
+    }
   }
 
   if (error || !data) return { error: error?.message || 'Could not save screening config' }
@@ -228,6 +261,10 @@ export async function upsertJobScreeningConfig(input: {
       ...(data as Record<string, unknown>),
       question_type_mix: normalizeQuestionTypeMix(
         (data as { question_type_mix?: unknown }).question_type_mix ?? typeMix
+      ),
+      candidate_instructions: sanitizeCandidateInstructions(
+        (data as { candidate_instructions?: unknown }).candidate_instructions ??
+          payload.candidate_instructions
       ),
     },
   }

@@ -11,6 +11,7 @@ Run in Supabase SQL Editor **in order** (skip any already applied):
 | `81-academy-assessment-variants.sql` | STEM parameter variants per attempt |
 | `82-academy-assessment-fullscreen.sql` | Optional fullscreen request policy |
 | `83-recruitment-question-type-mix.sql` | Talent auto-select type mix (multiple / short / open %) |
+| `84-recruitment-assessment-instructions.sql` | Candidate pre-instructions before starting an assessment |
 
 **Rules (both products):** integrity is advisory — not a cheating verdict, does not auto-reject/void, and does not change scores.
 

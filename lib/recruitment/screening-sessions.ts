@@ -313,6 +313,7 @@ export async function startScreeningSession(input: {
     per_question_time_seconds: config.per_question_time_seconds,
     question_type_mix: (config as { question_type_mix?: unknown }).question_type_mix ?? null,
     question_selection: config.question_selection,
+    candidate_instructions: (config as { candidate_instructions?: unknown }).candidate_instructions ?? null,
   }
 
   const { data: session, error } = await supabaseAdmin
