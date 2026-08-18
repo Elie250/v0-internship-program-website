@@ -20,6 +20,7 @@ type Eligibility = {
     questionCount: number | null
     passingScore: number | null
     candidateInstructions?: string | null
+    perQuestionTimeSeconds?: number | null
   } | null
   jobTitle: string | null
   activeSessionId: string | null
@@ -66,6 +67,17 @@ function formatRemaining(ms: number) {
   const m = Math.floor(totalSec / 60)
   const s = totalSec % 60
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+function formatPerQuestionTime(seconds: number | null | undefined) {
+  const value = Number(seconds)
+  if (!Number.isFinite(value) || value <= 0) return null
+  const total = Math.round(value)
+  if (total < 60) return `${total} second${total === 1 ? '' : 's'}`
+  const minutes = Math.floor(total / 60)
+  const remainder = total % 60
+  if (remainder === 0) return `${minutes} minute${minutes === 1 ? '' : 's'}`
+  return `${minutes} min ${remainder} sec`
 }
 
 export function ScreeningFlow({ applicationId }: { applicationId: string }) {
@@ -370,6 +382,11 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
                     {eligibility?.config?.durationMinutes
                       ? `${eligibility.config.durationMinutes} minutes`
                       : 'as configured'}
+                  </li>
+                  <li>
+                    For each question:{' '}
+                    {formatPerQuestionTime(eligibility?.config?.perQuestionTimeSeconds) ??
+                      'as configured'}
                   </li>
                   <li>
                     Questions: {eligibility?.config?.questionCount ?? 'as configured'}

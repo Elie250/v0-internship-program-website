@@ -26,6 +26,10 @@ export async function GET(
             questionCount: result.config.question_count,
             passingScore: result.config.passing_score,
             attemptPolicy: result.config.attempt_policy,
+            perQuestionTimeSeconds:
+              result.config.per_question_time_seconds != null
+                ? Number(result.config.per_question_time_seconds)
+                : null,
             candidateInstructions:
               typeof result.config.candidate_instructions === 'string'
                 ? result.config.candidate_instructions
