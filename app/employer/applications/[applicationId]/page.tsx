@@ -40,6 +40,15 @@ export default function EmployerApplicationDetailPage() {
     }
     history?: Array<{ id: string; from_status: string | null; to_status: string; created_at: string }>
     notes?: Array<{ id: string; body: string; created_at: string }>
+    messages?: Array<{
+      id: string
+      message_type: string
+      subject: string
+      body: string
+      resource_links: Array<{ label: string; url: string }>
+      delivery_status: string
+      created_at: string
+    }>
   } | null>(null)
   const [interviews, setInterviews] = useState<
     Array<{
@@ -149,6 +158,17 @@ export default function EmployerApplicationDetailPage() {
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [emailType, setEmailType] = useState<'general' | 'request_documents' | 'instructions'>(
+    'instructions'
+  )
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState(
+    'Here is how to proceed:\n\n1. \n2. \n\nIf you have questions, reply to this email.'
+  )
+  const [emailLinks, setEmailLinks] = useState<Array<{ label: string; url: string }>>([
+    { label: '', url: '' },
+  ])
+  const [emailBusy, setEmailBusy] = useState(false)
 
   const loadAi = async () => {
     if (!orgId) return
@@ -292,6 +312,55 @@ export default function EmployerApplicationDetailPage() {
     else {
       setNote('')
       await load()
+    }
+  }
+
+  const applyEmailTemplate = (type: 'general' | 'request_documents' | 'instructions') => {
+    setEmailType(type)
+    if (type === 'request_documents') {
+      setEmailSubject('Action required: additional documents')
+      setEmailBody(
+        'Please send the following so we can continue reviewing your application:\n\n1. \n2. \n\nReply to this email with the files attached.'
+      )
+    } else if (type === 'instructions') {
+      setEmailSubject('Next steps for your application')
+      setEmailBody(
+        'Here is how to proceed:\n\n1. \n2. \n\nIf you have questions, reply to this email.'
+      )
+    } else {
+      setEmailSubject('')
+      setEmailBody('')
+    }
+  }
+
+  const sendCandidateEmail = async () => {
+    setError('')
+    setMessage('')
+    setEmailBusy(true)
+    try {
+      const res = await fetch(
+        `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}/messages`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            messageType: emailType,
+            subject: emailSubject,
+            body: emailBody,
+            resourceLinks: emailLinks.filter((item) => item.url.trim()),
+          }),
+        }
+      )
+      const body = await res.json()
+      if (!res.ok) setError(body.error || 'Could not send email')
+      else {
+        setMessage('Email sent to the candidate.')
+        setEmailLinks([{ label: '', url: '' }])
+        await load()
+      }
+    } finally {
+      setEmailBusy(false)
     }
   }
 
@@ -1085,6 +1154,129 @@ export default function EmployerApplicationDetailPage() {
             </Button>
           </div>
         ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+        <h2 className="font-semibold">Email the candidate</h2>
+        <p className="text-xs text-slate-500">
+          Sends a customized email for extra documents, next-step instructions, or a general update.
+          The candidate can also see it on their talent dashboard. This is separate from internal HR
+          notes.
+        </p>
+        {canInterview ? (
+          <>
+            <label className="text-sm space-y-1 block">
+              <span>Purpose</span>
+              <select
+                value={emailType}
+                onChange={(e) =>
+                  applyEmailTemplate(
+                    e.target.value as 'general' | 'request_documents' | 'instructions'
+                  )
+                }
+                className="h-10 w-full rounded-xl border px-3"
+              >
+                <option value="instructions">How to proceed</option>
+                <option value="request_documents">Request more documents</option>
+                <option value="general">General message</option>
+              </select>
+            </label>
+            <label className="text-sm space-y-1 block">
+              <span>Subject</span>
+              <Input
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Optional — a default subject is used if empty"
+                className="h-11 rounded-xl"
+              />
+            </label>
+            <Textarea
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="Write the message the candidate will receive"
+              className="rounded-xl min-h-32"
+            />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Document or resource links (optional)</p>
+              <p className="text-xs text-slate-500">
+                Public https links to forms, packs, or instructions. Do not paste private signed URLs
+                that expire immediately.
+              </p>
+              {emailLinks.map((link, index) => (
+                <div key={index} className="grid sm:grid-cols-2 gap-2">
+                  <Input
+                    value={link.label}
+                    onChange={(e) =>
+                      setEmailLinks((current) =>
+                        current.map((item, i) =>
+                          i === index ? { ...item, label: e.target.value } : item
+                        )
+                      )
+                    }
+                    placeholder="Label (e.g. Offer pack)"
+                    className="h-10 rounded-xl"
+                  />
+                  <Input
+                    value={link.url}
+                    onChange={(e) =>
+                      setEmailLinks((current) =>
+                        current.map((item, i) =>
+                          i === index ? { ...item, url: e.target.value } : item
+                        )
+                      )
+                    }
+                    placeholder="https://…"
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setEmailLinks((current) => [...current, { label: '', url: '' }])}
+              >
+                Add another link
+              </Button>
+            </div>
+            <Button
+              onClick={() => void sendCandidateEmail()}
+              className="bg-[var(--brand-navy)] text-white"
+              disabled={emailBusy || !emailBody.trim()}
+            >
+              {emailBusy ? 'Sending…' : 'Send email to candidate'}
+            </Button>
+          </>
+        ) : (
+          <p className="text-sm text-slate-600">You can review messages sent by the hiring team.</p>
+        )}
+        <div className="space-y-2 pt-2">
+          {(data?.messages ?? []).length === 0 ? (
+            <p className="text-sm text-slate-600">No emails sent to this candidate yet.</p>
+          ) : (
+            (data?.messages ?? []).map((item) => (
+              <div key={item.id} className="rounded-xl bg-slate-50 p-3 text-sm space-y-1">
+                <p className="font-medium text-slate-900">{item.subject}</p>
+                <p className="text-xs text-slate-500">
+                  {item.message_type.replace(/_/g, ' ')} · {item.delivery_status} ·{' '}
+                  {new Date(item.created_at).toLocaleString()}
+                </p>
+                <p className="whitespace-pre-wrap text-slate-700">{item.body}</p>
+                {item.resource_links?.length ? (
+                  <ul className="list-disc pl-5 text-slate-700">
+                    {item.resource_links.map((link) => (
+                      <li key={link.url}>
+                        <a href={link.url} className="text-[var(--brand-navy)] hover:underline" target="_blank" rel="noreferrer">
+                          {link.label || link.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">

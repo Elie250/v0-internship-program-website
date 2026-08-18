@@ -39,6 +39,16 @@ type Interview = {
   candidateInstructions: string | null
 }
 
+type EmployerMessage = {
+  id: string
+  application_id: string
+  message_type: string
+  subject: string
+  body: string
+  resource_links: Array<{ label: string; url: string }>
+  created_at: string
+}
+
 type MeResponse = {
   user: { email: string; firstName?: string; lastName?: string }
   profileCompletion: { percent: number; missing: string[] }
@@ -69,6 +79,7 @@ export default function CandidateDashboardPage() {
   const [error, setError] = useState('')
   const [me, setMe] = useState<MeResponse | null>(null)
   const [interviews, setInterviews] = useState<Interview[]>([])
+  const [employerMessages, setEmployerMessages] = useState<EmployerMessage[]>([])
 
   const load = async () => {
     setError('')
@@ -106,6 +117,13 @@ export default function CandidateDashboardPage() {
     if (interviewRes.ok) {
       const body = await interviewRes.json()
       setInterviews(body.interviews ?? [])
+    }
+    const messagesRes = await fetch('/api/recruitment/candidate/messages', {
+      credentials: 'same-origin',
+    })
+    if (messagesRes.ok) {
+      const body = await messagesRes.json()
+      setEmployerMessages(body.messages ?? [])
     }
     setLoading(false)
   }
@@ -329,6 +347,40 @@ export default function CandidateDashboardPage() {
                         </Button>
                       ) : null}
                     </div>
+                    {employerMessages.filter((item) => item.application_id === app.id).length > 0 ? (
+                      <div className="space-y-2 border-t border-slate-100 pt-3">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Messages from the employer
+                        </p>
+                        {employerMessages
+                          .filter((item) => item.application_id === app.id)
+                          .map((item) => (
+                            <div key={item.id} className="rounded-lg bg-slate-50 p-3 text-sm space-y-1">
+                              <p className="font-medium text-slate-900">{item.subject}</p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(item.created_at).toLocaleString()}
+                              </p>
+                              <p className="whitespace-pre-wrap text-slate-700">{item.body}</p>
+                              {item.resource_links?.length ? (
+                                <ul className="list-disc pl-5">
+                                  {item.resource_links.map((link) => (
+                                    <li key={link.url}>
+                                      <a
+                                        href={link.url}
+                                        className="text-[var(--brand-navy)] hover:underline"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        {link.label || link.url}
+                                      </a>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                            </div>
+                          ))}
+                      </div>
+                    ) : null}
                   </div>
                 )
               })}

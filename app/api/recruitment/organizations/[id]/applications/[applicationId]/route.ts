@@ -8,6 +8,7 @@ import {
   updateOrganizationApplicationStatus,
 } from '@/lib/recruitment/employer-applications'
 import { listApplicationNotes } from '@/lib/recruitment/application-notes'
+import { listApplicationMessages } from '@/lib/recruitment/application-messages'
 import { assertCanAccessApplication } from '@/lib/recruitment/job-assignments'
 
 export async function GET(
@@ -18,14 +19,15 @@ export async function GET(
     const { id: organizationId, applicationId } = await context.params
     const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
     await assertCanAccessApplication({ access, organizationId, applicationId })
-    const [{ application, error }, { history }, { notes }] = await Promise.all([
+    const [{ application, error }, { history }, { notes }, { messages }] = await Promise.all([
       getOrganizationApplication(applicationId, organizationId),
       listApplicationStatusHistory(applicationId, organizationId),
       listApplicationNotes(applicationId, organizationId),
+      listApplicationMessages(applicationId, organizationId),
     ])
     if (error) return NextResponse.json({ error }, { status: 500 })
     if (!application) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ application, history, notes })
+    return NextResponse.json({ application, history, notes, messages: messages ?? [] })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     const status = message === 'Unauthorized' ? 401 : 403

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { listPublicJobs, listPublicJobFilterOptions } from '@/lib/recruitment/jobs'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -22,13 +24,16 @@ export async function GET(request: Request) {
 
     if (error) return NextResponse.json({ error }, { status: 500 })
 
-    return NextResponse.json({
-      jobs,
-      total,
-      page: currentPage,
-      pageSize: size,
-      filters,
-    })
+    return NextResponse.json(
+      {
+        jobs,
+        total,
+        page: currentPage,
+        pageSize: size,
+        filters,
+      },
+      { headers: { 'Cache-Control': 'no-store, must-revalidate' } }
+    )
   } catch {
     return NextResponse.json({ error: 'Failed to load jobs' }, { status: 500 })
   }

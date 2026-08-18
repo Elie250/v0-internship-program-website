@@ -5,6 +5,9 @@ import { notFound } from 'next/navigation'
 import { TalentShell } from '@/components/recruitment/talent-ui'
 import { Button } from '@/components/ui/button'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const { organization } = await getOrganizationBySlug(slug)

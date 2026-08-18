@@ -7,6 +7,17 @@ import {
   updateOrganizationJob,
 } from '@/lib/recruitment/jobs'
 import { resolveScopedJobIds } from '@/lib/recruitment/job-assignments'
+import { serializeApplicationDeadlineInput } from '@/lib/recruitment/job-deadline'
+
+function optionalNullableString(
+  body: Record<string, unknown>,
+  key: string
+): string | null | undefined {
+  if (!(key in body)) return undefined
+  const value = body[key]
+  if (value == null || String(value).trim() === '') return null
+  return String(value)
+}
 
 function jobFieldsFromBody(body: Record<string, unknown>) {
   return {
@@ -28,8 +39,13 @@ function jobFieldsFromBody(body: Record<string, unknown>) {
     salaryVisible: body.salaryVisible != null ? Boolean(body.salaryVisible) : undefined,
     visibility: body.visibility != null ? String(body.visibility) : undefined,
     status: body.status as never,
-    applicationDeadline:
-      body.applicationDeadline != null ? String(body.applicationDeadline) : undefined,
+    // null must be preserved so clearing the deadline writes NULL instead of skipping the column
+    applicationDeadline: (() => {
+      const raw = optionalNullableString(body, 'applicationDeadline')
+      if (raw === undefined) return undefined
+      if (raw === null) return null
+      return serializeApplicationDeadlineInput(raw)
+    })(),
   }
 }
 

@@ -1,5 +1,7 @@
+import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
+import { getOrganizationById } from '@/lib/recruitment/organizations'
 import { parsePositiveInt, sanitizeRecruitmentSearchTerm } from '@/lib/recruitment/query-utils'
 import {
   isRecruitmentEmploymentType,
@@ -15,10 +17,22 @@ import {
 
 export {
   applicationClosedReason,
+  formatApplicationDeadlineLabel,
   isJobAcceptingApplications,
   serializeApplicationDeadlineInput,
   toDatetimeLocalValue,
 } from '@/lib/recruitment/job-deadline'
+
+async function revalidatePublicJobPages(organizationId: string, jobSlug: string) {
+  const { organization } = await getOrganizationById(organizationId)
+  revalidatePath('/jobs')
+  revalidatePath('/api/recruitment/public/jobs')
+  if (!organization?.slug) return
+  revalidatePath(`/o/${organization.slug}`)
+  revalidatePath(`/o/${organization.slug}/jobs/${jobSlug}`)
+  revalidatePath(`/o/${organization.slug}/jobs/${jobSlug}/apply`)
+  revalidatePath(`/api/recruitment/public/jobs/${organization.slug}/${jobSlug}`)
+}
 
 const JOB_SELECT =
   'id, organization_id, title, slug, description, responsibilities, requirements, qualifications, location, employment_type, work_mode, category, department, skills, salary_min, salary_max, salary_currency, salary_visible, visibility, status, published_at, application_deadline, created_at, updated_at'
@@ -344,6 +358,7 @@ export async function createOrganizationJob(input: {
     metadata: { title, slug, status },
   })
 
+  await revalidatePublicJobPages(input.organizationId, slug)
   return { job: data as RecruitmentJob }
 }
 
@@ -461,5 +476,6 @@ export async function updateOrganizationJob(input: {
     metadata: { status: data.status, slug: data.slug },
   })
 
+  await revalidatePublicJobPages(input.organizationId, data.slug)
   return { job: data as RecruitmentJob }
 }

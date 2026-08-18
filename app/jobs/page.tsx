@@ -10,6 +10,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { COMPANY } from '@/lib/company/constants'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export const metadata = {
   title: `Careers — ${COMPANY.brandName}`,
   description: `Find engineering and professional roles from employers on ${COMPANY.brandName}.`,

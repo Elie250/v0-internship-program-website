@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
+import { formatApplicationDeadlineLabel } from '@/lib/recruitment/job-deadline'
 import { formatEmploymentType } from '@/lib/recruitment/types'
 
 type Job = {
@@ -56,9 +57,7 @@ export default function EmployerJobsPage() {
                 {[job.location, job.employment_type ? formatEmploymentType(job.employment_type as never) : null]
                   .filter(Boolean)
                   .join(' · ')}
-                {job.application_deadline
-                  ? ` · Apply by ${new Date(job.application_deadline).toLocaleDateString()}`
-                  : ''}
+                {` · ${formatApplicationDeadlineLabel(job.application_deadline)}`}
               </p>
             </Link>
           ))

@@ -2,6 +2,9 @@ import { notFound } from 'next/navigation'
 import { getPublishedJobRecordBySlugs, isJobAcceptingApplications } from '@/lib/recruitment/jobs'
 import { ApplyFlow } from '@/components/recruitment/apply-flow'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ApplyPage({
   params,
 }: {

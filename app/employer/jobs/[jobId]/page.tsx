@@ -107,6 +107,7 @@ export default function EmployerJobDetailPage() {
       {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
       {job && orgId && canWriteJobs ? (
         <JobEditor
+          key={`${params.jobId}-${deadline}`}
           organizationId={orgId}
           jobId={params.jobId}
           initial={{

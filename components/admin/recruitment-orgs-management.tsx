@@ -8,6 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { adminStatusClass } from '@/components/admin/admin-section-header'
+import {
+  formatApplicationDeadlineLabel,
+  serializeApplicationDeadlineInput,
+  toDatetimeLocalValue,
+} from '@/lib/recruitment/job-deadline'
 
 type Org = {
   id: string
@@ -31,6 +36,7 @@ type Job = {
   slug: string
   status: string
   location: string | null
+  application_deadline: string | null
 }
 
 type OrgRequest = {
@@ -64,6 +70,8 @@ export default function RecruitmentOrgsManagement() {
   const [jobTitle, setJobTitle] = useState('')
   const [jobSlug, setJobSlug] = useState('')
   const [jobLocation, setJobLocation] = useState('Kigali, Rwanda')
+  const [jobDeadline, setJobDeadline] = useState('')
+  const [jobDeadlineDrafts, setJobDeadlineDrafts] = useState<Record<string, string>>({})
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({})
 
   const load = useCallback(async () => {
@@ -183,7 +191,15 @@ export default function RecruitmentOrgsManagement() {
     const jobsData = await jobsRes.json()
     if (membersRes.ok) setMembers(membersData.members ?? [])
     else setError(membersData.error || 'Failed to load members')
-    if (jobsRes.ok) setJobs(jobsData.jobs ?? [])
+    if (jobsRes.ok) {
+      const loaded = (jobsData.jobs ?? []) as Job[]
+      setJobs(loaded)
+      setJobDeadlineDrafts(
+        Object.fromEntries(
+          loaded.map((job) => [job.id, toDatetimeLocalValue(job.application_deadline)])
+        )
+      )
+    }
   }
 
   const createJob = async () => {
@@ -200,12 +216,14 @@ export default function RecruitmentOrgsManagement() {
           slug: jobSlug || undefined,
           location: jobLocation,
           status: 'published',
+          applicationDeadline: serializeApplicationDeadlineInput(jobDeadline),
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Create job failed')
       setJobTitle('')
       setJobSlug('')
+      setJobDeadline('')
       setNotice(`Published job ${data.job.title}`)
       await loadMembers(selectedId)
     } catch (err) {
@@ -229,6 +247,28 @@ export default function RecruitmentOrgsManagement() {
       await loadMembers(selectedId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Update failed')
+    }
+  }
+
+  const saveJobDeadline = async (jobId: string) => {
+    if (!selectedId) return
+    setError('')
+    try {
+      const res = await fetch(`/api/recruitment/organizations/${selectedId}/jobs`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          applicationDeadline: serializeApplicationDeadlineInput(jobDeadlineDrafts[jobId] ?? ''),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not save deadline')
+      setNotice('Application deadline saved. Public job pages now read this field.')
+      await loadMembers(selectedId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save deadline')
     }
   }
 
@@ -498,19 +538,42 @@ export default function RecruitmentOrgsManagement() {
                       ) : (
                         <ul className="text-sm space-y-2">
                           {jobs.map((job) => (
-                            <li key={job.id} className="flex flex-wrap items-center justify-between gap-2">
-                              <span>
-                                {job.title} · /o/{org.slug}/jobs/{job.slug} · {job.status}
-                              </span>
-                              {job.status === 'published' ? (
-                                <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'closed')}>
-                                  Close
+                            <li key={job.id} className="space-y-2 rounded-lg border border-slate-200 p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span>
+                                  {job.title} · /o/{org.slug}/jobs/{job.slug} · {job.status}
+                                </span>
+                                {job.status === 'published' ? (
+                                  <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'closed')}>
+                                    Close
+                                  </Button>
+                                ) : job.status !== 'archived' ? (
+                                  <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'published')}>
+                                    Publish
+                                  </Button>
+                                ) : null}
+                              </div>
+                              <p className="text-xs text-slate-600">
+                                Public listing: {formatApplicationDeadlineLabel(job.application_deadline)}
+                              </p>
+                              <div className="flex flex-wrap items-end gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Application deadline</Label>
+                                  <Input
+                                    type="datetime-local"
+                                    value={jobDeadlineDrafts[job.id] ?? ''}
+                                    onChange={(e) =>
+                                      setJobDeadlineDrafts((current) => ({
+                                        ...current,
+                                        [job.id]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <Button size="sm" variant="outline" onClick={() => void saveJobDeadline(job.id)}>
+                                  Save deadline
                                 </Button>
-                              ) : job.status !== 'archived' ? (
-                                <Button size="sm" variant="outline" onClick={() => void setJobStatus(job.id, 'published')}>
-                                  Publish
-                                </Button>
-                              ) : null}
+                              </div>
                             </li>
                           ))}
                         </ul>
@@ -532,6 +595,14 @@ export default function RecruitmentOrgsManagement() {
                         value={jobLocation}
                         onChange={(e) => setJobLocation(e.target.value)}
                       />
+                      <div className="space-y-1">
+                        <Label className="text-xs">Application deadline (optional)</Label>
+                        <Input
+                          type="datetime-local"
+                          value={jobDeadline}
+                          onChange={(e) => setJobDeadline(e.target.value)}
+                        />
+                      </div>
                       <Button size="sm" onClick={() => void createJob()} disabled={!jobTitle.trim()}>
                         Publish job
                       </Button>

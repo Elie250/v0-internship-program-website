@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { COMPANY } from '@/lib/company/constants'
 import { RecruitmentAccountNav } from '@/components/recruitment/account-menu'
+import { formatApplicationDeadlineLabel } from '@/lib/recruitment/job-deadline'
 import {
   formatEmploymentType,
   formatWorkMode,
@@ -160,18 +161,6 @@ export function MetaChip({ children }: { children: React.ReactNode }) {
   )
 }
 
-function formatDeadline(deadline: string | null | undefined): string {
-  if (!deadline) return 'Open — no deadline'
-  const date = new Date(deadline)
-  if (Number.isNaN(date.getTime())) return 'Open — no deadline'
-  const label = date.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-  return date.getTime() < Date.now() ? `Closed ${label}` : `Apply by ${label}`
-}
-
 export function JobCard({ job }: { job: RecruitmentJobWithOrganization }) {
   const org = job.organization
   const href = jobPublicPath(job)
@@ -212,7 +201,7 @@ export function JobCard({ job }: { job: RecruitmentJobWithOrganization }) {
           {job.location ? <MetaChip>{job.location}</MetaChip> : null}
           {job.employment_type ? <MetaChip>{formatEmploymentType(job.employment_type)}</MetaChip> : null}
           {job.work_mode ? <MetaChip>{formatWorkMode(job.work_mode)}</MetaChip> : null}
-          <MetaChip>{formatDeadline(job.application_deadline)}</MetaChip>
+          <MetaChip>{formatApplicationDeadlineLabel(job.application_deadline)}</MetaChip>
         </div>
 
         {job.description ? (

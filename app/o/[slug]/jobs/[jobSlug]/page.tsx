@@ -1,10 +1,18 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getPublicJobBySlugs, isJobAcceptingApplications, applicationClosedReason } from '@/lib/recruitment/jobs'
+import {
+  applicationClosedReason,
+  formatApplicationDeadlineLabel,
+  getPublicJobBySlugs,
+  isJobAcceptingApplications,
+} from '@/lib/recruitment/jobs'
 import { formatEmploymentType, formatWorkMode } from '@/lib/recruitment/types'
 import { MetaChip, TalentShell } from '@/components/recruitment/talent-ui'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function generateMetadata({
   params,
@@ -102,14 +110,9 @@ export default async function PublicJobDetailPage({
                     </Badge>
                   ) : null}
                 </div>
-                {job.application_deadline ? (
-                  <p className="text-sm text-slate-600">
-                    Apply by{' '}
-                    <span className="font-medium text-slate-800">
-                      {new Date(job.application_deadline).toLocaleDateString()}
-                    </span>
-                  </p>
-                ) : null}
+                <p className="text-sm text-slate-600">
+                  {formatApplicationDeadlineLabel(job.application_deadline)}
+                </p>
               </div>
             </div>
 

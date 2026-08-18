@@ -68,3 +68,16 @@ export function applicationClosedReason(job: {
   if (Number.isNaN(deadlineMs) || deadlineMs < Date.now()) return 'deadline_passed'
   return null
 }
+
+/** Public listing label from the stored `application_deadline` column (not description text). */
+export function formatApplicationDeadlineLabel(deadline: string | null | undefined): string {
+  if (!deadline) return 'Open — no deadline'
+  const date = new Date(deadline)
+  if (Number.isNaN(date.getTime())) return 'Open — no deadline'
+  const label = date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+  return date.getTime() < Date.now() ? `Closed ${label}` : `Apply by ${label}`
+}

@@ -307,3 +307,87 @@ export async function sendApplicationStatusChangedEmail(input: {
     }),
   })
 }
+
+export type CandidateMessageType = 'general' | 'request_documents' | 'instructions'
+
+export type CandidateMessageLink = { label: string; url: string }
+
+export function defaultCandidateMessageSubject(
+  type: CandidateMessageType,
+  jobTitle: string,
+  organizationName: string
+): string {
+  if (type === 'request_documents') {
+    return `Action required: additional documents — ${jobTitle}`
+  }
+  if (type === 'instructions') {
+    return `Next steps for your application — ${jobTitle}`
+  }
+  return `Message from ${organizationName} — ${jobTitle}`
+}
+
+export async function sendEmployerCandidateMessageEmail(input: {
+  candidateEmail: string
+  candidateName?: string | null
+  jobTitle: string
+  organizationName: string
+  subject: string
+  body: string
+  messageType: CandidateMessageType
+  resourceLinks?: CandidateMessageLink[]
+  replyTo?: string | null
+}): Promise<{ success: boolean; error?: unknown }> {
+  const name = input.candidateName?.trim() || 'there'
+  const dashboardUrl = candidateSignInUrl('/app')
+  const links = (input.resourceLinks ?? []).filter((item) => item.url)
+  const linksHtml =
+    links.length > 0
+      ? `<p><strong>Documents and links</strong></p>
+         <ul>
+           ${links
+             .map(
+               (item) =>
+                 `<li><a href="${escapeHtml(item.url)}">${escapeHtml(item.label || item.url)}</a></li>`
+             )
+             .join('')}
+         </ul>`
+      : ''
+  const typeNote =
+    input.messageType === 'request_documents'
+      ? '<p>Please reply to this email with the requested documents, or sign in to your talent dashboard if the employer asked you to upload them there.</p>'
+      : input.messageType === 'instructions'
+        ? '<p>Please follow the instructions above. Sign in to your talent dashboard if a next step is waiting there.</p>'
+        : ''
+
+  const title =
+    input.messageType === 'request_documents'
+      ? 'Additional documents requested'
+      : input.messageType === 'instructions'
+        ? 'How to proceed'
+        : 'Message from the hiring team'
+
+  return sendEmail({
+    to: input.candidateEmail,
+    subject: input.subject,
+    replyTo: input.replyTo?.trim() || undefined,
+    html: emailLayout({
+      title,
+      subtitle: `${COMPANY.brandName} Talent · ${escapeHtml(input.organizationName)}`,
+      headerTone: input.messageType === 'request_documents' ? 'warning' : 'primary',
+      bodyHtml: `
+        <p>Dear ${escapeHtml(name)},</p>
+        <p><strong>${escapeHtml(input.organizationName)}</strong> sent this message about your application for <strong>${escapeHtml(input.jobTitle)}</strong>.</p>
+        <div style="white-space:pre-wrap;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:16px 0;color:#0f172a">${escapeHtml(input.body)}</div>
+        ${linksHtml}
+        ${typeNote}
+        ${ctaButton(dashboardUrl, 'Open your talent dashboard')}
+        <p style="font-size:13px;color:#64748b;margin-top:8px">
+          If prompted, Continue with Email using this address. You can reply to this email to reach the hiring team.
+        </p>
+        <p style="font-size:12px;color:#94a3b8;margin-top:24px">
+          This message was sent by ${escapeHtml(COMPANY.brandName)} Talent on behalf of ${escapeHtml(input.organizationName)}.
+        </p>
+      `,
+    }),
+  })
+}
