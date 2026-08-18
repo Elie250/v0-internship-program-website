@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
-import { serializeApplicationDeadlineInput } from '@/lib/recruitment/job-deadline'
+import {
+  formatApplicationDeadlineLabel,
+  serializeApplicationDeadlineInput,
+} from '@/lib/recruitment/job-deadline'
 
 export type JobFormValues = {
   title: string
@@ -61,13 +64,23 @@ export function JobEditor({
   initial?: Partial<JobFormValues>
 }) {
   const router = useRouter()
-  const [form, setForm] = useState<JobFormValues>({ ...EMPTY, ...initial })
+  const [form, setForm] = useState<JobFormValues>(() => {
+    const merged = { ...EMPTY, ...initial }
+    merged.applicationDeadline = (merged.applicationDeadline || '').slice(0, 10)
+    return merged
+  })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [savedLabel, setSavedLabel] = useState('')
+
+  const deadlinePreview = formatApplicationDeadlineLabel(
+    serializeApplicationDeadlineInput(form.applicationDeadline)
+  )
 
   const save = async () => {
     setBusy(true)
     setError('')
+    setSavedLabel('')
     try {
       const payload = {
         jobId,
@@ -98,6 +111,10 @@ export function JobEditor({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Save failed')
+      const storedDeadline = data.job?.application_deadline as string | null | undefined
+      setSavedLabel(
+        `Saved. The job board will show: ${formatApplicationDeadlineLabel(storedDeadline ?? payload.applicationDeadline)}`
+      )
       router.push(jobId ? `/employer/jobs/${data.job.id}` : `/employer/jobs/${data.job.id}`)
       router.refresh()
     } catch (err) {
@@ -114,6 +131,7 @@ export function JobEditor({
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4">
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
+      {savedLabel ? <StatusBanner tone="success">{savedLabel}</StatusBanner> : null}
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2 sm:col-span-2">
           <Label>Job title</Label>
@@ -157,17 +175,18 @@ export function JobEditor({
           <Label>Discipline / category</Label>
           <Input value={form.category} onChange={(e) => set('category', e.target.value)} className="h-11 rounded-xl" />
         </div>
-        <div className="space-y-2">
-          <Label>Application deadline</Label>
+        <div className="space-y-2 sm:col-span-2">
+          <Label>Application deadline (job board date)</Label>
           <Input
-            type="datetime-local"
-            value={form.applicationDeadline}
+            type="date"
+            value={form.applicationDeadline.slice(0, 10)}
             onChange={(e) => set('applicationDeadline', e.target.value)}
-            className="h-11 rounded-xl"
+            className="h-11 rounded-xl max-w-xs"
           />
+          <p className="text-sm font-medium text-slate-800">{deadlinePreview}</p>
           <p className="text-xs text-slate-500">
-            Optional. Leave empty for no deadline. If you pick a date at 00:00, applications stay open
-            until the end of that day.
+            This is the date candidates see next to the role. Leave empty for no deadline. Saving the
+            job title or description does not change this date unless you change this field.
           </p>
         </div>
       </div>

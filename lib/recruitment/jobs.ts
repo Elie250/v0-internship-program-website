@@ -20,6 +20,7 @@ export {
   formatApplicationDeadlineLabel,
   isJobAcceptingApplications,
   serializeApplicationDeadlineInput,
+  toDateInputValue,
   toDatetimeLocalValue,
 } from '@/lib/recruitment/job-deadline'
 

@@ -7,7 +7,7 @@ import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer
 import { JobEditor } from '@/components/recruitment/job-editor'
 import { Button } from '@/components/ui/button'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
-import { toDatetimeLocalValue } from '@/lib/recruitment/job-deadline'
+import { toDateInputValue } from '@/lib/recruitment/job-deadline'
 
 type Member = { user_id: string; role: string; user?: { email?: string; first_name?: string } | null }
 
@@ -86,7 +86,7 @@ export default function EmployerJobDetailPage() {
     else await load()
   }
 
-  const deadline = toDatetimeLocalValue(
+  const deadline = toDateInputValue(
     job?.application_deadline != null ? String(job.application_deadline) : null
   )
 
@@ -107,7 +107,7 @@ export default function EmployerJobDetailPage() {
       {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
       {job && orgId && canWriteJobs ? (
         <JobEditor
-          key={`${params.jobId}-${deadline}`}
+          key={params.jobId}
           organizationId={orgId}
           jobId={params.jobId}
           initial={{

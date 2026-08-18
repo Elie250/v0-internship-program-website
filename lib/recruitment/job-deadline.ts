@@ -1,6 +1,11 @@
 /**
  * Client-safe job deadline helpers (no DB / server imports).
+ * Calendar days are Rwanda (Africa/Kigali, UTC+2, no DST) so admin and the
+ * public job board always show the same "Apply by" date.
  */
+
+export const JOB_DEADLINE_TIMEZONE = 'Africa/Kigali'
+const KIGALI_OFFSET = '+02:00'
 
 export function isJobAcceptingApplications(job: {
   status: string
@@ -13,10 +18,27 @@ export function isJobAcceptingApplications(job: {
   return deadlineMs >= Date.now()
 }
 
+/** Calendar day (YYYY-MM-DD) of a stored deadline in Africa/Kigali. */
+export function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: JOB_DEADLINE_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  if (!year || !month || !day) return ''
+  return `${year}-${month}-${day}`
+}
+
 /**
- * Convert a browser datetime-local value to an ISO timestamp for storage.
- * Midnight (00:00) is treated as end of that local calendar day so a chosen
- * "deadline date" remains open through the whole day.
+ * Convert a date or datetime-local value to an ISO timestamp for storage.
+ * A date-only value (YYYY-MM-DD) is stored as the end of that day in Kigali.
  */
 export function serializeApplicationDeadlineInput(
   value: string | null | undefined
@@ -24,24 +46,18 @@ export function serializeApplicationDeadlineInput(
   const raw = value?.trim()
   if (!raw) return null
 
+  const dateOnly = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (dateOnly) {
+    const endOfDay = new Date(`${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}T23:59:59.999${KIGALI_OFFSET}`)
+    if (Number.isNaN(endOfDay.getTime())) return null
+    return endOfDay.toISOString()
+  }
+
   const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/)
   if (localMatch) {
-    const year = Number(localMatch[1])
-    const month = Number(localMatch[2]) - 1
-    const day = Number(localMatch[3])
-    let hours = Number(localMatch[4])
-    let minutes = Number(localMatch[5])
-    let seconds = Number(localMatch[6] ?? '0')
-
-    if (hours === 0 && minutes === 0 && seconds === 0) {
-      hours = 23
-      minutes = 59
-      seconds = 59
-    }
-
-    const local = new Date(year, month, day, hours, minutes, seconds, seconds === 59 ? 999 : 0)
-    if (Number.isNaN(local.getTime())) return null
-    return local.toISOString()
+    return serializeApplicationDeadlineInput(
+      `${localMatch[1]}-${localMatch[2]}-${localMatch[3]}`
+    )
   }
 
   const parsed = new Date(raw)
@@ -49,13 +65,11 @@ export function serializeApplicationDeadlineInput(
   return parsed.toISOString()
 }
 
-/** Format a stored ISO deadline for <input type="datetime-local"> (local wall time). */
+/** @deprecated Use toDateInputValue — kept for older datetime-local fields. */
 export function toDatetimeLocalValue(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const date = toDateInputValue(iso)
+  if (!date) return ''
+  return `${date}T23:59`
 }
 
 export function applicationClosedReason(job: {
@@ -69,15 +83,22 @@ export function applicationClosedReason(job: {
   return null
 }
 
-/** Public listing label from the stored `application_deadline` column (not description text). */
-export function formatApplicationDeadlineLabel(deadline: string | null | undefined): string {
-  if (!deadline) return 'Open — no deadline'
+function formatDeadlineDate(deadline: string): string {
   const date = new Date(deadline)
-  if (Number.isNaN(date.getTime())) return 'Open — no deadline'
-  const label = date.toLocaleDateString(undefined, {
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('en-GB', {
+    timeZone: JOB_DEADLINE_TIMEZONE,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   })
+}
+
+/** Public listing label from the stored `application_deadline` column (not description text). */
+export function formatApplicationDeadlineLabel(deadline: string | null | undefined): string {
+  if (!deadline) return 'Open — no deadline'
+  const label = formatDeadlineDate(deadline)
+  if (!label) return 'Open — no deadline'
+  const date = new Date(deadline)
   return date.getTime() < Date.now() ? `Closed ${label}` : `Apply by ${label}`
 }

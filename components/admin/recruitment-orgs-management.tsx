@@ -11,7 +11,7 @@ import { adminStatusClass } from '@/components/admin/admin-section-header'
 import {
   formatApplicationDeadlineLabel,
   serializeApplicationDeadlineInput,
-  toDatetimeLocalValue,
+  toDateInputValue,
 } from '@/lib/recruitment/job-deadline'
 
 type Org = {
@@ -196,7 +196,7 @@ export default function RecruitmentOrgsManagement() {
       setJobs(loaded)
       setJobDeadlineDrafts(
         Object.fromEntries(
-          loaded.map((job) => [job.id, toDatetimeLocalValue(job.application_deadline)])
+          loaded.map((job) => [job.id, toDateInputValue(job.application_deadline)])
         )
       )
     }
@@ -265,7 +265,9 @@ export default function RecruitmentOrgsManagement() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not save deadline')
-      setNotice('Application deadline saved. Public job pages now read this field.')
+      setNotice(
+        `Deadline saved. Job board will show: ${formatApplicationDeadlineLabel(data.job?.application_deadline)}`
+      )
       await loadMembers(selectedId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save deadline')
@@ -560,8 +562,8 @@ export default function RecruitmentOrgsManagement() {
                                 <div className="space-y-1">
                                   <Label className="text-xs">Application deadline</Label>
                                   <Input
-                                    type="datetime-local"
-                                    value={jobDeadlineDrafts[job.id] ?? ''}
+                                    type="date"
+                                    value={(jobDeadlineDrafts[job.id] ?? '').slice(0, 10)}
                                     onChange={(e) =>
                                       setJobDeadlineDrafts((current) => ({
                                         ...current,
@@ -598,8 +600,8 @@ export default function RecruitmentOrgsManagement() {
                       <div className="space-y-1">
                         <Label className="text-xs">Application deadline (optional)</Label>
                         <Input
-                          type="datetime-local"
-                          value={jobDeadline}
+                          type="date"
+                          value={jobDeadline.slice(0, 10)}
                           onChange={(e) => setJobDeadline(e.target.value)}
                         />
                       </div>
