@@ -52,6 +52,10 @@ export default function EmployerScreeningPage() {
   const [expression, setExpression] = useState('')
   const [tolerance, setTolerance] = useState('0.5')
   const [acceptedAnswers, setAcceptedAnswers] = useState('')
+  const [modelAnswer, setModelAnswer] = useState('')
+  const [keyPoints, setKeyPoints] = useState('')
+  const [markingRubric, setMarkingRubric] = useState('')
+  const [useGuidedMarking, setUseGuidedMarking] = useState(true)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -93,6 +97,10 @@ export default function EmployerScreeningPage() {
     setExpression('')
     setTolerance('0.5')
     setAcceptedAnswers('')
+    setModelAnswer('')
+    setKeyPoints('')
+    setMarkingRubric('')
+    setUseGuidedMarking(true)
   }
 
   const beginEdit = (q: (typeof questions)[number]) => {
@@ -141,6 +149,13 @@ export default function EmployerScreeningPage() {
           ? [String(q.answer_key)]
           : []
       setAcceptedAnswers(answers.join('\n'))
+      setModelAnswer(String(spec.modelAnswer ?? ''))
+      setKeyPoints(
+        Array.isArray(spec.keyPoints) ? spec.keyPoints.map(String).join('\n') : ''
+      )
+      setMarkingRubric(String(spec.markingRubric ?? ''))
+      // Checkbox = auto-mark on; manualReview true means human-only
+      setUseGuidedMarking(spec.manualReview !== true)
     }
 
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -206,8 +221,27 @@ export default function EmployerScreeningPage() {
         .split(/[\n,]/)
         .map((s) => s.trim())
         .filter(Boolean)
-      if (answers.length === 0) return { error: 'Add at least one accepted text answer.' }
-      answerSpec = { acceptedAnswers: answers }
+      const points = keyPoints
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+      const hasGuide = Boolean(modelAnswer.trim()) || points.length > 0
+      if (!hasGuide && answers.length === 0) {
+        return {
+          error:
+            'Add a model answer / key points for auto-marking, or exact accepted answers for auto-match.',
+        }
+      }
+      // Checked = local heuristic writes the score at submit; unchecked + guide = human marks only
+      const autoMark = useGuidedMarking && hasGuide
+      answerSpec = {
+        acceptedAnswers: answers,
+        modelAnswer: modelAnswer.trim() || undefined,
+        keyPoints: points,
+        markingRubric: markingRubric.trim() || undefined,
+        useGuidedMarking: hasGuide,
+        manualReview: hasGuide && !autoMark,
+      }
       answerKey = answers[0] ?? null
     }
 
@@ -562,16 +596,66 @@ export default function EmployerScreeningPage() {
             ) : null}
 
             {isShortText ? (
-              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <Label htmlFor="q-accepted">Accepted answers</Label>
-                <Textarea
-                  id="q-accepted"
-                  value={acceptedAnswers}
-                  onChange={(e) => setAcceptedAnswers(e.target.value)}
-                  className="rounded-xl min-h-20"
-                  placeholder={'One answer per line, or comma-separated\ne.g. Ohm\nOhms'}
-                />
-                <p className="text-xs text-slate-500">Matching is case-insensitive.</p>
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Open-ended marking guide</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Candidates write freely. With key points or a model answer, answers are
+                    auto-marked locally when submitted so you get a final score per candidate.
+                    You can still override marks on the application review. AI is optional.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={useGuidedMarking}
+                    onChange={(e) => setUseGuidedMarking(e.target.checked)}
+                  />
+                  Auto-mark from this guide (recommended)
+                </label>
+                <div className="space-y-2">
+                  <Label htmlFor="q-model">Model / exemplar answer</Label>
+                  <Textarea
+                    id="q-model"
+                    value={modelAnswer}
+                    onChange={(e) => setModelAnswer(e.target.value)}
+                    className="rounded-xl min-h-20"
+                    placeholder="What a strong answer should look like (for markers / AI assist only)."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="q-keypoints">Key points to cover</Label>
+                  <Textarea
+                    id="q-keypoints"
+                    value={keyPoints}
+                    onChange={(e) => setKeyPoints(e.target.value)}
+                    className="rounded-xl min-h-20"
+                    placeholder={'One key point per line\ne.g. Mentions Ohm\'s law\nCorrect units'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="q-rubric">Marking notes (optional)</Label>
+                  <Textarea
+                    id="q-rubric"
+                    value={markingRubric}
+                    onChange={(e) => setMarkingRubric(e.target.value)}
+                    className="rounded-xl min-h-16"
+                    placeholder="e.g. Full marks if reasoning is sound even with minor wording differences."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="q-accepted">Exact accepted answers (optional auto-match)</Label>
+                  <Textarea
+                    id="q-accepted"
+                    value={acceptedAnswers}
+                    onChange={(e) => setAcceptedAnswers(e.target.value)}
+                    className="rounded-xl min-h-16"
+                    placeholder="Only if you want exact text auto-scoring instead of guided marking"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Leave empty when using guided marking. Exact matches are case-insensitive.
+                  </p>
+                </div>
               </div>
             ) : null}
 

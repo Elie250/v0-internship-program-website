@@ -124,6 +124,50 @@ export async function getOrganizationApplication(
   return { application: row }
 }
 
+export async function deleteOrganizationApplication(input: {
+  applicationId: string
+  organizationId: string
+  actorUserId: string
+  asPlatformAdmin?: boolean
+  membershipRole?: RecruitmentOrgRole | null
+}): Promise<{ success?: boolean; error?: string }> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  if (
+    !input.asPlatformAdmin &&
+    input.membershipRole !== 'organization_admin' &&
+    input.membershipRole !== 'hr_recruiter'
+  ) {
+    return { error: 'Only HR or organization admin can remove an application.' }
+  }
+
+  const current = await getOrganizationApplication(input.applicationId, input.organizationId)
+  if (current.error) return { error: current.error }
+  if (!current.application) return { error: 'Application not found' }
+
+  const { error } = await supabaseAdmin
+    .from('recruitment_applications')
+    .delete()
+    .eq('id', input.applicationId)
+
+  if (error) return { error: error.message }
+
+  await writeRecruitmentAudit({
+    actorUserId: input.actorUserId,
+    organizationId: input.organizationId,
+    action: 'application_deleted',
+    entityType: 'recruitment_applications',
+    entityId: input.applicationId,
+    metadata: {
+      jobId: current.application.job_id,
+      previousStatus: current.application.status,
+      candidateUserId: current.application.candidate_user_id,
+    },
+  })
+
+  return { success: true }
+}
+
 export async function updateOrganizationApplicationStatus(input: {
   applicationId: string
   organizationId: string
@@ -166,22 +210,24 @@ export async function updateOrganizationApplicationStatus(input: {
 
   let warning: string | undefined
   if (input.status === 'screening') {
-    const { getJobScreeningConfig } = await import('@/lib/recruitment/screening')
-    const { listJobScreeningItems } = await import('@/lib/recruitment/screening')
+    const { getJobScreeningConfig, assessmentHasStartableQuestions } = await import(
+      '@/lib/recruitment/screening'
+    )
     const { config } = await getJobScreeningConfig(
       current.application.job_id,
       input.organizationId
     )
-    const { items } = await listJobScreeningItems(
-      current.application.job_id,
-      input.organizationId
-    )
+    const startable = await assessmentHasStartableQuestions({
+      jobId: current.application.job_id,
+      organizationId: input.organizationId,
+      config,
+    })
     if (!config || !config.enabled || config.status !== 'published') {
       warning =
         'Candidate invited, but the technical assessment is not published yet. Publish it under Screening so the candidate can start.'
-    } else if (!items?.length) {
+    } else if (!startable.ok) {
       warning =
-        'Candidate invited, but this role has no assessment questions. Add questions under Screening before the candidate can start.'
+        'Candidate invited, but this role has no assessment questions. Add questions to the bank (or attach them) under Screening before the candidate can start.'
     }
   }
 

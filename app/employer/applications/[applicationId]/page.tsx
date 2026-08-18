@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
 import { EMPLOYER_PIPELINE_STATUSES } from '@/lib/recruitment/types'
@@ -26,6 +27,7 @@ type ScreeningSessionSummary = {
 
 export default function EmployerApplicationDetailPage() {
   const params = useParams<{ applicationId: string }>()
+  const router = useRouter()
   const { orgId, canDecide, canInterview } = useEmployerOrg()
   const [data, setData] = useState<{
     application?: {
@@ -58,21 +60,36 @@ export default function EmployerApplicationDetailPage() {
   const [screening, setScreening] = useState<{ sessions: ScreeningSessionSummary[] } | null>(null)
   const [review, setReview] = useState<{
     session?: {
+      id?: string
       technicalScore?: number | null
       passed?: boolean | null
       integrityBand?: string | null
+      completionState?: string | null
     }
     items?: Array<{
       id: string
       prompt: string
+      questionType?: string
       scoringStatus: string
       pointsAwarded: number | null
       maxPoints: number
       timeSpentMs: number | null
       expectedTimeSec: number | null
       answer: Record<string, unknown> | null
+      guidedMarking?: {
+        modelAnswer?: string | null
+        keyPoints?: string[]
+        markingRubric?: string | null
+        useGuidedMarking?: boolean
+        autoMarkRationale?: string | null
+        autoMarkMethod?: string | null
+      } | null
     }>
   } | null>(null)
+  const [markDrafts, setMarkDrafts] = useState<
+    Record<string, { points: string; note: string; suggestion?: string }>
+  >({})
+  const [markBusyId, setMarkBusyId] = useState('')
   const [integrity, setIntegrity] = useState<{
     technicalScore?: number | null
     integrity?: {
@@ -238,6 +255,27 @@ export default function EmployerApplicationDetailPage() {
     }
   }
 
+  const removeApplication = async () => {
+    if (
+      !window.confirm(
+        'Remove this application so the candidate can apply again? Assessment attempts and interview records for this application will be deleted.'
+      )
+    ) {
+      return
+    }
+    setError('')
+    setMessage('')
+    const res = await fetch(
+      `/api/recruitment/organizations/${orgId}/applications/${params.applicationId}`,
+      { method: 'DELETE', credentials: 'same-origin' }
+    )
+    const body = await res.json()
+    if (!res.ok) setError(body.error || 'Could not remove application')
+    else {
+      router.push('/employer/applications')
+    }
+  }
+
   const addNote = async () => {
     setError('')
     const res = await fetch(
@@ -283,12 +321,86 @@ export default function EmployerApplicationDetailPage() {
     const body = await res.json()
     const integrityBody = await integrityRes.json()
     if (!res.ok) setError(body.error || 'Could not load screening review')
-    else setReview(body)
+    else {
+      setReview(body)
+      const drafts: Record<string, { points: string; note: string }> = {}
+      for (const item of body.items ?? []) {
+        if (item.questionType === 'short_text') {
+          drafts[item.id] = {
+            points: String(item.pointsAwarded ?? ''),
+            note: '',
+          }
+        }
+      }
+      setMarkDrafts(drafts)
+    }
     if (integrityRes.ok) setIntegrity(integrityBody)
     else if (!res.ok) {
       /* keep prior error */
     } else if (!integrityRes.ok) {
       setError(integrityBody.error || 'Could not load integrity report')
+    }
+  }
+
+  const suggestOpenEndedMark = async (itemId: string) => {
+    if (!orgId || !activeIntegritySessionId) return
+    setMarkBusyId(itemId)
+    setError('')
+    const res = await fetch(
+      `/api/recruitment/organizations/${orgId}/screening/sessions/${activeIntegritySessionId}/items/${itemId}/mark`,
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'suggest', preferAi: true }),
+      }
+    )
+    const body = await res.json()
+    setMarkBusyId('')
+    if (!res.ok) setError(body.error || 'Could not suggest a mark')
+    else {
+      setMarkDrafts((current) => ({
+        ...current,
+        [itemId]: {
+          points: String(body.suggestion?.suggestedPoints ?? ''),
+          note: current[itemId]?.note ?? '',
+          suggestion: body.suggestion?.rationale ?? '',
+        },
+      }))
+      setMessage(body.message || 'Suggestion ready — review and apply.')
+    }
+  }
+
+  const applyOpenEndedMark = async (itemId: string) => {
+    if (!orgId || !activeIntegritySessionId) return
+    const draft = markDrafts[itemId]
+    const points = Number(draft?.points)
+    if (!Number.isFinite(points)) {
+      setError('Enter points for this open-ended answer.')
+      return
+    }
+    setMarkBusyId(itemId)
+    setError('')
+    const res = await fetch(
+      `/api/recruitment/organizations/${orgId}/screening/sessions/${activeIntegritySessionId}/items/${itemId}/mark`,
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'apply',
+          pointsAwarded: points,
+          note: draft?.note || null,
+        }),
+      }
+    )
+    const body = await res.json()
+    setMarkBusyId('')
+    if (!res.ok) setError(body.error || 'Could not apply mark')
+    else {
+      setMessage(body.message || 'Mark applied.')
+      await openReview(activeIntegritySessionId)
+      await load()
     }
   }
 
@@ -472,7 +584,23 @@ export default function EmployerApplicationDetailPage() {
               Offer / hire / reject require HR or organization admin.
             </span>
           ) : null}
+          {canDecide ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="text-red-700 border-red-200"
+              onClick={() => void removeApplication()}
+            >
+              Remove application
+            </Button>
+          ) : null}
         </div>
+        {canDecide ? (
+          <p className="text-xs text-slate-500">
+            Remove application deletes this record so the candidate can apply to the job again
+            (useful after a test run).
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
@@ -524,21 +652,105 @@ export default function EmployerApplicationDetailPage() {
               {review.session?.technicalScore != null
                 ? ` · ${review.session.technicalScore}%`
                 : ''}
+              {review.session?.completionState === 'pending_manual'
+                ? ' · Open-ended marks pending'
+                : ''}
             </p>
-            {review.items.map((item, idx) => (
-              <div key={item.id} className="text-sm border-t border-slate-200 pt-2">
-                <p className="font-medium">
-                  {idx + 1}. {item.prompt}
-                </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  {item.scoringStatus} · {item.pointsAwarded ?? 0}/{item.maxPoints}
-                  {item.timeSpentMs != null
-                    ? ` · ${(item.timeSpentMs / 1000).toFixed(1)}s`
-                    : ''}
-                  {item.expectedTimeSec != null ? ` (expected ~${item.expectedTimeSec}s)` : ''}
-                </p>
-              </div>
-            ))}
+            {review.items.map((item, idx) => {
+              const answerText =
+                item.answer && typeof item.answer.text === 'string' ? item.answer.text : null
+              const isOpenEnded = item.questionType === 'short_text'
+              const draft = markDrafts[item.id]
+              return (
+                <div key={item.id} className="text-sm border-t border-slate-200 pt-3 space-y-2">
+                  <p className="font-medium">
+                    {idx + 1}. {item.prompt}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {item.scoringStatus} · {item.pointsAwarded ?? 0}/{item.maxPoints}
+                    {item.timeSpentMs != null
+                      ? ` · ${(item.timeSpentMs / 1000).toFixed(1)}s`
+                      : ''}
+                    {item.expectedTimeSec != null ? ` (expected ~${item.expectedTimeSec}s)` : ''}
+                  </p>
+                  {isOpenEnded ? (
+                    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        Candidate answer
+                      </p>
+                      <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                        {answerText?.trim() || '— No text answer recorded —'}
+                      </p>
+                      {item.guidedMarking?.modelAnswer ? (
+                        <p className="text-xs text-slate-600">
+                          <span className="font-medium">Model answer: </span>
+                          {item.guidedMarking.modelAnswer}
+                        </p>
+                      ) : null}
+                      {(item.guidedMarking?.keyPoints ?? []).length > 0 ? (
+                        <p className="text-xs text-slate-600">
+                          <span className="font-medium">Key points: </span>
+                          {item.guidedMarking!.keyPoints!.join(' · ')}
+                        </p>
+                      ) : null}
+                      {item.guidedMarking?.autoMarkRationale ? (
+                        <p className="text-xs text-emerald-800">
+                          Auto-marked
+                          {item.guidedMarking.autoMarkMethod
+                            ? ` (${item.guidedMarking.autoMarkMethod})`
+                            : ''}
+                          : {item.guidedMarking.autoMarkRationale}
+                        </p>
+                      ) : null}
+                      <div className="flex flex-wrap items-end gap-2 pt-1">
+                        <div className="space-y-1">
+                          <label className="text-xs text-slate-500">Points</label>
+                          <Input
+                            className="h-9 w-24 rounded-lg"
+                            value={draft?.points ?? ''}
+                            onChange={(e) =>
+                              setMarkDrafts((current) => ({
+                                ...current,
+                                [item.id]: {
+                                  points: e.target.value,
+                                  note: current[item.id]?.note ?? '',
+                                  suggestion: current[item.id]?.suggestion,
+                                },
+                              }))
+                            }
+                            placeholder={`0–${item.maxPoints}`}
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={markBusyId === item.id}
+                          onClick={() => void suggestOpenEndedMark(item.id)}
+                        >
+                          {markBusyId === item.id ? 'Working…' : 'Suggest mark'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-[var(--brand-navy)] text-white"
+                          disabled={markBusyId === item.id}
+                          onClick={() => void applyOpenEndedMark(item.id)}
+                        >
+                          Apply mark
+                        </Button>
+                      </div>
+                      {draft?.suggestion ? (
+                        <p className="text-xs text-slate-600">{draft.suggestion}</p>
+                      ) : (
+                        <p className="text-xs text-slate-500">
+                          Score may already be auto-marked from key points / model answer. Suggest
+                          re-runs the marker (AI if configured); Apply overrides the final points.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
           </div>
         ) : null}
       </section>

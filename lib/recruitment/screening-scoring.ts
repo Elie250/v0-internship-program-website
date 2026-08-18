@@ -5,6 +5,10 @@
 
 import type { AnswerSpec } from '@/lib/recruitment/screening-parameters'
 import { resolveExpectedNumeric } from '@/lib/recruitment/screening-parameters'
+import {
+  canAutoMarkGuidedShortText,
+  suggestGuidedMarkFromKeyPoints,
+} from '@/lib/recruitment/guided-marking'
 
 export type QuestionType = 'multiple_choice' | 'multiple_select' | 'numeric' | 'short_text'
 
@@ -20,6 +24,14 @@ export type ScoreItemResult = {
   pointsAwarded: number
   maxPoints: number
   scoringStatus: ScoringStatus
+  /** Present when short_text was auto-marked from key points / model answer */
+  autoMark?: {
+    method: string
+    rationale: string
+    coverageRatio: number
+    matchedKeyPoints: string[]
+    missingKeyPoints: string[]
+  }
 }
 
 export function scoreMultipleChoice(
@@ -111,16 +123,51 @@ export function scoreShortText(
   if (!text) {
     return { pointsAwarded: 0, maxPoints, scoringStatus: 'unanswered' }
   }
-  if (answerSpec.manualReview || !answerSpec.acceptedAnswers?.length) {
+
+  // Exact accepted answers still win full marks when provided
+  if (answerSpec.acceptedAnswers?.length) {
+    const normalized = text.toLowerCase()
+    const ok = answerSpec.acceptedAnswers.some((a) => a.trim().toLowerCase() === normalized)
+    if (ok) {
+      return {
+        pointsAwarded: maxPoints,
+        maxPoints,
+        scoringStatus: 'correct',
+      }
+    }
+    // Exact list only (no guided guide) → miss is incorrect
+    if (!canAutoMarkGuidedShortText(answerSpec) && answerSpec.manualReview !== true) {
+      return { pointsAwarded: 0, maxPoints, scoringStatus: 'incorrect' }
+    }
+  }
+
+  // Explicit opt-out: human marks only
+  if (answerSpec.manualReview === true) {
     return { pointsAwarded: 0, maxPoints, scoringStatus: 'pending_manual' }
   }
-  const normalized = text.toLowerCase()
-  const ok = answerSpec.acceptedAnswers.some((a) => a.trim().toLowerCase() === normalized)
-  return {
-    pointsAwarded: ok ? maxPoints : 0,
-    maxPoints,
-    scoringStatus: ok ? 'correct' : 'incorrect',
+
+  // Guided open-ended: auto-mark from local heuristic so sessions finish with a score
+  if (canAutoMarkGuidedShortText(answerSpec)) {
+    const suggestion = suggestGuidedMarkFromKeyPoints({
+      candidateAnswer: text,
+      answerSpec,
+      maxPoints,
+    })
+    return {
+      pointsAwarded: suggestion.suggestedPoints,
+      maxPoints,
+      scoringStatus: suggestion.suggestedStatus,
+      autoMark: {
+        method: suggestion.method,
+        rationale: suggestion.rationale,
+        coverageRatio: suggestion.coverageRatio,
+        matchedKeyPoints: suggestion.matchedKeyPoints,
+        missingKeyPoints: suggestion.missingKeyPoints,
+      },
+    }
   }
+
+  return { pointsAwarded: 0, maxPoints, scoringStatus: 'pending_manual' }
 }
 
 export function scoreAnswer(input: {

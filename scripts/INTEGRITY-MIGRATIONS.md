@@ -10,6 +10,7 @@ Run in Supabase SQL Editor **in order** (skip any already applied):
 | `80-academy-assessment-integrity-bands.sql` | Academy bands, reviews, thresholds |
 | `81-academy-assessment-variants.sql` | STEM parameter variants per attempt |
 | `82-academy-assessment-fullscreen.sql` | Optional fullscreen request policy |
+| `83-recruitment-question-type-mix.sql` | Talent auto-select type mix (multiple / short / open %) |
 
 **Rules (both products):** integrity is advisory — not a cheating verdict, does not auto-reject/void, and does not change scores.
 

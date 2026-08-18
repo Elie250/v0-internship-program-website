@@ -31,8 +31,21 @@ export type AnswerSpec = {
   decimals?: number
   /** Short text: case-insensitive exact matches */
   acceptedAnswers?: string[]
-  /** If true, short_text cannot be auto-scored */
+  /** If true, short_text cannot be auto-scored (human marks only) */
   manualReview?: boolean
+  /**
+   * Guided open-ended marking.
+   * With modelAnswer and/or keyPoints, the local heuristic auto-marks at submit
+   * so the candidate gets a final technical score. Hiring staff can override.
+   * Optional AI is for re-suggest / review only — never required for auto-mark.
+   */
+  modelAnswer?: string
+  /** Concepts the candidate answer should cover (used for auto-mark + overrides). */
+  keyPoints?: string[]
+  /** Free-text marking notes / rubric for the hiring team (and optional AI). */
+  markingRubric?: string
+  /** Prefer guided auto-mark path when key points / model answer are present */
+  useGuidedMarking?: boolean
 }
 
 function tokenizeExpression(expr: string): string[] {

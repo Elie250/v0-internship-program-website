@@ -2,7 +2,7 @@
  * Materialize screening questions into immutable session items.
  */
 
-import { pickRandomSubset, shuffleWithSeed } from '@/lib/recruitment/screening-rng'
+import { shuffleWithSeed } from '@/lib/recruitment/screening-rng'
 import {
   applyParametersToPrompt,
   resolveExpectedNumeric,
@@ -11,6 +11,11 @@ import {
   type ParameterDefinition,
 } from '@/lib/recruitment/screening-parameters'
 import type { QuestionType } from '@/lib/recruitment/screening-scoring'
+import {
+  normalizeQuestionTypeMix,
+  pickQuestionsByTypeMix,
+  type QuestionTypeMix,
+} from '@/lib/recruitment/question-type-mix'
 
 export type QuestionOption = { id: string; label: string }
 
@@ -132,6 +137,7 @@ export function selectQuestionsForSession(input: {
   randomized: boolean
   seed: string
   categories?: string[]
+  typeMix?: QuestionTypeMix | null
 }): BankQuestion[] {
   const categories = (input.categories ?? []).map((c) => c.toLowerCase()).filter(Boolean)
   let pool = [...input.pool]
@@ -143,18 +149,35 @@ export function selectQuestionsForSession(input: {
     if (!pool.length) pool = [...input.pool]
   }
 
+  const mix = normalizeQuestionTypeMix(input.typeMix)
   let selected: BankQuestion[] = []
-  if (input.questionSelection === 'manual' || input.questionSelection === 'mixed') {
+
+  if (input.questionSelection === 'manual') {
     const byId = new Map(pool.map((q) => [q.id, q]))
     selected = input.questionIds.map((id) => byId.get(id)).filter(Boolean) as BankQuestion[]
-    if (input.questionSelection === 'mixed') {
-      const remaining = pool.filter((q) => !selected.some((s) => s.id === q.id))
-      const need = Math.max(0, (input.questionCount ?? selected.length) - selected.length)
-      selected = [...selected, ...pickRandomSubset(remaining, need, `${input.seed}:mixed`)]
+  } else if (input.questionSelection === 'mixed') {
+    const byId = new Map(pool.map((q) => [q.id, q]))
+    selected = input.questionIds.map((id) => byId.get(id)).filter(Boolean) as BankQuestion[]
+    const need = Math.max(0, (input.questionCount ?? selected.length) - selected.length)
+    if (need > 0) {
+      const fill = pickQuestionsByTypeMix({
+        pool,
+        total: need,
+        mix,
+        seed: `${input.seed}:mixed`,
+        excludeIds: new Set(selected.map((q) => q.id)),
+      })
+      selected = [...selected, ...fill]
     }
   } else {
+    // random_from_bank — auto-select to match type mix percentages
     const count = input.questionCount ?? Math.min(10, pool.length)
-    selected = pickRandomSubset(pool, count, `${input.seed}:pick`)
+    selected = pickQuestionsByTypeMix({
+      pool,
+      total: count,
+      mix,
+      seed: `${input.seed}:pick`,
+    })
   }
 
   if (input.questionCount != null && selected.length > input.questionCount) {

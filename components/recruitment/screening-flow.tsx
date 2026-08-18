@@ -103,7 +103,10 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
     setLoading(false)
   }, [applicationId, router])
 
-  const loadSession = useCallback(async (sessionId: string) => {
+  const loadSession = useCallback(async (
+    sessionId: string,
+    options?: { excludeItemId?: string }
+  ) => {
     const res = await fetch(`/api/recruitment/candidate/screening/sessions/${sessionId}`, {
       credentials: 'same-origin',
     })
@@ -118,9 +121,13 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
       setPhase('done')
       return data
     }
+    const excludeId = options?.excludeItemId
     const next =
-      data.items.find((i: SessionItem) => i.id === data.currentItemId) ||
-      data.items.find((i: SessionItem) => !i.answered)
+      data.items.find(
+        (i: SessionItem) =>
+          i.id === data.currentItemId && i.id !== excludeId && !i.answered
+      ) ||
+      data.items.find((i: SessionItem) => !i.answered && i.id !== excludeId)
     if (!next) {
       setPhase('review')
       setActiveItem(null)
@@ -228,12 +235,13 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
   }
 
   const saveAnswer = async () => {
-    if (!session || !activeItem) return
+    if (!session || !activeItem || busy) return
+    const savingItemId = activeItem.id
     setBusy(true)
     setError('')
     try {
       const res = await fetch(
-        `/api/recruitment/candidate/screening/sessions/${session.session.id}/items/${activeItem.id}/answer`,
+        `/api/recruitment/candidate/screening/sessions/${session.session.id}/items/${savingItemId}/answer`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -243,11 +251,21 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
       )
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not save answer')
-      setAnswer({})
-      const refreshed = await loadSession(session.session.id)
+
+      // Keep the typed answer until we know the next item — avoids empty re-prompt on the same question
+      const refreshed = await loadSession(session.session.id, { excludeItemId: savingItemId })
       if (refreshed && refreshed.session.status === 'in_progress') {
-        const unanswered = refreshed.items.filter((i: SessionItem) => !i.answered)
-        if (!unanswered.length) setPhase('review')
+        const unanswered = refreshed.items.filter(
+          (i: SessionItem) => !i.answered && i.id !== savingItemId
+        )
+        if (!unanswered.length || data.allAnswered) {
+          setAnswer({})
+          setPhase('review')
+        } else {
+          setAnswer({})
+        }
+      } else {
+        setAnswer({})
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save answer')
@@ -504,6 +522,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
 
             <div className="flex flex-wrap gap-3">
               <Button
+                type="button"
                 disabled={busy || remainingMs <= 0}
                 onClick={() => void saveAnswer()}
                 className="rounded-xl bg-[var(--brand-navy)] text-white"
@@ -511,6 +530,7 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
                 {busy ? 'Saving…' : 'Save & continue'}
               </Button>
               <Button
+                type="button"
                 variant="outline"
                 className="rounded-xl"
                 disabled={busy}

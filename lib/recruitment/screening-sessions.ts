@@ -14,6 +14,7 @@ import {
   selectQuestionsForSession,
   type BankQuestion,
 } from '@/lib/recruitment/screening-materialize'
+import { normalizeQuestionTypeMix } from '@/lib/recruitment/question-type-mix'
 import {
   computeOverallAndSections,
   evaluatePassCriteria,
@@ -195,11 +196,13 @@ export async function getCandidateScreeningEligibility(
     }
   }
 
-  const { items } = await listJobScreeningItems(
-    String(application.job_id),
-    String(job.organization_id)
-  )
-  if (!items?.length) {
+  const { assessmentHasStartableQuestions } = await import('@/lib/recruitment/screening')
+  const startable = await assessmentHasStartableQuestions({
+    jobId: String(application.job_id),
+    organizationId: String(job.organization_id),
+    config,
+  })
+  if (!startable.ok) {
     return {
       eligible: false,
       canStart: false,
@@ -277,6 +280,9 @@ export async function startScreeningSession(input: {
     randomized: config.randomized !== false,
     seed,
     categories: Array.isArray(config.categories) ? config.categories.map(String) : [],
+    typeMix: normalizeQuestionTypeMix(
+      (config as { question_type_mix?: unknown }).question_type_mix
+    ),
   })
 
   if (!selected.length) {
@@ -305,6 +311,8 @@ export async function startScreeningSession(input: {
     randomized: config.randomized,
     dynamic_parameters: config.dynamic_parameters,
     per_question_time_seconds: config.per_question_time_seconds,
+    question_type_mix: (config as { question_type_mix?: unknown }).question_type_mix ?? null,
+    question_selection: config.question_selection,
   }
 
   const { data: session, error } = await supabaseAdmin
@@ -546,6 +554,14 @@ export async function getCandidateSessionView(sessionId: string, candidateUserId
     .eq('session_id', sessionId)
     .order('sort_order', { ascending: true })
 
+  // Prefer answered_at; also treat stored answer rows as answered (repairs stuck items)
+  const { data: answerRows } = await supabaseAdmin!
+    .from('recruitment_screening_answers')
+    .select('session_item_id')
+    .eq('session_id', sessionId)
+
+  const answeredIds = new Set((answerRows ?? []).map((row) => String(row.session_item_id)))
+
   const publicItems = (items ?? []).map((item) =>
     publicSessionItem({
       id: item.id,
@@ -560,7 +576,7 @@ export async function getCandidateSessionView(sessionId: string, candidateUserId
       options_snapshot: (item.options_snapshot ?? []) as { id: string; label: string }[],
       parameters_resolved: (item.parameters_resolved ?? {}) as Record<string, number>,
       opened_at: item.opened_at,
-      answered_at: item.answered_at,
+      answered_at: item.answered_at ?? (answeredIds.has(String(item.id)) ? item.opened_at ?? item.created_at : null),
       scoring_status: item.scoring_status,
     })
   )
@@ -697,6 +713,7 @@ export async function submitSessionAnswer(input: {
   )
   if (answerError) return { error: answerError.message }
 
+  // Mark answered first — never block progression on auto-mark metadata writes
   const { error: itemError } = await supabaseAdmin!
     .from('recruitment_session_items')
     .update({
@@ -711,6 +728,27 @@ export async function submitSessionAnswer(input: {
 
   if (itemError) return { error: itemError.message }
 
+  if (scored.autoMark) {
+    const { error: autoMarkError } = await supabaseAdmin!
+      .from('recruitment_session_items')
+      .update({
+        expected_answer: {
+          ...(expected && typeof expected === 'object' ? expected : {}),
+          autoMark: {
+            ...scored.autoMark,
+            points: scored.pointsAwarded,
+            scoringStatus: scored.scoringStatus,
+            markedAt: now.toISOString(),
+          },
+        },
+      })
+      .eq('id', input.itemId)
+      .eq('session_id', input.sessionId)
+    if (autoMarkError) {
+      console.warn('[screening] autoMark metadata write failed', autoMarkError.message)
+    }
+  }
+
   await writeRecruitmentAudit({
     actorUserId: input.candidateUserId,
     organizationId: String(session.organization_id),
@@ -720,7 +758,25 @@ export async function submitSessionAnswer(input: {
     metadata: { sessionId: input.sessionId, scoringStatus: scored.scoringStatus },
   })
 
-  return { success: true, scoringStatus: scored.scoringStatus }
+  // Next unanswered for the client (avoid stale “same question” after save)
+  const { data: remaining } = await supabaseAdmin!
+    .from('recruitment_session_items')
+    .select('id, sort_order, answered_at')
+    .eq('session_id', input.sessionId)
+    .order('sort_order', { ascending: true })
+
+  const nextItemId =
+    (remaining ?? []).find((row) => !row.answered_at && row.id !== input.itemId)?.id ??
+    (remaining ?? []).find((row) => !row.answered_at)?.id ??
+    null
+
+  return {
+    success: true,
+    scoringStatus: scored.scoringStatus,
+    itemId: input.itemId,
+    nextItemId,
+    allAnswered: nextItemId == null,
+  }
 }
 
 export async function submitScreeningSession(sessionId: string, candidateUserId: string) {
@@ -813,7 +869,7 @@ export async function getEmployerSessionReview(organizationId: string, sessionId
   const { data: items } = await supabaseAdmin
     .from('recruitment_session_items')
     .select(
-      'id, sort_order, question_type, section, category, difficulty, weight, expected_time_sec, resolved_prompt, options_snapshot, max_points, points_awarded, scoring_status, opened_at, answered_at, time_spent_ms, question_id'
+      'id, sort_order, question_type, section, category, difficulty, weight, expected_time_sec, resolved_prompt, options_snapshot, max_points, points_awarded, scoring_status, opened_at, answered_at, time_spent_ms, question_id, expected_answer'
     )
     .eq('session_id', sessionId)
     .eq('organization_id', organizationId)
@@ -844,22 +900,264 @@ export async function getEmployerSessionReview(organizationId: string, sessionId
       integrityBand: session.integrity_band,
       integritySummary: session.integrity_summary,
     },
-    items: (items ?? []).map((item) => ({
-      id: item.id,
-      sortOrder: item.sort_order,
-      questionType: item.question_type,
-      section: item.section,
-      prompt: item.resolved_prompt,
-      options: item.options_snapshot,
-      maxPoints: item.max_points,
-      pointsAwarded: item.points_awarded,
-      scoringStatus: item.scoring_status,
-      openedAt: item.opened_at,
-      answeredAt: item.answered_at,
-      timeSpentMs: item.time_spent_ms,
-      expectedTimeSec: item.expected_time_sec,
-      answer: answerMap.get(item.id) ?? null,
-      // Never expose expected_answer / expressions / platform keys here
-    })),
+    items: (items ?? []).map((item) => {
+      const expected = (item.expected_answer ?? {}) as {
+        answerSpec?: AnswerSpec
+        numeric?: unknown
+        autoMark?: {
+          rationale?: string
+          method?: string
+          coverageRatio?: number
+          matchedKeyPoints?: string[]
+          missingKeyPoints?: string[]
+        }
+      }
+      const answerSpec = expected.answerSpec ?? {}
+      const isOpenEnded = item.question_type === 'short_text'
+      const autoMark =
+        expected.autoMark && typeof expected.autoMark === 'object'
+          ? (expected.autoMark as {
+              rationale?: string
+              method?: string
+              coverageRatio?: number
+              matchedKeyPoints?: string[]
+              missingKeyPoints?: string[]
+            })
+          : null
+      const guided =
+        isOpenEnded
+          ? {
+              modelAnswer: answerSpec.modelAnswer ?? null,
+              keyPoints: Array.isArray(answerSpec.keyPoints)
+                ? answerSpec.keyPoints.map(String)
+                : [],
+              markingRubric: answerSpec.markingRubric ?? null,
+              acceptedAnswers: Array.isArray(answerSpec.acceptedAnswers)
+                ? answerSpec.acceptedAnswers.map(String)
+                : [],
+              useGuidedMarking:
+                answerSpec.useGuidedMarking === true ||
+                answerSpec.manualReview === true ||
+                Boolean(answerSpec.modelAnswer?.trim()) ||
+                (Array.isArray(answerSpec.keyPoints) && answerSpec.keyPoints.length > 0),
+              autoMarkRationale: autoMark?.rationale ?? null,
+              autoMarkMethod: autoMark?.method ?? null,
+            }
+          : null
+
+      return {
+        id: item.id,
+        sortOrder: item.sort_order,
+        questionType: item.question_type,
+        section: item.section,
+        prompt: item.resolved_prompt,
+        options: item.options_snapshot,
+        maxPoints: item.max_points,
+        pointsAwarded: item.points_awarded,
+        scoringStatus: item.scoring_status,
+        openedAt: item.opened_at,
+        answeredAt: item.answered_at,
+        timeSpentMs: item.time_spent_ms,
+        expectedTimeSec: item.expected_time_sec,
+        answer: answerMap.get(item.id) ?? null,
+        guidedMarking: guided,
+        // Numeric expressions / platform keys stay server-side only
+      }
+    }),
+  }
+}
+
+async function recomputeSessionTotalsAfterManualMark(sessionId: string, organizationId: string) {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const { data: session } = await supabaseAdmin
+    .from('recruitment_screening_sessions')
+    .select(SESSION_SELECT)
+    .eq('id', sessionId)
+    .eq('organization_id', organizationId)
+    .maybeSingle()
+  if (!session) return { error: 'Session not found' }
+
+  const { data: items } = await supabaseAdmin
+    .from('recruitment_session_items')
+    .select(ITEM_SELECT)
+    .eq('session_id', sessionId)
+    .order('sort_order', { ascending: true })
+
+  const scoredItems = (items ?? []).map((item) => ({
+    section: item.section as string | null,
+    pointsAwarded: item.points_awarded != null ? Number(item.points_awarded) : 0,
+    maxPoints: Number(item.max_points ?? 1),
+    scoringStatus: item.scoring_status as ScoringStatus,
+  }))
+
+  const totals = computeOverallAndSections(scoredItems)
+  const snapshot = (session.config_snapshot ?? {}) as {
+    passingScore?: number | null
+    sectionMinimums?: Record<string, number>
+  }
+  const passed = evaluatePassCriteria({
+    percent: totals.percent,
+    sectionScores: totals.sectionScores,
+    passingScore: snapshot.passingScore ?? null,
+    sectionMinimums: snapshot.sectionMinimums ?? {},
+  })
+
+  let completionState = 'complete'
+  if (totals.hasPendingManual) completionState = 'pending_manual'
+
+  const now = new Date().toISOString()
+  const { data: updated, error } = await supabaseAdmin
+    .from('recruitment_screening_sessions')
+    .update({
+      technical_score: totals.percent,
+      max_score: totals.maxScore,
+      section_scores: totals.sectionScores,
+      passed,
+      completion_state: completionState,
+      updated_at: now,
+    })
+    .eq('id', sessionId)
+    .select(SESSION_SELECT)
+    .single()
+
+  if (error) return { error: error.message }
+  return { session: updated, totals }
+}
+
+/** Suggest a guided mark for an open-ended item (advisory only). */
+export async function suggestOpenEndedItemMark(input: {
+  organizationId: string
+  sessionId: string
+  itemId: string
+  preferAi?: boolean
+}) {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const { data: item } = await supabaseAdmin
+    .from('recruitment_session_items')
+    .select(ITEM_SELECT)
+    .eq('id', input.itemId)
+    .eq('session_id', input.sessionId)
+    .eq('organization_id', input.organizationId)
+    .maybeSingle()
+  if (!item) return { error: 'Item not found' }
+  if (item.question_type !== 'short_text') {
+    return { error: 'Guided marking is only available for open-ended (short text) questions.' }
+  }
+
+  const { data: answer } = await supabaseAdmin
+    .from('recruitment_screening_answers')
+    .select('answer_payload')
+    .eq('session_item_id', input.itemId)
+    .eq('session_id', input.sessionId)
+    .maybeSingle()
+
+  const text =
+    answer?.answer_payload && typeof (answer.answer_payload as { text?: unknown }).text === 'string'
+      ? String((answer.answer_payload as { text: string }).text)
+      : ''
+
+  const expected = (item.expected_answer ?? {}) as { answerSpec?: AnswerSpec }
+  const answerSpec = expected.answerSpec ?? {}
+
+  const { suggestGuidedMark } = await import('@/lib/recruitment/guided-marking')
+  const suggestion = await suggestGuidedMark({
+    prompt: String(item.resolved_prompt ?? ''),
+    candidateAnswer: text,
+    answerSpec,
+    maxPoints: Number(item.max_points ?? 1),
+    preferAi: input.preferAi !== false,
+  })
+
+  return {
+    suggestion,
+    candidateAnswer: text,
+    itemId: item.id,
+  }
+}
+
+/**
+ * Human applies or overrides a mark on an open-ended item.
+ * Used for pending_manual items and to adjust auto-marked heuristic scores.
+ */
+export async function applyManualItemMark(input: {
+  organizationId: string
+  sessionId: string
+  itemId: string
+  actorUserId: string
+  pointsAwarded: number
+  note?: string | null
+}) {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const { data: item } = await supabaseAdmin
+    .from('recruitment_session_items')
+    .select(ITEM_SELECT)
+    .eq('id', input.itemId)
+    .eq('session_id', input.sessionId)
+    .eq('organization_id', input.organizationId)
+    .maybeSingle()
+  if (!item) return { error: 'Item not found' }
+  if (item.question_type !== 'short_text') {
+    return { error: 'Manual guided marking is only for open-ended questions.' }
+  }
+
+  const maxPoints = Number(item.max_points ?? 1)
+  const points = Math.max(0, Math.min(maxPoints, Number(input.pointsAwarded)))
+  if (!Number.isFinite(points)) return { error: 'Invalid points' }
+
+  const { statusFromPoints } = await import('@/lib/recruitment/guided-marking')
+  const scoringStatus = statusFromPoints(points, maxPoints)
+
+  const priorExpected = (item.expected_answer ?? {}) as Record<string, unknown>
+  const { error: updateError } = await supabaseAdmin
+    .from('recruitment_session_items')
+    .update({
+      points_awarded: points,
+      scoring_status: scoringStatus,
+      expected_answer: {
+        ...priorExpected,
+        manualMark: {
+          points,
+          scoringStatus,
+          note: input.note?.trim().slice(0, 2000) || null,
+          markedBy: input.actorUserId,
+          markedAt: new Date().toISOString(),
+        },
+      },
+    })
+    .eq('id', input.itemId)
+
+  if (updateError) return { error: updateError.message }
+
+  const recomputed = await recomputeSessionTotalsAfterManualMark(
+    input.sessionId,
+    input.organizationId
+  )
+  if (recomputed.error) return { error: recomputed.error }
+
+  await writeRecruitmentAudit({
+    actorUserId: input.actorUserId,
+    organizationId: input.organizationId,
+    action: 'open_ended_item_marked',
+    entityType: 'recruitment_session_items',
+    entityId: input.itemId,
+    metadata: {
+      sessionId: input.sessionId,
+      points,
+      maxPoints,
+      scoringStatus,
+    },
+  })
+
+  return {
+    item: {
+      id: input.itemId,
+      pointsAwarded: points,
+      scoringStatus,
+      maxPoints,
+    },
+    session: recomputed.session,
   }
 }

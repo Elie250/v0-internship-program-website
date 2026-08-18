@@ -29,7 +29,7 @@ export async function POST(
       clientEventAt: body.clientEventAt != null ? String(body.clientEventAt) : null,
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
-    return NextResponse.json({ success: true })
+    return NextResponse.json(result)
   } catch {
     return NextResponse.json({ error: 'Could not save answer' }, { status: 500 })
   }

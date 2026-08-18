@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
@@ -8,6 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
+import {
+  allocateCountsFromMix,
+  describeTypeMixCounts,
+  normalizeQuestionTypeMix,
+} from '@/lib/recruitment/question-type-mix'
 
 export default function JobScreeningPage() {
   const params = useParams<{ jobId: string }>()
@@ -28,17 +33,39 @@ export default function JobScreeningPage() {
     dynamicParameters: true,
     perQuestionTimeSeconds: '90',
     integrityMonitoring: false,
+    mixMultiple: '50',
+    mixShort: '30',
+    mixOpen: '20',
   })
   const [questions, setQuestions] = useState<
     Array<{ id: string; prompt: string; owner_type: string; question_type?: string; section?: string }>
   >([])
   const [selected, setSelected] = useState<string[]>([])
-  const [preview, setPreview] = useState<{ items?: Array<{ prompt?: string }> } | null>(null)
+  const [preview, setPreview] = useState<{
+    items?: Array<{ prompt?: string; questionType?: string }>
+    sampleNote?: string
+    questionSelection?: string
+  } | null>(null)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
 
   const isPublished = config.status === 'published'
+  const isAutoBank = config.questionSelection === 'random_from_bank'
+
+  const mixPreview = useMemo(() => {
+    const total = Math.max(0, Number(config.questionCount) || 0)
+    const mix = normalizeQuestionTypeMix({
+      multiple: Number(config.mixMultiple),
+      short: Number(config.mixShort),
+      open: Number(config.mixOpen),
+    })
+    return {
+      mix,
+      counts: allocateCountsFromMix(total, mix),
+      label: describeTypeMixCounts(total, mix),
+    }
+  }, [config.questionCount, config.mixMultiple, config.mixShort, config.mixOpen])
 
   const load = async () => {
     if (!orgId) return
@@ -57,6 +84,7 @@ export default function JobScreeningPage() {
     if (jobRes.ok && jobData.job?.title) setJobTitle(String(jobData.job.title))
     if (cfg.config) {
       const mins = cfg.config.section_minimums ?? {}
+      const mix = normalizeQuestionTypeMix(cfg.config.question_type_mix)
       setConfig((current) => ({
         ...current,
         enabled: Boolean(cfg.config.enabled),
@@ -75,9 +103,16 @@ export default function JobScreeningPage() {
         dynamicParameters: Boolean(cfg.config.dynamic_parameters),
         perQuestionTimeSeconds: String(cfg.config.per_question_time_seconds ?? '90'),
         integrityMonitoring: Boolean(cfg.config.integrity_monitoring),
+        mixMultiple: String(mix.multiple),
+        mixShort: String(mix.short),
+        mixOpen: String(mix.open),
       }))
     }
-    setSelected((cfg.items ?? []).map((item: { question_id: string }) => item.question_id))
+    setSelected(
+      ((cfg.items ?? []) as Array<{ question_id: string }>)
+        .map((item) => item.question_id)
+        .filter((id: string) => (qs.questions ?? []).some((q: { id: string }) => q.id === id))
+    )
     setQuestions(qs.questions ?? [])
   }
 
@@ -97,10 +132,15 @@ export default function JobScreeningPage() {
   const save = async (mode: 'draft' | 'publish' | 'unpublish') => {
     setError('')
     setMessage('')
-    if (mode === 'publish' && selected.length === 0) {
+    setPreview(null)
+    if (mode === 'publish' && !isAutoBank && selected.length === 0) {
       setError(
         'Select at least one question below before publishing. Add questions in the question bank first if the list is empty.'
       )
+      return
+    }
+    if (mode === 'publish' && isAutoBank && questions.length === 0) {
+      setError('Add questions to the question bank before publishing with auto-select.')
       return
     }
     setBusy(true)
@@ -125,7 +165,13 @@ export default function JobScreeningPage() {
         dynamicParameters: config.dynamicParameters,
         perQuestionTimeSeconds: Number(config.perQuestionTimeSeconds),
         integrityMonitoring: config.integrityMonitoring,
-        questionIds: selected,
+        questionTypeMix: {
+          multiple: Number(config.mixMultiple),
+          short: Number(config.mixShort),
+          open: Number(config.mixOpen),
+        },
+        questionIds: isAutoBank ? [] : selected,
+        bankQuestionCount: questions.length,
         publish: mode === 'publish',
         status: mode === 'unpublish' ? 'draft' : mode === 'publish' ? 'published' : undefined,
       }),
@@ -141,6 +187,33 @@ export default function JobScreeningPage() {
             ? 'Assessment unpublished. Candidates can no longer start new attempts.'
             : 'Draft saved. Publish when you are ready for candidates.'
       )
+      if (isAutoBank) setSelected([])
+      await load()
+      await loadPreview()
+    }
+  }
+
+  const deleteAssessment = async () => {
+    if (
+      !window.confirm(
+        'Remove this technical assessment configuration? Past candidate attempts stay on their hiring files. You can create a new assessment afterwards.'
+      )
+    ) {
+      return
+    }
+    setError('')
+    setMessage('')
+    setBusy(true)
+    const res = await fetch(`/api/recruitment/organizations/${orgId}/jobs/${params.jobId}/screening`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    })
+    const data = await res.json()
+    setBusy(false)
+    if (!res.ok) setError(data.error || 'Could not delete assessment')
+    else {
+      setMessage(data.message || 'Assessment removed.')
+      setPreview(null)
       await load()
     }
   }
@@ -175,7 +248,9 @@ export default function JobScreeningPage() {
         {isPublished
           ? 'Published — invited candidates can open this assessment.'
           : 'Draft — candidates cannot start until you publish.'}{' '}
-        Selected questions: {selected.length}.
+        {isAutoBank
+          ? `Auto-select from bank · ${mixPreview.label}.`
+          : `Selected questions: ${selected.length}.`}
       </StatusBanner>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -190,9 +265,18 @@ export default function JobScreeningPage() {
             </Link>
             .
           </li>
-          <li>Select which questions belong to this role (below).</li>
-          <li>Click <strong>Publish assessment</strong>.</li>
-          <li>On each application, set status to <strong>Screening</strong> to invite the candidate.</li>
+          <li>
+            Choose <strong>Auto from bank</strong> and set type mix percentages, or attach questions
+            manually.
+          </li>
+          <li>
+            Edit duration, mix, and selection here anytime — then <strong>Save draft</strong> or{' '}
+            <strong>Publish assessment</strong> again. Use <strong>Delete assessment</strong> to
+            start over.
+          </li>
+          <li>
+            On each application, set status to <strong>Screening</strong> to invite the candidate.
+          </li>
         </ol>
 
         <label className="flex items-center gap-2 text-sm">
@@ -257,15 +341,70 @@ export default function JobScreeningPage() {
             <Label>Question selection</Label>
             <select
               value={config.questionSelection}
-              onChange={(e) => setConfig((c) => ({ ...c, questionSelection: e.target.value }))}
+              onChange={(e) => {
+                const questionSelection = e.target.value
+                setConfig((c) => ({ ...c, questionSelection }))
+                setPreview(null)
+                if (questionSelection === 'random_from_bank') setSelected([])
+              }}
               className="w-full h-10 rounded-xl border px-3 text-sm"
             >
               <option value="manual">Manual (use selected list)</option>
-              <option value="random_from_bank">Random from bank</option>
-              <option value="mixed">Mixed</option>
+              <option value="random_from_bank">Auto from bank (by type mix)</option>
+              <option value="mixed">Mixed (selected + fill by mix)</option>
             </select>
           </div>
         </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-medium text-slate-900">Question type mix</p>
+            <p className="text-xs text-slate-500 mt-1">
+              One mix for the whole assessment. Auto-select pulls <strong>multiple</strong> (MCQ /
+              multi-select), <strong>short</strong> (numeric / exact short text), and{' '}
+              <strong>open</strong> (guided open-ended) from the bank to match these percentages.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label>Multiple %</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={config.mixMultiple}
+                onChange={(e) => setConfig((c) => ({ ...c, mixMultiple: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Short answer %</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={config.mixShort}
+                onChange={(e) => setConfig((c) => ({ ...c, mixShort: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Open question %</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={config.mixOpen}
+                onChange={(e) => setConfig((c) => ({ ...c, mixOpen: e.target.value }))}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-slate-600">
+            For {config.questionCount || '0'} questions → {mixPreview.label}
+            {Number(config.mixMultiple) + Number(config.mixShort) + Number(config.mixOpen) !== 100
+              ? ' (percentages are normalized to 100% when saved).'
+              : '.'}
+          </p>
+        </div>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -285,11 +424,22 @@ export default function JobScreeningPage() {
 
         <div>
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <p className="text-sm font-medium">Attach questions ({selected.length} selected)</p>
+            <p className="text-sm font-medium">
+              {isAutoBank
+                ? 'Question bank (auto-select uses the full bank)'
+                : `Attach questions (${selected.length} selected)`}
+            </p>
             <Link href="/employer/screening" className="text-sm text-[var(--brand-navy)] hover:underline">
               Manage question bank
             </Link>
           </div>
+          {isAutoBank ? (
+            <StatusBanner tone="info">
+              Each candidate gets {config.questionCount || '—'} questions drawn from the bank (
+              {questions.length} available) using your type mix. Checkboxes below are for Mixed /
+              Manual modes.
+            </StatusBanner>
+          ) : null}
           {questions.length === 0 ? (
             <StatusBanner tone="info">
               No questions yet. Create them in the question bank, then return here to select and
@@ -298,23 +448,25 @@ export default function JobScreeningPage() {
           ) : (
             <div className="space-y-2 max-h-72 overflow-auto rounded-xl border border-slate-200 p-3">
               {questions.map((q) => (
-                <label key={q.id} className="flex items-start gap-2 text-sm">
+                <label key={q.id} className="flex items-start gap-3 text-sm">
                   <input
                     type="checkbox"
-                    className="mt-1"
                     checked={selected.includes(q.id)}
+                    disabled={isAutoBank}
                     onChange={(e) => {
-                      setSelected((current) =>
-                        e.target.checked ? [...current, q.id] : current.filter((id) => id !== q.id)
+                      setSelected((ids) =>
+                        e.target.checked ? [...ids, q.id] : ids.filter((id) => id !== q.id)
                       )
                     }}
                   />
                   <span>
-                    <span className="text-xs uppercase text-slate-500">
-                      {q.owner_type === 'platform' ? 'Platform' : 'Company'}
-                      {q.question_type ? ` · ${q.question_type.replace(/_/g, ' ')}` : ''}
+                    <span className="text-slate-800">{q.prompt.slice(0, 120)}</span>
+                    {q.prompt.length > 120 ? '…' : ''}
+                    <span className="block text-xs text-slate-500">
+                      {q.question_type ?? 'question'}
+                      {q.section ? ` · ${q.section}` : ''}
+                      {q.owner_type === 'platform' ? ' · platform' : ''}
                     </span>
-                    <span className="block mt-0.5">{q.prompt}</span>
                   </span>
                 </label>
               ))}
@@ -322,45 +474,71 @@ export default function JobScreeningPage() {
           )}
         </div>
 
-        {canWriteScreening ? (
-          <div className="flex flex-wrap gap-3 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || !canWriteScreening}
+            onClick={() => void save('draft')}
+          >
+            Save draft
+          </Button>
+          <Button
+            type="button"
+            className="bg-[var(--brand-navy)] text-white"
+            disabled={busy || !canWriteScreening}
+            onClick={() => void save('publish')}
+          >
+            Publish assessment
+          </Button>
+          {isPublished ? (
             <Button
-              disabled={busy}
-              onClick={() => void save('draft')}
+              type="button"
               variant="outline"
+              disabled={busy || !canWriteScreening}
+              onClick={() => void save('unpublish')}
             >
-              Save draft
+              Unpublish
             </Button>
-            <Button
-              disabled={busy || selected.length === 0}
-              onClick={() => void save('publish')}
-              className="bg-[var(--brand-navy)] text-white"
-            >
-              {busy ? 'Saving…' : isPublished ? 'Update & keep published' : 'Publish assessment'}
-            </Button>
-            {isPublished ? (
-              <Button disabled={busy} onClick={() => void save('unpublish')} variant="outline">
-                Unpublish
-              </Button>
-            ) : null}
-            <Button disabled={busy} onClick={() => void loadPreview()} variant="outline">
-              Preview
-            </Button>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600">
-            Hiring managers can view assessment setup but cannot change it.
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            className="text-red-700 border-red-200"
+            disabled={busy || !canWriteScreening}
+            onClick={() => void deleteAssessment()}
+          >
+            Delete assessment
+          </Button>
+          <Button type="button" variant="ghost" disabled={busy} onClick={() => void loadPreview()}>
+            Preview config
+          </Button>
+          <p className="text-xs text-slate-500 w-full">
+            Preview uses the last saved settings. Save draft or publish after changing Auto from bank,
+            then preview.
           </p>
-        )}
+        </div>
 
         {preview ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-            <p className="text-sm font-medium">Preview ({preview.items?.length ?? 0} attached)</p>
-            {(preview.items ?? []).slice(0, 8).map((item, idx) => (
-              <p key={idx} className="text-sm text-slate-700 line-clamp-2">
+          <div className="rounded-xl bg-slate-50 p-4 text-sm space-y-2">
+            <p className="text-sm font-medium">
+              Preview ({preview.items?.length ?? 0}{' '}
+              {preview.questionSelection === 'random_from_bank' ? 'sample' : 'attached'})
+            </p>
+            {preview.sampleNote ? (
+              <p className="text-xs text-slate-500">{preview.sampleNote}</p>
+            ) : null}
+            {(preview.items ?? []).slice(0, 12).map((item, idx) => (
+              <p key={idx} className="text-slate-700">
                 {idx + 1}. {item.prompt}
+                {item.questionType ? (
+                  <span className="text-xs text-slate-500"> · {item.questionType}</span>
+                ) : null}
               </p>
             ))}
+            {(preview.items ?? []).length === 0 ? (
+              <p className="text-slate-600">No questions available for this selection yet.</p>
+            ) : null}
           </div>
         ) : null}
       </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireOrganizationAccess } from '@/lib/recruitment/authz'
 import { APPLICATION_REVIEW_ROLES } from '@/lib/recruitment/rbac'
 import {
+  deleteOrganizationApplication,
   getOrganizationApplication,
   listApplicationStatusHistory,
   updateOrganizationApplicationStatus,
@@ -51,6 +52,33 @@ export async function PATCH(
     })
     if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ application: result.application, warning: result.warning ?? null })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Forbidden'
+    const status = message === 'Unauthorized' ? 401 : 403
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string; applicationId: string }> }
+) {
+  try {
+    const { id: organizationId, applicationId } = await context.params
+    const access = await requireOrganizationAccess(organizationId, APPLICATION_REVIEW_ROLES)
+    await assertCanAccessApplication({ access, organizationId, applicationId })
+    const result = await deleteOrganizationApplication({
+      applicationId,
+      organizationId,
+      actorUserId: access.user.id,
+      asPlatformAdmin: access.asPlatformAdmin,
+      membershipRole: access.membership?.role ?? null,
+    })
+    if (result.error) return NextResponse.json({ error: result.error }, { status: 400 })
+    return NextResponse.json({
+      success: true,
+      message: 'Application removed. The candidate can apply to this job again.',
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Forbidden'
     const status = message === 'Unauthorized' ? 401 : 403
