@@ -31,6 +31,7 @@ import {
   timeSpentMs,
 } from '@/lib/recruitment/screening-timer'
 import { recomputeSessionIntegrity } from '@/lib/recruitment/screening-integrity'
+import { secondsPerQuestionFromDuration } from '@/lib/recruitment/screening-timing'
 
 const SESSION_SELECT =
   'id, application_id, job_id, organization_id, candidate_user_id, screening_config_id, attempt_number, status, session_seed, config_snapshot, consent_acknowledged_at, started_at, expires_at, submitted_at, finalized_at, technical_score, max_score, section_scores, passed, completion_state, integrity_placeholder, integrity_band, integrity_summary, integrity_computed_at, created_at, updated_at'
@@ -310,7 +311,10 @@ export async function startScreeningSession(input: {
     attempt_policy: config.attempt_policy,
     randomized: config.randomized,
     dynamic_parameters: config.dynamic_parameters,
-    per_question_time_seconds: config.per_question_time_seconds,
+    per_question_time_seconds: secondsPerQuestionFromDuration(
+      config.duration_minutes != null ? Number(config.duration_minutes) : null,
+      config.question_count != null ? Number(config.question_count) : null
+    ),
     question_type_mix: (config as { question_type_mix?: unknown }).question_type_mix ?? null,
     question_selection: config.question_selection,
     candidate_instructions: (config as { candidate_instructions?: unknown }).candidate_instructions ?? null,

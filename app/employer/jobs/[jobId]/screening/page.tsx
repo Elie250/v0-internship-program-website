@@ -14,6 +14,10 @@ import {
   describeTypeMixCounts,
   normalizeQuestionTypeMix,
 } from '@/lib/recruitment/question-type-mix'
+import {
+  formatPerQuestionTime,
+  secondsPerQuestionFromDuration,
+} from '@/lib/recruitment/screening-timing'
 
 export default function JobScreeningPage() {
   const params = useParams<{ jobId: string }>()
@@ -311,6 +315,21 @@ export default function JobScreeningPage() {
               onChange={(e) => setConfig((c) => ({ ...c, questionCount: e.target.value }))}
             />
           </div>
+          <p className="text-sm text-slate-600 sm:col-span-2">
+            For each question:{' '}
+            <span className="font-medium text-slate-800">
+              {formatPerQuestionTime(
+                secondsPerQuestionFromDuration(
+                  Number(config.durationMinutes),
+                  Number(config.questionCount)
+                )
+              ) ?? 'set duration and question count'}
+            </span>
+            <span className="block text-xs text-slate-500 mt-1">
+              This is duration divided by the number of questions. Candidates see the same split on
+              the briefing screen.
+            </span>
+          </p>
           <div className="space-y-2">
             <Label>Categories / sections filter</Label>
             <Input

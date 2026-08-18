@@ -11,6 +11,7 @@ import {
   normalizeQuestionTypeMix,
   type QuestionTypeMix,
 } from '@/lib/recruitment/question-type-mix'
+import { secondsPerQuestionFromDuration } from '@/lib/recruitment/screening-timing'
 
 const CONFIG_SELECT =
   'id, job_id, organization_id, enabled, duration_minutes, question_count, categories, difficulty_distribution, question_type_mix, passing_score, passing_criteria, candidate_instructions, attempt_policy, question_selection, randomized, dynamic_parameters, per_question_time_seconds, integrity_monitoring, status, published_at, section_minimums, max_attempts, created_at, updated_at'
@@ -196,7 +197,10 @@ export async function upsertJobScreeningConfig(input: {
     question_selection: questionSelection,
     randomized: input.randomized !== false,
     dynamic_parameters: Boolean(input.dynamicParameters),
-    per_question_time_seconds: input.perQuestionTimeSeconds ?? null,
+    per_question_time_seconds: secondsPerQuestionFromDuration(
+      input.durationMinutes ?? (existing?.duration_minutes as number | null),
+      input.questionCount ?? (existing?.question_count as number | null)
+    ),
     integrity_monitoring: Boolean(input.integrityMonitoring),
     section_minimums:
       input.sectionMinimums && typeof input.sectionMinimums === 'object'

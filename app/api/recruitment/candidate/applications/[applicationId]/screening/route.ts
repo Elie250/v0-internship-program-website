@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getRecruitmentSessionUser } from '@/lib/recruitment/authz'
 import { getCandidateScreeningEligibility } from '@/lib/recruitment/screening-sessions'
+import { secondsPerQuestionFromDuration } from '@/lib/recruitment/screening-timing'
 
 export async function GET(
   _request: Request,
@@ -26,10 +27,12 @@ export async function GET(
             questionCount: result.config.question_count,
             passingScore: result.config.passing_score,
             attemptPolicy: result.config.attempt_policy,
-            perQuestionTimeSeconds:
-              result.config.per_question_time_seconds != null
-                ? Number(result.config.per_question_time_seconds)
+            perQuestionTimeSeconds: secondsPerQuestionFromDuration(
+              result.config.duration_minutes != null
+                ? Number(result.config.duration_minutes)
                 : null,
+              result.config.question_count != null ? Number(result.config.question_count) : null
+            ),
             candidateInstructions:
               typeof result.config.candidate_instructions === 'string'
                 ? result.config.candidate_instructions

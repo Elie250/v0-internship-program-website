@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingBlock, StatusBanner, TalentShell } from '@/components/recruitment/talent-ui'
+import {
+  formatPerQuestionTime,
+  secondsPerQuestionFromDuration,
+} from '@/lib/recruitment/screening-timing'
 
 type Eligibility = {
   eligible: boolean
@@ -74,17 +78,6 @@ function formatDurationMinutes(minutes: number | null | undefined) {
   if (!Number.isFinite(value) || value <= 0) return null
   const total = Math.round(value)
   return `${total} minute${total === 1 ? '' : 's'}`
-}
-
-function formatPerQuestionTime(seconds: number | null | undefined) {
-  const value = Number(seconds)
-  if (!Number.isFinite(value) || value <= 0) return null
-  const total = Math.round(value)
-  if (total < 60) return `${total} sec`
-  const minutes = Math.floor(total / 60)
-  const remainder = total % 60
-  if (remainder === 0) return `${minutes} min`
-  return `${minutes} min ${remainder} sec`
 }
 
 export function ScreeningFlow({ applicationId }: { applicationId: string }) {
@@ -391,7 +384,12 @@ export function ScreeningFlow({ applicationId }: { applicationId: string }) {
                   <div className="flex gap-2">
                     <dt className="font-medium text-slate-900 shrink-0">For each question:</dt>
                     <dd>
-                      {formatPerQuestionTime(eligibility?.config?.perQuestionTimeSeconds) ?? 'Not set'}
+                      {formatPerQuestionTime(
+                        secondsPerQuestionFromDuration(
+                          eligibility?.config?.durationMinutes,
+                          eligibility?.config?.questionCount
+                        )
+                      ) ?? 'Not set'}
                     </dd>
                   </div>
                   <div className="flex gap-2">
