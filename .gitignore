@@ -11,6 +11,10 @@ scripts/.mtn-sandbox-credentials.local
 .DS_Store
 .vercel
 
+# TypeScript incremental build info (generated; do not commit)
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
 # Hero videos — host on R2/CDN, not in Git (avoids Git LFS bandwidth)
 public/videos/*.mp4
 public/videos/*.mov
