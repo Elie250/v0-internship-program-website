@@ -365,6 +365,20 @@ export async function reviewPaymentCore(
       if (orderError) {
         return { success: false, error: orderError.message }
       }
+
+      const {
+        finalizeCommercePaymentApproval,
+      } = await import('@/lib/shop/commerce-checkout')
+      const stockResult = await finalizeCommercePaymentApproval({
+        orderId: existing.order_id,
+        actorUserId: session.user.id,
+      })
+      if (stockResult.error) {
+        return {
+          success: false,
+          error: stockResult.error ?? 'Payment approved but stock finalization failed',
+        }
+      }
     } else {
       const { error: orderError } = await supabaseAdmin
         .from('orders')
@@ -376,6 +390,21 @@ export async function reviewPaymentCore(
         .eq('id', existing.order_id)
       if (orderError) {
         return { success: false, error: orderError.message }
+      }
+
+      const {
+        finalizeCommercePaymentRejection,
+      } = await import('@/lib/shop/commerce-checkout')
+      const stockResult = await finalizeCommercePaymentRejection({
+        orderId: existing.order_id,
+        actorUserId: session.user.id,
+        reason: input.adminNotes || 'Payment rejected',
+      })
+      if (stockResult.error) {
+        return {
+          success: false,
+          error: stockResult.error ?? 'Payment rejected but stock release failed',
+        }
       }
     }
   }

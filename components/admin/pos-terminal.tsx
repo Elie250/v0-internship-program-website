@@ -102,6 +102,10 @@ export default function PosTerminal() {
     setError('')
     setMessage('')
     try {
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       const res = await fetch('/api/admin/pos/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,6 +114,7 @@ export default function PosTerminal() {
           customerName,
           customerPhone,
           paymentMethod,
+          idempotencyKey,
         }),
       })
       const data = await res.json()

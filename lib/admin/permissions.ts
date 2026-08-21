@@ -16,6 +16,18 @@ export const PERMISSIONS = {
   SHOP_PRODUCTS: 'shop:products',
   SHOP_ORDERS: 'shop:orders',
   SHOP_CATEGORIES: 'shop:categories',
+  /** Create POS sales (cash / MoMo). */
+  SHOP_POS_SELL: 'shop:pos_sell',
+  /** View POS / shop sales history. */
+  SHOP_SALES_VIEW: 'shop:sales_view',
+  /** View inventory levels. */
+  SHOP_STOCK_VIEW: 'shop:stock_view',
+  /** Adjust inventory and record movements. */
+  SHOP_STOCK_ADJUST: 'shop:stock_adjust',
+  /** View online and POS orders. */
+  SHOP_ORDERS_VIEW: 'shop:orders_view',
+  /** Update order fulfillment status. */
+  SHOP_ORDERS_MANAGE: 'shop:orders_manage',
   LEARNING_PROGRAMS: 'learning:programs',
   LEARNING_STUDENTS: 'learning:students',
   CONTENT_ANNOUNCEMENTS: 'content:announcements',
@@ -89,11 +101,17 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   },
   {
     id: 'shop',
-    label: 'Products',
+    label: 'Shop & POS',
     permissions: [
-      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products & stock', description: 'Manage catalog and inventory' },
-      { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders', description: 'View and fulfil customer orders' },
+      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products', description: 'Manage catalog (create/edit products)' },
+      { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders (legacy)', description: 'Legacy full orders access — prefer granular shop permissions' },
       { key: PERMISSIONS.SHOP_CATEGORIES, label: 'Categories', description: 'Organise shop categories' },
+      { key: PERMISSIONS.SHOP_POS_SELL, label: 'POS sell', description: 'Create in-store POS sales' },
+      { key: PERMISSIONS.SHOP_SALES_VIEW, label: 'Sales history', description: 'View POS and shop sales' },
+      { key: PERMISSIONS.SHOP_STOCK_VIEW, label: 'View stock', description: 'See inventory levels' },
+      { key: PERMISSIONS.SHOP_STOCK_ADJUST, label: 'Adjust stock', description: 'Change inventory and record movements' },
+      { key: PERMISSIONS.SHOP_ORDERS_VIEW, label: 'View orders', description: 'View online and POS orders' },
+      { key: PERMISSIONS.SHOP_ORDERS_MANAGE, label: 'Manage orders', description: 'Update fulfillment status' },
     ],
   },
   {
@@ -178,6 +196,20 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     canAccessAdmin: false,
     isSystem: true,
   },
+  {
+    slug: 'salesperson',
+    label: 'Salesperson',
+    description: 'In-store POS sales and order visibility — no admin console or inventory edits.',
+    canAccessAdmin: false,
+    isSystem: true,
+  },
+  {
+    slug: 'inventory_manager',
+    label: 'Inventory Manager',
+    description: 'Catalog and stock adjustments — no admin console by default.',
+    canAccessAdmin: false,
+    isSystem: true,
+  },
 ]
 
 /** Default permission sets per role (merged with users.permissions JSONB). */
@@ -210,6 +242,34 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   mentor: [],
   student: [],
   registered: [],
+  salesperson: [
+    PERMISSIONS.SHOP_POS_SELL,
+    PERMISSIONS.SHOP_SALES_VIEW,
+    PERMISSIONS.SHOP_STOCK_VIEW,
+    PERMISSIONS.SHOP_ORDERS_VIEW,
+  ],
+  inventory_manager: [
+    PERMISSIONS.SHOP_PRODUCTS,
+    PERMISSIONS.SHOP_STOCK_VIEW,
+    PERMISSIONS.SHOP_STOCK_ADJUST,
+    PERMISSIONS.SHOP_CATEGORIES,
+  ],
+}
+
+/** Expand legacy shop permissions into granular POS/inventory keys. */
+export function expandShopPermissionAliases(permissions: Iterable<string>): Set<string> {
+  const merged = new Set<string>(permissions)
+  if (merged.has(PERMISSIONS.SHOP_ORDERS)) {
+    merged.add(PERMISSIONS.SHOP_POS_SELL)
+    merged.add(PERMISSIONS.SHOP_SALES_VIEW)
+    merged.add(PERMISSIONS.SHOP_ORDERS_VIEW)
+    merged.add(PERMISSIONS.SHOP_ORDERS_MANAGE)
+  }
+  if (merged.has(PERMISSIONS.SHOP_PRODUCTS)) {
+    merged.add(PERMISSIONS.SHOP_STOCK_VIEW)
+    merged.add(PERMISSIONS.SHOP_STOCK_ADJUST)
+  }
+  return merged
 }
 
 export function getRoleDefinition(slug: string): RoleDefinition | undefined {
@@ -239,11 +299,7 @@ export function resolvePermissions(role: string, stored: unknown): Permission[] 
 
   const rolePerms = getPermissionsForRole(role)
   const custom = parseStoredPermissions(stored)
-
-  const merged = new Set<string>([...rolePerms, ...custom])
-  if (merged.has(PERMISSIONS.ADMIN_ACCESS) || rolePerms.length > 0) {
-    merged.add(PERMISSIONS.ADMIN_ACCESS)
-  }
+  const merged = expandShopPermissionAliases([...rolePerms, ...custom])
 
   return ALL_PERMISSIONS.filter((permission) => merged.has(permission)) as Permission[]
 }
