@@ -12,6 +12,8 @@ import {
   isShopPortalPath,
   isShopStaffApiPath,
 } from '@/lib/shop/hosts'
+import { STAFF_SESSION_COOKIE } from '@/lib/staff/session-cookie'
+import { sanitizeShopReturnPath } from '@/lib/shop/safe-return-path'
 
 function getTalentOrigin(): string {
   const url =
@@ -42,6 +44,23 @@ function isAdminUser(
   return user.permissions?.includes('admin:access') ?? false
 }
 
+function hasStaffSessionCookie(request: NextRequest): boolean {
+  const value = request.cookies.get(STAFF_SESSION_COOKIE)?.value?.trim()
+  return Boolean(value)
+}
+
+function isShopLoginPath(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/login/')
+}
+
+function isShopPublicPortalPath(pathname: string): boolean {
+  return (
+    isShopLoginPath(pathname) ||
+    pathname === '/manage/login' ||
+    pathname.startsWith('/manage/login/')
+  )
+}
+
 export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host')
   const pathname = request.nextUrl.pathname
@@ -64,17 +83,65 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // shop.energyandlogics.com → Shop Management Portal; keep customer /shop on main site
+  // shop.energyandlogics.com → Shop Management Portal
   if (onShopHost) {
+    const staffCookie = hasStaffSessionCookie(request)
+
     if (pathname === '/') {
-      return NextResponse.redirect(new URL('/manage', request.url))
+      return NextResponse.redirect(new URL(staffCookie ? '/dashboard' : '/login', request.url))
     }
+
     if (isPublicStorefrontPath(pathname)) {
       const target = new URL(pathname + search, getMainSiteOrigin())
       return NextResponse.redirect(target)
     }
-    if (isShopPortalPath(pathname) || isShopStaffApiPath(pathname)) {
-      // Portal paths stay on the shop host (auth enforced in later 1C phases).
+
+    // Canonical public URLs → internal /manage/* pages (avoid colliding with Academy /login,/dashboard)
+    if (isShopLoginPath(pathname)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/manage/login'
+      return NextResponse.rewrite(url)
+    }
+
+    if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = pathname.replace(/^\/dashboard/, '/manage/dashboard') || '/manage/dashboard'
+      return NextResponse.rewrite(url)
+    }
+
+    if (
+      isShopPortalPath(pathname) &&
+      !isShopPublicPortalPath(pathname) &&
+      pathname !== '/manage' &&
+      !pathname.startsWith('/manage/')
+    ) {
+      // Future portal routes (/pos, /products, …) — cookie gate only; RSC validates session
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+    }
+
+    if (pathname === '/manage' || pathname === '/manage/') {
+      return NextResponse.redirect(new URL(staffCookie ? '/dashboard' : '/login', request.url))
+    }
+
+    if (pathname.startsWith('/manage/dashboard')) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', '/dashboard')
+        return NextResponse.redirect(login)
+      }
+    }
+
+    if (isShopPortalPath(pathname) || isShopStaffApiPath(pathname) || pathname.startsWith('/manage')) {
+      // stay on shop host
     } else if (isRecruitmentPath(pathname)) {
       const target = new URL(pathname + search, getTalentOrigin())
       return NextResponse.redirect(target)
@@ -84,9 +151,11 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // Academy / Talent auth gates — do not apply Academy cookie gates to shop-portal paths on shop host
   const skipAcademyAuthGates =
-    onShopHost && (isShopPortalPath(pathname) || isShopStaffApiPath(pathname))
+    onShopHost &&
+    (isShopPortalPath(pathname) ||
+      isShopStaffApiPath(pathname) ||
+      pathname.startsWith('/manage'))
 
   const user = getUserSession(request)
   const adminSession = request.cookies.get('admin_session')

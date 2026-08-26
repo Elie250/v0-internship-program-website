@@ -1,9 +1,32 @@
 import { NextResponse } from 'next/server'
-import { createStaffSession, extractBearerToken, revokeStaffSession } from '@/lib/staff/auth'
+import { createStaffSession, revokeStaffSession } from '@/lib/staff/auth'
 import { requireStaffSession } from '@/lib/staff/context'
+import { assertStaffMutationAllowed, extractStaffToken } from '@/lib/staff/request-auth'
+import {
+  readStaffSessionCookieFromRequest,
+  STAFF_SESSION_COOKIE,
+  staffSessionCookieOptions,
+} from '@/lib/staff/session-cookie'
 
+/**
+ * Staff login.
+ * - Always creates a staff_sessions row (shared by web + future Android).
+ * - Returns Bearer token in JSON for mobile clients.
+ * - Also sets httpOnly staff_session cookie for the Shop web portal.
+ *
+ * CSRF: enforced when a staff cookie already exists. Initial login (no cookie)
+ * must remain reachable for Android / API clients without a browser Origin.
+ */
 export async function POST(request: Request) {
   try {
+    const existingCookie = readStaffSessionCookieFromRequest(request)
+    if (existingCookie) {
+      const csrf = assertStaffMutationAllowed(request)
+      if (!csrf.ok) {
+        return NextResponse.json({ error: csrf.error }, { status: 403 })
+      }
+    }
+
     const body = await request.json()
     const email = String(body.email ?? '')
     const password = String(body.password ?? '')
@@ -17,12 +40,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: result.httpStatus })
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       token: result.session.token,
       expiresAt: result.session.expiresAt,
       sessionId: result.session.sessionId,
       user: result.session.user,
     })
+
+    response.cookies.set(
+      STAFF_SESSION_COOKIE,
+      result.session.token,
+      staffSessionCookieOptions()
+    )
+
+    return response
   } catch {
     return NextResponse.json({ error: 'Login failed' }, { status: 500 })
   }
@@ -30,12 +61,25 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const token = extractBearerToken(request)
+    const csrf = assertStaffMutationAllowed(request)
+    if (!csrf.ok) {
+      return NextResponse.json({ error: csrf.error }, { status: 403 })
+    }
+
+    const token = extractStaffToken(request)
     const result = await revokeStaffSession(token)
     if (!result.success) {
-      return NextResponse.json({ error: result.error || 'Logout failed' }, { status: 401 })
+      const response = NextResponse.json(
+        { error: result.error || 'Logout failed' },
+        { status: 401 }
+      )
+      response.cookies.set(STAFF_SESSION_COOKIE, '', staffSessionCookieOptions(0))
+      return response
     }
-    return NextResponse.json({ success: true })
+
+    const response = NextResponse.json({ success: true })
+    response.cookies.set(STAFF_SESSION_COOKIE, '', staffSessionCookieOptions(0))
+    return response
   } catch {
     return NextResponse.json({ error: 'Logout failed' }, { status: 500 })
   }

@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import {
-  extractBearerToken,
-  getStaffSessionFromToken,
-  type StaffAuthUser,
-} from '@/lib/staff/auth'
+import { getStaffSessionFromToken, type StaffAuthUser } from '@/lib/staff/auth'
+import { extractStaffToken } from '@/lib/staff/request-auth'
 import { hasPermission, type Permission } from '@/lib/admin/permissions'
 
 export type StaffRequestContext = {
@@ -14,14 +11,11 @@ export type StaffRequestContext = {
 export async function requireStaffSession(
   request: Request
 ): Promise<{ ctx: StaffRequestContext } | { response: NextResponse }> {
-  const token = extractBearerToken(request)
+  const token = extractStaffToken(request)
   const result = await getStaffSessionFromToken(token)
   if (!result.session) {
     return {
-      response: NextResponse.json(
-        { error: result.error || 'Unauthorized' },
-        { status: result.error === 'Session expired' ? 401 : 401 }
-      ),
+      response: NextResponse.json({ error: result.error || 'Unauthorized' }, { status: 401 }),
     }
   }
   return { ctx: result.session }
