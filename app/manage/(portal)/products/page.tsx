@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
+import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
 import {
   ShopForbiddenPanel,
   ShopPageHeader,
-  ShopPlaceholderPanel,
 } from '@/components/shop-portal/shop-page-chrome'
+import { ShopProductsPanel } from '@/components/shop-portal/shop-products-panel'
 
 export const metadata: Metadata = {
   title: 'Products | Energy & Logics Shop',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ShopProductsPage() {
-  const session = await requireShopPortalAccess('/products', PERMISSIONS.SHOP_PRODUCTS)
+  const session = await requireShopPortalAccess('/products', STAFF_API_PERMISSIONS.products)
   if (!session) {
     return (
       <div>
@@ -23,17 +24,15 @@ export default async function ShopProductsPage() {
     )
   }
 
+  const canSeeCost = hasPermission(session.user.permissions, PERMISSIONS.SHOP_PRODUCTS)
+
   return (
     <div>
       <ShopPageHeader
         title="Products"
-        description="Manage the Energy & Logics product catalog. Catalog APIs and editing tools arrive after the staff API phase."
+        description="Browse the Energy & Logics catalog. Data comes from authorized staff product APIs."
       />
-      <ShopPlaceholderPanel
-        title="Catalog management coming soon"
-        body="Product listing, pricing, and images will use the existing products backend — not a second catalog."
-        phaseHint="Available after Phase 1C.5 / 1C.8"
-      />
+      <ShopProductsPanel canSeeCost={canSeeCost} />
     </div>
   )
 }

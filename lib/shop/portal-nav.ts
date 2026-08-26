@@ -38,7 +38,7 @@ export const SHOP_NAV_ITEMS: ShopNavItem[] = [
     href: '/products',
     label: 'Products',
     description: 'Product catalog',
-    permissions: [PERMISSIONS.SHOP_PRODUCTS],
+    permissions: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS],
     icon: 'products',
   },
   {

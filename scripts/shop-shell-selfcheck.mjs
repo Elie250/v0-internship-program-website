@@ -1,5 +1,5 @@
 /**
- * Shop portal shell nav permission self-check (Phase 1C.4).
+ * Shop portal shell nav permission self-check (Phase 1C.4 / 1C.8).
  * Run: pnpm test:shop-shell
  */
 import assert from 'node:assert/strict'
@@ -7,6 +7,7 @@ import test from 'node:test'
 
 const PERMISSIONS = {
   SHOP_PRODUCTS: 'shop:products',
+  SHOP_PRODUCTS_VIEW: 'shop:products_view',
   SHOP_POS_SELL: 'shop:pos_sell',
   SHOP_SALES_VIEW: 'shop:sales_view',
   SHOP_STOCK_VIEW: 'shop:stock_view',
@@ -16,7 +17,10 @@ const PERMISSIONS = {
 const SHOP_NAV_ITEMS = [
   { href: '/dashboard', permissions: [] },
   { href: '/pos', permissions: [PERMISSIONS.SHOP_POS_SELL] },
-  { href: '/products', permissions: [PERMISSIONS.SHOP_PRODUCTS] },
+  {
+    href: '/products',
+    permissions: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS],
+  },
   { href: '/inventory', permissions: [PERMISSIONS.SHOP_STOCK_VIEW] },
   {
     href: '/sales',
@@ -40,9 +44,10 @@ function filterNav(permissions) {
   return SHOP_NAV_ITEMS.filter((item) => canSee(permissions, item))
 }
 
-test('salesperson sees POS and sales but not products by default', () => {
+test('salesperson sees POS, catalog read, sales — not product management alone', () => {
   const perms = [
     PERMISSIONS.SHOP_POS_SELL,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
@@ -50,10 +55,10 @@ test('salesperson sees POS and sales but not products by default', () => {
   const hrefs = filterNav(perms).map((i) => i.href)
   assert.ok(hrefs.includes('/dashboard'))
   assert.ok(hrefs.includes('/pos'))
+  assert.ok(hrefs.includes('/products'))
   assert.ok(hrefs.includes('/inventory'))
   assert.ok(hrefs.includes('/sales'))
   assert.ok(hrefs.includes('/settings'))
-  assert.equal(hrefs.includes('/products'), false)
 })
 
 test('inventory manager sees products and inventory but not POS', () => {

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
+import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
 import {
   ShopForbiddenPanel,
   ShopPageHeader,
-  ShopPlaceholderPanel,
 } from '@/components/shop-portal/shop-page-chrome'
+import { ShopSalesPanel } from '@/components/shop-portal/shop-sales-panel'
 
 export const metadata: Metadata = {
   title: 'Sales | Energy & Logics Shop',
@@ -13,10 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ShopSalesPage() {
-  const session = await requireShopPortalAccess('/sales', [
-    PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_ORDERS_VIEW,
-  ])
+  const session = await requireShopPortalAccess('/sales', STAFF_API_PERMISSIONS.orders)
   if (!session) {
     return (
       <div>
@@ -26,17 +24,18 @@ export default async function ShopSalesPage() {
     )
   }
 
+  const canSeeUnitCost = hasPermission(session.user.permissions, [
+    PERMISSIONS.SHOP_PRODUCTS,
+    PERMISSIONS.SHOP_STOCK_ADJUST,
+  ])
+
   return (
     <div>
       <ShopPageHeader
         title="Sales"
-        description="Review POS and online sales once staff order APIs are available."
+        description="POS and online order history from authorized staff order APIs."
       />
-      <ShopPlaceholderPanel
-        title="Sales history coming soon"
-        body="Order lists and detail views will call authorized staff APIs built on the existing commerce orders model."
-        phaseHint="Available after Phase 1C.5 / 1C.8"
-      />
+      <ShopSalesPanel canSeeUnitCost={canSeeUnitCost} />
     </div>
   )
 }

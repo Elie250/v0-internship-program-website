@@ -4,8 +4,8 @@ import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import {
   ShopForbiddenPanel,
   ShopPageHeader,
-  ShopPlaceholderPanel,
 } from '@/components/shop-portal/shop-page-chrome'
+import { ShopInventoryPanel } from '@/components/shop-portal/shop-inventory-panel'
 
 export const metadata: Metadata = {
   title: 'Inventory | Energy & Logics Shop',
@@ -27,13 +27,9 @@ export default async function ShopInventoryPage() {
     <div>
       <ShopPageHeader
         title="Inventory"
-        description="View stock using the existing products.stock source of truth. Adjustments and movements will use the hardened stock services."
+        description="Global stock levels and movement ledger from staff inventory APIs."
       />
-      <ShopPlaceholderPanel
-        title="Inventory tools coming soon"
-        body="Stock lists, adjustments, and movement history are not available in this shell. Location-aware stock is not part of this phase."
-        phaseHint="Available after Phase 1C.5 / 1C.8"
-      />
+      <ShopInventoryPanel />
     </div>
   )
 }
