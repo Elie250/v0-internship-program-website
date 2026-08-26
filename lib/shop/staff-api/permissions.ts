@@ -1,11 +1,14 @@
 import { PERMISSIONS, type Permission } from '@/lib/admin/permissions'
 
 /**
- * Staff read-API permission mapping (Phase 1C.5).
+ * Staff read-API permission mapping (Phase 1C.5 / 1C.5.x).
  * Arrays mean OR (any one grants access) via hasPermission.
+ *
+ * Product catalog READ uses shop:products_view (POS / lookup).
+ * shop:products remains management and also grants view via alias expansion.
  */
 export const STAFF_API_PERMISSIONS = {
-  products: PERMISSIONS.SHOP_PRODUCTS,
+  products: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS] as Permission[],
   inventory: PERMISSIONS.SHOP_STOCK_VIEW,
   orders: [PERMISSIONS.SHOP_ORDERS_VIEW, PERMISSIONS.SHOP_SALES_VIEW] as Permission[],
   /** Financial + order metrics — not granted to every authenticated staff member. */

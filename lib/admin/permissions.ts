@@ -14,6 +14,8 @@ export const PERMISSIONS = {
   PAYMENTS_VIEW: 'payments:view',
   PAYMENTS_APPROVE: 'payments:approve',
   SHOP_PRODUCTS: 'shop:products',
+  /** Read product catalog (POS lookup / staff product list). Not create/edit. */
+  SHOP_PRODUCTS_VIEW: 'shop:products_view',
   SHOP_ORDERS: 'shop:orders',
   SHOP_CATEGORIES: 'shop:categories',
   /** Create POS sales (cash / MoMo). */
@@ -104,6 +106,11 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     label: 'Shop & POS',
     permissions: [
       { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products', description: 'Manage catalog (create/edit products)' },
+      {
+        key: PERMISSIONS.SHOP_PRODUCTS_VIEW,
+        label: 'View products',
+        description: 'Read product catalog for POS and staff lookups (no create/edit)',
+      },
       { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders (legacy)', description: 'Legacy full orders access — prefer granular shop permissions' },
       { key: PERMISSIONS.SHOP_CATEGORIES, label: 'Categories', description: 'Organise shop categories' },
       { key: PERMISSIONS.SHOP_POS_SELL, label: 'POS sell', description: 'Create in-store POS sales' },
@@ -244,6 +251,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   registered: [],
   salesperson: [
     PERMISSIONS.SHOP_POS_SELL,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
@@ -266,8 +274,13 @@ export function expandShopPermissionAliases(permissions: Iterable<string>): Set<
     merged.add(PERMISSIONS.SHOP_ORDERS_MANAGE)
   }
   if (merged.has(PERMISSIONS.SHOP_PRODUCTS)) {
+    merged.add(PERMISSIONS.SHOP_PRODUCTS_VIEW)
     merged.add(PERMISSIONS.SHOP_STOCK_VIEW)
     merged.add(PERMISSIONS.SHOP_STOCK_ADJUST)
+  }
+  /** POS sellers need catalog READ for lookup — not product management. */
+  if (merged.has(PERMISSIONS.SHOP_POS_SELL)) {
+    merged.add(PERMISSIONS.SHOP_PRODUCTS_VIEW)
   }
   return merged
 }

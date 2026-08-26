@@ -15,6 +15,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 const PERMISSIONS = {
   SHOP_PRODUCTS: 'shop:products',
+  SHOP_PRODUCTS_VIEW: 'shop:products_view',
   SHOP_POS_SELL: 'shop:pos_sell',
   SHOP_SALES_VIEW: 'shop:sales_view',
   SHOP_STOCK_VIEW: 'shop:stock_view',
@@ -23,7 +24,7 @@ const PERMISSIONS = {
 }
 
 const STAFF_API_PERMISSIONS = {
-  products: PERMISSIONS.SHOP_PRODUCTS,
+  products: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS],
   inventory: PERMISSIONS.SHOP_STOCK_VIEW,
   orders: [PERMISSIONS.SHOP_ORDERS_VIEW, PERMISSIONS.SHOP_SALES_VIEW],
   dashboard: [PERMISSIONS.SHOP_SALES_VIEW, PERMISSIONS.SHOP_ORDERS_VIEW],
@@ -44,8 +45,12 @@ function expandShopPermissionAliases(permissions) {
     merged.add('shop:orders_manage')
   }
   if (merged.has('shop:products')) {
+    merged.add('shop:products_view')
     merged.add('shop:stock_view')
     merged.add('shop:stock_adjust')
+  }
+  if (merged.has('shop:pos_sell')) {
+    merged.add('shop:products_view')
   }
   return merged
 }
@@ -116,6 +121,7 @@ function kigaliDateFilterBounds(dateFrom, dateTo) {
 const ROLE_PERMISSIONS = {
   salesperson: [
     PERMISSIONS.SHOP_POS_SELL,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
@@ -180,12 +186,27 @@ test('unauthenticated staff lack all API permissions', () => {
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), false)
 })
 
-test('salesperson can access inventory, orders, dashboard but not products catalog manage', () => {
-  const perms = ROLE_PERMISSIONS.salesperson
-  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), false)
+test('salesperson can access product READ, inventory, orders, dashboard — not product management alone', () => {
+  const perms = [...expandShopPermissionAliases(ROLE_PERMISSIONS.salesperson)]
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
+  assert.equal(perms.includes(PERMISSIONS.SHOP_PRODUCTS), false)
+  assert.equal(perms.includes(PERMISSIONS.SHOP_PRODUCTS_VIEW), true)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.inventory), true)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.orders), true)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), true)
+})
+
+test('pos_sell expands to products_view without granting shop:products', () => {
+  const perms = [...expandShopPermissionAliases([PERMISSIONS.SHOP_POS_SELL])]
+  assert.ok(perms.includes(PERMISSIONS.SHOP_PRODUCTS_VIEW))
+  assert.equal(perms.includes(PERMISSIONS.SHOP_PRODUCTS), false)
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
+})
+
+test('shop:products expands to products_view for managers', () => {
+  const perms = [...expandShopPermissionAliases([PERMISSIONS.SHOP_PRODUCTS])]
+  assert.ok(perms.includes(PERMISSIONS.SHOP_PRODUCTS_VIEW))
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
 })
 
 test('inventory manager can access products and inventory but not sales dashboard', () => {
