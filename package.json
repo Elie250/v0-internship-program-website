@@ -16,6 +16,7 @@
     "lint": "next lint",
     "test:integrity": "node --test scripts/integrity-selfcheck.mjs",
     "test:commerce": "node --test scripts/commerce-pos-foundation-selfcheck.mjs",
+    "test:shop-hosts": "node --test scripts/shop-hosts-selfcheck.mjs",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {
