@@ -6,6 +6,7 @@ import {
 } from '@/lib/staff/auth'
 import { readStaffSessionCookie } from '@/lib/staff/session-cookie'
 import { isShopHost } from '@/lib/shop/hosts'
+import { hasPermission, type Permission } from '@/lib/admin/permissions'
 
 export type ShopPortalSession = {
   sessionId: string
@@ -39,4 +40,18 @@ export async function requireShopPortalSession(
   if (returnTo) params.set('returnTo', returnTo)
   const suffix = params.toString() ? `?${params.toString()}` : ''
   redirect(`/login${suffix}`)
+}
+
+/**
+ * Require auth + at least one of the listed permissions.
+ * Returns null when authenticated but lacking permission (caller renders forbidden UI).
+ */
+export async function requireShopPortalAccess(
+  returnTo: string,
+  required: Permission | Permission[] | null
+): Promise<ShopPortalSession | null> {
+  const session = await requireShopPortalSession(returnTo)
+  if (!required) return session
+  if (!hasPermission(session.user.permissions, required)) return null
+  return session
 }

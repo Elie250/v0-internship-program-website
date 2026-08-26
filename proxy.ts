@@ -61,6 +61,18 @@ function isShopPublicPortalPath(pathname: string): boolean {
   )
 }
 
+/** Map public shop-host paths to internal /manage/* App Router pages. */
+function rewriteShopModulePath(pathname: string): string | null {
+  const modules = ['pos', 'products', 'inventory', 'sales', 'settings'] as const
+  for (const name of modules) {
+    if (pathname === `/${name}`) return `/manage/${name}`
+    if (pathname.startsWith(`/${name}/`)) {
+      return `/manage/${name}${pathname.slice(name.length + 1)}`
+    }
+  }
+  return null
+}
+
 export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host')
   const pathname = request.nextUrl.pathname
@@ -114,13 +126,24 @@ export function proxy(request: NextRequest) {
       return NextResponse.rewrite(url)
     }
 
+    const shopModuleRewrite = rewriteShopModulePath(pathname)
+    if (shopModuleRewrite) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = shopModuleRewrite
+      return NextResponse.rewrite(url)
+    }
+
     if (
       isShopPortalPath(pathname) &&
       !isShopPublicPortalPath(pathname) &&
       pathname !== '/manage' &&
       !pathname.startsWith('/manage/')
     ) {
-      // Future portal routes (/pos, /products, …) — cookie gate only; RSC validates session
       if (!staffCookie) {
         const login = new URL('/login', request.url)
         login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
