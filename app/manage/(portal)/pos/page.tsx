@@ -4,8 +4,8 @@ import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import {
   ShopForbiddenPanel,
   ShopPageHeader,
-  ShopPlaceholderPanel,
 } from '@/components/shop-portal/shop-page-chrome'
+import { ShopPosTerminal } from '@/components/shop-portal/shop-pos-terminal'
 
 export const metadata: Metadata = {
   title: 'POS | Energy & Logics Shop',
@@ -27,13 +27,9 @@ export default async function ShopPosPage() {
     <div>
       <ShopPageHeader
         title="POS"
-        description="In-store point of sale for Energy & Logics. Checkout, payments, and receipts will be wired to the hardened commerce services in Phase 1C.7."
+        description="Cash point of sale. Product lookup and checkout use staff APIs; the server owns pricing, stock, and receipts."
       />
-      <ShopPlaceholderPanel
-        title="Terminal coming soon"
-        body="Product search, cart, cash/MoMo checkout, and receipts are not implemented in this shell phase."
-        phaseHint="Available in Phase 1C.7"
-      />
+      <ShopPosTerminal />
     </div>
   )
 }

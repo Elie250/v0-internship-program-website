@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { requireStaffPermission } from '@/lib/staff/context'
+import { assertStaffMutationAllowed } from '@/lib/staff/request-auth'
 import { createCommerceSale } from '@/lib/shop/commerce-checkout'
 import { normalizeIdempotencyKey } from '@/lib/shop/stock-types'
 
 /**
  * Staff POS sale endpoint (mobile + future clients).
  * Shared business logic with web admin POS via createCommerceSale.
+ * Shop web (1C.7): cash only in the UI — MoMo remains supported by this API for later phases.
  */
 export async function POST(request: Request) {
   try {
+    const csrf = assertStaffMutationAllowed(request)
+    if (!csrf.ok) {
+      return NextResponse.json({ error: csrf.error }, { status: 403 })
+    }
+
     const auth = await requireStaffPermission(request, PERMISSIONS.SHOP_POS_SELL)
     if ('response' in auth) return auth.response
 
