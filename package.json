@@ -18,6 +18,7 @@
     "test:commerce": "node --test scripts/commerce-pos-foundation-selfcheck.mjs",
     "test:shop-hosts": "node --test scripts/shop-hosts-selfcheck.mjs",
     "test:shop-auth": "node --test scripts/shop-auth-selfcheck.mjs",
+    "test:shop-locations": "node --test scripts/shop-locations-selfcheck.mjs",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {
