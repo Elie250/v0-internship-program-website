@@ -39,10 +39,20 @@ function createRawToken(): string {
 
 async function verifyPassword(password: string, stored: string | null | undefined) {
   if (!stored) return false
+  // Only bcrypt hashes are accepted — plaintext comparison removed (Phase 1C hardening).
   if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
     return bcrypt.compare(password, stored)
   }
-  return password === stored
+  console.warn('[staff-auth] login rejected: password_hash is not bcrypt')
+  return false
+}
+
+/** Exported for regression tests — does not reveal hash contents. */
+export function isBcryptPasswordHash(stored: string | null | undefined): boolean {
+  if (!stored) return false
+  return (
+    stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')
+  )
 }
 
 function mapUser(row: {
@@ -100,7 +110,10 @@ export async function createStaffSession(input: {
     .eq('email', email)
     .maybeSingle()
 
-  if (error) return { error: error.message, httpStatus: 500 }
+  if (error) {
+    console.error('[staff-auth] user lookup failed')
+    return { error: 'Unable to sign in', httpStatus: 500 }
+  }
   if (!user) return { error: 'Invalid email or password', httpStatus: 401 }
 
   if (!isLoginAllowedStatus(user.status)) {
@@ -137,7 +150,8 @@ export async function createStaffSession(input: {
     .single()
 
   if (sessionError || !sessionRow) {
-    return { error: sessionError?.message || 'Failed to create session', httpStatus: 500 }
+    console.error('[staff-auth] session create failed')
+    return { error: 'Unable to sign in', httpStatus: 500 }
   }
 
   return {

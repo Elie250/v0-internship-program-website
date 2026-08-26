@@ -3,6 +3,10 @@ import { createStaffSession, revokeStaffSession } from '@/lib/staff/auth'
 import { requireStaffSession } from '@/lib/staff/context'
 import { assertStaffMutationAllowed, extractStaffToken } from '@/lib/staff/request-auth'
 import {
+  checkStaffLoginRateLimit,
+  getClientIpFromRequest,
+} from '@/lib/staff/login-rate-limit'
+import {
   readStaffSessionCookieFromRequest,
   STAFF_SESSION_COOKIE,
   staffSessionCookieOptions,
@@ -30,6 +34,22 @@ export async function POST(request: Request) {
     const body = await request.json()
     const email = String(body.email ?? '')
     const password = String(body.password ?? '')
+
+    const rate = checkStaffLoginRateLimit({
+      email,
+      clientIp: getClientIpFromRequest(request),
+    })
+    if (!rate.allowed) {
+      const response = NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429 }
+      )
+      if (rate.retryAfterSec) {
+        response.headers.set('Retry-After', String(rate.retryAfterSec))
+      }
+      return response
+    }
+
     const result = await createStaffSession({
       email,
       password,

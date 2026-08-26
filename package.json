@@ -25,6 +25,7 @@
     "test:shop-dashboard": "node --test scripts/shop-dashboard-selfcheck.mjs",
     "test:shop-pos": "node --test scripts/shop-pos-selfcheck.mjs",
     "test:shop-read-ui": "node --test scripts/shop-read-ui-selfcheck.mjs",
+    "test:shop-security": "node --test scripts/shop-security-hardening-selfcheck.mjs",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {

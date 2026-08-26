@@ -3,12 +3,13 @@ import { PERMISSIONS } from '@/lib/admin/permissions'
 import { requireStaffPermission } from '@/lib/staff/context'
 import { assertStaffMutationAllowed } from '@/lib/staff/request-auth'
 import { createCommerceSale } from '@/lib/shop/commerce-checkout'
+import { resolveShopPortalPosLocation } from '@/lib/shop/resolve-pos-location'
 import { normalizeIdempotencyKey } from '@/lib/shop/stock-types'
 
 /**
  * Staff POS sale endpoint (mobile + future clients).
  * Shared business logic with web admin POS via createCommerceSale.
- * Shop web (1C.7): cash only in the UI — MoMo remains supported by this API for later phases.
+ * Location is resolved server-side (NYANZA) — client location_id is ignored.
  */
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,9 @@ export async function POST(request: Request) {
       normalizeIdempotencyKey(body.idempotencyKey) ||
       normalizeIdempotencyKey(request.headers.get('idempotency-key'))
 
+    // Never trust client-supplied location fields.
+    const portalLocation = await resolveShopPortalPosLocation()
+
     const result = await createCommerceSale({
       channel: 'pos',
       items: Array.isArray(body.items) ? body.items : [],
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
       paymentMethod: body.paymentMethod === 'momo' ? 'momo' : 'cash',
       idempotencyKey,
       actorUserId: auth.ctx.user.id,
+      locationId: portalLocation?.id ?? null,
     })
 
     if (!result.ok) {
@@ -50,12 +55,14 @@ export async function POST(request: Request) {
         totalAmount: result.totalAmount,
         paymentStatus: result.paymentStatus,
         stockState: result.stockState,
+        locationId: portalLocation?.id ?? null,
+        locationCode: portalLocation?.code ?? null,
         message: result.message,
         receipt: result.receipt,
       },
       { status: result.httpStatus }
     )
   } catch {
-    return NextResponse.json({ error: 'POS sale failed' }, { status: 500 })
+    return NextResponse.json({ error: 'Sale could not be completed.' }, { status: 500 })
   }
 }

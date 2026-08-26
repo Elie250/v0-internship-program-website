@@ -5,6 +5,7 @@ import {
   parsePagination,
   sanitizeSearchTerm,
 } from '@/lib/shop/staff-api/common'
+import { stripProductCostFields } from '@/lib/shop/staff-api/cost-policy'
 
 const PRODUCT_SELECT =
   'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
@@ -18,7 +19,8 @@ export type StaffProductDto = {
   category: { id: string; name: string; slug: string | null; type: string | null } | null
   price: number
   discount: number
-  costPrice: number
+  /** Present only when caller has shop:products. */
+  costPrice?: number
   stock: number
   status: string | null
   images: unknown
@@ -27,9 +29,14 @@ export type StaffProductDto = {
   updatedAt: string | null
 }
 
-function mapProduct(row: Record<string, unknown>): StaffProductDto {
+export type StaffProductQueryOptions = {
+  /** When false, costPrice is omitted from the response (products_view-only). */
+  includeCost?: boolean
+}
+
+function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffProductDto {
   const category = row.category as Record<string, unknown> | null | undefined
-  return {
+  const mapped: StaffProductDto = {
     id: String(row.id),
     name: String(row.name ?? ''),
     sku: row.sku != null ? String(row.sku) : null,
@@ -45,7 +52,6 @@ function mapProduct(row: Record<string, unknown>): StaffProductDto {
       : null,
     price: Number(row.price ?? 0),
     discount: Number(row.discount ?? 0),
-    costPrice: Number(row.cost_price ?? 0),
     stock: Number(row.stock ?? 0),
     status: row.status != null ? String(row.status) : null,
     images: row.images ?? [],
@@ -54,9 +60,17 @@ function mapProduct(row: Record<string, unknown>): StaffProductDto {
     createdAt: row.created_at != null ? String(row.created_at) : null,
     updatedAt: row.updated_at != null ? String(row.updated_at) : null,
   }
+  if (includeCost) {
+    mapped.costPrice = Number(row.cost_price ?? 0)
+  }
+  return includeCost ? mapped : (stripProductCostFields(mapped) as StaffProductDto)
 }
 
-export async function listStaffProducts(searchParams: URLSearchParams) {
+export async function listStaffProducts(
+  searchParams: URLSearchParams,
+  options: StaffProductQueryOptions = {}
+) {
+  const includeCost = Boolean(options.includeCost)
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
 
   const { page, limit, offset } = parsePagination(searchParams)
@@ -93,7 +107,7 @@ export async function listStaffProducts(searchParams: URLSearchParams) {
   if (error) {
     // barcode column may be missing if migration 86 not applied
     if (/barcode/i.test(error.message)) {
-      return listStaffProductsWithoutBarcode(searchParams)
+      return listStaffProductsWithoutBarcode(searchParams, includeCost)
     }
     return { error: 'Failed to load products', httpStatus: 500 as const }
   }
@@ -101,7 +115,9 @@ export async function listStaffProducts(searchParams: URLSearchParams) {
   return {
     httpStatus: 200 as const,
     body: paginatedResponse({
-      items: (data ?? []).map((row) => mapProduct(row as Record<string, unknown>)),
+      items: (data ?? []).map((row) =>
+        mapProduct(row as Record<string, unknown>, includeCost)
+      ),
       page,
       limit,
       total: count ?? 0,
@@ -109,7 +125,10 @@ export async function listStaffProducts(searchParams: URLSearchParams) {
   }
 }
 
-async function listStaffProductsWithoutBarcode(searchParams: URLSearchParams) {
+async function listStaffProductsWithoutBarcode(
+  searchParams: URLSearchParams,
+  includeCost: boolean
+) {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   const { page, limit, offset } = parsePagination(searchParams)
   const q = sanitizeSearchTerm(searchParams.get('q') || '')
@@ -137,7 +156,7 @@ async function listStaffProductsWithoutBarcode(searchParams: URLSearchParams) {
     httpStatus: 200 as const,
     body: paginatedResponse({
       items: (data ?? []).map((row) =>
-        mapProduct({ ...(row as Record<string, unknown>), barcode: null })
+        mapProduct({ ...(row as Record<string, unknown>), barcode: null }, includeCost)
       ),
       page,
       limit,
@@ -146,9 +165,13 @@ async function listStaffProductsWithoutBarcode(searchParams: URLSearchParams) {
   }
 }
 
-export async function getStaffProductById(id: string) {
+export async function getStaffProductById(
+  id: string,
+  options: StaffProductQueryOptions = {}
+) {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
+  const includeCost = Boolean(options.includeCost)
 
   const { data, error } = await supabaseAdmin
     .from('products')
@@ -169,12 +192,20 @@ export async function getStaffProductById(id: string) {
       if (!fallback.data) return { error: 'Product not found', httpStatus: 404 as const }
       return {
         httpStatus: 200 as const,
-        body: { item: mapProduct({ ...(fallback.data as object), barcode: null }) },
+        body: {
+          item: mapProduct(
+            { ...(fallback.data as object), barcode: null },
+            includeCost
+          ),
+        },
       }
     }
     return { error: 'Failed to load product', httpStatus: 500 as const }
   }
 
   if (!data) return { error: 'Product not found', httpStatus: 404 as const }
-  return { httpStatus: 200 as const, body: { item: mapProduct(data as Record<string, unknown>) } }
+  return {
+    httpStatus: 200 as const,
+    body: { item: mapProduct(data as Record<string, unknown>, includeCost) },
+  }
 }

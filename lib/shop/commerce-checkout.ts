@@ -19,6 +19,7 @@ import {
 } from '@/lib/shop/stock-ops'
 import { normalizeIdempotencyKey } from '@/lib/shop/stock-types'
 import { buildReceiptModel, type ReceiptModel } from '@/lib/shop/receipt-model'
+import { toSafeCommerceClientError } from '@/lib/shop/commerce-errors'
 
 export type CommerceChannel = 'pos' | 'online'
 export type CommercePaymentMethod = 'cash' | 'momo'
@@ -38,6 +39,11 @@ export type CreateCommerceSaleInput = {
   actorUserId?: string | null
   receiptUrl?: string | null
   receiptNumber?: string | null
+  /**
+   * Server-resolved shop location attribution only.
+   * Callers must not trust client-supplied location IDs.
+   */
+  locationId?: string | null
 }
 
 export type CreateCommerceSaleResult =
@@ -78,7 +84,7 @@ export async function createCommerceSale(
   input: CreateCommerceSaleInput
 ): Promise<CreateCommerceSaleResult> {
   if (!supabaseAdmin) {
-    return { ok: false, error: 'Database not configured', httpStatus: 500 }
+    return { ok: false, error: 'Sale could not be completed.', httpStatus: 500 }
   }
 
   const paymentMethod: CommercePaymentMethod =
@@ -106,6 +112,7 @@ export async function createCommerceSale(
     paymentMethod,
     fulfillmentType: input.fulfillmentType ?? 'pickup',
     deliveryAddress: input.deliveryAddress ?? null,
+    locationId: input.locationId ?? null,
   })
 
   if (idempotencyKey) {
@@ -123,23 +130,33 @@ export async function createCommerceSale(
       }
       return {
         ok: false,
-        error: 'Cached idempotent response was invalid',
+        error: 'Sale could not be completed.',
         httpStatus: 500,
       }
     }
     if (gate.kind === 'conflict') {
-      return { ok: false, error: gate.error, httpStatus: 409 }
+      const safe = toSafeCommerceClientError(gate.error, 409)
+      return { ok: false, error: safe.error, httpStatus: safe.httpStatus }
     }
     if (gate.kind === 'error') {
-      return { ok: false, error: gate.error, httpStatus: 500 }
+      const safe = toSafeCommerceClientError(gate.error, 500)
+      return { ok: false, error: safe.error, httpStatus: safe.httpStatus }
     }
   }
 
-  const fail = async (error: string, httpStatus: number): Promise<CreateCommerceSaleResult> => {
+  const fail = async (
+    rawError: string,
+    httpStatus: number
+  ): Promise<CreateCommerceSaleResult> => {
+    const safe = toSafeCommerceClientError(rawError, httpStatus)
     if (idempotencyKey) {
-      await failIdempotentRequest({ scope, idempotencyKey, errorMessage: error })
+      await failIdempotentRequest({
+        scope,
+        idempotencyKey,
+        errorMessage: rawError,
+      })
     }
-    return { ok: false, error, httpStatus }
+    return { ok: false, error: safe.error, httpStatus: safe.httpStatus }
   }
 
   const built = await buildOrderLines(input.items)
@@ -166,34 +183,54 @@ export async function createCommerceSale(
     }
   }
 
-  const { data: order, error: orderError } = await supabaseAdmin
+  const orderPayloadBase = {
+    order_number: orderNumber,
+    customer_name: customerName,
+    customer_email: customerEmail,
+    customer_phone: String(input.customerPhone ?? '').trim() || null,
+    fulfillment_type: fulfillmentType,
+    delivery_address:
+      fulfillmentType === 'delivery' ? String(input.deliveryAddress ?? '').trim() : null,
+    notes:
+      input.notes?.trim() ||
+      (input.channel === 'pos' ? 'POS sale' : null),
+    total_amount: totalAmount,
+    status: isPaidNow ? 'confirmed' : 'pending',
+    payment_status: isPaidNow ? 'paid' : 'pending_review',
+    payment_method: paymentMethod,
+    channel: input.channel,
+    created_by: input.actorUserId ?? null,
+    paid_at: isPaidNow ? now : null,
+    order_date: now,
+    idempotency_key: idempotencyKey,
+    stock_state: 'none',
+  }
+
+  let { data: order, error: orderError } = await supabaseAdmin
     .from('orders')
     .insert([
       {
-        order_number: orderNumber,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: String(input.customerPhone ?? '').trim() || null,
-        fulfillment_type: fulfillmentType,
-        delivery_address:
-          fulfillmentType === 'delivery' ? String(input.deliveryAddress ?? '').trim() : null,
-        notes:
-          input.notes?.trim() ||
-          (input.channel === 'pos' ? 'POS sale' : null),
-        total_amount: totalAmount,
-        status: isPaidNow ? 'confirmed' : 'pending',
-        payment_status: isPaidNow ? 'paid' : 'pending_review',
-        payment_method: paymentMethod,
-        channel: input.channel,
-        created_by: input.actorUserId ?? null,
-        paid_at: isPaidNow ? now : null,
-        order_date: now,
-        idempotency_key: idempotencyKey,
-        stock_state: 'none',
+        ...orderPayloadBase,
+        ...(input.locationId ? { location_id: input.locationId } : {}),
       },
     ])
     .select()
     .single()
+
+  if (
+    (orderError || !order) &&
+    input.locationId &&
+    /location_id/i.test(orderError?.message || '')
+  ) {
+    console.warn('[commerce] orders.location_id unavailable — inserting without location')
+    const retry = await supabaseAdmin
+      .from('orders')
+      .insert([orderPayloadBase])
+      .select()
+      .single()
+    order = retry.data
+    orderError = retry.error
+  }
 
   if (orderError || !order) {
     if (idempotencyKey && /duplicate|unique/i.test(orderError?.message || '')) {

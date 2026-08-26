@@ -142,9 +142,13 @@ async function loadLocationNames(ids: string[]) {
   return map
 }
 
-export async function getStaffOrderById(id: string) {
+export async function getStaffOrderById(
+  id: string,
+  options: { includeCost?: boolean } = {}
+) {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   if (!parseOptionalUuid(id)) return { error: 'Invalid order id', httpStatus: 400 as const }
+  const includeCost = Boolean(options.includeCost)
 
   let { data: order, error } = await supabaseAdmin
     .from('orders')
@@ -211,15 +215,18 @@ export async function getStaffOrderById(id: string) {
         deliveryAddress:
           order.delivery_address != null ? String(order.delivery_address) : null,
         stockState: order.stock_state != null ? String(order.stock_state) : null,
-        items: (items ?? []).map((line) => ({
-          id: String(line.id),
-          productId: line.product_id != null ? String(line.product_id) : null,
-          productName: String(line.product_name ?? ''),
-          quantity: Number(line.quantity ?? 0),
-          unitPrice: Number(line.unit_price ?? 0),
-          unitCost: Number(line.unit_cost ?? 0),
-          lineTotal: Number(line.line_total ?? 0),
-        })),
+        items: (items ?? []).map((line) => {
+          const mapped = {
+            id: String(line.id),
+            productId: line.product_id != null ? String(line.product_id) : null,
+            productName: String(line.product_name ?? ''),
+            quantity: Number(line.quantity ?? 0),
+            unitPrice: Number(line.unit_price ?? 0),
+            lineTotal: Number(line.line_total ?? 0),
+            ...(includeCost ? { unitCost: Number(line.unit_cost ?? 0) } : {}),
+          }
+          return mapped
+        }),
         payment: payment
           ? {
               id: String(payment.id),
