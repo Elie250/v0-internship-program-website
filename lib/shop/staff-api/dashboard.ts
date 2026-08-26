@@ -1,11 +1,32 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { BUSINESS_TIMEZONE, kigaliCalendarDate, kigaliDayUtcBounds } from '@/lib/shop/staff-api/common'
 
+export type StaffDashboardReport = {
+  timezone: typeof BUSINESS_TIMEZONE
+  businessDate: string
+  todaySales: number
+  todayOrders: number
+  todayPosOrders: number
+  todayOnlineOrders: number
+  pendingOrders: number
+  catalogItems: number
+  inStockItems: number
+  lowStockItems: number
+  outOfStockItems: number
+  stockModel: 'global_products_stock'
+  /** Null until a dedicated audited profit report exists. */
+  profit: null
+}
+
 /**
  * Server-computed shop dashboard metrics for Africa/Kigali "today".
+ * Same contract as GET /api/staff/reports/dashboard.
  * Does not expose profit unless later phases provide a dedicated, audited calculation.
  */
-export async function getStaffDashboardReport() {
+export async function getStaffDashboardReport(): Promise<
+  | { httpStatus: 200; body: StaffDashboardReport; error?: undefined }
+  | { error: string; httpStatus: 500 }
+> {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
 
   const { startIso, endIso } = kigaliDayUtcBounds()
@@ -73,7 +94,6 @@ export async function getStaffDashboardReport() {
       lowStockItems,
       outOfStockItems,
       stockModel: 'global_products_stock' as const,
-      /** Intentionally omitted until a dedicated audited profit report exists. */
       profit: null,
     },
   }
