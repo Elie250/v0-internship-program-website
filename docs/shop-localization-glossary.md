@@ -86,6 +86,10 @@ Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale
 | Track Order | Kurikirana icyatumijwe | Customer storefront | Follow a purchase |
 | Shopping from | Ugurira kuri | Shop context | Followed by shop display name (Nyanza Shop) |
 | Checkout | Soza igurisha | Customer storefront | Complete the purchase; not POS Confirm Cash Sale |
+| Add to cart | Ongeramo mu byatoranijwe | Customer catalogue | Reuse Cart = Ibyatoranijwe |
+| Few left | Ibisigaye bike | Customer availability | Same term as Low stock; do not show exact remaining count |
+| Unavailable | Ntiboneka | Out-of-stock button | Distinct from Out of stock label |
+| All | Byose | Category filter | |
 
 ## User-facing language principles
 

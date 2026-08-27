@@ -9,9 +9,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { StorefrontLanguageToggle } from '@/components/storefront/storefront-language-toggle'
 import { STOREFRONT_NAV_ITEMS } from '@/lib/shop/storefront-shops'
+import { useShopCart } from '@/lib/shop/cart-context'
 
-export function StorefrontHeader({ cartCount = 0 }: { cartCount?: number }) {
+export function StorefrontHeader() {
   const t = useShopT()
+  const { itemCount } = useShopCart()
   const [open, setOpen] = useState(false)
 
   return (
@@ -104,9 +106,9 @@ export function StorefrontHeader({ cartCount = 0 }: { cartCount?: number }) {
             aria-label={t('storefront.a11y.cart')}
           >
             <ShoppingBag className="h-5 w-5" />
-            {cartCount > 0 ? (
+            {itemCount > 0 ? (
               <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-[var(--brand-navy,#1e3a5f)]">
-                {cartCount}
+                {itemCount}
               </span>
             ) : null}
           </Link>

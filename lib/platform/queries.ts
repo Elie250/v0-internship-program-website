@@ -187,12 +187,44 @@ export async function getCourseById(id: string): Promise<Course | null> {
   return withCategory ?? null
 }
 
+/** Published catalogue columns only — never select cost_price, barcode, or staff metadata. */
+const PUBLIC_PRODUCT_SELECT =
+  'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, images, image_url, specifications, status, category:categories(id, name, slug, type)'
+
+function mapPublishedProductRow(p: Record<string, unknown>): Product {
+  const images = Array.isArray(p.images)
+    ? (p.images as string[])
+    : typeof p.image_url === 'string' && p.image_url
+      ? [p.image_url]
+      : []
+  const category = (p.category as Category | null) ?? null
+  return {
+    id: String(p.id),
+    name: String(p.name ?? ''),
+    description: (p.description as string | null) ?? null,
+    category_id: (p.category_id as string | null) ?? null,
+    sku: (p.sku as string | null) ?? null,
+    price: Number(p.price) || 0,
+    discount: p.discount != null ? Number(p.discount) : null,
+    stock: Number(p.stock) || 0,
+    low_stock_threshold:
+      p.low_stock_threshold != null ? Number(p.low_stock_threshold) : null,
+    images,
+    specifications:
+      p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)
+        ? (p.specifications as Record<string, string>)
+        : {},
+    status: (p.status as Product['status']) ?? 'published',
+    category,
+  }
+}
+
 export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {
   const client = db()
   if (!client) return []
   let query = client
     .from('products')
-    .select('*, category:categories(*)')
+    .select(PUBLIC_PRODUCT_SELECT)
     .eq('status', 'published')
   if (categorySlug) {
     const { data: cat } = await client
@@ -203,24 +235,15 @@ export async function getPublishedProducts(categorySlug?: string, search?: strin
     if (cat) query = query.eq('category_id', cat.id)
   }
   const { data } = await query.order('created_at', { ascending: false })
-  let products = (data ?? []).map((p) => {
-    const images = Array.isArray(p.images)
-      ? p.images
-      : p.image_url
-        ? [p.image_url]
-        : []
-    return {
-      ...p,
-      images,
-      specifications: p.specifications ?? {},
-    }
-  })
+  let products = (data ?? []).map((row) => mapPublishedProductRow(row as Record<string, unknown>))
   if (search) {
     const q = search.toLowerCase()
     products = products.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        (p.description ?? '').toLowerCase().includes(q)
+        (p.description ?? '').toLowerCase().includes(q) ||
+        (p.sku ?? '').toLowerCase().includes(q) ||
+        (p.category?.name ?? '').toLowerCase().includes(q)
     )
   }
   return products
@@ -231,21 +254,12 @@ export async function getProductById(id: string): Promise<Product | null> {
   if (!client) return null
   const { data } = await client
     .from('products')
-    .select('*, category:categories(*)')
+    .select(PUBLIC_PRODUCT_SELECT)
     .eq('id', id)
     .eq('status', 'published')
     .maybeSingle()
   if (!data) return null
-  const images = Array.isArray(data.images)
-    ? data.images
-    : data.image_url
-      ? [data.image_url]
-      : []
-  return {
-    ...data,
-    images,
-    specifications: data.specifications ?? {},
-  }
+  return mapPublishedProductRow(data as Record<string, unknown>)
 }
 
 export async function getPublishedInternships(): Promise<Internship[]> {

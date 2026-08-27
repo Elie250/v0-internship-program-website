@@ -8,10 +8,11 @@ import {
   getAvailableStorefrontShops,
   getDefaultStorefrontShop,
 } from '@/lib/shop/storefront-shops'
+import { ShopCartProvider, STOREFRONT_CART_STORAGE_KEY } from '@/lib/shop/cart-context'
 
 export const metadata: Metadata = {
   title: 'Energy & Logics Shop',
-  description: 'Electrical and electronic supplies from Energy & Logics — Nyanza Shop.',
+  description: 'Electronics, accessories and practical technology from Energy & Logics — Nyanza Shop.',
   robots: { index: true, follow: true },
 }
 
@@ -31,9 +32,11 @@ export default async function StorefrontLayout({
 
   return (
     <ShopI18nProvider initialLocale={initialLocale}>
-      <StorefrontShell shops={shops} currentShopCode={currentShop.code}>
-        {children}
-      </StorefrontShell>
+      <ShopCartProvider storageKey={STOREFRONT_CART_STORAGE_KEY}>
+        <StorefrontShell shops={shops} currentShopCode={currentShop.code}>
+          {children}
+        </StorefrontShell>
+      </ShopCartProvider>
     </ShopI18nProvider>
   )
 }

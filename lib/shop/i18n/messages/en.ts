@@ -404,15 +404,30 @@ export const shopMessagesEn = {
   'storefront.shoppingFrom': 'Shopping from',
   'storefront.a11y.nav': 'Shop navigation',
   'storefront.a11y.cart': 'Cart',
-  'storefront.hero.eyebrow': 'Electrical and electronic supplies',
-  'storefront.hero.title': 'Components and tools for workshops, sites, and labs',
+  'storefront.hero.eyebrow': 'Electronics and accessories',
+  'storefront.hero.title':
+    'Electronics, accessories and practical technology for everyday use.',
   'storefront.hero.body':
-    'Energy & Logics supplies industrial and electronic parts from Nyanza Shop.',
+    'Phones, audio, chargers, batteries and everyday electronics at Nyanza Shop.',
   'storefront.hero.browse': 'Browse products',
   'storefront.catalogue.title': 'Products',
   'storefront.catalogue.hint':
-    'Electrical, electronic, and industrial supplies for practical engineering work.',
+    'Phones, audio, chargers, batteries and electronics accessories.',
   'storefront.catalogue.soon': 'The product list will appear here shortly.',
+  'storefront.catalogue.searchPlaceholder': 'Search products',
+  'storefront.catalogue.all': 'All',
+  'storefront.catalogue.empty': 'No products are listed right now.',
+  'storefront.catalogue.noResults': 'No products match that search.',
+  'storefront.catalogue.error':
+    'The product list could not be loaded. Please try again shortly.',
+  'storefront.catalogue.addToCart': 'Add to cart',
+  'storefront.catalogue.unavailable': 'Unavailable',
+  'storefront.catalogue.loading': 'Loading products…',
+  'storefront.availability.available': 'Available',
+  'storefront.availability.few': 'Few left',
+  'storefront.availability.out': 'Out of stock',
+  'storefront.product.notFound': "Sorry, we couldn't find that product.",
+  'storefront.product.back': 'Back to products',
   'storefront.cart.title': 'Cart',
   'storefront.cart.empty': 'Your cart is empty.',
   'storefront.cart.continue': 'Continue shopping',
@@ -427,7 +442,7 @@ export const shopMessagesEn = {
   'storefront.order.title': 'Order',
   'storefront.order.soon': 'Order confirmation will be available shortly.',
   'storefront.comingSoon': 'Coming shortly',
-  'storefront.footer.tagline': 'Electrical and electronic supplies in Rwanda.',
+  'storefront.footer.tagline': 'Electronics and accessories in Rwanda.',
   'storefront.footer.manage': 'Staff sign in',
 } as const
 

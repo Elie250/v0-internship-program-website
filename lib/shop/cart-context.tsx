@@ -33,10 +33,10 @@ const STORAGE_KEY = 'engineering-hub-shop-cart'
 
 const CartContext = createContext<CartContextValue | null>(null)
 
-function readStoredCart(): CartItem[] {
+function readStoredCart(storageKey: string): CartItem[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed : []
@@ -45,29 +45,40 @@ function readStoredCart(): CartItem[] {
   }
 }
 
-export function ShopCartProvider({ children }: { children: ReactNode }) {
+export function ShopCartProvider({
+  children,
+  storageKey = STORAGE_KEY,
+}: {
+  children: ReactNode
+  storageKey?: string
+}) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setItems(readStoredCart())
-  }, [])
+    setItems(readStoredCart(storageKey))
+    setReady(true)
+  }, [storageKey])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-  }, [items])
+    if (!ready) return
+    localStorage.setItem(storageKey, JSON.stringify(items))
+  }, [items, storageKey, ready])
 
   const addItem = useCallback((item: Omit<CartItem, 'quantity'>, quantity = 1) => {
     setItems((current) => {
+      if (item.maxStock < 1) return current
+      const qty = Math.min(Math.max(1, Math.floor(quantity) || 1), item.maxStock)
       const existing = current.find((entry) => entry.productId === item.productId)
       if (existing) {
-        const nextQty = Math.min(existing.quantity + quantity, item.maxStock)
+        const nextQty = Math.min(existing.quantity + qty, item.maxStock)
         return current.map((entry) =>
           entry.productId === item.productId
             ? { ...entry, quantity: nextQty, maxStock: item.maxStock, price: item.price }
             : entry
         )
       }
-      return [...current, { ...item, quantity: Math.min(quantity, item.maxStock) }]
+      return [...current, { ...item, quantity: qty }]
     })
   }, [])
 
@@ -122,3 +133,5 @@ export function useShopCart() {
   }
   return context
 }
+
+export const STOREFRONT_CART_STORAGE_KEY = 'energy-logics-storefront-cart'
