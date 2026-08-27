@@ -97,7 +97,12 @@ export default async function OrderReceiptLookupPage({ params }: PageProps) {
                   <tbody>
                     {result.items.map((item, index) => (
                       <tr key={`${item.productName}-${index}`} className="border-b last:border-0">
-                        <td className="p-2">{item.productName}</td>
+                        <td className="p-2">
+                          <p>{item.productName}</p>
+                          {item.sellingUnitLabel ? (
+                            <p className="text-xs text-slate-500">{item.sellingUnitLabel}</p>
+                          ) : null}
+                        </td>
                         <td className="p-2 text-right">{item.quantity}</td>
                         <td className="p-2 text-right">{item.lineTotal.toLocaleString()} RWF</td>
                       </tr>

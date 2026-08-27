@@ -163,11 +163,18 @@ test('staff read API route modules exist', () => {
   }
 })
 
-test('routes authenticate with requireStaffPermission and are GET-only', () => {
+test('routes authenticate with requireStaffPermission and stay read-only except selling-unit PATCH', () => {
   for (const rel of ROUTE_FILES) {
     const src = readFileSync(join(root, rel), 'utf8')
     assert.match(src, /requireStaffPermission/)
     assert.match(src, /export async function GET/)
+    if (rel.replace(/\\/g, '/').endsWith('staff/products/[id]/route.ts')) {
+      assert.match(src, /export async function PATCH/)
+      assert.match(src, /assertStaffMutationAllowed/)
+      assert.match(src, /PERMISSIONS\.SHOP_PRODUCTS/)
+      assert.doesNotMatch(src, /export async function (POST|PUT|DELETE)/)
+      continue
+    }
     assert.doesNotMatch(src, /export async function (POST|PATCH|PUT|DELETE)/)
   }
 })

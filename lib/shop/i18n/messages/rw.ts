@@ -193,6 +193,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'pos.reviewTitle': 'Suzuma igurisha',
   'pos.each': '{price} kuri kimwe',
   'pos.offList': '· −{discount} ku giciro',
+  'pos.line.qtyUnit': 'Ingano {n} · {unit}',
   'a11y.decreaseQty': 'Gabanya ingano',
   'a11y.increaseQty': 'Ongera ingano',
   'a11y.removeItem': 'Kuramo',
@@ -226,6 +227,8 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'products.descriptionForbidden': 'Urutonde rw’ibicuruzwa.',
   'products.readOnlyNote':
     'Amakuru y’ibicuruzwa aboneka muri sisitemu y’iduka. Guhindura ntihahari muri iki gihe.',
+  'products.manageNote':
+    'Ushobora kuvugurura ingano n’igipimo byo kugurisha. Ibindi bisobanuro bikurikiranwa mu rutonde rw’ubuyobozi.',
   'products.searchLabel': 'Shakisha ibicuruzwa',
   'products.searchPlaceholder': 'Shakisha izina, SKU, barcode…',
   'products.statusLabel': 'Imimerere',
@@ -245,6 +248,12 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'products.field.sellPrice': 'Igiciro cyo kugurisha',
   'products.field.cost': 'Igiciro cyo kugura',
   'products.field.stock': 'Ububiko',
+  'products.field.sellingQuantity': 'Ingano yo kugurisha',
+  'products.field.sellingUnit': 'Igipimo',
+  'products.sellingHint':
+    'Igiciro ni icy’igicuruzwa kimwe. Ububiko ni umubare w’ibicuruzwa bigurishwa.',
+  'products.sellingSaved': 'Igipimo cyo kugurisha cyabitswe.',
+  'products.sellingInvalid': 'Shyiramo ingano irenza 0 uhitemo igipimo kiri ku rutonde.',
   'products.refreshing': 'Kuvugurura…',
 
   // Inventory
@@ -453,6 +462,8 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'storefront.cart.title': 'Ibyatoranijwe',
   'storefront.cart.empty': 'Nta bicuruzwa byatoranijwe.',
   'storefront.cart.continue': 'Komeza kugura',
+  'storefront.line.unitQty': '{unit} · Ingano {n}',
+  'storefront.line.qtyOnly': 'Ingano {n}',
   'storefront.cart.checkoutSoon': 'Soza igurisha bizaboneka vuba.',
   'storefront.checkout.title': 'Soza igurisha',
   'storefront.checkout.soon':

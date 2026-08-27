@@ -1,4 +1,5 @@
 import { getCategories, getPublishedProducts } from '@/lib/platform/queries'
+import { formatSellingUnit, resolveSellingUnitFields } from '@/lib/shop/selling-unit'
 import type { Product } from '@/types/platform'
 
 /** Matches products.low_stock_threshold database default (scripts/10-shop-orders.sql). */
@@ -19,7 +20,9 @@ export type PublicCatalogueItem = {
   price: number
   listPrice: number | null
   discountAmount: number | null
-  sellingUnitLabel: string | null
+  sellingQuantity: number
+  sellingUnit: string
+  sellingUnitLabel: string
   categoryName: string | null
   categorySlug: string | null
   sku: string | null
@@ -51,28 +54,6 @@ export function publicSellingPrice(price: number, discount: number | null | unde
   const p = Number(price) || 0
   const d = Number(discount) || 0
   return Math.max(0, Math.round(p - d))
-}
-
-const SELLING_UNIT_KEY_RE = /^(unit|selling_unit|sellingUnit|pack_unit|uom)$/i
-const SELLING_QTY_KEY_RE = /^(qty|quantity|selling_qty|selling_quantity|pack_size|packSize)$/i
-const SELLING_LABEL_KEY_RE = /^(selling_unit_label|pack|contents)$/i
-
-/** Read a selling unit label from product specifications only. Never invent a default unit. */
-export function publicSellingUnitLabel(
-  specifications: Record<string, string> | null | undefined
-): string | null {
-  if (!specifications) return null
-  const entries = Object.entries(specifications).filter(
-    ([key, value]) => key.trim() && String(value).trim()
-  )
-  const find = (test: RegExp) =>
-    entries.find(([key]) => test.test(key.trim()))?.[1]?.trim() || null
-  const combined = find(SELLING_LABEL_KEY_RE)
-  if (combined) return combined
-  const quantity = find(SELLING_QTY_KEY_RE)
-  const unit = find(SELLING_UNIT_KEY_RE)
-  if (quantity && unit) return `${quantity} ${unit}`.replace(/\s+/g, ' ')
-  return unit || quantity
 }
 
 export function publicDiscountPercent(
@@ -129,6 +110,7 @@ export function toPublicCatalogueItem(product: Product): PublicCatalogueItem {
   const listPrice = Math.max(0, Math.round(Number(product.price) || 0))
   const price = publicSellingPrice(product.price, product.discount)
   const hasRealDiscount = discountAmount > 0 && listPrice > price
+  const selling = resolveSellingUnitFields(product)
   return {
     slug: publicProductSlug(product),
     name: product.name,
@@ -137,7 +119,9 @@ export function toPublicCatalogueItem(product: Product): PublicCatalogueItem {
     price,
     listPrice: hasRealDiscount ? listPrice : null,
     discountAmount: hasRealDiscount ? discountAmount : null,
-    sellingUnitLabel: publicSellingUnitLabel(specifications),
+    sellingQuantity: selling.sellingQuantity,
+    sellingUnit: selling.sellingUnit,
+    sellingUnitLabel: formatSellingUnit(selling.sellingQuantity, selling.sellingUnit),
     categoryName: product.category?.name ?? null,
     categorySlug: product.category?.slug ?? null,
     sku: product.sku?.trim() || null,

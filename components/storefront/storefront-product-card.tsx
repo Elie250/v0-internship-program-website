@@ -39,9 +39,7 @@ export function StorefrontProductCard({ product }: { product: PublicCatalogueIte
             {product.name}
           </h3>
         </Link>
-        {product.sellingUnitLabel ? (
-          <p className="mt-0.5 text-xs text-slate-500">{product.sellingUnitLabel}</p>
-        ) : null}
+        <p className="mt-0.5 text-xs text-slate-500">{product.sellingUnitLabel}</p>
         <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <p className="text-sm font-semibold text-[var(--brand-navy,#1e3a5f)] sm:text-base">
             {formatShopRwf(product.price)}

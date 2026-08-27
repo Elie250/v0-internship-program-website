@@ -9,6 +9,13 @@ import { previewUnitPrice } from '@/lib/shop/pos-pricing'
 import { fetchStaffApi, type StaffListResponse } from '@/lib/shop/staff-client'
 import { ShopListPagination } from '@/components/shop-portal/shop-list-pagination'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import {
+  SELLING_UNITS,
+  formatSellingUnit,
+  isSellingUnit,
+  parseSellingQuantity,
+  parseSellingUnit,
+} from '@/lib/shop/selling-unit'
 
 type ProductRow = {
   id: string
@@ -22,6 +29,9 @@ type ProductRow = {
   stock: number
   status: string | null
   lowStockThreshold: number | null
+  sellingQuantity: number
+  sellingUnit: string
+  sellingUnitLabel: string
 }
 
 type ProductDetail = ProductRow & {
@@ -43,6 +53,10 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<ProductDetail | null>(null)
   const [detailError, setDetailError] = useState('')
+  const [sellingQuantity, setSellingQuantity] = useState('1')
+  const [sellingUnit, setSellingUnit] = useState('PCS')
+  const [sellingSaving, setSellingSaving] = useState(false)
+  const [sellingMessage, setSellingMessage] = useState('')
   const [, startTransition] = useTransition()
 
   const loadList = useEffectEvent(async (q: string, st: string, pg: number) => {
@@ -79,6 +93,13 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
       return
     }
     setDetail(result.data.item)
+    setSellingQuantity(String(result.data.item.sellingQuantity ?? 1))
+    setSellingUnit(
+      isSellingUnit(String(result.data.item.sellingUnit ?? 'PCS'))
+        ? String(result.data.item.sellingUnit)
+        : 'PCS'
+    )
+    setSellingMessage('')
   })
 
   useEffect(() => {
@@ -100,7 +121,9 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">{t('products.readOnlyNote')}</p>
+      <p className="text-xs text-slate-500">
+        {canSeeCost ? t('products.manageNote') : t('products.readOnlyNote')}
+      </p>
 
       <div className="flex flex-wrap gap-3">
         <div className="min-w-[200px] flex-1">
@@ -171,7 +194,9 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       <td className="px-3 py-2.5">
                         <p className="font-medium text-slate-900 line-clamp-1">{row.name}</p>
                         <p className="text-xs text-slate-500">
-                          {row.sku || t('products.noSku')}
+                          {row.sellingUnitLabel ||
+                            formatSellingUnit(row.sellingQuantity, row.sellingUnit)}
+                          {row.sku ? ` · ${row.sku}` : ` · ${t('products.noSku')}`}
                           {row.category?.name ? ` · ${row.category.name}` : ''}
                         </p>
                       </td>
@@ -269,7 +294,102 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                   <dt className="text-slate-500">{t('products.field.stock')}</dt>
                   <dd className="tabular-nums font-medium">{formatShopInteger(detail.stock)}</dd>
                 </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-500">{t('products.field.sellingUnit')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.sellingUnitLabel ||
+                      formatSellingUnit(detail.sellingQuantity, detail.sellingUnit)}
+                  </dd>
+                </div>
               </dl>
+              {canSeeCost ? (
+                <form
+                  className="space-y-3 border-t border-slate-100 pt-3"
+                  onSubmit={async (event) => {
+                    event.preventDefault()
+                    setSellingMessage('')
+                    const qty = parseSellingQuantity(sellingQuantity)
+                    const unit = parseSellingUnit(sellingUnit)
+                    if (!qty.ok || !unit.ok) {
+                      setSellingMessage(t('products.sellingInvalid'))
+                      return
+                    }
+                    setSellingSaving(true)
+                    const result = await fetchStaffApi<{ item: ProductDetail }>(
+                      `/api/staff/products/${detail.id}`,
+                      {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          sellingQuantity: qty.value,
+                          sellingUnit: unit.value,
+                        }),
+                      }
+                    )
+                    setSellingSaving(false)
+                    if (!result.ok) {
+                      setSellingMessage(result.error)
+                      return
+                    }
+                    setDetail(result.data.item)
+                    setSellingQuantity(String(result.data.item.sellingQuantity ?? qty.value))
+                    setSellingUnit(result.data.item.sellingUnit || unit.value)
+                    setItems((current) =>
+                      current.map((row) =>
+                        row.id === result.data.item.id
+                          ? {
+                              ...row,
+                              sellingQuantity: result.data.item.sellingQuantity,
+                              sellingUnit: result.data.item.sellingUnit,
+                              sellingUnitLabel: result.data.item.sellingUnitLabel,
+                            }
+                          : row
+                      )
+                    )
+                    setSellingMessage(t('products.sellingSaved'))
+                  }}
+                >
+                  <p className="text-xs text-slate-500">{t('products.sellingHint')}</p>
+                  <div>
+                    <Label htmlFor="shop-selling-qty">{t('products.field.sellingQuantity')}</Label>
+                    <Input
+                      id="shop-selling-qty"
+                      className="mt-1 bg-white"
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      value={sellingQuantity}
+                      onChange={(e) => setSellingQuantity(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="shop-selling-unit">{t('products.field.sellingUnit')}</Label>
+                    <select
+                      id="shop-selling-unit"
+                      className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                      value={sellingUnit}
+                      onChange={(e) => setSellingUnit(e.target.value)}
+                    >
+                      {SELLING_UNITS.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {unit}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {sellingMessage ? (
+                    <p className="text-xs text-slate-600">{sellingMessage}</p>
+                  ) : null}
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+                    disabled={sellingSaving}
+                  >
+                    {sellingSaving ? t('action.saving') : t('action.saveChanges')}
+                  </Button>
+                </form>
+              ) : null}
             </div>
           )}
         </div>

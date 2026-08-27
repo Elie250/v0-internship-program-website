@@ -19,6 +19,7 @@ export type PublicOrderItem = {
   quantity: number
   unitPrice: number
   lineTotal: number
+  sellingUnitLabel: string | null
 }
 
 export type PublicOrderView = {
@@ -117,6 +118,7 @@ export function toPublicOrderView(result: PublicOrderLookupSource): PublicOrderV
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       lineTotal: item.lineTotal,
+      sellingUnitLabel: item.sellingUnitLabel ?? null,
     })),
   }
 }

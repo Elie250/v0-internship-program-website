@@ -128,7 +128,14 @@ export function StorefrontOrderCard({
                 <div className="min-w-0">
                   <p className="font-medium text-slate-900">{item.productName}</p>
                   <p className="mt-1 text-sm text-slate-600">
-                    {item.quantity} × {formatShopRwf(item.unitPrice)}
+                    {item.sellingUnitLabel
+                      ? t('storefront.line.unitQty', {
+                          unit: item.sellingUnitLabel,
+                          n: item.quantity,
+                        })
+                      : t('storefront.line.qtyOnly', { n: item.quantity })}
+                    {' · '}
+                    {formatShopRwf(item.unitPrice)}
                   </p>
                 </div>
                 <p className="shrink-0 text-sm font-semibold text-slate-900">

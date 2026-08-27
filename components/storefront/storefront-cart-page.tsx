@@ -50,7 +50,15 @@ export function StorefrontCartPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-slate-900">{item.name}</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      {t('common.price')}: {formatShopRwf(item.price)}
+                      {item.sellingUnitLabel
+                        ? t('storefront.line.unitQty', {
+                            unit: item.sellingUnitLabel,
+                            n: item.quantity,
+                          })
+                        : t('storefront.line.qtyOnly', { n: item.quantity })}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-slate-900">
+                      {formatShopRwf(item.price)}
                     </p>
                     <div className="mt-3 flex items-center gap-2">
                       <Button

@@ -1,4 +1,5 @@
 import { COMPANY } from '@/lib/company/constants'
+import { formatSellingUnit } from '@/lib/shop/selling-unit'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export type OrderLookupItem = {
@@ -6,6 +7,7 @@ export type OrderLookupItem = {
   quantity: number
   unitPrice: number
   lineTotal: number
+  sellingUnitLabel: string | null
 }
 
 export type OrderLookupResult =
@@ -69,15 +71,45 @@ export async function lookupOrder(rawCode: string): Promise<OrderLookupResult> {
 
   const { data: rows } = await supabaseAdmin
     .from('order_items')
-    .select('product_name, quantity, unit_price, line_total')
+    .select('product_id, product_name, quantity, unit_price, line_total')
     .eq('order_id', order.id)
 
-  const items: OrderLookupItem[] = (rows ?? []).map((row) => ({
-    productName: String(row.product_name ?? 'Product'),
-    quantity: Number(row.quantity) || 0,
-    unitPrice: Number(row.unit_price) || 0,
-    lineTotal: Number(row.line_total ?? Number(row.unit_price) * Number(row.quantity)) || 0,
-  }))
+  const productIds = [
+    ...new Set(
+      (rows ?? [])
+        .map((row) => (row.product_id != null ? String(row.product_id) : ''))
+        .filter(Boolean)
+    ),
+  ]
+  const unitByProductId = new Map<string, string>()
+  if (productIds.length > 0) {
+    const { data: products, error: unitError } = await supabaseAdmin
+      .from('products')
+      .select('id, selling_quantity, selling_unit')
+      .in('id', productIds)
+    if (!unitError && products) {
+      for (const product of products) {
+        unitByProductId.set(
+          String(product.id),
+          formatSellingUnit(
+            Number(product.selling_quantity),
+            String(product.selling_unit ?? '')
+          )
+        )
+      }
+    }
+  }
+
+  const items: OrderLookupItem[] = (rows ?? []).map((row) => {
+    const productId = row.product_id != null ? String(row.product_id) : ''
+    return {
+      productName: String(row.product_name ?? 'Product'),
+      quantity: Number(row.quantity) || 0,
+      unitPrice: Number(row.unit_price) || 0,
+      lineTotal: Number(row.line_total ?? Number(row.unit_price) * Number(row.quantity)) || 0,
+      sellingUnitLabel: productId ? unitByProductId.get(productId) ?? null : null,
+    }
+  })
 
   return {
     status: 'found',

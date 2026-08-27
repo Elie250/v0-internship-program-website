@@ -502,17 +502,28 @@ test('existing receipt lookup route remains on lookupOrder', () => {
   assert.match(read('lib/shop/order-lookup.ts'), /getOrderReceiptUrl/)
 })
 
-test('no schema migration was introduced for the public catalogue', () => {
+test('selling unit migration adds product columns without inventory or EBM', () => {
   const src = read('lib/shop/public-catalogue.ts')
   assert.doesNotMatch(src, /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-checkout.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-order.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-merchandising.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   const sqlFiles = readdirSync(join(root, 'scripts')).filter((name) => name.endsWith('.sql'))
+  assert.ok(sqlFiles.includes('90-shop-product-selling-unit.sql'))
   assert.equal(
-    sqlFiles.some((name) => /90-|public-catalogue|product_location_stock|products\.slug|products\.is_featured/i.test(name)),
+    sqlFiles.some((name) => /public-catalogue|product_location_stock|products\.slug|products\.is_featured/i.test(name)),
     false
   )
+  const sql = read('scripts/90-shop-product-selling-unit.sql')
+  const sqlBody = sql.replace(/--[^\n]*/g, '')
+  assert.match(sql, /selling_quantity NUMERIC\(12,3\) NOT NULL DEFAULT 1/)
+  assert.match(sql, /selling_unit TEXT NOT NULL DEFAULT 'PCS'/)
+  assert.match(sql, /CHECK \(selling_quantity > 0\)/)
+  assert.match(sql, /'PCS', 'PACK', 'SET', 'PAIR', 'M', 'CM', 'MM', 'KG', 'G', 'L', 'ML'/)
+  assert.match(sql, /SET selling_quantity = 1/)
+  assert.match(sql, /SET selling_unit = 'PCS'/)
+  assert.doesNotMatch(sqlBody, /CREATE TABLE|ALTER TABLE order_items|product_location_stock|sale_number/)
+  assert.doesNotMatch(sqlBody, /UPDATE orders/)
 })
 
 function sampleItem(overrides = {}) {
@@ -571,18 +582,16 @@ function selectDealProducts(products, limit = 8) {
     .slice(0, Math.max(0, limit))
 }
 
-function publicSellingUnitLabel(specifications) {
-  if (!specifications) return null
-  const entries = Object.entries(specifications).filter(
-    ([key, value]) => key.trim() && String(value).trim()
-  )
-  const find = (test) => entries.find(([key]) => test.test(key.trim()))?.[1]?.trim() || null
-  const combined = find(/^(selling_unit_label|pack|contents)$/i)
-  if (combined) return combined
-  const quantity = find(/^(qty|quantity|selling_qty|selling_quantity|pack_size|packSize)$/i)
-  const unit = find(/^(unit|selling_unit|sellingUnit|pack_unit|uom)$/i)
-  if (quantity && unit) return `${quantity} ${unit}`.replace(/\s+/g, ' ')
-  return unit || quantity
+function formatSellingQuantity(quantity) {
+  const n = Number(quantity)
+  if (!Number.isFinite(n)) return '1'
+  const rounded = Math.round(n * 1000) / 1000
+  if (Number.isInteger(rounded)) return String(rounded)
+  return rounded.toFixed(3).replace(/\.?0+$/, '')
+}
+
+function formatSellingUnit(quantity, unit) {
+  return `${formatSellingQuantity(quantity)} ${unit}`
 }
 
 test('new arrivals take the newest published catalogue products', () => {
@@ -758,22 +767,107 @@ test('today deals require a real product discount and never invent markdown', ()
   assert.deepEqual(selectDealProducts([sampleItem({ slug: 'none' })]), [])
 })
 
-test('selling unit is shown only when product specifications already contain it', () => {
+test('selling unit comes from database columns and formats without multiplication', () => {
+  const helper = read('lib/shop/selling-unit.ts')
+  assert.match(helper, /export function formatSellingUnit/)
+  assert.match(helper, /PCS.*PACK.*SET.*PAIR.*M.*CM.*MM.*KG.*G.*L.*ML/s)
+  assert.doesNotMatch(helper, /specifications/)
+  assert.equal(formatSellingUnit(1, 'PCS'), '1 PCS')
+  assert.equal(formatSellingUnit(5, 'M'), '5 M')
+  assert.equal(formatSellingUnit(20, 'ML'), '20 ML')
+  assert.equal(formatSellingUnit(0.5, 'KG'), '0.5 KG')
+  assert.equal(formatSellingUnit(1.250, 'L'), '1.25 L')
+  assert.doesNotMatch(formatSellingUnit(20, 'ML'), /×/)
+
   const src = read('lib/shop/public-catalogue.ts')
-  assert.match(src, /export function publicSellingUnitLabel/)
-  assert.doesNotMatch(src, /return ['"]1 PCS['"]/)
-  assert.doesNotMatch(read('components/storefront/storefront-product-card.tsx'), /1 PCS/)
-  assert.equal(publicSellingUnitLabel({}), null)
-  assert.equal(publicSellingUnitLabel({ unit: 'PCS', qty: '1' }), '1 PCS')
-  assert.equal(publicSellingUnitLabel({ color: 'red' }), null)
-  const dto = read('lib/shop/public-catalogue.ts')
-  const typeStart = dto.indexOf('export type PublicCatalogueItem')
-  const typeEnd = dto.indexOf('const UUID_RE')
-  const typeBlock = dto.slice(typeStart, typeEnd)
+  assert.doesNotMatch(src, /export function publicSellingUnitLabel/)
+  assert.match(src, /formatSellingUnit/)
+  assert.match(src, /resolveSellingUnitFields/)
+  const typeStart = src.indexOf('export type PublicCatalogueItem')
+  const typeEnd = src.indexOf('const UUID_RE')
+  const typeBlock = src.slice(typeStart, typeEnd)
+  assert.match(typeBlock, /sellingQuantity:/)
+  assert.match(typeBlock, /sellingUnit:/)
   assert.match(typeBlock, /sellingUnitLabel:/)
   assert.match(typeBlock, /listPrice:/)
   assert.doesNotMatch(typeBlock, /\nid:/)
   assert.doesNotMatch(typeBlock, /costPrice/)
+
+  const queries = read('lib/platform/queries.ts')
+  const selectStart = queries.indexOf('const PUBLIC_PRODUCT_SELECT')
+  const selectEnd = queries.indexOf('const PUBLIC_PRODUCT_SELECT_LEGACY')
+  const selectBlock = queries.slice(selectStart, selectEnd)
+  assert.match(selectBlock, /selling_quantity/)
+  assert.match(selectBlock, /selling_unit/)
+  assert.doesNotMatch(selectBlock, /cost_price|barcode/)
+
+  const card = read('components/storefront/storefront-product-card.tsx')
+  assert.match(card, /product\.sellingUnitLabel/)
+  assert.doesNotMatch(card, /×/)
+  const detail = read('components/storefront/storefront-product-detail.tsx')
+  assert.match(detail, /product\.sellingUnitLabel/)
+  assert.doesNotMatch(detail, /5 × M|20 × ML/)
+  const cart = read('components/storefront/storefront-cart-page.tsx')
+  assert.match(cart, /storefront\.line\.unitQty/)
+  const checkout = read('components/storefront/storefront-checkout.tsx')
+  assert.match(checkout, /storefront\.line\.unitQty/)
+  assert.doesNotMatch(checkout, /sellingUnit:|selling_unit:/)
+  const orderCard = read('components/storefront/storefront-order-card.tsx')
+  assert.match(orderCard, /item\.sellingUnitLabel/)
+  const lookup = read('lib/shop/order-lookup.ts')
+  assert.match(lookup, /selling_quantity, selling_unit/)
+  assert.doesNotMatch(lookup, /ALTER TABLE order_items|selling_unit TEXT/)
+})
+
+test('public checkout ignores client selling unit and price as authority', () => {
+  const resolve = read('lib/shop/public-checkout.ts')
+  assert.doesNotMatch(resolve, /sellingUnit|selling_unit|sellingQuantity/)
+  assert.match(resolve, /quotedUnitPriceMatches\(row\.quotedUnitPrice, publicItem\.price\)/)
+  assert.match(resolve, /items\.push\(\{ productId: product\.id, quantity \}\)/)
+  const checkout = read('components/storefront/storefront-checkout.tsx')
+  assert.match(checkout, /slug: item\.productId/)
+  assert.match(checkout, /quantity: item\.quantity/)
+  assert.doesNotMatch(checkout, /sellingUnit: item|sellingQuantity: item/)
+  const helper = read('lib/shop/selling-unit.ts')
+  assert.match(helper, /parseSellingQuantity/)
+  assert.match(helper, /n <= 0/)
+  assert.match(helper, /isSellingUnit/)
+})
+
+function parseSellingQuantity(raw) {
+  if (raw === undefined || raw === null || raw === '') return { ok: false }
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n) || n <= 0) return { ok: false }
+  const value = Math.round(n * 1000) / 1000
+  if (!(value > 0)) return { ok: false }
+  return { ok: true, value }
+}
+
+function parseSellingUnit(raw) {
+  const allowed = ['PCS', 'PACK', 'SET', 'PAIR', 'M', 'CM', 'MM', 'KG', 'G', 'L', 'ML']
+  if (raw === undefined || raw === null) return { ok: false }
+  const unit = String(raw).trim().toUpperCase()
+  if (!allowed.includes(unit)) return { ok: false }
+  return { ok: true, value: unit }
+}
+
+test('selling quantity and unit validation rejects invalid writes', () => {
+  assert.equal(parseSellingQuantity(1).ok, true)
+  assert.equal(parseSellingQuantity(0.5).ok, true)
+  assert.equal(parseSellingQuantity(0).ok, false)
+  assert.equal(parseSellingQuantity(-1).ok, false)
+  assert.equal(parseSellingQuantity('nope').ok, false)
+  assert.equal(parseSellingUnit('PCS').ok, true)
+  assert.equal(parseSellingUnit('ml').ok, true)
+  assert.equal(parseSellingUnit('BOX').ok, false)
+  assert.equal(parseSellingUnit('metre').ok, false)
+  const helper = read('lib/shop/selling-unit.ts')
+  assert.match(helper, /parseSellingQuantity/)
+  assert.match(helper, /parseSellingUnit/)
+  assert.match(helper, /n <= 0/)
+  const adminUi = read('components/admin/product-management.tsx')
+  assert.match(adminUi, /SELLING_UNITS\.map/)
+  assert.match(adminUi, /SelectItem key=\{unit\}/)
 })
 
 test('package.json exposes test:shop-storefront', () => {

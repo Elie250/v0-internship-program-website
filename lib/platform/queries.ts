@@ -16,6 +16,7 @@ import {
   normalizeCourseRow,
 } from '@/lib/platform/courses'
 import type { ProgramType } from '@/lib/enrollment/program-types'
+import { resolveSellingUnitFields } from '@/lib/shop/selling-unit'
 
 function db() {
   if (!supabaseAdmin) return null
@@ -189,6 +190,9 @@ export async function getCourseById(id: string): Promise<Course | null> {
 
 /** Published catalogue columns only — never select cost_price, barcode, or staff metadata. */
 const PUBLIC_PRODUCT_SELECT =
+  'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, selling_quantity, selling_unit, images, image_url, specifications, status, category:categories(id, name, slug, type)'
+
+const PUBLIC_PRODUCT_SELECT_LEGACY =
   'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, images, image_url, specifications, status, category:categories(id, name, slug, type)'
 
 function mapPublishedProductRow(p: Record<string, unknown>): Product {
@@ -198,6 +202,7 @@ function mapPublishedProductRow(p: Record<string, unknown>): Product {
       ? [p.image_url]
       : []
   const category = (p.category as Category | null) ?? null
+  const selling = resolveSellingUnitFields(p)
   return {
     id: String(p.id),
     name: String(p.name ?? ''),
@@ -209,6 +214,8 @@ function mapPublishedProductRow(p: Record<string, unknown>): Product {
     stock: Number(p.stock) || 0,
     low_stock_threshold:
       p.low_stock_threshold != null ? Number(p.low_stock_threshold) : null,
+    selling_quantity: selling.sellingQuantity,
+    selling_unit: selling.sellingUnit,
     images,
     specifications:
       p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)
@@ -219,23 +226,38 @@ function mapPublishedProductRow(p: Record<string, unknown>): Product {
   }
 }
 
+function isMissingSellingUnitColumn(message: string | undefined): boolean {
+  return /selling_quantity|selling_unit/i.test(message ?? '')
+}
+
 export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {
   const client = db()
   if (!client) return []
-  let query = client
-    .from('products')
-    .select(PUBLIC_PRODUCT_SELECT)
-    .eq('status', 'published')
+  let categoryId: string | null = null
   if (categorySlug) {
     const { data: cat } = await client
       .from('categories')
       .select('id')
       .eq('slug', categorySlug)
       .maybeSingle()
-    if (cat) query = query.eq('category_id', cat.id)
+    if (cat) categoryId = cat.id
   }
-  const { data } = await query.order('created_at', { ascending: false })
-  let products = (data ?? []).map((row) => mapPublishedProductRow(row as Record<string, unknown>))
+
+  const run = async (select: string) => {
+    let query = client.from('products').select(select).eq('status', 'published')
+    if (categoryId) query = query.eq('category_id', categoryId)
+    return query.order('created_at', { ascending: false })
+  }
+
+  let { data, error } = await run(PUBLIC_PRODUCT_SELECT)
+  if (error && isMissingSellingUnitColumn(error.message)) {
+    ;({ data, error } = await run(PUBLIC_PRODUCT_SELECT_LEGACY))
+  }
+  if (error) return []
+
+  let products = (data ?? []).map((row) =>
+    mapPublishedProductRow(row as unknown as Record<string, unknown>)
+  )
   if (search) {
     const q = search.toLowerCase()
     products = products.filter(
@@ -252,14 +274,22 @@ export async function getPublishedProducts(categorySlug?: string, search?: strin
 export async function getProductById(id: string): Promise<Product | null> {
   const client = db()
   if (!client) return null
-  const { data } = await client
+  let { data, error } = await client
     .from('products')
     .select(PUBLIC_PRODUCT_SELECT)
     .eq('id', id)
     .eq('status', 'published')
     .maybeSingle()
-  if (!data) return null
-  return mapPublishedProductRow(data as Record<string, unknown>)
+  if (error && isMissingSellingUnitColumn(error.message)) {
+    ;({ data, error } = await client
+      .from('products')
+      .select(PUBLIC_PRODUCT_SELECT_LEGACY)
+      .eq('id', id)
+      .eq('status', 'published')
+      .maybeSingle())
+  }
+  if (error || !data) return null
+  return mapPublishedProductRow(data as unknown as Record<string, unknown>)
 }
 
 export async function getPublishedInternships(): Promise<Internship[]> {

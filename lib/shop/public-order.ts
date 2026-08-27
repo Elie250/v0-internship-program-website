@@ -29,6 +29,7 @@ export async function getPublicOrder(rawCode: string): Promise<PublicOrderView |
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       lineTotal: item.lineTotal,
+      sellingUnitLabel: item.sellingUnitLabel ?? null,
     })),
   })
 }

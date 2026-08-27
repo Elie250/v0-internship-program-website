@@ -11,6 +11,8 @@ export type PosCatalogProduct = {
   price: number
   discount: number
   stock: number
+  sellingQuantity: number
+  sellingUnit: string
 }
 
 export type PosCartLine = {
@@ -21,6 +23,8 @@ export type PosCartLine = {
   discount: number
   quantity: number
   maxStock: number
+  sellingQuantity: number
+  sellingUnit: string
 }
 
 export type PosSaleItemPayload = {
@@ -52,6 +56,8 @@ export function addProductToCart(
             discount: product.discount,
             maxStock: stock,
             quantity: line.quantity + 1,
+            sellingQuantity: product.sellingQuantity,
+            sellingUnit: product.sellingUnit,
           }
         : line
     )
@@ -67,6 +73,8 @@ export function addProductToCart(
       discount: product.discount,
       quantity: 1,
       maxStock: stock,
+      sellingQuantity: product.sellingQuantity,
+      sellingUnit: product.sellingUnit,
     },
   ]
 }

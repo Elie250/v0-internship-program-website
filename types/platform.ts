@@ -134,6 +134,10 @@ export interface Product {
   discount: number | null
   stock: number
   low_stock_threshold?: number | null
+  /** Customer selling quantity for one sellable unit. Price applies to this unit. */
+  selling_quantity?: number
+  /** Customer selling unit abbreviation (PCS, M, ML, …). Not warehouse UOM. */
+  selling_unit?: string
   images: string[]
   specifications: Record<string, string>
   status: ContentStatus

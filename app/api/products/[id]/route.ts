@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { applySellingUnitToProductPayload } from '@/lib/shop/selling-unit'
 
 export async function PATCH(
   request: Request,
@@ -14,10 +15,14 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json()
+    const body = (await request.json()) as Record<string, unknown>
+    const overlay = applySellingUnitToProductPayload(body, 'update')
+    if (!overlay.ok) {
+      return NextResponse.json({ error: overlay.error }, { status: 400 })
+    }
     const { data, error } = await supabaseAdmin
       .from('products')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...overlay.payload, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('*, category:categories(*)')
       .single()

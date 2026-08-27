@@ -6,9 +6,23 @@ import {
   sanitizeSearchTerm,
 } from '@/lib/shop/staff-api/common'
 import { stripProductCostFields } from '@/lib/shop/staff-api/cost-policy'
+import {
+  formatSellingUnit,
+  resolveSellingUnitFields,
+  type SellingUnit,
+} from '@/lib/shop/selling-unit'
 
 const PRODUCT_SELECT =
+  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+
+const PRODUCT_SELECT_NO_BARCODE =
+  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+
+const PRODUCT_SELECT_LEGACY =
   'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
+
+const PRODUCT_SELECT_LEGACY_NO_BARCODE =
+  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
 
 export type StaffProductDto = {
   id: string
@@ -25,6 +39,9 @@ export type StaffProductDto = {
   status: string | null
   images: unknown
   lowStockThreshold: number | null
+  sellingQuantity: number
+  sellingUnit: string
+  sellingUnitLabel: string
   createdAt: string | null
   updatedAt: string | null
 }
@@ -36,6 +53,7 @@ export type StaffProductQueryOptions = {
 
 function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffProductDto {
   const category = row.category as Record<string, unknown> | null | undefined
+  const selling = resolveSellingUnitFields(row)
   const mapped: StaffProductDto = {
     id: String(row.id),
     name: String(row.name ?? ''),
@@ -57,6 +75,9 @@ function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffPr
     images: row.images ?? [],
     lowStockThreshold:
       row.low_stock_threshold != null ? Number(row.low_stock_threshold) : null,
+    sellingQuantity: selling.sellingQuantity,
+    sellingUnit: selling.sellingUnit,
+    sellingUnitLabel: formatSellingUnit(selling.sellingQuantity, selling.sellingUnit),
     createdAt: row.created_at != null ? String(row.created_at) : null,
     updatedAt: row.updated_at != null ? String(row.updated_at) : null,
   }
@@ -105,9 +126,15 @@ export async function listStaffProducts(
     .range(offset, offset + limit - 1)
 
   if (error) {
-    // barcode column may be missing if migration 86 not applied
     if (/barcode/i.test(error.message)) {
-      return listStaffProductsWithoutBarcode(searchParams, includeCost)
+      return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_NO_BARCODE, {
+        barcode: true,
+      })
+    }
+    if (/selling_quantity|selling_unit/i.test(error.message)) {
+      return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_LEGACY, {
+        barcode: false,
+      })
     }
     return { error: 'Failed to load products', httpStatus: 500 as const }
   }
@@ -116,7 +143,7 @@ export async function listStaffProducts(
     httpStatus: 200 as const,
     body: paginatedResponse({
       items: (data ?? []).map((row) =>
-        mapProduct(row as Record<string, unknown>, includeCost)
+        mapProduct(row as unknown as Record<string, unknown>, includeCost)
       ),
       page,
       limit,
@@ -125,38 +152,68 @@ export async function listStaffProducts(
   }
 }
 
-async function listStaffProductsWithoutBarcode(
+async function listStaffProductsWithSelect(
   searchParams: URLSearchParams,
-  includeCost: boolean
+  includeCost: boolean,
+  select: string,
+  options: { barcode: boolean }
 ) {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   const { page, limit, offset } = parsePagination(searchParams)
   const q = sanitizeSearchTerm(searchParams.get('q') || '')
   const sku = sanitizeSearchTerm(searchParams.get('sku') || '', 64)
+  const barcode = options.barcode
+    ? sanitizeSearchTerm(searchParams.get('barcode') || '', 64)
+    : ''
   const status = searchParams.get('status')?.trim() || ''
   const categoryId = parseOptionalUuid(searchParams.get('category_id'))
-
-  const select =
-    'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
 
   let query = supabaseAdmin.from('products').select(select, { count: 'exact' })
   if (status && status !== 'all') query = query.eq('status', status)
   else if (!status) query = query.eq('status', 'published')
   if (categoryId) query = query.eq('category_id', categoryId)
   if (sku) query = query.ilike('sku', `%${sku}%`)
-  if (q) query = query.or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
+  if (options.barcode && barcode) query = query.eq('barcode', barcode)
+  if (q) {
+    query = options.barcode
+      ? query.or(`name.ilike.%${q}%,sku.ilike.%${q}%,barcode.ilike.%${q}%`)
+      : query.or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
+  }
 
   const { data, error, count } = await query
     .order('name', { ascending: true })
     .range(offset, offset + limit - 1)
 
-  if (error) return { error: 'Failed to load products', httpStatus: 500 as const }
+  if (error) {
+    if (
+      options.barcode === false &&
+      /selling_quantity|selling_unit/i.test(error.message)
+    ) {
+      return listStaffProductsWithSelect(
+        searchParams,
+        includeCost,
+        PRODUCT_SELECT_LEGACY_NO_BARCODE,
+        { barcode: false }
+      )
+    }
+    if (options.barcode && /selling_quantity|selling_unit/i.test(error.message)) {
+      return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_LEGACY, {
+        barcode: true,
+      })
+    }
+    return { error: 'Failed to load products', httpStatus: 500 as const }
+  }
 
   return {
     httpStatus: 200 as const,
     body: paginatedResponse({
       items: (data ?? []).map((row) =>
-        mapProduct({ ...(row as Record<string, unknown>), barcode: null }, includeCost)
+        mapProduct(
+          options.barcode
+            ? (row as unknown as Record<string, unknown>)
+            : { ...(row as unknown as Record<string, unknown>), barcode: null },
+          includeCost
+        )
       ),
       page,
       limit,
@@ -173,39 +230,73 @@ export async function getStaffProductById(
   if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
   const includeCost = Boolean(options.includeCost)
 
+  const attempts: { select: string; barcodeMissing: boolean }[] = [
+    { select: PRODUCT_SELECT, barcodeMissing: false },
+    { select: PRODUCT_SELECT_NO_BARCODE, barcodeMissing: true },
+    { select: PRODUCT_SELECT_LEGACY, barcodeMissing: false },
+    { select: PRODUCT_SELECT_LEGACY_NO_BARCODE, barcodeMissing: true },
+  ]
+
+  for (const attempt of attempts) {
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .select(attempt.select)
+      .eq('id', id)
+      .maybeSingle()
+    if (error) {
+      const missingBarcode = /barcode/i.test(error.message)
+      const missingSelling = /selling_quantity|selling_unit/i.test(error.message)
+      if (missingBarcode || missingSelling) continue
+      return { error: 'Failed to load product', httpStatus: 500 as const }
+    }
+    if (!data) return { error: 'Product not found', httpStatus: 404 as const }
+    return {
+      httpStatus: 200 as const,
+      body: {
+        item: mapProduct(
+          attempt.barcodeMissing
+            ? { ...(data as object), barcode: null }
+            : (data as unknown as Record<string, unknown>),
+          includeCost
+        ),
+      },
+    }
+  }
+
+  return { error: 'Failed to load product', httpStatus: 500 as const }
+}
+
+export async function updateStaffProductSellingUnit(
+  id: string,
+  input: { sellingQuantity: number; sellingUnit: SellingUnit },
+  options: StaffProductQueryOptions = {}
+) {
+  if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
+  if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
+
   const { data, error } = await supabaseAdmin
     .from('products')
-    .select(PRODUCT_SELECT)
+    .update({
+      selling_quantity: input.sellingQuantity,
+      selling_unit: input.sellingUnit,
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', id)
+    .select(PRODUCT_SELECT)
     .maybeSingle()
 
   if (error) {
-    if (/barcode/i.test(error.message)) {
-      const fallback = await supabaseAdmin
-        .from('products')
-        .select(
-          'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
-        )
-        .eq('id', id)
-        .maybeSingle()
-      if (fallback.error) return { error: 'Failed to load product', httpStatus: 500 as const }
-      if (!fallback.data) return { error: 'Product not found', httpStatus: 404 as const }
-      return {
-        httpStatus: 200 as const,
-        body: {
-          item: mapProduct(
-            { ...(fallback.data as object), barcode: null },
-            includeCost
-          ),
-        },
-      }
+    if (/selling_quantity|selling_unit/i.test(error.message)) {
+      return { error: 'Selling unit is not available yet', httpStatus: 503 as const }
     }
-    return { error: 'Failed to load product', httpStatus: 500 as const }
+    return { error: 'Failed to update product', httpStatus: 500 as const }
   }
-
   if (!data) return { error: 'Product not found', httpStatus: 404 as const }
+
   return {
     httpStatus: 200 as const,
-    body: { item: mapProduct(data as Record<string, unknown>, includeCost) },
+    body: {
+      item: mapProduct(data as unknown as Record<string, unknown>, Boolean(options.includeCost)),
+    },
   }
 }

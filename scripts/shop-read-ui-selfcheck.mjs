@@ -39,11 +39,16 @@ test('panels call staff APIs only (no supabase in browser panels)', () => {
   }
 })
 
-test('products panel is read-only and uses product endpoints', () => {
+test('products panel uses product endpoints and selling-unit PATCH is manager-only', () => {
   const src = readFileSync(join(root, 'components/shop-portal/shop-products-panel.tsx'), 'utf8')
   assert.match(src, /\/api\/staff\/products/)
-  assert.match(src, /products\.readOnlyNote|Read-only/)
-  assert.doesNotMatch(src, /method:\s*'POST'|method:\s*'PATCH'|method:\s*'DELETE'/)
+  assert.match(src, /products\.readOnlyNote/)
+  assert.match(src, /canSeeCost/)
+  assert.match(src, /method:\s*'PATCH'/)
+  assert.match(src, /sellingQuantity/)
+  assert.match(src, /sellingUnit/)
+  assert.doesNotMatch(src, /method:\s*'POST'|method:\s*'DELETE'/)
+  assert.doesNotMatch(src, /cost_price/)
 })
 
 test('inventory panel covers levels and movements', () => {

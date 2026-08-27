@@ -168,6 +168,18 @@ test('POS terminal posts IDs and quantities only through the existing sales API'
   assert.doesNotMatch(cart, /price: line\.price/)
 })
 
+test('POS catalogue shows selling unit without changing checkout payloads', () => {
+  const src = readFileSync(join(root, 'components/shop-portal/shop-pos-terminal.tsx'), 'utf8')
+  const cart = readFileSync(join(root, 'lib/shop/pos-cart.ts'), 'utf8')
+  assert.match(src, /formatSellingUnit/)
+  assert.match(src, /pos\.line\.qtyUnit/)
+  assert.doesNotMatch(src, /20 × ML|5 × M/)
+  const payloadFn = cart.slice(cart.indexOf('export function cartToSaleItems'))
+  assert.match(payloadFn, /productId: line\.productId/)
+  assert.match(payloadFn, /quantity: line\.quantity/)
+  assert.doesNotMatch(payloadFn, /sellingUnit|sellingQuantity|price:/)
+})
+
 test('package.json exposes test:shop-pos', () => {
   const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
   assert.equal(pkg.scripts['test:shop-pos'], 'node --test scripts/shop-pos-selfcheck.mjs')

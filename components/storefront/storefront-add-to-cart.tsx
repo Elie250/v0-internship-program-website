@@ -46,6 +46,7 @@ export function StorefrontAddToCart({
             price: product.price,
             image: product.image ?? undefined,
             maxStock: product.maxQuantity,
+            sellingUnitLabel: product.sellingUnitLabel,
           },
           quantity
         )

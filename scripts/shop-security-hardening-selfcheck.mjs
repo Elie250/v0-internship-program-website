@@ -162,6 +162,28 @@ test('query-parameter tricks cannot force cost into product list route', () => {
   assert.doesNotMatch(list, /includeCost.*searchParams|searchParams.*includeCost|body\.includeCost/)
 })
 
+test('staff selling-unit PATCH is CSRF-gated, manager-only, and cannot write cost', () => {
+  const route = readFileSync(join(root, 'app/api/staff/products/[id]/route.ts'), 'utf8')
+  assert.match(route, /export async function PATCH/)
+  assert.match(route, /assertStaffMutationAllowed/)
+  assert.match(route, /PERMISSIONS\.SHOP_PRODUCTS/)
+  assert.match(route, /parseSellingUnitPatch/)
+  assert.match(route, /updateStaffProductSellingUnit/)
+  assert.doesNotMatch(route, /cost_price|costPrice/)
+  const svc = readFileSync(join(root, 'lib/shop/staff-api/products.ts'), 'utf8')
+  const updateStart = svc.indexOf('export async function updateStaffProductSellingUnit')
+  const updateFn = svc.slice(updateStart, updateStart + 900)
+  assert.match(updateFn, /selling_quantity: input\.sellingQuantity/)
+  assert.match(updateFn, /selling_unit: input\.sellingUnit/)
+  assert.doesNotMatch(updateFn, /cost_price|price:|stock:/)
+  const adminPost = readFileSync(join(root, 'app/api/products/route.ts'), 'utf8')
+  assert.match(adminPost, /applySellingUnitToProductPayload/)
+  const adminPatch = readFileSync(join(root, 'app/api/products/[id]/route.ts'), 'utf8')
+  assert.match(adminPatch, /applySellingUnitToProductPayload/)
+  const helper = readFileSync(join(root, 'lib/shop/selling-unit.ts'), 'utf8')
+  assert.match(helper, /Invalid selling quantity or unit/)
+})
+
 test('DB/SQL errors are sanitized for clients', () => {
   const dup = toSafeCommerceClientError(
     'duplicate key value violates unique constraint "orders_pkey"',

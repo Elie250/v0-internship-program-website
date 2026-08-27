@@ -135,9 +135,7 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
                       <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                         {product.name}
                       </h1>
-                      {product.sellingUnitLabel ? (
-                        <p className="mt-2 text-sm text-white/80">{product.sellingUnitLabel}</p>
-                      ) : null}
+                      <p className="mt-2 text-sm text-white/80">{product.sellingUnitLabel}</p>
                       <div className="mt-3 flex flex-wrap items-baseline gap-3">
                         <p className="text-2xl font-semibold sm:text-3xl">{formatShopRwf(product.price)}</p>
                         {product.listPrice ? (

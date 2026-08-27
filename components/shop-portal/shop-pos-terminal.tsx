@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/sheet'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { previewCartTotals, previewUnitPrice } from '@/lib/shop/pos-pricing'
+import { formatSellingUnit, resolveSellingUnitFields } from '@/lib/shop/selling-unit'
 import {
   addProductToCart,
   cartToSaleItems,
@@ -87,14 +88,19 @@ export function ShopPosTerminal() {
       }
       const items = Array.isArray(data.items) ? data.items : []
       setProducts(
-        items.map((row: Record<string, unknown>) => ({
-          id: String(row.id),
-          name: String(row.name ?? ''),
-          sku: row.sku != null ? String(row.sku) : null,
-          price: Number(row.price ?? 0),
-          discount: Number(row.discount ?? 0),
-          stock: Number(row.stock ?? 0),
-        }))
+        items.map((row: Record<string, unknown>) => {
+          const selling = resolveSellingUnitFields(row)
+          return {
+            id: String(row.id),
+            name: String(row.name ?? ''),
+            sku: row.sku != null ? String(row.sku) : null,
+            price: Number(row.price ?? 0),
+            discount: Number(row.discount ?? 0),
+            stock: Number(row.stock ?? 0),
+            sellingQuantity: selling.sellingQuantity,
+            sellingUnit: selling.sellingUnit,
+          }
+        })
       )
     } catch {
       setProducts([])
@@ -362,21 +368,21 @@ export function ShopPosTerminal() {
                   <p className="mt-1 text-xs text-slate-500 truncate">
                     {product.sku || t('pos.noSku')}
                   </p>
-                  <div className="mt-3 flex items-end justify-between gap-2">
-                    <div>
-                      <p className="text-base font-semibold tabular-nums text-[var(--brand-navy,#1e3a5f)]">
-                        {formatShopRwf(unit)}
-                      </p>
-                      {product.discount > 0 ? (
-                        <p className="text-xs text-slate-400 line-through tabular-nums">
-                          {formatShopRwf(product.price)}
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {t('pos.stockLabel', { n: formatShopInteger(product.stock) })}
+                  <p className="mt-2 text-sm text-slate-700">
+                    {formatSellingUnit(product.sellingQuantity, product.sellingUnit)}
+                    <span className="text-slate-400"> · </span>
+                    <span className="font-semibold tabular-nums text-[var(--brand-navy,#1e3a5f)]">
+                      {formatShopRwf(unit)}
+                    </span>
+                  </p>
+                  {product.discount > 0 ? (
+                    <p className="text-xs text-slate-400 line-through tabular-nums">
+                      {formatShopRwf(product.price)}
                     </p>
-                  </div>
+                  ) : null}
+                  <p className="mt-2 text-xs text-slate-500">
+                    {t('pos.stockLabel', { n: formatShopInteger(product.stock) })}
+                  </p>
                 </button>
               )
             })}
@@ -483,8 +489,14 @@ function PosSalePanel({
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-slate-900 truncate">{line.name}</p>
+                    <p className="text-xs text-slate-500">
+                      {t('pos.line.qtyUnit', {
+                        n: formatShopInteger(line.quantity),
+                        unit: formatSellingUnit(line.sellingQuantity, line.sellingUnit),
+                      })}
+                    </p>
                     <p className="text-xs text-slate-500 tabular-nums">
-                      {formatShopInteger(line.quantity)} × {formatShopRwf(unit)}
+                      {formatShopRwf(unit)}
                       {line.discount > 0
                         ? ` ${t('pos.offList', { discount: formatShopRwf(line.discount) })}`
                         : ''}

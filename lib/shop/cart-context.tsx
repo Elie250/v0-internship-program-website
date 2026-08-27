@@ -17,6 +17,8 @@ export type CartItem = {
   image?: string
   quantity: number
   maxStock: number
+  /** Display-only. Checkout never treats this as commerce authority. */
+  sellingUnitLabel?: string
 }
 
 type CartContextValue = {
@@ -74,7 +76,13 @@ export function ShopCartProvider({
         const nextQty = Math.min(existing.quantity + qty, item.maxStock)
         return current.map((entry) =>
           entry.productId === item.productId
-            ? { ...entry, quantity: nextQty, maxStock: item.maxStock, price: item.price }
+            ? {
+                ...entry,
+                quantity: nextQty,
+                maxStock: item.maxStock,
+                price: item.price,
+                sellingUnitLabel: item.sellingUnitLabel ?? entry.sellingUnitLabel,
+              }
             : entry
         )
       }

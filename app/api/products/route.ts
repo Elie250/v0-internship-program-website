@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { applySellingUnitToProductPayload } from '@/lib/shop/selling-unit'
 
 export async function GET(request: Request) {
   try {
@@ -47,8 +48,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
 
-    const body = await request.json()
-    const { data, error } = await supabaseAdmin.from('products').insert([body]).select().single()
+    const body = (await request.json()) as Record<string, unknown>
+    const overlay = applySellingUnitToProductPayload(body, 'create')
+    if (!overlay.ok) {
+      return NextResponse.json({ error: overlay.error }, { status: 400 })
+    }
+    const { data, error } = await supabaseAdmin
+      .from('products')
+      .insert([overlay.payload])
+      .select()
+      .single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data, { status: 201 })
   } catch {

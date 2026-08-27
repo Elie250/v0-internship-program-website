@@ -190,6 +190,7 @@ export const shopMessagesEn = {
   'pos.reviewTitle': 'Review sale',
   'pos.each': '{price} each',
   'pos.offList': '· −{discount} off list',
+  'pos.line.qtyUnit': 'Qty {n} · {unit}',
   'a11y.decreaseQty': 'Decrease quantity',
   'a11y.increaseQty': 'Increase quantity',
   'a11y.removeItem': 'Remove',
@@ -223,6 +224,8 @@ export const shopMessagesEn = {
   'products.descriptionForbidden': 'Product catalog.',
   'products.readOnlyNote':
     'Product information from the shop system. Editing is not available yet.',
+  'products.manageNote':
+    'You can update the selling quantity and unit. Other product details are managed in the admin catalog.',
   'products.searchLabel': 'Search products',
   'products.searchPlaceholder': 'Search name, SKU, barcode…',
   'products.statusLabel': 'Status',
@@ -242,6 +245,12 @@ export const shopMessagesEn = {
   'products.field.sellPrice': 'Sell price',
   'products.field.cost': 'Cost',
   'products.field.stock': 'Stock',
+  'products.field.sellingQuantity': 'Selling quantity',
+  'products.field.sellingUnit': 'Selling unit',
+  'products.sellingHint':
+    'Price applies to one selling unit. Stock is the number of selling units.',
+  'products.sellingSaved': 'Selling unit saved.',
+  'products.sellingInvalid': 'Enter a selling quantity greater than 0 and choose a listed unit.',
   'products.refreshing': 'Refreshing…',
 
   // Inventory
@@ -450,6 +459,8 @@ export const shopMessagesEn = {
   'storefront.cart.title': 'Cart',
   'storefront.cart.empty': 'Your cart is empty.',
   'storefront.cart.continue': 'Continue shopping',
+  'storefront.line.unitQty': '{unit} · Qty {n}',
+  'storefront.line.qtyOnly': 'Qty {n}',
   'storefront.cart.checkoutSoon': 'Checkout will be available shortly.',
   'storefront.checkout.title': 'Checkout',
   'storefront.checkout.soon':
