@@ -5,7 +5,7 @@ Source of truth for Energy & Logics Shop UI language.
 - **Scope:** UI labels and system-generated chrome only.
 - **Languages this phase:** English (default), Kinyarwanda (`rw`).
 - **Do not translate:** product names, SKU, barcodes, category names from the database, prices, RWF amounts, dates, IDs, permission keys, API field names, `Energy & Logics`, `Nyanza Shop`.
-- **Keep as-is:** POS, SKU, API, EBM, ID, RWF, MoMo, QR, CSV, OK, barcode.
+- **Keep as-is:** POS, SKU, EBM, ID, RWF, MoMo, QR, CSV, OK, barcode. Do not show `API` in ordinary staff-facing UI.
 
 Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale file; do not invent terms outside this glossary.
 
@@ -45,7 +45,8 @@ Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale
 | Total | Igiteranyo | Totals, receipt | |
 | Subtotal | Igiteranyo cy'agateganyo | POS | |
 | Discount | Igabanyirizwa | POS, product detail | |
-| Payment | Kwishyura | POS, sales | |
+| Payment | Ubwishyu | The payment itself (status, column, filter) | Noun |
+| Pay / make payment | Kwishyura | POS actions | Verb |
 | Cash | Amafaranga | POS | |
 | Receipt | Inyemezabwishyu | POS success | |
 | Paid | Yishyuwe | Payment status | |
@@ -71,7 +72,7 @@ Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale
 | Reports | Raporo | Future / dashboard notes | |
 | Catalog | Urutonde rw'ibicuruzwa | Dashboard | |
 | Today's sales | Igurisha ry'uyu munsi | Dashboard | |
-| Pending payments | Ibyishyurwa bitegerejwe | Dashboard | |
+| Pending payments | Ubwishyu butegerejwe | Dashboard | |
 | In stock | Ibirimo mu bubiko | Dashboard | |
 | Reset password | Hindura ijambo ry'ibanga | Staff | |
 | Revoke sessions | Hagarika amasession | Staff | Keep “session” as amasession |
@@ -81,6 +82,32 @@ Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale
 | MoMo | MoMo | Payment | Do not translate |
 | EBM | EBM | Settings | Do not translate |
 | RWF | RWF | Currency suffix | Do not translate amounts |
+
+## User-facing language principles
+
+Shop UI speaks to shop staff in natural, professional business language. Describe the business action or result. Do not explain how the software works internally.
+
+- Avoid internal implementation details.
+- Do not expose APIs, servers, databases, or endpoints to normal users.
+- Keep technical terms only when they are meaningful to the user (POS, SKU, EBM, MoMo, RWF).
+- Kinyarwanda should sound like professional Rwandan business language.
+- English should also remain concise and user-oriented.
+
+Approved dashboard description (Kinyarwanda):
+
+> Incamake y’imikorere y’iduka ry’i Nyanza. Imibare ijyanye n’amakuru y’ubucuruzi.
+
+Do not mention servers or technical data processing in this sentence.
+
+Approved POS preview copy:
+
+- English: “These are preview totals. The final total will be shown when the sale is confirmed.”
+- Kinyarwanda: “Aya ni amakuru y’agateganyo. Igiteranyo cya nyuma kizagaragara umaze kwemeza igurisha.”
+
+Approved stock-on-confirm copy:
+
+- English: “Stock is updated when the sale is confirmed.”
+- Kinyarwanda: “Ububiko buragabanuka igurisha rimaze kwemezwa.”
 
 ## Usage rules
 

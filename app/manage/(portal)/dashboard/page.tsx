@@ -43,7 +43,6 @@ export default async function ShopDashboardPage() {
       <ShopLocalizedPageHeader
         titleKey="dashboard.title"
         descriptionKey="dashboard.description"
-        descriptionParamKeys={{ siteLabel: 'brand.siteLabel' }}
       />
       <ShopDashboardView
         report={report}

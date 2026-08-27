@@ -118,32 +118,76 @@ test('glossary exists and matches approved Sales/Staff terms', () => {
   assert.match(src, /Ushinzwe ububiko/)
   assert.match(src, /Nyanza Shop/)
   assert.match(src, /Do not translate/)
+  assert.match(src, /User-facing language principles/)
+  assert.match(
+    src,
+    /Incamake y’imikorere y’iduka ry’i Nyanza\. Imibare ijyanye n’amakuru y’ubucuruzi\./
+  )
 })
 
-test('missing Kinyarwanda keys can be enumerated from sources', () => {
-  const en = read('lib/shop/i18n/messages/en.ts')
-  const rw = read('lib/shop/i18n/messages/rw.ts')
-  const enKeys = [...en.matchAll(/'([a-zA-Z0-9_.]+)':\s*'/g)].map((m) => m[1])
-  const rwKeys = new Set([...rw.matchAll(/'([a-zA-Z0-9_.]+)':\s*'/g)].map((m) => m[1]))
-  assert.ok(enKeys.length > 50, 'expected a substantial English catalog')
-  const missing = enKeys.filter((k) => !rwKeys.has(k))
-  for (const key of [
-    'nav.dashboard',
-    'nav.products',
-    'nav.inventory',
-    'nav.sales',
-    'nav.staff',
-    'nav.settings',
-    'action.signIn',
-    'action.signOut',
-    'common.language',
-    'pos.successTitle',
-    'pos.successBody',
+function extractShopMessages(src) {
+  const map = new Map()
+  const re = /'([a-zA-Z0-9_.]+)':\s*(?:'((?:\\'|[^'])*)'|"((?:\\"|[^"])*)")/g
+  let match
+  while ((match = re.exec(src))) {
+    map.set(match[1], (match[2] ?? match[3]).replace(/\\'/g, "'").replace(/\\"/g, '"'))
+  }
+  return map
+}
+
+const TECHNICAL_VALUE_RE =
+  /\b(APIs?|servers?|databases?|endpoints?|browsers?|clients?|services?)\b|seriveri|serivisi/i
+
+test('English and Kinyarwanda dictionaries share identical keys', () => {
+  const en = extractShopMessages(read('lib/shop/i18n/messages/en.ts'))
+  const rw = extractShopMessages(read('lib/shop/i18n/messages/rw.ts'))
+  assert.ok(en.size > 50, 'expected a substantial English catalog')
+  const missing = [...en.keys()].filter((key) => !rw.has(key))
+  const extra = [...rw.keys()].filter((key) => !en.has(key))
+  assert.deepEqual(missing, [], `RW missing keys: ${missing.join(', ')}`)
+  assert.deepEqual(extra, [], `RW extra keys: ${extra.join(', ')}`)
+})
+
+test('staff-facing translations avoid implementation wording', () => {
+  const en = extractShopMessages(read('lib/shop/i18n/messages/en.ts'))
+  const rw = extractShopMessages(read('lib/shop/i18n/messages/rw.ts'))
+  const offenders = []
+  for (const [locale, dict] of [
+    ['en', en],
+    ['rw', rw],
   ]) {
-    assert.equal(missing.includes(key), false, `${key} should have RW`)
+    for (const [key, value] of dict) {
+      if (TECHNICAL_VALUE_RE.test(value)) {
+        offenders.push(`${locale}:${key}=${value}`)
+      }
+    }
   }
-  // Full chrome coverage this phase; leftover keys (if any) must fall back to English.
-  if (missing.length > 0) {
-    console.log('Missing RW keys (English fallback):', missing.join(', '))
-  }
+  assert.deepEqual(offenders, [], `technical wording in UI copy:\n${offenders.join('\n')}`)
+  assert.doesNotMatch(en.get('products.description') ?? '', /API/i)
+  assert.doesNotMatch(rw.get('products.description') ?? '', /API|serivisi|seriveri/i)
+  assert.doesNotMatch(en.get('dashboard.description') ?? '', /server/i)
+  assert.doesNotMatch(rw.get('dashboard.description') ?? '', /seriveri/i)
+})
+
+test('approved user-facing dashboard and POS copy is present', () => {
+  const en = extractShopMessages(read('lib/shop/i18n/messages/en.ts'))
+  const rw = extractShopMessages(read('lib/shop/i18n/messages/rw.ts'))
+  assert.equal(
+    rw.get('dashboard.description'),
+    'Incamake y’imikorere y’iduka ry’i Nyanza. Imibare ijyanye n’amakuru y’ubucuruzi.'
+  )
+  assert.equal(
+    en.get('pos.cartHint'),
+    'These are preview totals. The final total will be shown when the sale is confirmed.'
+  )
+  assert.equal(
+    rw.get('pos.cartHint'),
+    'Aya ni amakuru y’agateganyo. Igiteranyo cya nyuma kizagaragara umaze kwemeza igurisha.'
+  )
+  assert.match(en.get('pos.paymentNote') ?? '', /Stock is updated when the sale is confirmed/)
+  assert.match(rw.get('pos.paymentNote') ?? '', /Ububiko buragabanuka igurisha rimaze kwemezwa/)
+  assert.match(en.get('dashboard.section.salesTodayDesc') ?? '', /recorded shop transactions/)
+  assert.match(rw.get('dashboard.metric.pending') ?? '', /Ubwishyu butegerejwe/)
+  assert.match(en.get('products.description') ?? '', /shop system/)
+  assert.match(rw.get('products.description') ?? '', /sisitemu y’iduka/)
 })

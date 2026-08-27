@@ -69,7 +69,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'common.quantity': 'Ingano',
   'common.total': 'Igiteranyo',
   'common.discount': 'Igabanyirizwa',
-  'common.payment': 'Kwishyura',
+  'common.payment': 'Ubwishyu',
   'common.customer': 'Umukiriya',
   'common.customers': 'Abakiriya',
   'common.location': 'Ahantu',
@@ -125,13 +125,13 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
     'Winjiye, ariko nta burenganzira bwo gukoresha iki gice. Saba umuyobozi mukuru niba ubukeneye.',
 
   // Errors
-  'error.requestFailed': 'Icyifuzo cyanze',
-  'error.network': 'Ikibazo cy’umuyoboro',
+  'error.requestFailed': 'Hari ikibazo. Ongera ugerageze.',
+  'error.network': 'Ikibazo cy’umuyoboro. Suzuma umurongo, hanyuma ugerageze.',
 
   // Dashboard
   'dashboard.title': 'Incamake',
   'dashboard.description':
-    'Incamake y’imikorere kuri {siteLabel}. Imibare ikorwa ku seriveri ku makuru y’ubucuruzi.',
+    'Incamake y’imikorere y’iduka ry’i Nyanza. Imibare ijyanye n’amakuru y’ubucuruzi.',
   'dashboard.unavailable': 'Incamake ntiboneka',
   'dashboard.noPerms':
     'Winjiye muri {brandName}, ariko uruhare rwawe ntirufite raporo y’igurisha cyangwa ububiko. Saba umuyobozi mukuru.',
@@ -140,7 +140,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'dashboard.metric.todaySalesHint': 'Ibyatumijwe byishyuwe / byemejwe gusa',
   'dashboard.metric.todayOrders': 'Ibyatumijwe uyu munsi',
   'dashboard.metric.todayOrdersHint': '{pos} POS · {online} kuri murandasi',
-  'dashboard.metric.pending': 'Ibyishyurwa bitegerejwe',
+  'dashboard.metric.pending': 'Ubwishyu butegerejwe',
   'dashboard.metric.pendingHint': 'Bitishyuwe, bitegereje isuzuma, cyangwa MoMo',
   'dashboard.metric.catalog': 'Urutonde rw’ibicuruzwa',
   'dashboard.metric.catalogHint': 'Ibicuruzwa byashyizwe ahagaragara n’inyandiko mbanziriza',
@@ -149,15 +149,15 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'dashboard.metric.lowStockHint': 'Ku gipimo cyangwa munsi, biracyahari',
   'dashboard.metric.outOfStock': 'Byashize mu bubiko',
   'dashboard.businessDay': 'Umunsi w’akazi',
-  'dashboard.stockModelNote': 'Ububiko: ingano y’urutonde rwose (si ku hantu)',
+  'dashboard.stockModelNote': 'Imibare y’ububiko bw’ibicuruzwa byose.',
   'dashboard.section.salesToday': 'Igurisha ry’uyu munsi',
   'dashboard.section.salesTodayDesc':
-    'Imibare ikorwa ku seriveri ku byatumijwe. Inyungu ntiyerekanwa kugeza raporo yemewe ihari.',
+    'Imibare y’igurisha ishingiye ku bikorwa by’ubucuruzi byanditswe.',
   'dashboard.profitNote':
-    'Raporo y’inyungu ntiyatangijwe — nta gipimo cy’inyungu kigerekanwa.',
+    'Raporo y’inyungu ntiyatangijwe.',
   'dashboard.section.inventory': 'Incamake y’ububiko',
   'dashboard.section.inventoryDesc':
-    'Ingano ivuye ku ububiko rwose bw’ibicuruzwa.',
+    'Imibare y’ububiko bw’ibicuruzwa byose.',
   'dashboard.section.shortcuts': 'Amahuza yihuse',
   'dashboard.shortcut.pos': 'Fungura POS',
   'dashboard.shortcut.sales': 'Amateka y’igurisha',
@@ -166,19 +166,20 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   // POS
   'pos.title': 'POS',
   'pos.description':
-    'POS y’amafaranga. Gushakisha no kwishyura bikoresha serivisi z’abakozi; seriveri ifata igiciro, ububiko, n’inyemezabwishyu.',
+    'POS y’amafaranga. Shakisha ibicuruzwa, kwishyura, kandi ufate inyemezabwishyu.',
   'pos.descriptionForbidden': 'POS.',
   'pos.defaultCustomer': 'Umukiriya waje ku iduka',
   'pos.searchLabel': 'Shakisha ibicuruzwa',
   'pos.searchPlaceholder': 'Shakisha izina, SKU, cyangwa barcode…',
   'pos.searching': 'Gushakisha…',
-  'pos.catalogHint': 'Urutonde ruvuye muri API y’abakozi · ibicuruzwa byashyizwe ahagaragara',
-  'pos.error.loadProducts': 'Ntibishobotse gufata ibicuruzwa',
+  'pos.catalogHint': 'Ibicuruzwa byashyizwe ahagaragara',
+  'pos.error.loadProducts': 'Ntibishobotse kugaragaza ibicuruzwa. Ongera ugerageze.',
   'pos.noSku': 'Nta SKU',
   'pos.stockLabel': 'Ububiko {n}',
   'pos.emptyProducts': 'Nta bicuruzwa byabonetse. Gerageza irindi shakisha.',
   'pos.cartTitle': 'Igurisha riri gukorwa',
-  'pos.cartHint': 'Igiteranyo cy’agateganyo — igiciro nyacyo gishyirwaho na seriveri.',
+  'pos.cartHint':
+    'Aya ni amakuru y’agateganyo. Igiteranyo cya nyuma kizagaragara umaze kwemeza igurisha.',
   'pos.cartEmpty': 'Hitamo ibicuruzwa kugira ngo utangire igurisha.',
   'pos.each': '{price} kuri kimwe',
   'pos.offList': '· −{discount} ku giciro',
@@ -192,17 +193,17 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'pos.phoneOptional': 'Telefoni (si ngombwa)',
   'pos.paymentCash': 'Kwishyura: Amafaranga',
   'pos.paymentNote':
-    'MoMo ntiyakoreshwa muri iki gihe. Ububiko bujya bukoreshwa iyo igurisha ryemejwe.',
+    'MoMo ntiyakoreshwa muri iki gihe. Ububiko buragabanuka igurisha rimaze kwemezwa.',
   'pos.reviewSale': 'Suzuma igurisha ry’amafaranga',
   'pos.confirmPrompt': 'Emeza kwishyura amafaranga {total}?',
   'pos.confirmHint':
-    'Ibi byoherezwa muri POS API. Seriveri isubiramo igiciro n’ububiko.',
+    'Kwemeza birandika igurisha kandi bivugurura ububiko.',
   'pos.confirmSale': 'Emeza igurisha',
   'pos.processing': 'Birimo gukorwa…',
   'pos.saleFailed': 'Igurisha ryanze',
   'pos.successTitle': 'Igurisha rirangiye',
   'pos.successBody': 'Igurisha rirangiye kandi ububiko bwavuguruwe.',
-  'pos.idempotentReplay': 'Igurisha rimwe ryasubitswe.',
+  'pos.idempotentReplay': 'Iri gurisha ryamaze kwandikwa.',
   'pos.serverTotal': 'Igiteranyo',
   'pos.cashDotStatus': 'Amafaranga · {paymentStatus}',
   'pos.newSale': 'Igurisha rishya',
@@ -210,10 +211,10 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   // Products
   'products.title': 'Ibicuruzwa',
   'products.description':
-    'Reba urutonde rw’ibicuruzwa bya Energy & Logics. Amakuru atangwa binyuze muri serivisi zemewe z’abakozi.',
+    'Reba urutonde rw’ibicuruzwa bya Energy & Logics. Amakuru y’ibicuruzwa aboneka muri sisitemu y’iduka.',
   'products.descriptionForbidden': 'Urutonde rw’ibicuruzwa.',
   'products.readOnlyNote':
-    'Urutonde rusomwa gusa. Guhindura ntihahari muri iki gihe.',
+    'Amakuru y’ibicuruzwa aboneka muri sisitemu y’iduka. Guhindura ntihahari muri iki gihe.',
   'products.searchLabel': 'Shakisha ibicuruzwa',
   'products.searchPlaceholder': 'Shakisha izina, SKU, barcode…',
   'products.statusLabel': 'Imimerere',
@@ -241,7 +242,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
     'Ingano y’ububiko n’imigendekere y’ububiko.',
   'inventory.descriptionForbidden': 'Ingano y’ububiko n’imigendekere.',
   'inventory.readOnlyNote':
-    'Ububiko busomwa gusa. Guhindura no kohereza ntihahari muri iki gihe.',
+    'Imibare y’ububiko bw’ibicuruzwa byose. Guhindura no kohereza ntihahari muri iki gihe.',
   'inventory.tab.levels': 'Ingano y’ibiri mu bubiko',
   'inventory.tab.movements': 'Imigendekere y’ububiko',
   'inventory.searchLabel': 'Shakisha ububiko',
@@ -253,8 +254,8 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'inventory.col.threshold': 'Igipimo',
   'inventory.col.listPrice': 'Igiciro',
   'inventory.col.flag': 'Ikimenyetso',
-  'inventory.flag.out': 'Byashize',
-  'inventory.flag.low': 'Bike',
+  'inventory.flag.out': 'Byashize mu bubiko',
+  'inventory.flag.low': 'Ibisigaye bike',
   'inventory.flag.ok': 'OK',
   'inventory.emptyLevels': 'Nta mibare y’ububiko.',
   'inventory.col.when': 'Igihe',
@@ -267,14 +268,14 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   // Sales
   'sales.title': 'Igurisha',
   'sales.description': 'Amateka y’igurisha ya POS n’iyo kuri murandasi.',
-  'sales.descriptionForbidden': 'Igurisha n’amateka y’ibyatumijwe.',
+  'sales.descriptionForbidden': 'Amateka y’igurisha.',
   'sales.readOnlyNote':
-    'Amateka y’igurisha asomwa gusa. Guhindura cyangwa gusubiza ntihahari hano.',
+    'Amateka y’igurisha muri sisitemu y’iduka. Guhindura cyangwa gusubiza ntihahari hano.',
   'sales.channelLabel': 'Inzira',
   'sales.channel.all': 'Inzira zose',
   'sales.channel.pos': 'POS',
   'sales.channel.online': 'Kuri murandasi',
-  'sales.paymentStatusLabel': 'Imimerere y’kwishyura',
+  'sales.paymentStatusLabel': 'Imimerere y’ubwishyu',
   'sales.payment.all': 'Imimerere yose',
   'sales.payment.paid': 'Yishyuwe',
   'sales.payment.unpaid': 'Ntishyuwe',
@@ -283,7 +284,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'sales.payment.approved': 'Byemejwe',
   'sales.col.order': 'Icyatumijwe',
   'sales.col.channel': 'Inzira',
-  'sales.col.payment': 'Kwishyura',
+  'sales.col.payment': 'Ubwishyu',
   'sales.col.total': 'Igiteranyo',
   'sales.empty': 'Nta gurisha ryabonetse.',
   'sales.selectHint': 'Hitamo igurisha urebe ibisobanuro.',
@@ -291,8 +292,8 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'sales.field.total': 'Igiteranyo',
   'sales.field.customer': 'Umukiriya',
   'sales.field.location': 'Ahantu',
-  'sales.field.payment': 'Kwishyura',
-  'sales.field.stockState': 'Imimerere y’ububiko',
+  'sales.field.payment': 'Ubwishyu',
+  'sales.field.stockState': 'Ububiko',
   'sales.lineCost': '· igiciro cyo kugura {amount}',
 
   // Staff
@@ -313,7 +314,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'staff.filter.status.active': 'Akora',
   'staff.filter.status.inactive': 'Ntibakora',
   'staff.filter.status.suspended': 'Bahagaritswe',
-  'staff.loading': 'Gufata abakozi…',
+  'staff.loading': 'Tegereza…',
   'staff.emptyTitle': 'Nta bakozi babonetse',
   'staff.emptyBody': 'Ongeramo umucuruzi cyangwa ushinzwe ububiko.',
   'staff.col.name': 'Izina',
@@ -379,11 +380,11 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
     'Koresha Sohoka mu ruhande cyangwa hejuru kugira ngo urangize',
   'settings.context.title': 'Imiterere y’akazi',
   'settings.context.body':
-    '{brandName} — izina ryerekanwa {siteLabel}. Iri zina ni rya UI gusa; ntirihindura ububiko.',
+    '{brandName} — {siteLabel}. Iri zina ntirihindura imibare y’ububiko.',
   'settings.context.phaseHint':
-    'Ahantu hakurikiranwa ku gice gitandukanye',
+    'Ahantu h’iduka hakurikiranwa ku gice gitandukanye',
   'settings.prefs.title': 'Igenamiterere ry’iduka',
   'settings.prefs.body':
-    'Gucunga abakozi, kwishyura, na EBM ntibiri muri iki gice.',
-  'settings.prefs.phaseHint': 'Ibihe bizaza',
+    'Gucunga abakozi, ubwishyu, na EBM ntibiri muri iki gice.',
+  'settings.prefs.phaseHint': 'Bizaza nyuma',
 }

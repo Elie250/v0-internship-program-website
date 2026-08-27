@@ -3,7 +3,7 @@
  * Keys are stable; do not rename without updating callers.
  */
 export const shopMessagesEn = {
-  // Brand / shell
+  // Brand
   'brand.name': 'Energy & Logics Shop',
   'brand.short': 'Energy & Logics',
   'brand.siteLabel': 'Nyanza Shop',
@@ -113,7 +113,7 @@ export const shopMessagesEn = {
     'Sign in with your Energy & Logics staff account to access POS and inventory.',
   'auth.email': 'Email',
   'auth.password': 'Password',
-  'auth.error.generic': 'Unable to sign in. Check your credentials and try again.',
+  'auth.error.generic': 'Unable to sign in. Check your email and password and try again.',
   'auth.error.retry': 'Unable to sign in. Please try again.',
 
   // Forbidden
@@ -121,24 +121,24 @@ export const shopMessagesEn = {
   'forbidden.body':
     'Your account is signed in, but it does not have permission for this section. Ask an administrator if you need access.',
 
-  // Errors (client fallbacks)
-  'error.requestFailed': 'Request failed',
-  'error.network': 'Network error',
+  // Errors
+  'error.requestFailed': 'Something went wrong. Please try again.',
+  'error.network': 'Connection problem. Check your network and try again.',
 
   // Dashboard
   'dashboard.title': 'Dashboard',
   'dashboard.description':
-    'Operational overview for {siteLabel}. Values are computed on the server from live commerce data.',
+    'Operational overview for the Nyanza shop. Figures are based on recorded shop activity.',
   'dashboard.unavailable': 'Dashboard unavailable',
   'dashboard.noPerms':
-    'You are signed in to {brandName}, but your role does not include sales or inventory reporting permissions. Ask an administrator if you need operational metrics.',
-  'dashboard.noData': 'No dashboard data is available yet.',
+    'You are signed in to {brandName}, but your role cannot view sales or inventory reports. Ask an administrator if you need access.',
+  'dashboard.noData': 'No dashboard figures are available yet.',
   'dashboard.metric.todaySales': "Today's sales",
   'dashboard.metric.todaySalesHint': 'Paid / approved orders only',
   'dashboard.metric.todayOrders': "Today's orders",
   'dashboard.metric.todayOrdersHint': '{pos} POS · {online} online',
-  'dashboard.metric.pending': 'Pending payment',
-  'dashboard.metric.pendingHint': 'Unpaid, review, or gateway pending',
+  'dashboard.metric.pending': 'Pending payments',
+  'dashboard.metric.pendingHint': 'Unpaid, awaiting review, or MoMo pending',
   'dashboard.metric.catalog': 'Catalog items',
   'dashboard.metric.catalogHint': 'Published and draft products',
   'dashboard.metric.inStock': 'In stock',
@@ -146,15 +146,15 @@ export const shopMessagesEn = {
   'dashboard.metric.lowStockHint': 'At or below threshold, still available',
   'dashboard.metric.outOfStock': 'Out of stock',
   'dashboard.businessDay': 'Business day',
-  'dashboard.stockModelNote': 'Stock model: global catalog quantity (not per location)',
+  'dashboard.stockModelNote': 'Stock figures for all products.',
   'dashboard.section.salesToday': 'Sales today',
   'dashboard.section.salesTodayDesc':
-    'Figures are computed on the server from live orders. Profit is not shown until an audited cost report is available.',
+    'Sales figures are based on recorded shop transactions.',
   'dashboard.profitNote':
-    'Profit reporting is not enabled yet — no estimated or fabricated margin is shown.',
+    'Profit reporting is not enabled yet.',
   'dashboard.section.inventory': 'Inventory snapshot',
   'dashboard.section.inventoryDesc':
-    'Quantities come from products.stock — the authoritative global inventory field.',
+    'Stock figures for all products.',
   'dashboard.section.shortcuts': 'Shortcuts',
   'dashboard.shortcut.pos': 'Open POS',
   'dashboard.shortcut.sales': 'Sales history',
@@ -163,19 +163,20 @@ export const shopMessagesEn = {
   // POS
   'pos.title': 'POS',
   'pos.description':
-    'Cash point of sale. Product lookup and checkout use staff APIs; the server owns pricing, stock, and receipts.',
+    'Cash point of sale. Look up products, take payment, and print a receipt.',
   'pos.descriptionForbidden': 'Point of sale terminal.',
   'pos.defaultCustomer': 'Walk-in customer',
   'pos.searchLabel': 'Search products',
   'pos.searchPlaceholder': 'Search by name, SKU, or barcode…',
   'pos.searching': 'Searching…',
-  'pos.catalogHint': 'Catalog from staff product API · published items',
-  'pos.error.loadProducts': 'Unable to load products',
+  'pos.catalogHint': 'Published products from the shop catalog',
+  'pos.error.loadProducts': 'Unable to show products. Please try again.',
   'pos.noSku': 'No SKU',
   'pos.stockLabel': 'Stock {n}',
   'pos.emptyProducts': 'No products found. Try another search.',
   'pos.cartTitle': 'Current sale',
-  'pos.cartHint': 'Preview totals only — final amount is set by the server.',
+  'pos.cartHint':
+    'These are preview totals. The final total will be shown when the sale is confirmed.',
   'pos.cartEmpty': 'Select products to build the cart.',
   'pos.each': '{price} each',
   'pos.offList': '· −{discount} off list',
@@ -189,17 +190,17 @@ export const shopMessagesEn = {
   'pos.phoneOptional': 'Phone (optional)',
   'pos.paymentCash': 'Payment: Cash',
   'pos.paymentNote':
-    'MoMo is not available in this phase. Stock is consumed when the sale is confirmed.',
+    'MoMo is not available yet. Stock is updated when the sale is confirmed.',
   'pos.reviewSale': 'Review cash sale',
   'pos.confirmPrompt': 'Confirm cash payment of {total}?',
   'pos.confirmHint':
-    'This posts to the staff POS API. The server recalculates pricing and stock.',
+    'Confirming records the sale and updates stock.',
   'pos.confirmSale': 'Confirm cash sale',
   'pos.processing': 'Processing…',
   'pos.saleFailed': 'Sale failed',
   'pos.successTitle': 'Sale completed',
-  'pos.idempotentReplay': 'Idempotent replay — same sale returned.',
-  'pos.serverTotal': 'Server total',
+  'pos.idempotentReplay': 'This sale was already recorded.',
+  'pos.serverTotal': 'Total',
   'pos.cashDotStatus': 'Cash · {paymentStatus}',
   'pos.newSale': 'New cash sale',
   'pos.successBody': 'Sale completed and stock updated.',
@@ -207,10 +208,10 @@ export const shopMessagesEn = {
   // Products
   'products.title': 'Products',
   'products.description':
-    'Browse the Energy & Logics catalog. Data comes from authorized staff product APIs.',
+    'Browse the Energy & Logics catalog. Product information is available in the shop system.',
   'products.descriptionForbidden': 'Product catalog.',
   'products.readOnlyNote':
-    'Read-only catalog from staff product APIs. Editing is not available in this phase.',
+    'Product information from the shop system. Editing is not available yet.',
   'products.searchLabel': 'Search products',
   'products.searchPlaceholder': 'Search name, SKU, barcode…',
   'products.statusLabel': 'Status',
@@ -235,10 +236,10 @@ export const shopMessagesEn = {
   // Inventory
   'inventory.title': 'Inventory',
   'inventory.description':
-    'Global stock levels and movement ledger from staff inventory APIs.',
+    'Stock levels and movements for shop products.',
   'inventory.descriptionForbidden': 'Stock levels and movements.',
   'inventory.readOnlyNote':
-    'Read-only stock from products.stock (global). Adjustments and transfers are not available in this phase.',
+    'Stock figures for all products. Adjustments and transfers are not available yet.',
   'inventory.tab.levels': 'Stock levels',
   'inventory.tab.movements': 'Movements',
   'inventory.searchLabel': 'Search inventory',
@@ -250,23 +251,23 @@ export const shopMessagesEn = {
   'inventory.col.threshold': 'Threshold',
   'inventory.col.listPrice': 'List price',
   'inventory.col.flag': 'Flag',
-  'inventory.flag.out': 'Out',
-  'inventory.flag.low': 'Low',
+  'inventory.flag.out': 'Out of stock',
+  'inventory.flag.low': 'Low stock',
   'inventory.flag.ok': 'OK',
-  'inventory.emptyLevels': 'No inventory rows.',
+  'inventory.emptyLevels': 'No stock figures.',
   'inventory.col.when': 'When',
   'inventory.col.type': 'Type',
-  'inventory.col.delta': 'Delta',
+  'inventory.col.delta': 'Change',
   'inventory.col.beforeAfter': 'Before → After',
   'inventory.col.reason': 'Reason',
   'inventory.emptyMovements': 'No movements found.',
 
   // Sales
   'sales.title': 'Sales',
-  'sales.description': 'POS and online order history from authorized staff order APIs.',
-  'sales.descriptionForbidden': 'Sales and order history.',
+  'sales.description': 'POS and online sales history.',
+  'sales.descriptionForbidden': 'Sales history.',
   'sales.readOnlyNote':
-    'Read-only sales history from staff order APIs. Order edits and refunds are not available here.',
+    'Sales history from the shop system. Edits and refunds are not available here.',
   'sales.channelLabel': 'Channel',
   'sales.channel.all': 'All channels',
   'sales.channel.pos': 'POS',
@@ -276,7 +277,7 @@ export const shopMessagesEn = {
   'sales.payment.paid': 'Paid',
   'sales.payment.unpaid': 'Unpaid',
   'sales.payment.pendingReview': 'Pending review',
-  'sales.payment.gatewayPending': 'Gateway pending',
+  'sales.payment.gatewayPending': 'MoMo pending',
   'sales.payment.approved': 'Approved',
   'sales.col.order': 'Order',
   'sales.col.channel': 'Channel',
@@ -289,7 +290,7 @@ export const shopMessagesEn = {
   'sales.field.customer': 'Customer',
   'sales.field.location': 'Location',
   'sales.field.payment': 'Payment',
-  'sales.field.stockState': 'Stock state',
+  'sales.field.stockState': 'Stock',
   'sales.lineCost': '· cost {amount}',
 
   // Staff
@@ -345,7 +346,7 @@ export const shopMessagesEn = {
   'staff.create.submitting': 'Creating…',
   'staff.validation.fullName': 'Full name is required',
   'staff.validation.email': 'Email is required',
-  'staff.validation.role': 'Role must be salesperson or inventory_manager',
+  'staff.validation.role': 'Role must be salesperson or inventory manager',
   'staff.validation.passwordLength': 'Password must be at least 6 characters',
   'staff.validation.passwordMatch': 'Passwords do not match',
   'staff.edit.title': 'Edit staff',
@@ -376,13 +377,13 @@ export const shopMessagesEn = {
     'Use Sign out in the sidebar or header to end your session',
   'settings.context.title': 'Operational context',
   'settings.context.body':
-    '{brandName} — display label {siteLabel}. This label is UI configuration only and does not change inventory accounting.',
+    '{brandName} — {siteLabel}. This display name does not change stock figures.',
   'settings.context.phaseHint':
-    'Location data model is tracked separately from this shell',
+    'Shop location is managed separately.',
   'settings.prefs.title': 'Shop preferences',
   'settings.prefs.body':
-    'User management, payment configuration, and EBM settings are not part of this shell phase.',
-  'settings.prefs.phaseHint': 'Future phases',
+    'User management, payment configuration, and EBM settings are not available yet.',
+  'settings.prefs.phaseHint': 'Coming later',
 } as const
 
 export type ShopMessageKey = keyof typeof shopMessagesEn
