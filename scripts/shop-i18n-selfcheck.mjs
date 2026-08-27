@@ -94,6 +94,9 @@ test('approved storefront Kinyarwanda vocabulary is present', () => {
   assert.match(rw, /'storefront\.promo\.sound\.title': 'Amajwi meza'/)
   assert.match(rw, /'storefront\.promo\.power\.title': 'Guma ufite amashanyarazi'/)
   assert.match(rw, /'storefront\.categories\.title': 'Gura ukurikije icyiciro'/)
+  assert.match(rw, /'storefront\.deals\.title': 'Ibicuruzwa ku giciro cyagabanyijwe'/)
+  assert.match(rw, /'storefront\.more\.title': 'Ibindi biri mu iduka'/)
+  assert.match(rw, /'storefront\.hero\.previous': 'Igicuruzwa kibanziriza'/)
 })
 
 test('nav items expose labelKey for localization', () => {

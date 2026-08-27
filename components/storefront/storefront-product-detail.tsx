@@ -55,9 +55,17 @@ export function StorefrontProductDetail({ product }: { product: PublicCatalogueI
           </p>
         ) : null}
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{product.name}</h1>
-        <p className="mt-4 text-3xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
-          {formatShopRwf(product.price)}
-        </p>
+        {product.sellingUnitLabel ? (
+          <p className="mt-2 text-sm text-slate-600">{product.sellingUnitLabel}</p>
+        ) : null}
+        <div className="mt-4 flex flex-wrap items-baseline gap-3">
+          <p className="text-3xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
+            {formatShopRwf(product.price)}
+          </p>
+          {product.listPrice ? (
+            <p className="text-base text-slate-400 line-through">{formatShopRwf(product.listPrice)}</p>
+          ) : null}
+        </div>
         <div className="mt-3">
           <StorefrontAvailability value={product.availability} />
         </div>

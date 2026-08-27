@@ -3,21 +3,22 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Package } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import {
   StorefrontAddToCart,
   StorefrontAvailability,
 } from '@/components/storefront/storefront-add-to-cart'
 import { formatShopRwf } from '@/lib/shop/format'
-import type { PublicCatalogueItem } from '@/lib/shop/public-catalogue'
+import {
+  publicDiscountPercent,
+  type PublicCatalogueItem,
+} from '@/lib/shop/public-catalogue'
 
 export function StorefrontProductCard({ product }: { product: PublicCatalogueItem }) {
-  const t = useShopT()
   const href = `/product/${encodeURIComponent(product.slug)}`
+  const percent = publicDiscountPercent(product.listPrice, product.price)
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <Link href={href} className="relative block aspect-square bg-slate-50">
         {product.image ? (
           <Image src={product.image} alt={product.name} fill className="object-cover" unoptimized />
@@ -26,30 +27,34 @@ export function StorefrontProductCard({ product }: { product: PublicCatalogueIte
             <Package className="h-8 w-8" aria-hidden />
           </div>
         )}
+        {percent ? (
+          <span className="absolute left-2 top-2 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-[var(--brand-navy,#1e3a5f)]">
+            −{percent}%
+          </span>
+        ) : null}
       </Link>
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
-        <p
-          className="min-h-[1rem] text-[11px] font-semibold uppercase tracking-wide text-slate-500"
-          aria-hidden={!product.categoryName}
-        >
-          {product.categoryName || '\u00a0'}
-        </p>
-        <Link href={href} className="mt-1">
-          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-slate-900">
+      <div className="flex flex-1 flex-col p-2.5 sm:p-3">
+        <Link href={href}>
+          <h3 className="line-clamp-2 min-h-[2.25rem] text-sm font-semibold leading-snug text-slate-900">
             {product.name}
           </h3>
         </Link>
-        <p className="mt-2 text-base font-semibold text-[var(--brand-navy,#1e3a5f)]">
-          {formatShopRwf(product.price)}
-        </p>
+        {product.sellingUnitLabel ? (
+          <p className="mt-0.5 text-xs text-slate-500">{product.sellingUnitLabel}</p>
+        ) : null}
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <p className="text-sm font-semibold text-[var(--brand-navy,#1e3a5f)] sm:text-base">
+            {formatShopRwf(product.price)}
+          </p>
+          {product.listPrice ? (
+            <p className="text-xs text-slate-400 line-through">{formatShopRwf(product.listPrice)}</p>
+          ) : null}
+        </div>
         <div className="mt-1">
           <StorefrontAvailability value={product.availability} />
         </div>
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
-          <Button asChild size="sm" variant="outline" className="h-8 border-slate-300">
-            <Link href={href}>{t('action.details')}</Link>
-          </Button>
-          <StorefrontAddToCart product={product} className="h-8 px-3 text-sm" />
+        <div className="mt-auto pt-2">
+          <StorefrontAddToCart product={product} className="h-8 w-full px-3 text-sm" />
         </div>
       </div>
     </article>

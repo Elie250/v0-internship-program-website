@@ -17,6 +17,9 @@ export type PublicCatalogueItem = {
   description: string | null
   image: string | null
   price: number
+  listPrice: number | null
+  discountAmount: number | null
+  sellingUnitLabel: string | null
   categoryName: string | null
   categorySlug: string | null
   sku: string | null
@@ -48,6 +51,37 @@ export function publicSellingPrice(price: number, discount: number | null | unde
   const p = Number(price) || 0
   const d = Number(discount) || 0
   return Math.max(0, Math.round(p - d))
+}
+
+const SELLING_UNIT_KEY_RE = /^(unit|selling_unit|sellingUnit|pack_unit|uom)$/i
+const SELLING_QTY_KEY_RE = /^(qty|quantity|selling_qty|selling_quantity|pack_size|packSize)$/i
+const SELLING_LABEL_KEY_RE = /^(selling_unit_label|pack|contents)$/i
+
+/** Read a selling unit label from product specifications only. Never invent a default unit. */
+export function publicSellingUnitLabel(
+  specifications: Record<string, string> | null | undefined
+): string | null {
+  if (!specifications) return null
+  const entries = Object.entries(specifications).filter(
+    ([key, value]) => key.trim() && String(value).trim()
+  )
+  const find = (test: RegExp) =>
+    entries.find(([key]) => test.test(key.trim()))?.[1]?.trim() || null
+  const combined = find(SELLING_LABEL_KEY_RE)
+  if (combined) return combined
+  const quantity = find(SELLING_QTY_KEY_RE)
+  const unit = find(SELLING_UNIT_KEY_RE)
+  if (quantity && unit) return `${quantity} ${unit}`.replace(/\s+/g, ' ')
+  return unit || quantity
+}
+
+export function publicDiscountPercent(
+  listPrice: number | null | undefined,
+  price: number
+): number | null {
+  if (listPrice == null || listPrice <= price) return null
+  const percent = Math.round((1 - price / listPrice) * 100)
+  return percent >= 1 ? percent : null
 }
 
 function slugifyName(name: string): string {
@@ -91,12 +125,19 @@ export function toPublicCatalogueItem(product: Product): PublicCatalogueItem {
       : DEFAULT_PUBLIC_LOW_STOCK_THRESHOLD
   const availability = publicAvailability(stock, threshold)
   const specifications = product.specifications ?? {}
+  const discountAmount = Math.max(0, Math.round(Number(product.discount) || 0))
+  const listPrice = Math.max(0, Math.round(Number(product.price) || 0))
+  const price = publicSellingPrice(product.price, product.discount)
+  const hasRealDiscount = discountAmount > 0 && listPrice > price
   return {
     slug: publicProductSlug(product),
     name: product.name,
     description: product.description?.trim() ? product.description : null,
     image: product.images?.[0] || null,
-    price: publicSellingPrice(product.price, product.discount),
+    price,
+    listPrice: hasRealDiscount ? listPrice : null,
+    discountAmount: hasRealDiscount ? discountAmount : null,
+    sellingUnitLabel: publicSellingUnitLabel(specifications),
     categoryName: product.category?.name ?? null,
     categorySlug: product.category?.slug ?? null,
     sku: product.sku?.trim() || null,

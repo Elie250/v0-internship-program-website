@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { StorefrontLanguageToggle } from '@/components/storefront/storefront-language-toggle'
+import { StorefrontHeaderSearch } from '@/components/storefront/storefront-header-search'
 import { STOREFRONT_NAV_ITEMS } from '@/lib/shop/storefront-shops'
 import { useShopCart } from '@/lib/shop/cart-context'
 
@@ -18,7 +19,7 @@ export function StorefrontHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[var(--brand-navy,#1e3a5f)] text-white">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-2.5 sm:px-6 lg:h-16 lg:flex-nowrap lg:py-0">
         <div className="lg:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -79,7 +80,7 @@ export function StorefrontHeader() {
 
         <nav
           aria-label={t('storefront.a11y.nav')}
-          className="ml-6 hidden items-center gap-6 lg:flex"
+          className="hidden items-center gap-5 lg:flex"
         >
           {STOREFRONT_NAV_ITEMS.map((item) => (
             <Link
@@ -91,6 +92,8 @@ export function StorefrontHeader() {
             </Link>
           ))}
         </nav>
+
+        <StorefrontHeaderSearch className="order-last w-full lg:order-none lg:mx-2 lg:w-auto" />
 
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
           <StorefrontLanguageToggle inverted className="hidden sm:flex" />

@@ -2,6 +2,8 @@ import type { PublicCatalogueCategory, PublicCatalogueItem } from '@/lib/shop/pu
 
 export const NEW_ARRIVALS_LIMIT = 8
 export const FEATURED_LIMIT = 4
+export const HERO_LIMIT = 5
+export const DEALS_LIMIT = 8
 
 export type StorefrontPromoKind = 'sound' | 'power'
 
@@ -20,9 +22,10 @@ export type StorefrontCategoryTile = {
 }
 
 export type StorefrontMerchandising = {
-  hero: PublicCatalogueItem | null
+  heroProducts: PublicCatalogueItem[]
   newArrivals: PublicCatalogueItem[]
   featured: PublicCatalogueItem[]
+  deals: PublicCatalogueItem[]
   promos: StorefrontPromo[]
   categoryTiles: StorefrontCategoryTile[]
 }
@@ -41,6 +44,22 @@ function firstImageInCategory(
   return products.find((item) => item.categorySlug === slug && item.image)?.image ?? null
 }
 
+function uniqueBySlug(
+  items: PublicCatalogueItem[],
+  limit: number,
+  seen: Set<string>
+): PublicCatalogueItem[] {
+  const selected: PublicCatalogueItem[] = []
+  for (const item of items) {
+    if (selected.length >= limit) break
+    const slug = item.slug.trim()
+    if (!slug || seen.has(slug)) continue
+    seen.add(slug)
+    selected.push(item)
+  }
+  return selected
+}
+
 export function selectNewArrivals(
   products: PublicCatalogueItem[],
   limit: number = NEW_ARRIVALS_LIMIT
@@ -48,8 +67,34 @@ export function selectNewArrivals(
   return products.slice(0, Math.max(0, limit))
 }
 
-export function selectHeroProduct(products: PublicCatalogueItem[]): PublicCatalogueItem | null {
-  return products.find((item) => Boolean(item.image)) ?? products[0] ?? null
+/** Newest published products with photos, preferring items currently in stock. */
+export function selectHeroProducts(
+  products: PublicCatalogueItem[],
+  limit: number = HERO_LIMIT
+): PublicCatalogueItem[] {
+  const cap = Math.max(1, Math.min(5, limit))
+  const seen = new Set<string>()
+  const inStockWithImage = products.filter((item) => item.inStock && Boolean(item.image))
+  const selected = uniqueBySlug(inStockWithImage, cap, seen)
+  if (selected.length < 3) {
+    const withImage = products.filter((item) => Boolean(item.image))
+    selected.push(...uniqueBySlug(withImage, cap - selected.length, seen))
+  }
+  return selected
+}
+
+export function selectDealProducts(
+  products: PublicCatalogueItem[],
+  limit: number = DEALS_LIMIT
+): PublicCatalogueItem[] {
+  return products
+    .filter(
+      (item) =>
+        (item.discountAmount ?? 0) > 0 &&
+        item.listPrice != null &&
+        item.listPrice > item.price
+    )
+    .slice(0, Math.max(0, limit))
 }
 
 export function selectFeaturedProducts(
@@ -118,9 +163,10 @@ export function buildStorefrontMerchandising(
 ): StorefrontMerchandising {
   const newArrivals = selectNewArrivals(products)
   return {
-    hero: selectHeroProduct(products),
+    heroProducts: selectHeroProducts(products),
     newArrivals,
     featured: selectFeaturedProducts(products, newArrivals),
+    deals: selectDealProducts(products),
     promos: selectPromoCollections(products, categories),
     categoryTiles: selectCategoryTiles(products, categories),
   }

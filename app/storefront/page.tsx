@@ -5,6 +5,7 @@ import {
   StorefrontCatalogueLoading,
 } from '@/components/storefront/storefront-catalogue'
 import { StorefrontMerchandising } from '@/components/storefront/storefront-merchandising'
+import { StorefrontCategoryBar } from '@/components/storefront/storefront-category-bar'
 import { loadPublicCatalogue } from '@/lib/shop/public-catalogue'
 import { buildStorefrontMerchandising } from '@/lib/shop/public-merchandising'
 
@@ -28,14 +29,24 @@ async function StorefrontCatalogueSection({
 
   return (
     <>
-      <StorefrontHome hero={filtered ? null : merch?.hero ?? null} />
-      {merch ? <StorefrontMerchandising merch={merch} /> : null}
+      <StorefrontCategoryBar
+        categories={result.categories}
+        activeCategory={categorySlug}
+        searchQuery={search}
+      />
+      {merch ? (
+        <>
+          <StorefrontHome slides={merch.heroProducts} />
+          <StorefrontMerchandising merch={merch} />
+        </>
+      ) : null}
       <StorefrontCatalogue
         products={result.products}
         categories={result.categories}
         activeCategory={categorySlug}
         searchQuery={search ?? ''}
         error={result.error}
+        moreInShop={!filtered}
       />
     </>
   )

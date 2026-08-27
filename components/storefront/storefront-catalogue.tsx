@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 export function StorefrontCatalogueLoading() {
   const t = useShopT()
   return (
-    <section id="products" className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <section id="products" className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <p className="text-sm text-slate-600">{t('storefront.catalogue.loading')}</p>
     </section>
   )
@@ -26,12 +26,14 @@ export function StorefrontCatalogue({
   activeCategory,
   searchQuery,
   error,
+  moreInShop = false,
 }: {
   products: PublicCatalogueItem[]
   categories: PublicCatalogueCategory[]
   activeCategory?: string
   searchQuery: string
   error: boolean
+  moreInShop?: boolean
 }) {
   const t = useShopT()
   const router = useRouter()
@@ -60,10 +62,10 @@ export function StorefrontCatalogue({
   else if (hasFilters && products.length === 0) emptyMessage = t('storefront.catalogue.noResults')
 
   return (
-    <section id="products" className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
+    <section id="products" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
       <div className="max-w-2xl">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          {t('storefront.catalogue.title')}
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          {t(moreInShop ? 'storefront.more.title' : 'storefront.catalogue.title')}
         </h2>
         <p className="mt-2 text-sm text-slate-600 sm:text-base">{t('storefront.catalogue.hint')}</p>
       </div>
@@ -111,7 +113,7 @@ export function StorefrontCatalogue({
           <p className="mt-4 text-sm font-medium text-slate-700">{emptyMessage}</p>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {products.map((product) => (
             <StorefrontProductCard key={product.slug} product={product} />
           ))}

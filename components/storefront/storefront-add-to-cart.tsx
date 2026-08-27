@@ -56,7 +56,13 @@ export function StorefrontAddToCart({
   )
 }
 
-export function StorefrontAvailability({ value }: { value: PublicCatalogueItem['availability'] }) {
+export function StorefrontAvailability({
+  value,
+  onDark = false,
+}: {
+  value: PublicCatalogueItem['availability']
+  onDark?: boolean
+}) {
   const t = useShopT()
   const label =
     value === 'out'
@@ -69,7 +75,17 @@ export function StorefrontAvailability({ value }: { value: PublicCatalogueItem['
     <span
       className={cn(
         'inline-flex items-center gap-1 text-xs font-semibold',
-        value === 'out' ? 'text-red-700' : value === 'few' ? 'text-amber-700' : 'text-emerald-700'
+        onDark
+          ? value === 'out'
+            ? 'text-red-200'
+            : value === 'few'
+              ? 'text-amber-200'
+              : 'text-emerald-200'
+          : value === 'out'
+            ? 'text-red-700'
+            : value === 'few'
+              ? 'text-amber-700'
+              : 'text-emerald-700'
       )}
     >
       {value !== 'out' ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
