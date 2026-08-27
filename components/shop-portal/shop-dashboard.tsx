@@ -1,7 +1,9 @@
+'use client'
+
 import Link from 'next/link'
 import type { StaffDashboardReport } from '@/lib/shop/staff-api/dashboard'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
-import { SHOP_PORTAL_DISPLAY } from '@/lib/shop/portal-nav'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 type Metric = {
   label: string
@@ -68,10 +70,12 @@ export function ShopDashboardView({
   canOpenInventory: boolean
   loadError: string | null
 }) {
+  const t = useShopT()
+
   if (loadError) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4">
-        <p className="text-sm font-medium text-red-950">Dashboard unavailable</p>
+        <p className="text-sm font-medium text-red-950">{t('dashboard.unavailable')}</p>
         <p className="mt-1 text-sm text-red-900/80">{loadError}</p>
       </div>
     )
@@ -81,8 +85,7 @@ export function ShopDashboardView({
     return (
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-6 shadow-sm">
         <p className="text-sm text-slate-700 leading-relaxed">
-          You are signed in to {SHOP_PORTAL_DISPLAY.brandName}, but your role does not include sales
-          or inventory reporting permissions. Ask an administrator if you need operational metrics.
+          {t('dashboard.noPerms', { brandName: t('brand.name') })}
         </p>
       </div>
     )
@@ -91,93 +94,92 @@ export function ShopDashboardView({
   if (!report) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white px-5 py-6 shadow-sm">
-        <p className="text-sm text-slate-600">No dashboard data is available yet.</p>
+        <p className="text-sm text-slate-600">{t('dashboard.noData')}</p>
       </div>
     )
   }
 
   const salesMetrics: Metric[] = [
     {
-      label: "Today's sales",
+      label: t('dashboard.metric.todaySales'),
       value: formatShopRwf(report.todaySales),
-      hint: 'Paid / approved orders only',
+      hint: t('dashboard.metric.todaySalesHint'),
     },
     {
-      label: "Today's orders",
+      label: t('dashboard.metric.todayOrders'),
       value: formatShopInteger(report.todayOrders),
-      hint: `${formatShopInteger(report.todayPosOrders)} POS · ${formatShopInteger(report.todayOnlineOrders)} online`,
+      hint: t('dashboard.metric.todayOrdersHint', {
+        pos: formatShopInteger(report.todayPosOrders),
+        online: formatShopInteger(report.todayOnlineOrders),
+      }),
     },
     {
-      label: 'Pending payment',
+      label: t('dashboard.metric.pending'),
       value: formatShopInteger(report.pendingOrders),
-      hint: 'Unpaid, review, or gateway pending',
+      hint: t('dashboard.metric.pendingHint'),
       tone: report.pendingOrders > 0 ? 'warn' : 'default',
     },
   ]
 
   const stockMetrics: Metric[] = [
     {
-      label: 'Catalog items',
+      label: t('dashboard.metric.catalog'),
       value: formatShopInteger(report.catalogItems),
-      hint: 'Published and draft products',
+      hint: t('dashboard.metric.catalogHint'),
     },
     {
-      label: 'In stock',
+      label: t('dashboard.metric.inStock'),
       value: formatShopInteger(report.inStockItems),
     },
     {
-      label: 'Low stock',
+      label: t('dashboard.metric.lowStock'),
       value: formatShopInteger(report.lowStockItems),
       tone: report.lowStockItems > 0 ? 'warn' : 'default',
-      hint: 'At or below threshold, still available',
+      hint: t('dashboard.metric.lowStockHint'),
     },
     {
-      label: 'Out of stock',
+      label: t('dashboard.metric.outOfStock'),
       value: formatShopInteger(report.outOfStockItems),
       tone: report.outOfStockItems > 0 ? 'warn' : 'default',
     },
   ]
 
   const shortcuts = [
-    canOpenPos ? { href: '/pos', label: 'Open POS' } : null,
-    canOpenSales ? { href: '/sales', label: 'Sales history' } : null,
-    canOpenInventory ? { href: '/inventory', label: 'Inventory' } : null,
+    canOpenPos ? { href: '/pos', label: t('dashboard.shortcut.pos') } : null,
+    canOpenSales ? { href: '/sales', label: t('dashboard.shortcut.sales') } : null,
+    canOpenInventory ? { href: '/inventory', label: t('dashboard.shortcut.inventory') } : null,
   ].filter(Boolean) as { href: string; label: string }[]
 
   return (
     <div className="shop-dashboard space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <p className="text-sm text-slate-600">
-          Business day{' '}
+          {t('dashboard.businessDay')}{' '}
           <span className="font-medium text-slate-900">{report.businessDate}</span>
           <span className="text-slate-400"> · </span>
           <span className="tabular-nums">{report.timezone}</span>
         </p>
-        <p className="text-xs text-slate-500">
-          Stock model: global catalog quantity (not per location)
-        </p>
+        <p className="text-xs text-slate-500">{t('dashboard.stockModelNote')}</p>
       </div>
 
       {showSales ? (
         <Section
-          title="Sales today"
-          description="Figures are computed on the server from live orders. Profit is not shown until an audited cost report is available."
+          title={t('dashboard.section.salesToday')}
+          description={t('dashboard.section.salesTodayDesc')}
         >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {salesMetrics.map((m) => (
               <MetricTile key={m.label} {...m} />
             ))}
           </div>
-          <p className="text-xs text-slate-500">
-            Profit reporting is not enabled yet — no estimated or fabricated margin is shown.
-          </p>
+          <p className="text-xs text-slate-500">{t('dashboard.profitNote')}</p>
         </Section>
       ) : null}
 
       {showStock ? (
         <Section
-          title="Inventory snapshot"
-          description="Quantities come from products.stock — the authoritative global inventory field."
+          title={t('dashboard.section.inventory')}
+          description={t('dashboard.section.inventoryDesc')}
         >
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {stockMetrics.map((m) => (
@@ -188,7 +190,7 @@ export function ShopDashboardView({
       ) : null}
 
       {shortcuts.length > 0 ? (
-        <Section title="Shortcuts">
+        <Section title={t('dashboard.section.shortcuts')}>
           <div className="flex flex-wrap gap-2">
             {shortcuts.map((item) => (
               <Link

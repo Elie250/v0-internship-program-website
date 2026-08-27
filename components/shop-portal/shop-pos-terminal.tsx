@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { previewCartTotals, previewUnitPrice } from '@/lib/shop/pos-pricing'
+import { useShopI18n, useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import { shopPaymentStatusLabel, shopStockStateLabel } from '@/lib/shop/i18n/translate'
 import type { ReceiptModel } from '@/lib/shop/receipt-model'
 
 type PosProduct = {
@@ -49,13 +51,15 @@ function newIdempotencyKey() {
 }
 
 export function ShopPosTerminal() {
+  const t = useShopT()
+  const { locale } = useShopI18n()
   const searchId = useId()
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState<PosProduct[]>([])
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
   const [cart, setCart] = useState<CartLine[]>([])
-  const [customerName, setCustomerName] = useState('Walk-in customer')
+  const [customerName, setCustomerName] = useState(() => t('pos.defaultCustomer'))
   const [customerPhone, setCustomerPhone] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null)
@@ -83,7 +87,7 @@ export function ShopPosTerminal() {
       if (!res.ok) {
         setProducts([])
         setSearchError(
-          typeof data.error === 'string' ? data.error : 'Unable to load products'
+          typeof data.error === 'string' ? data.error : t('pos.error.loadProducts')
         )
         return
       }
@@ -102,7 +106,7 @@ export function ShopPosTerminal() {
       )
     } catch {
       setProducts([])
-      setSearchError('Unable to load products')
+      setSearchError(t('pos.error.loadProducts'))
     } finally {
       setSearching(false)
     }
@@ -197,7 +201,7 @@ export function ShopPosTerminal() {
             productId: line.productId,
             quantity: line.quantity,
           })),
-          customerName: customerName.trim() || 'Walk-in customer',
+          customerName: customerName.trim() || t('pos.defaultCustomer'),
           customerPhone: customerPhone.trim() || null,
           paymentMethod: 'cash',
           idempotencyKey: key,
@@ -206,7 +210,7 @@ export function ShopPosTerminal() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(
-          typeof data.error === 'string' && data.error ? data.error : 'Sale failed'
+          typeof data.error === 'string' && data.error ? data.error : t('pos.saleFailed')
         )
       }
       setSuccess({
@@ -215,7 +219,7 @@ export function ShopPosTerminal() {
         totalAmount: Number(data.totalAmount ?? 0),
         paymentStatus: String(data.paymentStatus ?? ''),
         stockState: String(data.stockState ?? ''),
-        message: String(data.message ?? 'Sale completed'),
+        message: String(data.message ?? t('pos.successTitle')),
         receipt: data.receipt ?? null,
         replay: Boolean(data.replay),
       })
@@ -224,7 +228,7 @@ export function ShopPosTerminal() {
       setIdempotencyKey(null)
       void runProductSearch(query)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sale failed')
+      setError(err instanceof Error ? err.message : t('pos.saleFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -235,7 +239,7 @@ export function ShopPosTerminal() {
     setError('')
     setConfirmOpen(false)
     setIdempotencyKey(null)
-    setCustomerName('Walk-in customer')
+    setCustomerName(t('pos.defaultCustomer'))
     setCustomerPhone('')
   }
 
@@ -244,10 +248,10 @@ export function ShopPosTerminal() {
     return (
       <div className="space-y-6">
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-          <p className="text-sm font-semibold text-emerald-950">Sale completed</p>
-          <p className="mt-1 text-sm text-emerald-900/90">{success.message}</p>
+          <p className="text-sm font-semibold text-emerald-950">{t('pos.successTitle')}</p>
+          <p className="mt-1 text-sm text-emerald-900/90">{t('pos.successBody')}</p>
           {success.replay ? (
-            <p className="mt-1 text-xs text-emerald-800">Idempotent replay — same sale returned.</p>
+            <p className="mt-1 text-xs text-emerald-800">{t('pos.idempotentReplay')}</p>
           ) : null}
         </div>
 
@@ -255,14 +259,14 @@ export function ShopPosTerminal() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Receipt
+                {t('common.receipt')}
               </p>
               <p className="mt-1 text-xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
-                {success.orderNumber || '—'}
+                {success.orderNumber || t('common.emDash')}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-500">Server total</p>
+              <p className="text-xs text-slate-500">{t('pos.serverTotal')}</p>
               <p className="text-2xl font-semibold tabular-nums text-slate-900">
                 {formatShopRwf(success.totalAmount)}
               </p>
@@ -271,16 +275,22 @@ export function ShopPosTerminal() {
 
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-slate-500">Payment</dt>
-              <dd className="font-medium text-slate-900">Cash · {success.paymentStatus}</dd>
+              <dt className="text-slate-500">{t('common.payment')}</dt>
+              <dd className="font-medium text-slate-900">
+                {t('pos.cashDotStatus', {
+                  paymentStatus: shopPaymentStatusLabel(locale, success.paymentStatus),
+                })}
+              </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Stock</dt>
-              <dd className="font-medium text-slate-900">{success.stockState || '—'}</dd>
+              <dt className="text-slate-500">{t('common.stock')}</dt>
+              <dd className="font-medium text-slate-900">
+                {shopStockStateLabel(locale, success.stockState)}
+              </dd>
             </div>
             {receipt?.customerName ? (
               <div>
-                <dt className="text-slate-500">Customer</dt>
+                <dt className="text-slate-500">{t('common.customer')}</dt>
                 <dd className="font-medium text-slate-900">{receipt.customerName}</dd>
               </div>
             ) : null}
@@ -313,7 +323,7 @@ export function ShopPosTerminal() {
           className="bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
           onClick={startNewSale}
         >
-          New cash sale
+          {t('pos.newSale')}
         </Button>
       </div>
     )
@@ -324,7 +334,7 @@ export function ShopPosTerminal() {
       <div className="lg:col-span-3 space-y-4">
         <div>
           <Label htmlFor={searchId} className="sr-only">
-            Search products
+            {t('pos.searchLabel')}
           </Label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -332,13 +342,13 @@ export function ShopPosTerminal() {
               id={searchId}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, SKU, or barcode…"
+              placeholder={t('pos.searchPlaceholder')}
               className="pl-9 bg-white"
               autoComplete="off"
             />
           </div>
           <p className="mt-1.5 text-xs text-slate-500">
-            {searching ? 'Searching…' : 'Catalog from staff product API · published items'}
+            {searching ? t('pos.searching') : t('pos.catalogHint')}
           </p>
           {searchError ? <p className="mt-1 text-sm text-red-700">{searchError}</p> : null}
         </div>
@@ -357,7 +367,7 @@ export function ShopPosTerminal() {
               >
                 <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
                 <p className="mt-1 text-xs text-slate-500 truncate">
-                  {product.sku || product.barcode || 'No SKU'}
+                  {product.sku || product.barcode || t('pos.noSku')}
                 </p>
                 <div className="mt-3 flex items-end justify-between gap-2">
                   <div>
@@ -370,14 +380,16 @@ export function ShopPosTerminal() {
                       </p>
                     ) : null}
                   </div>
-                  <p className="text-xs text-slate-500">Stock {formatShopInteger(product.stock)}</p>
+                  <p className="text-xs text-slate-500">
+                    {t('pos.stockLabel', { n: formatShopInteger(product.stock) })}
+                  </p>
                 </div>
               </button>
             )
           })}
           {!searching && products.length === 0 ? (
             <p className="sm:col-span-2 text-sm text-slate-600 py-8 text-center">
-              No products found. Try another search.
+              {t('pos.emptyProducts')}
             </p>
           ) : null}
         </div>
@@ -386,14 +398,12 @@ export function ShopPosTerminal() {
       <div className="lg:col-span-2 space-y-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Current sale</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Preview totals only — final amount is set by the server.
-            </p>
+            <h2 className="text-base font-semibold text-slate-900">{t('pos.cartTitle')}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{t('pos.cartHint')}</p>
           </div>
 
           {cart.length === 0 ? (
-            <p className="text-sm text-slate-600">Select products to build the cart.</p>
+            <p className="text-sm text-slate-600">{t('pos.cartEmpty')}</p>
           ) : (
             <ul className="space-y-3 max-h-56 overflow-y-auto">
               {cart.map((line) => {
@@ -403,9 +413,9 @@ export function ShopPosTerminal() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-900 truncate">{line.name}</p>
                       <p className="text-xs text-slate-500 tabular-nums">
-                        {formatShopRwf(unit)} each
+                        {t('pos.each', { price: formatShopRwf(unit) })}
                         {line.discount > 0
-                          ? ` · −${formatShopRwf(line.discount)} off list`
+                          ? ` ${t('pos.offList', { discount: formatShopRwf(line.discount) })}`
                           : ''}
                       </p>
                     </div>
@@ -416,7 +426,7 @@ export function ShopPosTerminal() {
                         variant="outline"
                         className="h-7 w-7"
                         onClick={() => updateQty(line.productId, line.quantity - 1)}
-                        aria-label="Decrease quantity"
+                        aria-label={t('a11y.decreaseQty')}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -428,7 +438,7 @@ export function ShopPosTerminal() {
                         className="h-7 w-7"
                         onClick={() => updateQty(line.productId, line.quantity + 1)}
                         disabled={line.quantity >= line.maxStock}
-                        aria-label="Increase quantity"
+                        aria-label={t('a11y.increaseQty')}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -438,7 +448,7 @@ export function ShopPosTerminal() {
                         variant="ghost"
                         className="h-7 w-7 text-red-600"
                         onClick={() => removeLine(line.productId)}
-                        aria-label="Remove item"
+                        aria-label={t('a11y.removeItem')}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -451,22 +461,22 @@ export function ShopPosTerminal() {
 
           <div className="space-y-1.5 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-sm">
             <div className="flex justify-between text-slate-600">
-              <span>List subtotal</span>
+              <span>{t('pos.listSubtotal')}</span>
               <span className="tabular-nums">{formatShopRwf(totals.listSubtotal)}</span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Discounts</span>
+              <span>{t('pos.discounts')}</span>
               <span className="tabular-nums">−{formatShopRwf(totals.discountTotal)}</span>
             </div>
             <div className="flex justify-between font-semibold text-slate-900 pt-1 border-t border-slate-200">
-              <span>Preview total</span>
+              <span>{t('pos.previewTotal')}</span>
               <span className="tabular-nums">{formatShopRwf(totals.payableTotal)}</span>
             </div>
           </div>
 
           <div className="space-y-2">
             <div>
-              <Label htmlFor="pos-customer-name">Customer name</Label>
+              <Label htmlFor="pos-customer-name">{t('pos.customerName')}</Label>
               <Input
                 id="pos-customer-name"
                 className="mt-1"
@@ -475,7 +485,7 @@ export function ShopPosTerminal() {
               />
             </div>
             <div>
-              <Label htmlFor="pos-customer-phone">Phone (optional)</Label>
+              <Label htmlFor="pos-customer-phone">{t('pos.phoneOptional')}</Label>
               <Input
                 id="pos-customer-phone"
                 className="mt-1"
@@ -486,10 +496,8 @@ export function ShopPosTerminal() {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-            <p className="font-medium text-slate-900">Payment: Cash</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              MoMo is not available in this phase. Stock is consumed when the sale is confirmed.
-            </p>
+            <p className="font-medium text-slate-900">{t('pos.paymentCash')}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{t('pos.paymentNote')}</p>
           </div>
 
           {error ? (
@@ -505,16 +513,14 @@ export function ShopPosTerminal() {
               disabled={cart.length === 0 || submitting}
               onClick={openConfirm}
             >
-              Review cash sale
+              {t('pos.reviewSale')}
             </Button>
           ) : (
             <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-950">
-                Confirm cash payment of {formatShopRwf(totals.payableTotal)}?
+                {t('pos.confirmPrompt', { total: formatShopRwf(totals.payableTotal) })}
               </p>
-              <p className="text-xs text-amber-900/80">
-                This posts to the staff POS API. The server recalculates pricing and stock.
-              </p>
+              <p className="text-xs text-amber-900/80">{t('pos.confirmHint')}</p>
               <div className="flex gap-2 pt-1">
                 <Button
                   type="button"
@@ -523,7 +529,7 @@ export function ShopPosTerminal() {
                   disabled={submitting}
                   onClick={() => setConfirmOpen(false)}
                 >
-                  Back
+                  {t('action.back')}
                 </Button>
                 <Button
                   type="button"
@@ -531,7 +537,7 @@ export function ShopPosTerminal() {
                   disabled={submitting}
                   onClick={() => void completeCashSale()}
                 >
-                  {submitting ? 'Processing…' : 'Confirm cash sale'}
+                  {submitting ? t('pos.processing') : t('pos.confirmSale')}
                 </Button>
               </div>
             </div>

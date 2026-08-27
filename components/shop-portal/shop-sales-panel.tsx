@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { fetchStaffApi, type StaffListResponse } from '@/lib/shop/staff-client'
 import { ShopListPagination } from '@/components/shop-portal/shop-list-pagination'
+import { useShopI18n, useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import { shopPaymentStatusLabel, shopStockStateLabel } from '@/lib/shop/i18n/translate'
 
 type OrderSummary = {
   id: string
@@ -45,6 +47,8 @@ type OrderDetail = OrderSummary & {
 }
 
 export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) {
+  const t = useShopT()
+  const { locale } = useShopI18n()
   const [channel, setChannel] = useState('')
   const [paymentStatus, setPaymentStatus] = useState('')
   const [page, setPage] = useState(1)
@@ -106,14 +110,12 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
-        Read-only sales history from staff order APIs. Order edits and refunds are not available here.
-      </p>
+      <p className="text-xs text-slate-500">{t('sales.readOnlyNote')}</p>
 
       <div className="flex flex-wrap gap-3">
         <div>
           <Label htmlFor="sales-channel" className="sr-only">
-            Channel
+            {t('sales.channelLabel')}
           </Label>
           <select
             id="sales-channel"
@@ -124,14 +126,14 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
               setChannel(e.target.value)
             }}
           >
-            <option value="">All channels</option>
-            <option value="pos">POS</option>
-            <option value="online">Online</option>
+            <option value="">{t('sales.channel.all')}</option>
+            <option value="pos">{t('sales.channel.pos')}</option>
+            <option value="online">{t('sales.channel.online')}</option>
           </select>
         </div>
         <div>
           <Label htmlFor="sales-pay" className="sr-only">
-            Payment status
+            {t('sales.paymentStatusLabel')}
           </Label>
           <select
             id="sales-pay"
@@ -142,12 +144,12 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
               setPaymentStatus(e.target.value)
             }}
           >
-            <option value="">All payment statuses</option>
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="pending_review">Pending review</option>
-            <option value="gateway_pending">Gateway pending</option>
-            <option value="approved">Approved</option>
+            <option value="">{t('sales.payment.all')}</option>
+            <option value="paid">{t('sales.payment.paid')}</option>
+            <option value="unpaid">{t('sales.payment.unpaid')}</option>
+            <option value="pending_review">{t('sales.payment.pendingReview')}</option>
+            <option value="gateway_pending">{t('sales.payment.gatewayPending')}</option>
+            <option value="approved">{t('sales.payment.approved')}</option>
           </select>
         </div>
       </div>
@@ -164,10 +166,10 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Order</th>
-                  <th className="px-3 py-2 font-medium">Channel</th>
-                  <th className="px-3 py-2 font-medium">Payment</th>
-                  <th className="px-3 py-2 font-medium">Total</th>
+                  <th className="px-3 py-2 font-medium">{t('sales.col.order')}</th>
+                  <th className="px-3 py-2 font-medium">{t('sales.col.channel')}</th>
+                  <th className="px-3 py-2 font-medium">{t('sales.col.payment')}</th>
+                  <th className="px-3 py-2 font-medium">{t('sales.col.total')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,13 +190,15 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
                         <p className="text-xs text-slate-500">
                           {row.orderDate
                             ? new Date(row.orderDate).toLocaleString()
-                            : '—'}
+                            : t('common.emDash')}
                           {row.customerName ? ` · ${row.customerName}` : ''}
                         </p>
                       </td>
-                      <td className="px-3 py-2.5 text-slate-700">{row.channel || '—'}</td>
                       <td className="px-3 py-2.5 text-slate-700">
-                        {row.paymentStatus || '—'}
+                        {row.channel || t('common.emDash')}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700">
+                        {shopPaymentStatusLabel(locale, row.paymentStatus)}
                         {row.paymentMethod ? (
                           <span className="block text-xs text-slate-500">{row.paymentMethod}</span>
                         ) : null}
@@ -208,7 +212,7 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
                 {!loading && items.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-3 py-8 text-center text-slate-500">
-                      No sales found.
+                      {t('sales.empty')}
                     </td>
                   </tr>
                 ) : null}
@@ -228,45 +232,50 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
 
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-h-[240px]">
           {!selectedId ? (
-            <p className="text-sm text-slate-600">Select a sale to view details.</p>
+            <p className="text-sm text-slate-600">{t('sales.selectHint')}</p>
           ) : detailError ? (
             <p className="text-sm text-red-700">{detailError}</p>
           ) : !detail ? (
-            <p className="text-sm text-slate-500">Loading…</p>
+            <p className="text-sm text-slate-500">{t('common.loading')}</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h2 className="text-base font-semibold text-slate-900">
-                    {detail.orderNumber || 'Order'}
+                    {detail.orderNumber || t('sales.orderFallbackTitle')}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {detail.channel} · {detail.status} · {detail.paymentStatus}
+                    {detail.channel} · {detail.status} ·{' '}
+                    {shopPaymentStatusLabel(locale, detail.paymentStatus)}
                   </p>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
-                  Close
+                  {t('action.close')}
                 </Button>
               </div>
 
               <dl className="grid gap-1.5 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Total</dt>
+                  <dt className="text-slate-500">{t('sales.field.total')}</dt>
                   <dd className="tabular-nums font-semibold text-[var(--brand-navy,#1e3a5f)]">
                     {formatShopRwf(detail.totalAmount)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Customer</dt>
-                  <dd className="font-medium text-slate-900">{detail.customerName || '—'}</dd>
+                  <dt className="text-slate-500">{t('sales.field.customer')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.customerName || t('common.emDash')}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Location</dt>
-                  <dd className="font-medium text-slate-900">{detail.locationName || '—'}</dd>
+                  <dt className="text-slate-500">{t('sales.field.location')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.locationName || t('common.emDash')}
+                  </dd>
                 </div>
                 {detail.payment ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Payment</dt>
+                    <dt className="text-slate-500">{t('sales.field.payment')}</dt>
                     <dd className="font-medium text-slate-900">
                       {formatShopRwf(detail.payment.amount)} · {detail.payment.status}
                     </dd>
@@ -274,8 +283,10 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
                 ) : null}
                 {detail.stockState ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Stock state</dt>
-                    <dd className="font-medium text-slate-900">{detail.stockState}</dd>
+                    <dt className="text-slate-500">{t('sales.field.stockState')}</dt>
+                    <dd className="font-medium text-slate-900">
+                      {shopStockStateLabel(locale, detail.stockState)}
+                    </dd>
                   </div>
                 ) : null}
               </dl>
@@ -293,7 +304,7 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
                       <p className="text-xs text-slate-500 mt-0.5">
                         {formatShopInteger(line.quantity)} × {formatShopRwf(line.unitPrice)}
                         {canSeeUnitCost
-                          ? ` · cost ${formatShopRwf(line.unitCost)}`
+                          ? ` ${t('sales.lineCost', { amount: formatShopRwf(line.unitCost) })}`
                           : ''}
                       </p>
                     </li>

@@ -2,10 +2,8 @@ import type { Metadata } from 'next'
 import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
-import {
-  ShopForbiddenPanel,
-  ShopPageHeader,
-} from '@/components/shop-portal/shop-page-chrome'
+import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
+import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
 import { ShopProductsPanel } from '@/components/shop-portal/shop-products-panel'
 
 export const metadata: Metadata = {
@@ -18,7 +16,10 @@ export default async function ShopProductsPage() {
   if (!session) {
     return (
       <div>
-        <ShopPageHeader title="Products" description="Product catalog." />
+        <ShopLocalizedPageHeader
+          titleKey="products.title"
+          descriptionKey="products.descriptionForbidden"
+        />
         <ShopForbiddenPanel />
       </div>
     )
@@ -28,9 +29,9 @@ export default async function ShopProductsPage() {
 
   return (
     <div>
-      <ShopPageHeader
-        title="Products"
-        description="Browse the Energy & Logics catalog. Data comes from authorized staff product APIs."
+      <ShopLocalizedPageHeader
+        titleKey="products.title"
+        descriptionKey="products.description"
       />
       <ShopProductsPanel canSeeCost={canSeeCost} />
     </div>

@@ -51,7 +51,7 @@ test('POS terminal is cash-only and posts to staff sales API', () => {
   assert.match(src, /paymentMethod:\s*'cash'/)
   assert.doesNotMatch(src, /paymentMethod:\s*'momo'|SelectItem value="momo"|setPaymentMethod/)
   assert.match(src, /Idempotency-Key/)
-  assert.match(src, /Preview total|preview/)
+  assert.match(src, /pos\.previewTotal|Preview total|preview/)
   assert.match(src, /credentials:\s*'same-origin'/)
 })
 

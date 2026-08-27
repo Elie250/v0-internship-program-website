@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
-import {
-  ShopForbiddenPanel,
-  ShopPageHeader,
-} from '@/components/shop-portal/shop-page-chrome'
+import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
+import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
 import { ShopPosTerminal } from '@/components/shop-portal/shop-pos-terminal'
 
 export const metadata: Metadata = {
@@ -17,7 +15,10 @@ export default async function ShopPosPage() {
   if (!session) {
     return (
       <div>
-        <ShopPageHeader title="POS" description="Point of sale terminal." />
+        <ShopLocalizedPageHeader
+          titleKey="pos.title"
+          descriptionKey="pos.descriptionForbidden"
+        />
         <ShopForbiddenPanel />
       </div>
     )
@@ -25,10 +26,7 @@ export default async function ShopPosPage() {
 
   return (
     <div>
-      <ShopPageHeader
-        title="POS"
-        description="Cash point of sale. Product lookup and checkout use staff APIs; the server owns pricing, stock, and receipts."
-      />
+      <ShopLocalizedPageHeader titleKey="pos.title" descriptionKey="pos.description" />
       <ShopPosTerminal />
     </div>
   )

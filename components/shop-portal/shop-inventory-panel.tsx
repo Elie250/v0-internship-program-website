@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { fetchStaffApi, type StaffListResponse } from '@/lib/shop/staff-client'
 import { ShopListPagination } from '@/components/shop-portal/shop-list-pagination'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { STOCK_MOVEMENT_TYPES } from '@/lib/shop/stock-types'
 
 type InventoryRow = {
@@ -38,6 +39,7 @@ type MovementRow = {
 type Tab = 'levels' | 'movements'
 
 export function ShopInventoryPanel() {
+  const t = useShopT()
   const [tab, setTab] = useState<Tab>('levels')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -102,10 +104,7 @@ export function ShopInventoryPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
-        Read-only stock from <span className="font-medium">products.stock</span> (global). Adjustments
-        and transfers are not available in this phase.
-      </p>
+      <p className="text-xs text-slate-500">{t('inventory.readOnlyNote')}</p>
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -120,7 +119,7 @@ export function ShopInventoryPanel() {
             setTab('levels')
           }}
         >
-          Stock levels
+          {t('inventory.tab.levels')}
         </button>
         <button
           type="button"
@@ -134,14 +133,14 @@ export function ShopInventoryPanel() {
             setTab('movements')
           }}
         >
-          Movements
+          {t('inventory.tab.movements')}
         </button>
       </div>
 
       {tab === 'levels' ? (
         <div>
           <Label htmlFor="inv-q" className="sr-only">
-            Search inventory
+            {t('inventory.searchLabel')}
           </Label>
           <Input
             id="inv-q"
@@ -150,14 +149,14 @@ export function ShopInventoryPanel() {
               setPage(1)
               setQuery(e.target.value)
             }}
-            placeholder="Search by name or SKU…"
+            placeholder={t('inventory.searchPlaceholder')}
             className="bg-white max-w-md"
           />
         </div>
       ) : (
         <div>
           <Label htmlFor="inv-move-type" className="sr-only">
-            Movement type
+            {t('inventory.movementTypeLabel')}
           </Label>
           <select
             id="inv-move-type"
@@ -168,7 +167,7 @@ export function ShopInventoryPanel() {
               setMovementType(e.target.value)
             }}
           >
-            <option value="">All movement types</option>
+            <option value="">{t('inventory.movementType.all')}</option>
             {STOCK_MOVEMENT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {type}
@@ -190,11 +189,11 @@ export function ShopInventoryPanel() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Product</th>
-                  <th className="px-3 py-2 font-medium">On hand</th>
-                  <th className="px-3 py-2 font-medium">Threshold</th>
-                  <th className="px-3 py-2 font-medium">List price</th>
-                  <th className="px-3 py-2 font-medium">Flag</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.product')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.onHand')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.threshold')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.listPrice')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.flag')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,7 +201,9 @@ export function ShopInventoryPanel() {
                   <tr key={row.productId} className="border-t border-slate-100">
                     <td className="px-3 py-2.5">
                       <p className="font-medium text-slate-900">{row.name}</p>
-                      <p className="text-xs text-slate-500">{row.sku || 'No SKU'}</p>
+                      <p className="text-xs text-slate-500">
+                        {row.sku || t('products.noSku')}
+                      </p>
                     </td>
                     <td className="px-3 py-2.5 tabular-nums font-medium text-slate-900">
                       {formatShopInteger(row.currentStock)}
@@ -215,11 +216,15 @@ export function ShopInventoryPanel() {
                     </td>
                     <td className="px-3 py-2.5">
                       {row.currentStock <= 0 ? (
-                        <span className="text-xs font-medium text-red-700">Out</span>
+                        <span className="text-xs font-medium text-red-700">
+                          {t('inventory.flag.out')}
+                        </span>
                       ) : row.isLowStock ? (
-                        <span className="text-xs font-medium text-amber-700">Low</span>
+                        <span className="text-xs font-medium text-amber-700">
+                          {t('inventory.flag.low')}
+                        </span>
                       ) : (
-                        <span className="text-xs text-slate-400">OK</span>
+                        <span className="text-xs text-slate-400">{t('inventory.flag.ok')}</span>
                       )}
                     </td>
                   </tr>
@@ -227,7 +232,7 @@ export function ShopInventoryPanel() {
                 {!loading && items.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-8 text-center text-slate-500">
-                      No inventory rows.
+                      {t('inventory.emptyLevels')}
                     </td>
                   </tr>
                 ) : null}
@@ -237,11 +242,11 @@ export function ShopInventoryPanel() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 font-medium">When</th>
-                  <th className="px-3 py-2 font-medium">Type</th>
-                  <th className="px-3 py-2 font-medium">Delta</th>
-                  <th className="px-3 py-2 font-medium">Before → After</th>
-                  <th className="px-3 py-2 font-medium">Reason</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.when')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.type')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.delta')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.beforeAfter')}</th>
+                  <th className="px-3 py-2 font-medium">{t('inventory.col.reason')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -256,19 +261,23 @@ export function ShopInventoryPanel() {
                       {formatShopInteger(row.quantityDelta)}
                     </td>
                     <td className="px-3 py-2.5 tabular-nums text-slate-600">
-                      {row.quantityBefore == null ? '—' : formatShopInteger(row.quantityBefore)}
+                      {row.quantityBefore == null
+                        ? t('common.emDash')
+                        : formatShopInteger(row.quantityBefore)}
                       {' → '}
-                      {row.quantityAfter == null ? '—' : formatShopInteger(row.quantityAfter)}
+                      {row.quantityAfter == null
+                        ? t('common.emDash')
+                        : formatShopInteger(row.quantityAfter)}
                     </td>
                     <td className="px-3 py-2.5 text-slate-600 max-w-[200px] truncate">
-                      {row.reason || '—'}
+                      {row.reason || t('common.emDash')}
                     </td>
                   </tr>
                 ))}
                 {!loading && movements.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-3 py-8 text-center text-slate-500">
-                      No movements found.
+                      {t('inventory.emptyMovements')}
                     </td>
                   </tr>
                 ) : null}

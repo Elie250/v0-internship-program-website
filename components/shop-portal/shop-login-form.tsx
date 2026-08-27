@@ -6,10 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { sanitizeShopReturnPath } from '@/lib/shop/safe-return-path'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 export function ShopLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useShopT()
   const returnTo = useMemo(
     () => sanitizeShopReturnPath(searchParams.get('returnTo')),
     [searchParams]
@@ -32,17 +34,18 @@ export function ShopLoginForm() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        // API error strings are English contracts for this phase — show as returned
         setError(
           typeof data.error === 'string' && data.error
             ? data.error
-            : 'Unable to sign in. Check your credentials and try again.'
+            : t('auth.error.generic')
         )
         return
       }
       router.replace(returnTo)
       router.refresh()
     } catch {
-      setError('Unable to sign in. Please try again.')
+      setError(t('auth.error.retry'))
     } finally {
       setBusy(false)
     }
@@ -51,7 +54,7 @@ export function ShopLoginForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4 text-left">
       <div className="space-y-2">
-        <Label htmlFor="shop-email">Email</Label>
+        <Label htmlFor="shop-email">{t('auth.email')}</Label>
         <Input
           id="shop-email"
           type="email"
@@ -63,7 +66,7 @@ export function ShopLoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="shop-password">Password</Label>
+        <Label htmlFor="shop-password">{t('auth.password')}</Label>
         <Input
           id="shop-password"
           type="password"
@@ -84,7 +87,7 @@ export function ShopLoginForm() {
         className="w-full bg-[var(--brand-navy,#1e3a5f)] hover:bg-[var(--brand-navy,#1e3a5f)]/90"
         disabled={busy}
       >
-        {busy ? 'Signing in…' : 'Sign in'}
+        {busy ? t('action.signingIn') : t('action.signIn')}
       </Button>
     </form>
   )

@@ -8,6 +8,7 @@ import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { previewUnitPrice } from '@/lib/shop/pos-pricing'
 import { fetchStaffApi, type StaffListResponse } from '@/lib/shop/staff-client'
 import { ShopListPagination } from '@/components/shop-portal/shop-list-pagination'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 type ProductRow = {
   id: string
@@ -30,6 +31,7 @@ type ProductDetail = ProductRow & {
 }
 
 export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
+  const t = useShopT()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('published')
   const [page, setPage] = useState(1)
@@ -98,14 +100,12 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
-        Read-only catalog from staff product APIs. Editing is not available in this phase.
-      </p>
+      <p className="text-xs text-slate-500">{t('products.readOnlyNote')}</p>
 
       <div className="flex flex-wrap gap-3">
         <div className="min-w-[200px] flex-1">
           <Label htmlFor="shop-products-q" className="sr-only">
-            Search products
+            {t('products.searchLabel')}
           </Label>
           <Input
             id="shop-products-q"
@@ -114,13 +114,13 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
               setPage(1)
               setQuery(e.target.value)
             }}
-            placeholder="Search name, SKU, barcode…"
+            placeholder={t('products.searchPlaceholder')}
             className="bg-white"
           />
         </div>
         <div>
           <Label htmlFor="shop-products-status" className="sr-only">
-            Status
+            {t('products.statusLabel')}
           </Label>
           <select
             id="shop-products-status"
@@ -131,9 +131,9 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
               setStatus(e.target.value)
             }}
           >
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="all">All statuses</option>
+            <option value="published">{t('common.published')}</option>
+            <option value="draft">{t('common.draft')}</option>
+            <option value="all">{t('products.status.all')}</option>
           </select>
         </div>
       </div>
@@ -150,10 +150,10 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Product</th>
-                  <th className="px-3 py-2 font-medium">Price</th>
-                  <th className="px-3 py-2 font-medium">Stock</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th className="px-3 py-2 font-medium">{t('products.col.product')}</th>
+                  <th className="px-3 py-2 font-medium">{t('products.col.price')}</th>
+                  <th className="px-3 py-2 font-medium">{t('products.col.stock')}</th>
+                  <th className="px-3 py-2 font-medium">{t('products.col.status')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,7 +171,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       <td className="px-3 py-2.5">
                         <p className="font-medium text-slate-900 line-clamp-1">{row.name}</p>
                         <p className="text-xs text-slate-500">
-                          {row.sku || 'No SKU'}
+                          {row.sku || t('products.noSku')}
                           {row.category?.name ? ` · ${row.category.name}` : ''}
                         </p>
                       </td>
@@ -181,14 +181,16 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       <td className="px-3 py-2.5 tabular-nums text-slate-700">
                         {formatShopInteger(row.stock)}
                       </td>
-                      <td className="px-3 py-2.5 text-slate-600">{row.status ?? '—'}</td>
+                      <td className="px-3 py-2.5 text-slate-600">
+                        {row.status ?? t('common.emDash')}
+                      </td>
                     </tr>
                   )
                 })}
                 {!loading && items.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-3 py-8 text-center text-slate-500">
-                      No products found.
+                      {t('products.empty')}
                     </td>
                   </tr>
                 ) : null}
@@ -208,11 +210,11 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
 
         <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm min-h-[240px]">
           {!selectedId ? (
-            <p className="text-sm text-slate-600">Select a product to view details.</p>
+            <p className="text-sm text-slate-600">{t('products.selectHint')}</p>
           ) : detailError ? (
             <p className="text-sm text-red-700">{detailError}</p>
           ) : !detail ? (
-            <p className="text-sm text-slate-500">Loading…</p>
+            <p className="text-sm text-slate-500">{t('common.loading')}</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
@@ -221,44 +223,50 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                   <p className="text-xs text-slate-500 mt-0.5">{detail.status}</p>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
-                  Close
+                  {t('action.close')}
                 </Button>
               </div>
               <dl className="grid gap-2 text-sm">
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">SKU</dt>
-                  <dd className="font-medium text-slate-900">{detail.sku || '—'}</dd>
+                  <dt className="text-slate-500">{t('products.field.sku')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.sku || t('common.emDash')}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Barcode</dt>
-                  <dd className="font-medium text-slate-900">{detail.barcode || '—'}</dd>
+                  <dt className="text-slate-500">{t('products.field.barcode')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.barcode || t('common.emDash')}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Category</dt>
-                  <dd className="font-medium text-slate-900">{detail.category?.name || '—'}</dd>
+                  <dt className="text-slate-500">{t('products.field.category')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.category?.name || t('common.emDash')}
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">List price</dt>
+                  <dt className="text-slate-500">{t('products.field.listPrice')}</dt>
                   <dd className="tabular-nums font-medium">{formatShopRwf(detail.price)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Discount</dt>
+                  <dt className="text-slate-500">{t('products.field.discount')}</dt>
                   <dd className="tabular-nums font-medium">{formatShopRwf(detail.discount)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Sell price</dt>
+                  <dt className="text-slate-500">{t('products.field.sellPrice')}</dt>
                   <dd className="tabular-nums font-semibold text-[var(--brand-navy,#1e3a5f)]">
                     {formatShopRwf(previewUnitPrice(detail.price, detail.discount))}
                   </dd>
                 </div>
                 {canSeeCost ? (
                   <div className="flex justify-between gap-3">
-                    <dt className="text-slate-500">Cost</dt>
+                    <dt className="text-slate-500">{t('products.field.cost')}</dt>
                     <dd className="tabular-nums font-medium">{formatShopRwf(detail.costPrice)}</dd>
                   </div>
                 ) : null}
                 <div className="flex justify-between gap-3">
-                  <dt className="text-slate-500">Stock</dt>
+                  <dt className="text-slate-500">{t('products.field.stock')}</dt>
                   <dd className="tabular-nums font-medium">{formatShopInteger(detail.stock)}</dd>
                 </div>
               </dl>
@@ -266,7 +274,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
           )}
         </div>
       </div>
-      {loading ? <p className="text-xs text-slate-400">Refreshing…</p> : null}
+      {loading ? <p className="text-xs text-slate-400">{t('products.refreshing')}</p> : null}
     </div>
   )
 }

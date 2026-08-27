@@ -1,12 +1,18 @@
-import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import type { Metadata } from 'next'
-import { ShopLoginForm } from '@/components/shop-portal/shop-login-form'
+import { ShopLoginScreen } from '@/components/shop-portal/shop-login-screen'
+import { ShopI18nProvider } from '@/components/shop-portal/shop-i18n-provider'
 import {
   getShopPortalSession,
   isCurrentRequestShopHost,
 } from '@/lib/shop/portal-session'
 import { sanitizeShopReturnPath } from '@/lib/shop/safe-return-path'
+import {
+  SHOP_DEFAULT_LOCALE,
+  SHOP_LOCALE_COOKIE,
+  isShopLocale,
+} from '@/lib/shop/i18n/locales'
 
 export const metadata: Metadata = {
   title: 'Staff Sign In | Energy & Logics Shop',
@@ -37,26 +43,13 @@ export default async function ShopManageLoginPage({
     redirect(returnTo)
   }
 
+  const jar = await cookies()
+  const rawLocale = jar.get(SHOP_LOCALE_COOKIE)?.value
+  const initialLocale = isShopLocale(rawLocale) ? rawLocale : SHOP_DEFAULT_LOCALE
+
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Energy &amp; Logics
-          </p>
-          <h1 className="text-2xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
-            Shop staff sign in
-          </h1>
-          <p className="text-sm text-slate-600">
-            Sign in with your Energy &amp; Logics staff account to access POS and inventory.
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
-            <ShopLoginForm />
-          </Suspense>
-        </div>
-      </div>
-    </main>
+    <ShopI18nProvider initialLocale={initialLocale}>
+      <ShopLoginScreen />
+    </ShopI18nProvider>
   )
 }

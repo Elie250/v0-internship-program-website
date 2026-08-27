@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
-import { SHOP_PORTAL_DISPLAY } from '@/lib/shop/portal-nav'
 import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
 import { getStaffDashboardReport } from '@/lib/shop/staff-api/dashboard'
-import { ShopPageHeader } from '@/components/shop-portal/shop-page-chrome'
+import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
 import { ShopDashboardView } from '@/components/shop-portal/shop-dashboard'
 
 export const metadata: Metadata = {
@@ -41,9 +40,10 @@ export default async function ShopDashboardPage() {
 
   return (
     <div>
-      <ShopPageHeader
-        title="Dashboard"
-        description={`Operational overview for ${SHOP_PORTAL_DISPLAY.siteLabel}. Values are computed on the server from live commerce data.`}
+      <ShopLocalizedPageHeader
+        titleKey="dashboard.title"
+        descriptionKey="dashboard.description"
+        descriptionParamKeys={{ siteLabel: 'brand.siteLabel' }}
       />
       <ShopDashboardView
         report={report}

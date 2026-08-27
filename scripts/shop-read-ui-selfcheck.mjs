@@ -42,7 +42,7 @@ test('panels call staff APIs only (no supabase in browser panels)', () => {
 test('products panel is read-only and uses product endpoints', () => {
   const src = readFileSync(join(root, 'components/shop-portal/shop-products-panel.tsx'), 'utf8')
   assert.match(src, /\/api\/staff\/products/)
-  assert.match(src, /Read-only/)
+  assert.match(src, /products\.readOnlyNote|Read-only/)
   assert.doesNotMatch(src, /method:\s*'POST'|method:\s*'PATCH'|method:\s*'DELETE'/)
 })
 

@@ -23,14 +23,18 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { fetchStaffApi } from '@/lib/shop/staff-client'
-import { roleDisplayLabel } from '@/lib/shop/portal-nav'
+import { roleDisplayLabel, roleDisplayLabelKey } from '@/lib/shop/portal-nav'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
 
 type ShopStaffRole = 'salesperson' | 'inventory_manager'
 
-const CREATE_ROLES: { value: ShopStaffRole; label: string }[] = [
-  { value: 'salesperson', label: 'Salesperson' },
-  { value: 'inventory_manager', label: 'Inventory manager' },
-]
+const CREATE_ROLE_VALUES: ShopStaffRole[] = ['salesperson', 'inventory_manager']
+
+const CREATE_ROLE_KEYS: Record<ShopStaffRole, ShopMessageKey> = {
+  salesperson: 'role.salesperson',
+  inventory_manager: 'role.inventory_manager',
+}
 
 const ALLOWED_CREATE_ROLES: ShopStaffRole[] = ['salesperson', 'inventory_manager']
 
@@ -53,15 +57,15 @@ function displayName(user: ShopStaffListItem): string {
   return name || user.email
 }
 
-function formatDate(value: string | null): string {
-  if (!value) return '—'
+function formatDate(value: string | null, empty: string): string {
+  if (!value) return empty
   try {
     return new Date(value).toLocaleString(undefined, {
       dateStyle: 'medium',
       timeStyle: 'short',
     })
   } catch {
-    return '—'
+    return empty
   }
 }
 
@@ -81,14 +85,18 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function RoleBadge({ role }: { role: string }) {
+  const t = useShopT()
+  const key = roleDisplayLabelKey(role)
+  const label = key ? t(key) : roleDisplayLabel(role)
   return (
     <span className="inline-flex rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-500/15">
-      {roleDisplayLabel(role)}
+      {label}
     </span>
   )
 }
 
 export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
+  const t = useShopT()
   const [users, setUsers] = useState<ShopStaffListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -144,10 +152,12 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
   }
 
   const countLabel = useMemo(() => {
-    if (loading) return 'Loading…'
+    if (loading) return t('common.loading')
     const n = users.length
-    return `${n} staff member${n === 1 ? '' : 's'}`
-  }, [loading, users.length])
+    return n === 1 ? t('staff.count', { n }) : t('staff.countPlural', { n })
+  }, [loading, users.length, t])
+
+  const emDash = t('common.emDash')
 
   return (
     <div className="space-y-4">
@@ -155,7 +165,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
         <p className="text-sm text-slate-600">{countLabel}</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={refresh} disabled={loading || busy}>
-            Refresh
+            {t('action.refresh')}
           </Button>
           <Button
             type="button"
@@ -163,7 +173,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             onClick={() => setCreateOpen(true)}
             disabled={busy}
           >
-            Create Staff
+            {t('staff.create')}
           </Button>
         </div>
       </div>
@@ -188,19 +198,19 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
       <div className="flex flex-wrap gap-3">
         <div className="min-w-[200px] flex-1">
           <Label htmlFor="staff-search" className="sr-only">
-            Search staff
+            {t('staff.searchLabel')}
           </Label>
           <Input
             id="staff-search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name or email…"
+            placeholder={t('staff.searchPlaceholder')}
             className="bg-white"
           />
         </div>
         <div>
           <Label htmlFor="staff-role-filter" className="sr-only">
-            Filter by role
+            {t('staff.filter.role')}
           </Label>
           <select
             id="staff-role-filter"
@@ -208,15 +218,15 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
           >
-            <option value="all">All roles</option>
-            <option value="admin">Administrator</option>
-            <option value="salesperson">Salesperson</option>
-            <option value="inventory_manager">Inventory manager</option>
+            <option value="all">{t('staff.filter.role.all')}</option>
+            <option value="admin">{t('role.admin')}</option>
+            <option value="salesperson">{t('role.salesperson')}</option>
+            <option value="inventory_manager">{t('role.inventory_manager')}</option>
           </select>
         </div>
         <div>
           <Label htmlFor="staff-status-filter" className="sr-only">
-            Filter by status
+            {t('staff.filter.status')}
           </Label>
           <select
             id="staff-status-filter"
@@ -224,23 +234,21 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
           >
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
+            <option value="all">{t('staff.filter.status.all')}</option>
+            <option value="active">{t('staff.filter.status.active')}</option>
+            <option value="inactive">{t('staff.filter.status.inactive')}</option>
+            <option value="suspended">{t('staff.filter.status.suspended')}</option>
           </select>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
-          <p className="p-6 text-sm text-slate-500">Loading staff…</p>
+          <p className="p-6 text-sm text-slate-500">{t('staff.loading')}</p>
         ) : users.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-sm font-medium text-slate-900">No staff found</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Create a salesperson or inventory manager to get started.
-            </p>
+            <p className="text-sm font-medium text-slate-900">{t('staff.emptyTitle')}</p>
+            <p className="mt-1 text-sm text-slate-500">{t('staff.emptyBody')}</p>
           </div>
         ) : (
           <>
@@ -248,13 +256,13 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Name</th>
-                    <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">Created</th>
-                    <th className="px-4 py-3 font-medium">Last session</th>
-                    <th className="px-4 py-3 font-medium">Actions</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.name')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.email')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.role')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.status')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.created')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.lastSession')}</th>
+                    <th className="px-4 py-3 font-medium">{t('staff.col.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,7 +271,9 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
                       <td className="px-4 py-3 font-medium text-slate-900">
                         {displayName(user)}
                         {user.id === currentUserId ? (
-                          <span className="ml-2 text-xs font-normal text-slate-400">(you)</span>
+                          <span className="ml-2 text-xs font-normal text-slate-400">
+                            {t('staff.you')}
+                          </span>
                         ) : null}
                       </td>
                       <td className="px-4 py-3 text-slate-600">{user.email}</td>
@@ -273,12 +283,14 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
                       <td className="px-4 py-3">
                         <StatusBadge status={user.status} />
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(user.createdAt)}</td>
                       <td className="px-4 py-3 text-slate-600">
-                        {formatDate(user.lastStaffSessionAt)}
+                        {formatDate(user.createdAt, emDash)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {formatDate(user.lastStaffSessionAt, emDash)}
                         {user.activeStaffSessionCount > 0 ? (
                           <span className="ml-1 text-xs text-slate-400">
-                            ({user.activeStaffSessionCount} active)
+                            {t('staff.activeSessions', { n: user.activeStaffSessionCount })}
                           </span>
                         ) : null}
                       </td>
@@ -309,7 +321,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
                   <div className="flex flex-wrap gap-2">
                     <RoleBadge role={user.role} />
                     <span className="text-xs text-slate-500">
-                      Created {formatDate(user.createdAt)}
+                      {t('staff.createdPrefix', { date: formatDate(user.createdAt, emDash) })}
                     </span>
                   </div>
                   <StaffActions
@@ -343,7 +355,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             return false
           }
           setCreateOpen(false)
-          flashSuccess('Staff account created.')
+          flashSuccess(t('staff.success.created'))
           refresh()
           return true
         }}
@@ -372,7 +384,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             return false
           }
           setEditUser(null)
-          flashSuccess('Staff account updated.')
+          flashSuccess(t('staff.success.updated'))
           refresh()
           return true
         }}
@@ -401,7 +413,7 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
             return false
           }
           setResetUser(null)
-          flashSuccess('Password reset. Active sessions for this user were revoked.')
+          flashSuccess(t('staff.success.passwordReset'))
           refresh()
           return true
         }}
@@ -415,14 +427,17 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revoke sessions?</AlertDialogTitle>
+            <AlertDialogTitle>{t('staff.revoke.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will sign {revokeUser ? displayName(revokeUser) : 'this staff member'} out of
-              active Shop sessions. They will need to sign in again.
+              {t('staff.revoke.desc', {
+                name: revokeUser
+                  ? displayName(revokeUser)
+                  : t('staff.reset.descFallbackName'),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{t('action.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={busy || !revokeUser}
               onClick={async (e) => {
@@ -440,11 +455,11 @@ export function ShopStaffPanel({ currentUserId }: { currentUserId: string }) {
                   return
                 }
                 setRevokeUser(null)
-                flashSuccess('Sessions revoked.')
+                flashSuccess(t('staff.success.sessionsRevoked'))
                 refresh()
               }}
             >
-              Revoke sessions
+              {t('staff.revoke.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -464,16 +479,17 @@ function StaffActions({
   onReset: () => void
   onRevoke: () => void
 }) {
+  const t = useShopT()
   return (
     <div className="flex flex-wrap gap-1.5">
       <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={onEdit}>
-        Edit
+        {t('action.edit')}
       </Button>
       <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={onReset}>
-        Reset password
+        {t('staff.action.resetPassword')}
       </Button>
       <Button type="button" size="sm" variant="outline" disabled={disabled} onClick={onRevoke}>
-        Revoke sessions
+        {t('staff.action.revokeSessions')}
       </Button>
     </div>
   )
@@ -496,6 +512,7 @@ function CreateStaffDialog({
     password: string
   }) => Promise<boolean>
 }) {
+  const t = useShopT()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -520,23 +537,23 @@ function CreateStaffDialog({
     event.preventDefault()
     setLocalError('')
     if (!firstName.trim() && !lastName.trim()) {
-      setLocalError('Full name is required')
+      setLocalError(t('staff.validation.fullName'))
       return
     }
     if (!email.trim()) {
-      setLocalError('Email is required')
+      setLocalError(t('staff.validation.email'))
       return
     }
     if (!ALLOWED_CREATE_ROLES.includes(role)) {
-      setLocalError('Role must be salesperson or inventory_manager')
+      setLocalError(t('staff.validation.role'))
       return
     }
     if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters')
+      setLocalError(t('staff.validation.passwordLength'))
       return
     }
     if (password !== confirm) {
-      setLocalError('Passwords do not match')
+      setLocalError(t('staff.validation.passwordMatch'))
       return
     }
     const ok = await onSubmit({
@@ -556,15 +573,13 @@ function CreateStaffDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create staff</DialogTitle>
-          <DialogDescription>
-            Create a salesperson or inventory manager. Administrators cannot be created here.
-          </DialogDescription>
+          <DialogTitle>{t('staff.create.title')}</DialogTitle>
+          <DialogDescription>{t('staff.create.desc')}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="create-first-name">First name</Label>
+              <Label htmlFor="create-first-name">{t('staff.field.firstName')}</Label>
               <Input
                 id="create-first-name"
                 value={firstName}
@@ -574,7 +589,7 @@ function CreateStaffDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-last-name">Last name</Label>
+              <Label htmlFor="create-last-name">{t('staff.field.lastName')}</Label>
               <Input
                 id="create-last-name"
                 value={lastName}
@@ -585,7 +600,7 @@ function CreateStaffDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-email">Email</Label>
+            <Label htmlFor="create-email">{t('staff.field.email')}</Label>
             <Input
               id="create-email"
               type="email"
@@ -597,7 +612,7 @@ function CreateStaffDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-role">Role</Label>
+            <Label htmlFor="create-role">{t('staff.field.role')}</Label>
             <select
               id="create-role"
               value={role}
@@ -605,15 +620,15 @@ function CreateStaffDialog({
               disabled={busy}
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
             >
-              {CREATE_ROLES.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              {CREATE_ROLE_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {t(CREATE_ROLE_KEYS[value])}
                 </option>
               ))}
             </select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-password">Password</Label>
+            <Label htmlFor="create-password">{t('staff.field.password')}</Label>
             <Input
               id="create-password"
               type="password"
@@ -625,7 +640,7 @@ function CreateStaffDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="create-confirm">Confirm password</Label>
+            <Label htmlFor="create-confirm">{t('staff.field.confirmPassword')}</Label>
             <Input
               id="create-confirm"
               type="password"
@@ -639,14 +654,14 @@ function CreateStaffDialog({
           {localError ? <p className="text-sm text-red-700">{localError}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('action.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={busy}
               className="bg-[var(--brand-navy,#1e3a5f)] hover:bg-[var(--brand-navy,#1e3a5f)]/90"
             >
-              {busy ? 'Creating…' : 'Create staff'}
+              {busy ? t('staff.create.submitting') : t('staff.create.submit')}
             </Button>
           </DialogFooter>
         </form>
@@ -675,6 +690,7 @@ function EditStaffDialog({
     }
   ) => Promise<boolean>
 }) {
+  const t = useShopT()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -702,7 +718,7 @@ function EditStaffDialog({
     if (!user) return
     setLocalError('')
     if (!email.trim()) {
-      setLocalError('Email is required')
+      setLocalError(t('staff.validation.email'))
       return
     }
     const payload: {
@@ -719,7 +735,7 @@ function EditStaffDialog({
     }
     if (!isAdminTarget) {
       if (!ALLOWED_CREATE_ROLES.includes(role)) {
-        setLocalError('Role must be salesperson or inventory_manager')
+        setLocalError(t('staff.validation.role'))
         return
       }
       payload.role = role
@@ -727,20 +743,25 @@ function EditStaffDialog({
     await onSubmit(user.id, payload)
   }
 
+  const adminRoleKey = user ? roleDisplayLabelKey(user.role) : null
+  const adminRoleLabel = adminRoleKey
+    ? t(adminRoleKey)
+    : user
+      ? roleDisplayLabel(user.role)
+      : ''
+
   return (
     <Dialog open={Boolean(user)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit staff</DialogTitle>
-          <DialogDescription>
-            Update profile and status. Role changes for administrators are not available here.
-          </DialogDescription>
+          <DialogTitle>{t('staff.edit.title')}</DialogTitle>
+          <DialogDescription>{t('staff.edit.desc')}</DialogDescription>
         </DialogHeader>
         {user ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="edit-first-name">First name</Label>
+                <Label htmlFor="edit-first-name">{t('staff.field.firstName')}</Label>
                 <Input
                   id="edit-first-name"
                   value={firstName}
@@ -749,7 +770,7 @@ function EditStaffDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-last-name">Last name</Label>
+                <Label htmlFor="edit-last-name">{t('staff.field.lastName')}</Label>
                 <Input
                   id="edit-last-name"
                   value={lastName}
@@ -759,7 +780,7 @@ function EditStaffDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">{t('staff.field.email')}</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -771,7 +792,7 @@ function EditStaffDialog({
             </div>
             {!isAdminTarget ? (
               <div className="space-y-2">
-                <Label htmlFor="edit-role">Role</Label>
+                <Label htmlFor="edit-role">{t('staff.field.role')}</Label>
                 <select
                   id="edit-role"
                   value={role}
@@ -779,20 +800,20 @@ function EditStaffDialog({
                   disabled={busy}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 >
-                  {CREATE_ROLES.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {CREATE_ROLE_VALUES.map((value) => (
+                    <option key={value} value={value}>
+                      {t(CREATE_ROLE_KEYS[value])}
                     </option>
                   ))}
                 </select>
               </div>
             ) : (
               <p className="text-sm text-slate-600">
-                Role: <strong>{roleDisplayLabel(user.role)}</strong>
+                {t('staff.edit.roleReadonly', { roleLabel: adminRoleLabel })}
               </p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
+              <Label htmlFor="edit-status">{t('staff.field.status')}</Label>
               <select
                 id="edit-status"
                 value={status}
@@ -800,21 +821,21 @@ function EditStaffDialog({
                 disabled={busy}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">{t('staff.status.active')}</option>
+                <option value="inactive">{t('staff.status.inactive')}</option>
               </select>
             </div>
             {localError ? <p className="text-sm text-red-700">{localError}</p> : null}
             <DialogFooter>
               <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
-                Cancel
+                {t('action.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={busy}
                 className="bg-[var(--brand-navy,#1e3a5f)] hover:bg-[var(--brand-navy,#1e3a5f)]/90"
               >
-                {busy ? 'Saving…' : 'Save changes'}
+                {busy ? t('staff.edit.saving') : t('staff.edit.save')}
               </Button>
             </DialogFooter>
           </form>
@@ -835,6 +856,7 @@ function ResetPasswordDialog({
   onOpenChange: (open: boolean) => void
   onSubmit: (id: string, newPassword: string) => Promise<boolean>
 }) {
+  const t = useShopT()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [localError, setLocalError] = useState('')
@@ -852,11 +874,11 @@ function ResetPasswordDialog({
     if (!user) return
     setLocalError('')
     if (password.length < 6) {
-      setLocalError('Password must be at least 6 characters')
+      setLocalError(t('staff.validation.passwordLength'))
       return
     }
     if (password !== confirm) {
-      setLocalError('Passwords do not match')
+      setLocalError(t('staff.validation.passwordMatch'))
       return
     }
     const ok = await onSubmit(user.id, password)
@@ -870,15 +892,16 @@ function ResetPasswordDialog({
     <Dialog open={Boolean(user)} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Reset password</DialogTitle>
+          <DialogTitle>{t('staff.reset.title')}</DialogTitle>
           <DialogDescription>
-            Set a new password for {user ? displayName(user) : 'this staff member'}. Active Shop
-            sessions for this account will be revoked.
+            {t('staff.reset.desc', {
+              name: user ? displayName(user) : t('staff.reset.descFallbackName'),
+            })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="reset-password">New password</Label>
+            <Label htmlFor="reset-password">{t('staff.field.newPassword')}</Label>
             <Input
               id="reset-password"
               type="password"
@@ -890,7 +913,7 @@ function ResetPasswordDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reset-confirm">Confirm password</Label>
+            <Label htmlFor="reset-confirm">{t('staff.field.confirmPassword')}</Label>
             <Input
               id="reset-confirm"
               type="password"
@@ -904,14 +927,14 @@ function ResetPasswordDialog({
           {localError ? <p className="text-sm text-red-700">{localError}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('action.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={busy}
               className="bg-[var(--brand-navy,#1e3a5f)] hover:bg-[var(--brand-navy,#1e3a5f)]/90"
             >
-              {busy ? 'Resetting…' : 'Reset password'}
+              {busy ? t('staff.reset.resetting') : t('staff.reset.submit')}
             </Button>
           </DialogFooter>
         </form>

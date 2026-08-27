@@ -93,15 +93,14 @@ test('staff panel uses Phase 1D.1 APIs and never renders secrets', () => {
 
 test('create staff UI rejects admin role option', () => {
   const src = read('components/shop-portal/shop-staff-panel.tsx')
-  assert.match(
-    src,
-    /Administrators cannot be created here|cannot be created here/
-  )
+  assert.match(src, /staff\.create\.desc|cannot be created here/)
   const createRolesBlock = src.slice(
-    src.indexOf('const CREATE_ROLES'),
+    src.indexOf('const CREATE_ROLE_VALUES'),
     src.indexOf('const ALLOWED_CREATE_ROLES')
   )
+  assert.ok(createRolesBlock.length > 0, 'CREATE_ROLE_VALUES block missing')
   assert.doesNotMatch(createRolesBlock, /admin/)
+  assert.match(src, /CREATE_ROLE_KEYS/)
 })
 
 test('proxy and hosts still include /users for shop host rewrite', () => {
@@ -110,6 +109,14 @@ test('proxy and hosts still include /users for shop host rewrite', () => {
   assert.match(proxy, /modules = \[[^\]]*'users'[^\]]*\]/)
   // Matcher must include /users or proxy never runs and shop host returns 404
   assert.match(proxy, /matcher:\s*\[[\s\S]*?'\/users'[\s\S]*?'\/users\/:path\*'/)
+})
+
+test('Staff UI uses Shop i18n (no hardcoded Create Staff chrome)', () => {
+  const src = read('components/shop-portal/shop-staff-panel.tsx')
+  assert.match(src, /useShopT/)
+  assert.match(src, /t\('staff\.create'\)/)
+  assert.match(src, /t\('action\.edit'\)/)
+  assert.doesNotMatch(src, /Create Staff/)
 })
 
 test('layout filters nav with role for adminOnly Staff item', () => {

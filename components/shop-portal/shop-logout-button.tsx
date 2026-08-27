@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 export function ShopLogoutButton() {
   const router = useRouter()
   const [busy, setBusy] = useState(false)
+  const t = useShopT()
 
   async function onLogout() {
     setBusy(true)
@@ -24,7 +26,7 @@ export function ShopLogoutButton() {
 
   return (
     <Button type="button" variant="outline" size="sm" onClick={onLogout} disabled={busy}>
-      {busy ? 'Signing out…' : 'Sign out'}
+      {busy ? t('action.signingOut') : t('action.signOut')}
     </Button>
   )
 }

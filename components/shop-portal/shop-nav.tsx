@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ShopNavItem } from '@/lib/shop/portal-nav'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 const ICONS: Record<ShopNavItem['icon'], LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -35,9 +36,10 @@ export function ShopNav({
   className?: string
 }) {
   const pathname = usePathname()
+  const t = useShopT()
 
   return (
-    <nav className={cn('flex flex-col gap-1', className)} aria-label="Shop navigation">
+    <nav className={cn('flex flex-col gap-1', className)} aria-label={t('a11y.nav')}>
       {items.map((item) => {
         const Icon = ICONS[item.icon]
         const active =
@@ -61,7 +63,7 @@ export function ShopNav({
             )}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden />
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </Link>
         )
       })}

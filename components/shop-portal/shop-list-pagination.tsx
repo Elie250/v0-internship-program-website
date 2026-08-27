@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { formatShopInteger } from '@/lib/shop/format'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 export function ShopListPagination({
   page,
@@ -16,6 +17,7 @@ export function ShopListPagination({
   onPageChange: (page: number) => void
   disabled?: boolean
 }) {
+  const t = useShopT()
   const totalPages = Math.max(1, Math.ceil(total / Math.max(1, limit)))
   const from = total === 0 ? 0 : (page - 1) * limit + 1
   const to = Math.min(total, page * limit)
@@ -24,8 +26,12 @@ export function ShopListPagination({
     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
       <p className="text-xs text-slate-500">
         {total === 0
-          ? 'No results'
-          : `Showing ${formatShopInteger(from)}–${formatShopInteger(to)} of ${formatShopInteger(total)}`}
+          ? t('pagination.none')
+          : t('pagination.showing', {
+              from: formatShopInteger(from),
+              to: formatShopInteger(to),
+              total: formatShopInteger(total),
+            })}
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -35,10 +41,13 @@ export function ShopListPagination({
           disabled={disabled || page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
-          Previous
+          {t('action.previous')}
         </Button>
         <span className="text-xs tabular-nums text-slate-600">
-          Page {formatShopInteger(page)} / {formatShopInteger(totalPages)}
+          {t('pagination.page', {
+            page: formatShopInteger(page),
+            totalPages: formatShopInteger(totalPages),
+          })}
         </span>
         <Button
           type="button"
@@ -47,7 +56,7 @@ export function ShopListPagination({
           disabled={disabled || page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >
-          Next
+          {t('action.next')}
         </Button>
       </div>
     </div>

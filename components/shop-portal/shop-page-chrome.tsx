@@ -1,3 +1,7 @@
+'use client'
+
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+
 export function ShopPageHeader({
   title,
   description,
@@ -36,13 +40,11 @@ export function ShopPlaceholderPanel({
 }
 
 export function ShopForbiddenPanel() {
+  const t = useShopT()
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-6">
-      <h2 className="text-base font-medium text-amber-950">Access restricted</h2>
-      <p className="mt-2 text-sm text-amber-900/80 leading-relaxed">
-        Your account is signed in, but it does not have permission for this section. Ask an
-        administrator if you need access.
-      </p>
+      <h2 className="text-base font-medium text-amber-950">{t('forbidden.title')}</h2>
+      <p className="mt-2 text-sm text-amber-900/80 leading-relaxed">{t('forbidden.body')}</p>
     </div>
   )
 }

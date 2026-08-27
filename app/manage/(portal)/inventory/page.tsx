@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
-import {
-  ShopForbiddenPanel,
-  ShopPageHeader,
-} from '@/components/shop-portal/shop-page-chrome'
+import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
+import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
 import { ShopInventoryPanel } from '@/components/shop-portal/shop-inventory-panel'
 
 export const metadata: Metadata = {
@@ -17,7 +15,10 @@ export default async function ShopInventoryPage() {
   if (!session) {
     return (
       <div>
-        <ShopPageHeader title="Inventory" description="Stock levels and movements." />
+        <ShopLocalizedPageHeader
+          titleKey="inventory.title"
+          descriptionKey="inventory.descriptionForbidden"
+        />
         <ShopForbiddenPanel />
       </div>
     )
@@ -25,9 +26,9 @@ export default async function ShopInventoryPage() {
 
   return (
     <div>
-      <ShopPageHeader
-        title="Inventory"
-        description="Global stock levels and movement ledger from staff inventory APIs."
+      <ShopLocalizedPageHeader
+        titleKey="inventory.title"
+        descriptionKey="inventory.description"
       />
       <ShopInventoryPanel />
     </div>

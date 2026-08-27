@@ -28,6 +28,7 @@
     "test:shop-security": "node --test scripts/shop-security-hardening-selfcheck.mjs",
     "test:shop-staff": "node --test scripts/shop-staff-selfcheck.mjs",
     "test:shop-staff-ui": "node --test scripts/shop-staff-ui-selfcheck.mjs",
+    "test:shop-i18n": "node --test scripts/shop-i18n-selfcheck.mjs",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {

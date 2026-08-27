@@ -2,10 +2,8 @@ import type { Metadata } from 'next'
 import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
-import {
-  ShopForbiddenPanel,
-  ShopPageHeader,
-} from '@/components/shop-portal/shop-page-chrome'
+import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
+import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
 import { ShopSalesPanel } from '@/components/shop-portal/shop-sales-panel'
 
 export const metadata: Metadata = {
@@ -18,7 +16,10 @@ export default async function ShopSalesPage() {
   if (!session) {
     return (
       <div>
-        <ShopPageHeader title="Sales" description="Sales and order history." />
+        <ShopLocalizedPageHeader
+          titleKey="sales.title"
+          descriptionKey="sales.descriptionForbidden"
+        />
         <ShopForbiddenPanel />
       </div>
     )
@@ -31,10 +32,7 @@ export default async function ShopSalesPage() {
 
   return (
     <div>
-      <ShopPageHeader
-        title="Sales"
-        description="POS and online order history from authorized staff order APIs."
-      />
+      <ShopLocalizedPageHeader titleKey="sales.title" descriptionKey="sales.description" />
       <ShopSalesPanel canSeeUnitCost={canSeeUnitCost} />
     </div>
   )

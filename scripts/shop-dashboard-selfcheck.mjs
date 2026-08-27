@@ -58,7 +58,7 @@ test('dashboard view never fabricates profit', () => {
   const view = readFileSync(join(root, 'components/shop-portal/shop-dashboard.tsx'), 'utf8')
   const api = readFileSync(join(root, 'lib/shop/staff-api/dashboard.ts'), 'utf8')
   assert.match(api, /profit:\s*null/)
-  assert.match(view, /Profit reporting is not enabled/)
+  assert.match(view, /dashboard\.profitNote|Profit reporting is not enabled/)
   assert.doesNotMatch(view, /todaySales\s*-\s*|grossProfit|estimatedProfit/)
 })
 
