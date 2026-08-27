@@ -30,9 +30,9 @@ export function StorefrontCategoryBar({
   return (
     <nav
       aria-label={t('storefront.categories.title')}
-      className="border-b border-slate-200 bg-white"
+      className="w-full min-w-0 border-b border-slate-200 bg-white"
     >
-      <div className={`${STOREFRONT_GUTTER} flex gap-2 overflow-x-auto py-2.5`}>
+      <div className={`${STOREFRONT_GUTTER} flex max-w-full gap-2 overflow-x-auto py-2.5`}>
         <CategoryLink active={!activeCategory} href={hrefFor()}>
           {t('storefront.catalogue.all')}
         </CategoryLink>

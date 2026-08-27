@@ -52,15 +52,17 @@ export function StorefrontMerchandising({
   return (
     <div className="bg-slate-50">
       {merch.deals.length > 0 ? (
-        <section className={`${STOREFRONT_GUTTER} pt-8`}>
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-            {t('storefront.deals.title')}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">{t('storefront.deals.subtitle')}</p>
-          <div className={PRODUCT_GRID}>
-            {merch.deals.map((product) => (
-              <StorefrontProductCard key={product.slug} product={product} />
-            ))}
+        <section className="bg-amber-50">
+          <div className={`${STOREFRONT_GUTTER} py-8`}>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              {t('storefront.deals.title')}
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">{t('storefront.deals.subtitle')}</p>
+            <div className={PRODUCT_GRID}>
+              {merch.deals.map((product) => (
+                <StorefrontProductCard key={product.slug} product={product} />
+              ))}
+            </div>
           </div>
         </section>
       ) : null}
@@ -232,9 +234,14 @@ function StorefrontTrends({ products }: { products: PublicCatalogueItem[] }) {
         </div>
       </article>
       {rest.length > 0 ? (
-        <div className={`${PRODUCT_GRID} lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3`}>
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-2 sm:gap-3">
           {rest.map((product) => (
-            <StorefrontProductCard key={product.slug} product={product} />
+            <div
+              key={product.slug}
+              className="w-[11.5rem] shrink-0 sm:w-[13rem] md:w-[14.5rem]"
+            >
+              <StorefrontProductCard product={product} />
+            </div>
           ))}
         </div>
       ) : null}
