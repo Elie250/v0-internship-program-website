@@ -262,6 +262,8 @@ export const config = {
     '/sales/:path*',
     '/settings',
     '/settings/:path*',
+    '/users',
+    '/users/:path*',
     '/shop',
     '/shop/:path*',
     '/admin/:path*',

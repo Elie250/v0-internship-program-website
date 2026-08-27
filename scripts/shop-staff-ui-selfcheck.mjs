@@ -106,7 +106,10 @@ test('create staff UI rejects admin role option', () => {
 
 test('proxy and hosts still include /users for shop host rewrite', () => {
   assert.match(read('lib/shop/hosts.ts'), /'\/users'/)
-  assert.match(read('proxy.ts'), /'users'/)
+  const proxy = read('proxy.ts')
+  assert.match(proxy, /modules = \[[^\]]*'users'[^\]]*\]/)
+  // Matcher must include /users or proxy never runs and shop host returns 404
+  assert.match(proxy, /matcher:\s*\[[\s\S]*?'\/users'[\s\S]*?'\/users\/:path\*'/)
 })
 
 test('layout filters nav with role for adminOnly Staff item', () => {
