@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { StorefrontComingSoon } from '@/components/storefront/storefront-coming-soon'
+import { StorefrontCheckout } from '@/components/storefront/storefront-checkout'
 
 export const metadata: Metadata = {
   title: 'Checkout | Energy & Logics Shop',
@@ -7,10 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function StorefrontCheckoutPage() {
-  return (
-    <StorefrontComingSoon
-      titleKey="storefront.checkout.title"
-      bodyKey="storefront.checkout.soon"
-    />
-  )
+  return <StorefrontCheckout />
 }

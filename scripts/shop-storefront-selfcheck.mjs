@@ -33,9 +33,11 @@ const STOREFRONT_FILES = [
   'components/storefront/storefront-product-card.tsx',
   'components/storefront/storefront-product-detail.tsx',
   'components/storefront/storefront-add-to-cart.tsx',
+  'components/storefront/storefront-checkout.tsx',
   'lib/shop/storefront-shops.ts',
   'lib/shop/storefront-locale.ts',
   'lib/shop/public-catalogue.ts',
+  'lib/shop/public-checkout.ts',
 ]
 
 const FORBIDDEN_IN_STOREFRONT =
@@ -120,6 +122,7 @@ test('storefront UI never exposes staff-only or implementation details', () => {
     'components/storefront/storefront-product-card.tsx',
     'components/storefront/storefront-product-detail.tsx',
     'components/storefront/storefront-add-to-cart.tsx',
+    'components/storefront/storefront-checkout.tsx',
     'lib/shop/storefront-shops.ts',
     'lib/shop/public-catalogue.ts',
   ]
@@ -175,10 +178,12 @@ test('cart shell does not create a second checkout', () => {
   assert.match(cart, /common\.total/)
   assert.match(cart, /disabled/)
   assert.match(cart, /useShopCart/)
+  assert.match(cart, /href="\/checkout"/)
   assert.doesNotMatch(cart, /\/api\/shop\/orders|\/api\/staff\/pos\/sales/)
-  const checkout = read('app/storefront/checkout/page.tsx')
-  assert.match(checkout, /StorefrontComingSoon/)
-  assert.doesNotMatch(checkout, /createCommerceSale/)
+  const page = read('app/storefront/checkout/page.tsx')
+  assert.match(page, /StorefrontCheckout/)
+  assert.doesNotMatch(page, /StorefrontComingSoon/)
+  assert.doesNotMatch(page, /createCommerceSale/)
 })
 
 test('public catalogue and product detail routes load real catalogue data', () => {
@@ -261,9 +266,119 @@ test('staff routes, POS, and createCommerceSale remain untouched by catalogue UI
   assert.doesNotMatch(read('lib/shop/public-catalogue.ts'), /createCommerceSale/)
 })
 
+test('public checkout route exists and reuses createCommerceSale', () => {
+  const page = read('app/storefront/checkout/page.tsx')
+  const ui = read('components/storefront/storefront-checkout.tsx')
+  const api = read('app/api/shop/orders/route.ts')
+  assert.match(page, /StorefrontCheckout/)
+  assert.match(ui, /\/api\/shop\/orders/)
+  assert.match(ui, /MomoPayCard/)
+  assert.match(ui, /\/api\/public\/upload-receipt/)
+  assert.doesNotMatch(ui, /createCommerceSale/)
+  assert.doesNotMatch(ui, /from '@\/lib\/shop\/public-checkout'/)
+  assert.doesNotMatch(ui, /from '@\/lib\/shop\/commerce-checkout'/)
+  assert.match(api, /createCommerceSale/)
+  assert.match(api, /channel: 'online'/)
+  assert.match(api, /resolvePublicCheckoutItems/)
+  assert.match(api, /toPublicShopOrderResponse/)
+  assert.doesNotMatch(api, /gateway_pending|MTN Collections|Collections API/)
+})
+
+test('public identifiers resolve server-side and client figures are not authority', () => {
+  const resolve = read('lib/shop/public-checkout.ts')
+  assert.match(resolve, /getPublishedProducts/)
+  assert.match(resolve, /publicProductSlug/)
+  assert.match(resolve, /quotedUnitPriceMatches/)
+  assert.match(resolve, /isUuidLike/)
+  assert.match(resolve, /canAddPublicProductToCart/)
+  assert.doesNotMatch(resolve, /createCommerceSale/)
+  const api = read('app/api/shop/orders/route.ts')
+  assert.doesNotMatch(api, /body\.locationId|body\.location_id|body\.price|body\.totalAmount|body\.stock/)
+  assert.doesNotMatch(api, /item\.price|items\.price/)
+  const ui = read('components/storefront/storefront-checkout.tsx')
+  assert.match(ui, /slug: item\.productId/)
+  assert.match(ui, /quotedUnitPrice: item\.price/)
+  assert.doesNotMatch(ui, /locationId|location_id/)
+})
+
+test('Nyanza location is server-resolved for online checkout', () => {
+  const api = read('app/api/shop/orders/route.ts')
+  assert.match(api, /resolveShopPortalPosLocation/)
+  assert.match(api, /locationId: portalLocation\?\.id/)
+  assert.match(api, /Never trust client-supplied location/)
+  assert.match(read('lib/shop/resolve-pos-location.ts'), /SHOP_LOCATION_CODES\.NYANZA/)
+  const numbering = read('lib/shop/commerce-checkout.ts')
+  assert.match(numbering, /allocateCommerceOrderNumber\(input\.locationId/)
+  const ui = read('components/storefront/storefront-checkout.tsx')
+  assert.doesNotMatch(ui, /EL-NYZ-|generateOrderNumber|order_number/)
+})
+
+test('public checkout response omits order UUID, cost, and stock internals', () => {
+  const src = read('lib/shop/public-checkout.ts')
+  const fnStart = src.indexOf('export function toPublicShopOrderResponse')
+  assert.ok(fnStart >= 0)
+  const fn = src.slice(fnStart, src.indexOf('fulfillmentType ===', fnStart) + 400)
+  assert.match(fn, /orderNumber:/)
+  assert.match(fn, /shopName:/)
+  assert.doesNotMatch(fn, /orderId/)
+  assert.doesNotMatch(fn, /costPrice|cost_price|unitCost|unit_cost/)
+  assert.doesNotMatch(fn, /stockState|stock_state/)
+  assert.doesNotMatch(fn, /receipt:/)
+  const api = read('app/api/shop/orders/route.ts')
+  assert.doesNotMatch(api, /orderId: result\.orderId/)
+  assert.doesNotMatch(api, /stockState: result\.stockState/)
+  assert.doesNotMatch(api, /receipt: result\.receipt/)
+})
+
+test('quoted price is compared not charged, and UUID slugs are rejected', () => {
+  function quotedUnitPriceMatches(quoted, serverPrice) {
+    if (quoted == null || quoted === '') return true
+    const n = Number(quoted)
+    if (!Number.isFinite(n)) return false
+    return Math.round(n) === Math.round(serverPrice)
+  }
+  assert.equal(quotedUnitPriceMatches(undefined, 1000), true)
+  assert.equal(quotedUnitPriceMatches(1000, 1000), true)
+  assert.equal(quotedUnitPriceMatches(999, 1000), false)
+  assert.equal(quotedUnitPriceMatches('nope', 1000), false)
+  const resolve = read('lib/shop/public-checkout.ts')
+  assert.match(resolve, /quotedUnitPriceMatches\(row\.quotedUnitPrice, publicItem\.price\)/)
+  assert.match(resolve, /isUuidLike\(slug\)/)
+  assert.match(resolve, /items\.push\(\{ productId: product\.id, quantity \}\)/)
+})
+
+test('MoMo checkout reuses the existing card and receipt upload', () => {
+  const ui = read('components/storefront/storefront-checkout.tsx')
+  assert.match(ui, /from '@\/components\/payment\/momo-pay-card'/)
+  assert.match(ui, /\/api\/public\/upload-receipt/)
+  assert.doesNotMatch(ui, /gateway_pending|webhook|Collections/)
+  const momo = read('components/payment/momo-pay-card.tsx')
+  assert.match(momo, /PAYMENT\.momoPayCode/)
+  const upload = read('app/api/public/upload-receipt/route.ts')
+  assert.match(upload, /uploadObject/)
+})
+
+test('successful confirmation uses required English and Kinyarwanda wording', () => {
+  const ui = read('components/storefront/storefront-checkout.tsx')
+  assert.match(ui, /storefront\.checkout\.successTitle/)
+  assert.match(ui, /storefront\.checkout\.thankYou/)
+  assert.match(ui, /storefront\.checkout\.keepNumber/)
+  assert.match(ui, /storefront\.nav\.track/)
+  assert.match(ui, /href="\/track"/)
+  const en = read('lib/shop/i18n/messages/en.ts')
+  const rw = read('lib/shop/i18n/messages/rw.ts')
+  assert.match(en, /'storefront\.checkout\.successTitle': 'Order placed successfully'/)
+  assert.match(en, /'storefront\.checkout\.thankYou': 'Thank you for shopping with Energy & Logics\.'/)
+  assert.match(en, /'storefront\.checkout\.keepNumber': 'Keep this number to track your order\.'/)
+  assert.match(rw, /'storefront\.checkout\.successTitle': 'Ibyatumijwe byakiriwe neza'/)
+  assert.match(rw, /'storefront\.checkout\.thankYou': 'Murakoze guhahira muri Energy & Logics\.'/)
+  assert.match(rw, /'storefront\.checkout\.keepNumber': 'Ukoreshe iyi nimero ukurikirana ibyo watumije\.'/)
+})
+
 test('no schema migration was introduced for the public catalogue', () => {
   const src = read('lib/shop/public-catalogue.ts')
   assert.doesNotMatch(src, /ALTER TABLE|CREATE TABLE|product_location_stock/)
+  assert.doesNotMatch(read('lib/shop/public-checkout.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   const sqlFiles = readdirSync(join(root, 'scripts')).filter((name) => name.endsWith('.sql'))
   assert.equal(
     sqlFiles.some((name) => /90-|public-catalogue|product_location_stock|products\.slug/i.test(name)),

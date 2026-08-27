@@ -13,6 +13,7 @@ export function StorefrontCartPage() {
   const t = useShopT()
   const shop = getDefaultStorefrontShop()
   const { items, subtotal, updateQuantity, removeItem } = useShopCart()
+  const empty = items.length === 0
 
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
@@ -26,7 +27,7 @@ export function StorefrontCartPage() {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
         <div className="rounded-xl border border-slate-200 bg-white">
-          {items.length === 0 ? (
+          {empty ? (
             <div className="px-6 py-16 text-center">
               <ShoppingBag className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
               <p className="mt-4 text-sm font-medium text-slate-700">{t('storefront.cart.empty')}</p>
@@ -48,7 +49,9 @@ export function StorefrontCartPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-slate-900">{item.name}</p>
-                    <p className="mt-1 text-sm text-slate-600">{formatShopRwf(item.price)}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {t('common.price')}: {formatShopRwf(item.price)}
+                    </p>
                     <div className="mt-3 flex items-center gap-2">
                       <Button
                         type="button"
@@ -80,6 +83,9 @@ export function StorefrontCartPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {formatShopRwf(item.price * item.quantity)}
+                    </p>
                   </div>
                 </li>
               ))}
@@ -96,16 +102,22 @@ export function StorefrontCartPage() {
             <span>{t('common.total')}</span>
             <span>{formatShopRwf(subtotal)}</span>
           </div>
-          <Button
-            type="button"
-            disabled
-            className="mt-6 w-full bg-[var(--brand-navy,#1e3a5f)] text-white"
-          >
-            {t('storefront.checkout.title')}
-          </Button>
-          <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            {t('storefront.cart.checkoutSoon')}
-          </p>
+          {empty ? (
+            <Button
+              type="button"
+              disabled
+              className="mt-6 w-full bg-[var(--brand-navy,#1e3a5f)] text-white"
+            >
+              {t('storefront.checkout.title')}
+            </Button>
+          ) : (
+            <Button
+              asChild
+              className="mt-6 w-full bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+            >
+              <Link href="/checkout">{t('storefront.checkout.title')}</Link>
+            </Button>
+          )}
         </aside>
       </div>
     </section>

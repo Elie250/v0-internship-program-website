@@ -188,6 +188,17 @@ test('POS sales resolve NYANZA server-side and ignore client location', () => {
   assert.match(src, /Never trust client-supplied location/)
 })
 
+test('public shop orders resolve NYANZA server-side and omit order UUID', () => {
+  const src = readFileSync(join(root, 'app/api/shop/orders/route.ts'), 'utf8')
+  assert.match(src, /resolveShopPortalPosLocation/)
+  assert.match(src, /locationId: portalLocation\?\.id/)
+  assert.match(src, /createCommerceSale/)
+  assert.match(src, /resolvePublicCheckoutItems/)
+  assert.doesNotMatch(src, /body\.location_id|body\.locationId/)
+  assert.doesNotMatch(src, /orderId: result\.orderId/)
+  assert.doesNotMatch(src, /cost_price|costPrice|unitCost/)
+})
+
 test('location resolver uses SHOP_LOCATION_CODES.NYANZA not a hard-coded UUID', () => {
   const src = readFileSync(join(root, 'lib/shop/resolve-pos-location.ts'), 'utf8')
   assert.match(src, /SHOP_LOCATION_CODES\.NYANZA/)

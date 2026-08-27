@@ -84,6 +84,8 @@ test('approved storefront Kinyarwanda vocabulary is present', () => {
   assert.match(rw, /'storefront\.checkout\.title': 'Soza igurisha'/)
   assert.match(rw, /'storefront\.catalogue\.addToCart': 'Ongeramo mu byatoranijwe'/)
   assert.match(rw, /'storefront\.availability\.few': 'Ibisigaye bike'/)
+  assert.match(rw, /'storefront\.checkout\.successTitle': 'Ibyatumijwe byakiriwe neza'/)
+  assert.match(rw, /'storefront\.checkout\.thankYou': 'Murakoze guhahira muri Energy & Logics\.'/)
   assert.match(rw, /'brand\.siteLabel': 'Nyanza Shop'/)
 })
 

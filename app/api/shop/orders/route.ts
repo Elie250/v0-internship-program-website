@@ -1,15 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createCommerceSale } from '@/lib/shop/commerce-checkout'
+import {
+  PUBLIC_CART_CHANGED_MESSAGE,
+  PUBLIC_CHECKOUT_CART_CHANGED,
+  resolvePublicCheckoutItems,
+  toPublicShopOrderResponse,
+} from '@/lib/shop/public-checkout'
+import { resolveShopPortalPosLocation } from '@/lib/shop/resolve-pos-location'
+import { getDefaultStorefrontShop } from '@/lib/shop/storefront-shops'
 
-type OrderItemInput = {
-  productId: string
-  quantity: number
+function cartChangedResponse() {
+  return NextResponse.json(
+    { error: PUBLIC_CART_CHANGED_MESSAGE, code: PUBLIC_CHECKOUT_CART_CHANGED },
+    { status: 409 }
+  )
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const items: OrderItemInput[] = body.items ?? []
     const customerName = String(body.customerName ?? '').trim()
     const customerEmail = String(body.customerEmail ?? '').trim()
     const customerPhone = String(body.customerPhone ?? '').trim()
@@ -19,13 +28,24 @@ export async function POST(request: Request) {
     const receiptUrl = String(body.receiptUrl ?? '').trim()
     const receiptNumber = String(body.receiptNumber ?? '').trim()
 
-    if (!items.length) {
-      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+    // Never trust client-supplied location, prices, totals, stock, or product UUIDs
+    // as commerce authority. Location is always resolved server-side (Nyanza).
+    const portalLocation = await resolveShopPortalPosLocation()
+    const resolved = await resolvePublicCheckoutItems(body.items)
+
+    if (!resolved.ok) {
+      if (resolved.code === 'EMPTY') {
+        return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+      }
+      if (resolved.code === 'INVALID') {
+        return NextResponse.json({ error: 'Invalid cart' }, { status: 400 })
+      }
+      return cartChangedResponse()
     }
 
     const result = await createCommerceSale({
       channel: 'online',
-      items,
+      items: resolved.items,
       customerName,
       customerEmail,
       customerPhone,
@@ -35,24 +55,27 @@ export async function POST(request: Request) {
       paymentMethod: 'momo',
       receiptUrl: receiptUrl || null,
       receiptNumber: receiptNumber || null,
+      locationId: portalLocation?.id ?? null,
     })
 
     if (!result.ok) {
+      if (
+        resolved.usedPublicSlugs &&
+        /insufficient stock|invalid cart/i.test(result.error)
+      ) {
+        return cartChangedResponse()
+      }
       return NextResponse.json({ error: result.error }, { status: result.httpStatus })
     }
 
+    const shop = getDefaultStorefrontShop()
     return NextResponse.json(
-      {
-        success: true,
-        orderId: result.orderId,
+      toPublicShopOrderResponse({
         orderNumber: result.orderNumber,
         totalAmount: result.totalAmount,
-        stockState: result.stockState,
-        message:
-          fulfillmentType === 'delivery'
-            ? 'Order submitted. We will verify your MoMo payment and contact you for delivery.'
-            : 'Order submitted. We will verify your MoMo payment and notify you when ready for pickup.',
-      },
+        shopName: shop.name,
+        fulfillmentType,
+      }),
       { status: result.httpStatus }
     )
   } catch {
