@@ -1,5 +1,5 @@
 /**
- * Shop portal shell nav permission self-check (Phase 1C.4 / 1C.8).
+ * Shop portal shell nav permission self-check (Phase 1C.4 / 1C.8 / 1D.2).
  * Run: pnpm test:shop-shell
  */
 import assert from 'node:assert/strict'
@@ -15,18 +15,21 @@ const PERMISSIONS = {
 }
 
 const SHOP_NAV_ITEMS = [
-  { href: '/dashboard', permissions: [] },
-  { href: '/pos', permissions: [PERMISSIONS.SHOP_POS_SELL] },
+  { href: '/dashboard', permissions: [], adminOnly: false },
+  { href: '/pos', permissions: [PERMISSIONS.SHOP_POS_SELL], adminOnly: false },
   {
     href: '/products',
     permissions: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS],
+    adminOnly: false,
   },
-  { href: '/inventory', permissions: [PERMISSIONS.SHOP_STOCK_VIEW] },
+  { href: '/inventory', permissions: [PERMISSIONS.SHOP_STOCK_VIEW], adminOnly: false },
   {
     href: '/sales',
     permissions: [PERMISSIONS.SHOP_SALES_VIEW, PERMISSIONS.SHOP_ORDERS_VIEW],
+    adminOnly: false,
   },
-  { href: '/settings', permissions: [] },
+  { href: '/users', permissions: [], adminOnly: true },
+  { href: '/settings', permissions: [], adminOnly: false },
 ]
 
 function hasPermission(permissions, required) {
@@ -35,16 +38,17 @@ function hasPermission(permissions, required) {
   return list.some((p) => permissions.includes(p))
 }
 
-function canSee(permissions, item) {
+function canSee(permissions, item, role) {
+  if (item.adminOnly) return role === 'admin'
   if (!item.permissions.length) return true
   return hasPermission(permissions, item.permissions)
 }
 
-function filterNav(permissions) {
-  return SHOP_NAV_ITEMS.filter((item) => canSee(permissions, item))
+function filterNav(permissions, role) {
+  return SHOP_NAV_ITEMS.filter((item) => canSee(permissions, item, role))
 }
 
-test('salesperson sees POS, catalog read, sales — not product management alone', () => {
+test('salesperson sees POS, catalog read, sales — not Staff management', () => {
   const perms = [
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
@@ -52,28 +56,34 @@ test('salesperson sees POS, catalog read, sales — not product management alone
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
   ]
-  const hrefs = filterNav(perms).map((i) => i.href)
+  const hrefs = filterNav(perms, 'salesperson').map((i) => i.href)
   assert.ok(hrefs.includes('/dashboard'))
   assert.ok(hrefs.includes('/pos'))
   assert.ok(hrefs.includes('/products'))
   assert.ok(hrefs.includes('/inventory'))
   assert.ok(hrefs.includes('/sales'))
   assert.ok(hrefs.includes('/settings'))
+  assert.equal(hrefs.includes('/users'), false)
 })
 
-test('inventory manager sees products and inventory but not POS', () => {
-  const perms = [
-    PERMISSIONS.SHOP_PRODUCTS,
-    PERMISSIONS.SHOP_STOCK_VIEW,
-  ]
-  const hrefs = filterNav(perms).map((i) => i.href)
+test('inventory manager sees products and inventory but not POS or Staff', () => {
+  const perms = [PERMISSIONS.SHOP_PRODUCTS, PERMISSIONS.SHOP_STOCK_VIEW]
+  const hrefs = filterNav(perms, 'inventory_manager').map((i) => i.href)
   assert.ok(hrefs.includes('/products'))
   assert.ok(hrefs.includes('/inventory'))
   assert.equal(hrefs.includes('/pos'), false)
   assert.equal(hrefs.includes('/sales'), false)
+  assert.equal(hrefs.includes('/users'), false)
 })
 
 test('dashboard and settings remain visible to any authenticated staff', () => {
-  const hrefs = filterNav([]).map((i) => i.href)
+  const hrefs = filterNav([], 'salesperson').map((i) => i.href)
   assert.deepEqual(hrefs, ['/dashboard', '/settings'])
+})
+
+test('administrator sees Staff management nav', () => {
+  const hrefs = filterNav([], 'admin').map((i) => i.href)
+  assert.ok(hrefs.includes('/users'))
+  assert.ok(hrefs.includes('/dashboard'))
+  assert.ok(hrefs.includes('/settings'))
 })

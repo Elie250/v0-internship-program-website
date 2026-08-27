@@ -17,7 +17,7 @@ export default async function ShopPortalLayout({
   }
 
   const session = await requireShopPortalSession('/dashboard')
-  const items = filterShopNavItems(session.user.permissions)
+  const items = filterShopNavItems(session.user.permissions, session.user.role)
   const userLabel =
     [session.user.firstName, session.user.lastName].filter(Boolean).join(' ').trim() ||
     session.user.email

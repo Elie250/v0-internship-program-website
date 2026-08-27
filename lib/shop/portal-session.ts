@@ -55,3 +55,16 @@ export async function requireShopPortalAccess(
   if (!hasPermission(session.user.permissions, required)) return null
   return session
 }
+
+/**
+ * Require authenticated shop staff with administrator role.
+ * Unauthenticated → redirect to login.
+ * Authenticated non-admin → null (caller shows forbidden UI).
+ */
+export async function requireShopPortalAdmin(
+  returnTo: string
+): Promise<ShopPortalSession | null> {
+  const session = await requireShopPortalSession(returnTo)
+  if (session.user.role !== 'admin') return null
+  return session
+}

@@ -9,6 +9,7 @@ import {
   Warehouse,
   Receipt,
   Settings,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ const ICONS: Record<ShopNavItem['icon'], LucideIcon> = {
   inventory: Warehouse,
   sales: Receipt,
   settings: Settings,
+  users: Users,
 }
 
 export function ShopNav({

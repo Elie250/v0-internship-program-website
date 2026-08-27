@@ -14,9 +14,11 @@ export type ShopNavItem = {
   href: string
   label: string
   description: string
-  /** If empty, any authenticated shop staff may see the link. */
+  /** If empty, any authenticated shop staff may see the link (unless adminOnly). */
   permissions: Permission[]
-  icon: 'dashboard' | 'pos' | 'products' | 'inventory' | 'sales' | 'settings'
+  /** Administrator role only — Staff Management. */
+  adminOnly?: boolean
+  icon: 'dashboard' | 'pos' | 'products' | 'inventory' | 'sales' | 'settings' | 'users'
 }
 
 export const SHOP_NAV_ITEMS: ShopNavItem[] = [
@@ -56,6 +58,14 @@ export const SHOP_NAV_ITEMS: ShopNavItem[] = [
     icon: 'sales',
   },
   {
+    href: '/users',
+    label: 'Staff',
+    description: 'Manage shop staff accounts',
+    permissions: [],
+    adminOnly: true,
+    icon: 'users',
+  },
+  {
     href: '/settings',
     label: 'Settings',
     description: 'Account and shop preferences',
@@ -66,25 +76,31 @@ export const SHOP_NAV_ITEMS: ShopNavItem[] = [
 
 export function canSeeShopNavItem(
   permissions: string[] | undefined,
-  item: ShopNavItem
+  item: ShopNavItem,
+  role?: string
 ): boolean {
+  if (item.adminOnly) return role === 'admin'
   if (!item.permissions.length) return true
   return hasPermission(permissions, item.permissions)
 }
 
-export function filterShopNavItems(permissions: string[] | undefined): ShopNavItem[] {
-  return SHOP_NAV_ITEMS.filter((item) => canSeeShopNavItem(permissions, item))
+export function filterShopNavItems(
+  permissions: string[] | undefined,
+  role?: string
+): ShopNavItem[] {
+  return SHOP_NAV_ITEMS.filter((item) => canSeeShopNavItem(permissions, item, role))
 }
 
 export function canAccessShopPath(
   pathname: string,
-  permissions: string[] | undefined
+  permissions: string[] | undefined,
+  role?: string
 ): boolean {
   const item = SHOP_NAV_ITEMS.find(
     (entry) => pathname === entry.href || pathname.startsWith(`${entry.href}/`)
   )
   if (!item) return true
-  return canSeeShopNavItem(permissions, item)
+  return canSeeShopNavItem(permissions, item, role)
 }
 
 export function roleDisplayLabel(role: string): string {
