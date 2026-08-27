@@ -4,6 +4,7 @@ import {
   PERMISSION_GROUPS,
   ROLE_DEFINITIONS,
   getPermissionsForRole,
+  isPermissionOverrideEligibleRole,
   parseStoredPermissions,
   resolvePermissions,
   type Permission,
@@ -57,10 +58,7 @@ export async function queryRolesPermissionsData(): Promise<{
 
     if (!error) {
       staffUsers = (data ?? [])
-        .filter((user) => {
-          const def = ROLE_DEFINITIONS.find((r) => r.slug === user.role)
-          return def?.canAccessAdmin ?? false
-        })
+        .filter((user) => isPermissionOverrideEligibleRole(user.role))
         .map((user) => {
           const custom = parseStoredPermissions(user.permissions)
           const roleDefaults = getPermissionsForRole(user.role)

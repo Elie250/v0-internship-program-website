@@ -129,7 +129,9 @@ export default function RolesPermissionsPanel() {
         </h1>
         <p className="text-slate-600 mt-1 max-w-3xl">
           Control who can access each part of the admin panel. Role defaults apply to every user with
-          that role; add custom permissions below for individual staff accounts.
+          that role; add custom permissions below for individual staff accounts. Shop staff
+          (salesperson and inventory manager) can be granted extra shop permissions here without
+          receiving Admin Console access.
         </p>
       </div>
 
@@ -283,7 +285,7 @@ export default function RolesPermissionsPanel() {
             </CardHeader>
             <CardContent className="space-y-4">
               {staffUsers.length === 0 ? (
-                <p className="text-sm text-slate-600">No staff accounts with admin access found.</p>
+                <p className="text-sm text-slate-600">No staff accounts found.</p>
               ) : (
                 <>
                   <div>
@@ -295,7 +297,11 @@ export default function RolesPermissionsPanel() {
                       <SelectContent>
                         {staffUsers.map((user) => (
                           <SelectItem key={user.id} value={user.id}>
-                            {user.name} ({user.role})
+                            {user.name} ({user.role}
+                            {user.role === 'salesperson' || user.role === 'inventory_manager'
+                              ? ' — shop staff'
+                              : ''}
+                            )
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -316,6 +322,12 @@ export default function RolesPermissionsPanel() {
                           <span className="font-medium">Effective total:</span>{' '}
                           {selectedStaff.effectivePermissions.length} permissions
                         </p>
+                        {selectedStaff.role === 'salesperson' ||
+                        selectedStaff.role === 'inventory_manager' ? (
+                          <p className="text-slate-600 pt-1">
+                            Shop staff — extra shop permissions do not grant Admin Console access.
+                          </p>
+                        ) : null}
                       </div>
 
                       <p className="text-sm text-slate-600">
@@ -332,24 +344,31 @@ export default function RolesPermissionsPanel() {
                             <ul className="space-y-2">
                               {group.permissions.map((perm) => {
                                 const inRole = selectedStaff.roleDefaults.includes(perm.key)
+                                const shopStaffOnly =
+                                  selectedStaff.role === 'salesperson' ||
+                                  selectedStaff.role === 'inventory_manager'
+                                const shopLocked = shopStaffOnly && !perm.key.startsWith('shop:')
                                 const checked = userPermissions.includes(perm.key) || inRole
                                 return (
                                   <li key={perm.key} className="flex items-start gap-2">
                                     <Checkbox
                                       id={`${selectedStaff.id}-${perm.key}`}
                                       checked={checked}
-                                      disabled={inRole || selectedStaff.role === 'admin'}
+                                      disabled={
+                                        inRole || selectedStaff.role === 'admin' || shopLocked
+                                      }
                                       onCheckedChange={() => toggleUserPermission(perm.key)}
                                     />
                                     <label
                                       htmlFor={`${selectedStaff.id}-${perm.key}`}
                                       className={cn(
                                         'text-xs leading-snug cursor-pointer',
-                                        inRole && 'text-slate-600'
+                                        (inRole || shopLocked) && 'text-slate-600'
                                       )}
                                     >
                                       {perm.label}
                                       {inRole ? ' (from role)' : ''}
+                                      {shopLocked ? ' (admin console)' : ''}
                                     </label>
                                   </li>
                                 )

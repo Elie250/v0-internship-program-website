@@ -23,7 +23,7 @@ export type ShopNavItem = {
   permissions: Permission[]
   /** Administrator role only — Staff Management. */
   adminOnly?: boolean
-  icon: 'dashboard' | 'pos' | 'products' | 'inventory' | 'sales' | 'settings' | 'users'
+  icon: 'dashboard' | 'orders' | 'pos' | 'products' | 'inventory' | 'sales' | 'settings' | 'users'
 }
 
 export const SHOP_NAV_ITEMS: ShopNavItem[] = [
@@ -35,6 +35,15 @@ export const SHOP_NAV_ITEMS: ShopNavItem[] = [
     description: 'Overview of shop operations',
     permissions: [],
     icon: 'dashboard',
+  },
+  {
+    href: '/orders',
+    labelKey: 'nav.orders',
+    descriptionKey: 'nav.ordersDesc',
+    label: 'Orders',
+    description: 'Customer orders awaiting action',
+    permissions: [PERMISSIONS.SHOP_ORDERS_VIEW],
+    icon: 'orders',
   },
   {
     href: '/pos',

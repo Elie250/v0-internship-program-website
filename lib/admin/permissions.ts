@@ -30,6 +30,8 @@ export const PERMISSIONS = {
   SHOP_ORDERS_VIEW: 'shop:orders_view',
   /** Update order fulfillment status. */
   SHOP_ORDERS_MANAGE: 'shop:orders_manage',
+  /** Review MoMo proofs for shop/commerce orders only. Not granted by role default. */
+  SHOP_PAYMENTS_REVIEW: 'shop:payments_review',
   LEARNING_PROGRAMS: 'learning:programs',
   LEARNING_STUDENTS: 'learning:students',
   CONTENT_ANNOUNCEMENTS: 'content:announcements',
@@ -119,6 +121,11 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: PERMISSIONS.SHOP_STOCK_ADJUST, label: 'Adjust stock', description: 'Change inventory and record movements' },
       { key: PERMISSIONS.SHOP_ORDERS_VIEW, label: 'View orders', description: 'View online and POS orders' },
       { key: PERMISSIONS.SHOP_ORDERS_MANAGE, label: 'Manage orders', description: 'Update fulfillment status' },
+      {
+        key: PERMISSIONS.SHOP_PAYMENTS_REVIEW,
+        label: 'Review Shop MoMo Payments',
+        description: 'Approve or reject Nyanza Shop customer MoMo proofs (shop orders only)',
+      },
     ],
   },
   {
@@ -334,6 +341,44 @@ export function canAccessAdminPanel(role: string, permissions?: string[]): boole
   if (role === 'admin') return true
   if (role === 'lecturer' || role === 'instructor' || role === 'mentor') return false
   return hasPermission(permissions, PERMISSIONS.ADMIN_ACCESS)
+}
+
+/** Roles the main Administrator may select in the permission-override editor. */
+export function isPermissionOverrideEligibleRole(role: string): boolean {
+  if (role === 'salesperson' || role === 'inventory_manager') return true
+  return getRoleDefinition(role)?.canAccessAdmin === true
+}
+
+/**
+ * Shop staff may receive extra shop:* grants without Admin Console access.
+ * Admin-console roles may receive any valid permission key.
+ */
+export function filterAssignableCustomPermissions(
+  role: string,
+  permissions: string[]
+): Permission[] {
+  const valid = permissions.filter((permission): permission is Permission =>
+    (ALL_PERMISSIONS as string[]).includes(permission)
+  )
+  if (getRoleDefinition(role)?.canAccessAdmin) return valid
+  return valid.filter(
+    (permission) => permission.startsWith('shop:') && permission !== PERMISSIONS.ADMIN_ACCESS
+  )
+}
+
+/**
+ * Keep explicitly assigned shop extras when a staff role/status is updated.
+ * Never persist admin:access onto shop staff from this merge.
+ */
+export function extrasToPreserveOnRoleChange(stored: unknown, nextRole: string): Permission[] {
+  const nextDefaults = new Set<string>(getPermissionsForRole(nextRole))
+  return parseStoredPermissions(stored).filter((permission): permission is Permission => {
+    if (!(ALL_PERMISSIONS as string[]).includes(permission)) return false
+    if (permission === PERMISSIONS.ADMIN_ACCESS) return false
+    if (nextDefaults.has(permission)) return false
+    if (!permission.startsWith('shop:')) return false
+    return true
+  })
 }
 
 export function permissionLabel(key: string): string {

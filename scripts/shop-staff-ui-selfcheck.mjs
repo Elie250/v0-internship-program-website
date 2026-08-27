@@ -132,6 +132,35 @@ test('staff panel is client-only and uses fetchStaffApi', () => {
   assert.doesNotMatch(src, /from '@\/lib\/shop\/staff-users'/)
 })
 
+test('Orders page exists and gates view / review / fulfillment separately', () => {
+  const page = 'app/manage/(portal)/orders/page.tsx'
+  assert.ok(existsSync(join(root, page)))
+  const src = read(page)
+  assert.match(src, /PERMISSIONS\.SHOP_ORDERS_VIEW/)
+  assert.match(src, /ShopOrdersPanel/)
+  assert.match(src, /canReviewPayments/)
+  assert.match(src, /canManageFulfillment/)
+  const panel = read('components/shop-portal/shop-orders-panel.tsx')
+  assert.match(panel, /\/api\/staff\/payments\/review/)
+  assert.match(panel, /\/api\/staff\/orders/)
+  assert.match(panel, /canReviewPayments/)
+  assert.match(panel, /canManageFulfillment/)
+  assert.doesNotMatch(panel, /supabaseAdmin|SERVICE_ROLE|payments:approve/)
+})
+
+test('Orders nav requires shop:orders_view and sits with operational links', () => {
+  const src = read('lib/shop/portal-nav.ts')
+  assert.match(src, /href: '\/orders'/)
+  assert.match(src, /label: 'Orders'/)
+  assert.match(src, /SHOP_ORDERS_VIEW/)
+  const hosts = read('lib/shop/hosts.ts')
+  assert.match(hosts, /'\/orders'/)
+  const proxy = read('proxy.ts')
+  assert.match(proxy, /'orders'/)
+  assert.match(proxy, /'\/orders'/)
+  assert.match(proxy, /'\/orders\/:path\*'/)
+})
+
 test('package.json exposes test:shop-staff-ui', () => {
   const pkg = JSON.parse(read('package.json'))
   assert.equal(pkg.scripts['test:shop-staff-ui'], 'node --test scripts/shop-staff-ui-selfcheck.mjs')

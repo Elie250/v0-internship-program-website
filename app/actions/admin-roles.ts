@@ -4,11 +4,11 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { filterAdminNav } from '@/lib/admin/nav'
 import {
-  ALL_PERMISSIONS,
   PERMISSION_GROUPS,
   ROLE_DEFINITIONS,
-  ROLE_PERMISSIONS,
   getPermissionsForRole,
+  isPermissionOverrideEligibleRole,
+  filterAssignableCustomPermissions,
   parseStoredPermissions,
   resolvePermissions,
   PERMISSIONS,
@@ -70,10 +70,7 @@ export async function getRolesPermissionsData(): Promise<
         .order('email')
 
       staffUsers = (data ?? [])
-        .filter((user) => {
-          const def = ROLE_DEFINITIONS.find((r) => r.slug === user.role)
-          return def?.canAccessAdmin ?? false
-        })
+        .filter((user) => isPermissionOverrideEligibleRole(user.role))
         .map((user) => {
           const custom = parseStoredPermissions(user.permissions)
           const roleDefaults = getPermissionsForRole(user.role)
@@ -108,9 +105,17 @@ export async function updateUserCustomPermissions(
     await requireAdminPermission(PERMISSIONS.USERS_ASSIGN_ROLE)
     if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
-    const valid = permissions.filter((p): p is Permission =>
-      (ALL_PERMISSIONS as string[]).includes(p)
-    )
+    const { data: target, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (fetchError || !target) {
+      return { success: false, error: 'User not found' }
+    }
+
+    const valid = filterAssignableCustomPermissions(String(target.role), permissions)
 
     const { error } = await supabaseAdmin
       .from('users')

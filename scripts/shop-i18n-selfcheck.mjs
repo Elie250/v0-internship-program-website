@@ -106,6 +106,7 @@ test('approved storefront Kinyarwanda vocabulary is present', () => {
 test('nav items expose labelKey for localization', () => {
   const src = read('lib/shop/portal-nav.ts')
   assert.match(src, /labelKey: 'nav\.dashboard'/)
+  assert.match(src, /labelKey: 'nav\.orders'/)
   assert.match(src, /labelKey: 'nav\.staff'/)
   assert.match(read('components/shop-portal/shop-nav.tsx'), /t\(item\.labelKey\)/)
 })
@@ -117,6 +118,7 @@ test('approved Kinyarwanda vocabulary is present for core nav and actions', () =
     ['Ibicuruzwa', 'Products'],
     ['Ububiko', 'Inventory/Stock'],
     ["'nav.sales': 'Igurisha'", 'Sales nav'],
+    ["'nav.orders': 'Ibyatumijwe'", 'Orders nav'],
     ['Abakozi', 'Staff'],
     ['Igenamiterere', 'Settings'],
     ['Injira', 'Login'],

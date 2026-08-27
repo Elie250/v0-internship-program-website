@@ -48,6 +48,7 @@ const SHOP_PORTAL_PATH_PREFIXES = [
   '/products',
   '/inventory',
   '/sales',
+  '/orders',
   '/settings',
   '/users',
 ]
@@ -153,6 +154,11 @@ test('shop-host public URLs rewrite to internal /storefront pages', () => {
   assert.equal(rewriteShopStorefrontPath('/products'), null)
   assert.equal(rewriteShopStorefrontPath('/login'), null)
   assert.equal(rewriteShopStorefrontPath('/pos'), null)
+  assert.equal(isShopPortalPath('/orders'), true)
+  assert.equal(isShopPortalPath('/orders/abc'), true)
+  assert.equal(isShopHostStorefrontPath('/orders'), false)
+  assert.equal(isShopHostStorefrontPath('/order'), true)
+  assert.equal(rewriteShopStorefrontPath('/orders'), null)
 })
 
 test('SHOP_HOSTS env can add extra hosts', () => {

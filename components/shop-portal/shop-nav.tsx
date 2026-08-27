@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
+  ClipboardList,
   ShoppingCart,
   Package,
   Warehouse,
@@ -18,6 +19,7 @@ import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 
 const ICONS: Record<ShopNavItem['icon'], LucideIcon> = {
   dashboard: LayoutDashboard,
+  orders: ClipboardList,
   pos: ShoppingCart,
   products: Package,
   inventory: Warehouse,

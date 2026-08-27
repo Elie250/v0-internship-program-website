@@ -51,6 +51,7 @@ export const SHOP_PORTAL_PATH_PREFIXES = [
   '/products',
   '/inventory',
   '/sales',
+  '/orders',
   '/settings',
   '/users',
 ] as const

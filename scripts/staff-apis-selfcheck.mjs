@@ -175,6 +175,13 @@ test('routes authenticate with requireStaffPermission and stay read-only except 
       assert.doesNotMatch(src, /export async function (POST|PUT|DELETE)/)
       continue
     }
+    if (rel.replace(/\\/g, '/').endsWith('staff/orders/[id]/route.ts')) {
+      assert.match(src, /export async function PATCH/)
+      assert.match(src, /assertStaffMutationAllowed/)
+      assert.match(src, /STAFF_API_PERMISSIONS\.fulfillment/)
+      assert.doesNotMatch(src, /export async function (POST|PUT|DELETE)/)
+      continue
+    }
     assert.doesNotMatch(src, /export async function (POST|PATCH|PUT|DELETE)/)
   }
 })
@@ -304,12 +311,16 @@ test('inventory API documents global products.stock authority', () => {
   assert.doesNotMatch(src, /product_location_stock/)
 })
 
-test('order detail does not expose receipt uploads or payment credentials', () => {
+test('order detail maps MoMo proof without credentials or cost', () => {
   const src = readFileSync(join(root, 'lib/shop/staff-api/orders.ts'), 'utf8')
-  assert.doesNotMatch(src, /receipt_url|momo_token|service_role|password/i)
+  assert.match(src, /receipt_url/)
+  assert.match(src, /proofUrl/)
+  assert.match(src, /customerEmail/)
+  assert.match(src, /customerPhone/)
   assert.match(src, /locationId|locationName/)
   assert.match(src, /customerName/)
-  assert.doesNotMatch(src, /customer_email|customerEmail/)
+  assert.doesNotMatch(src, /momo_token|service_role|password/i)
+  assert.match(src, /includeCost \? \{ unitCost/)
 })
 
 test('commerce foundation files remain untouched by staff API phase markers', () => {

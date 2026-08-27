@@ -11,6 +11,9 @@ export const STAFF_API_PERMISSIONS = {
   products: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS] as Permission[],
   inventory: PERMISSIONS.SHOP_STOCK_VIEW,
   orders: [PERMISSIONS.SHOP_ORDERS_VIEW, PERMISSIONS.SHOP_SALES_VIEW] as Permission[],
+  /** Shop MoMo review — not payments:approve. Legacy shop:orders still qualifies. */
+  paymentReview: [PERMISSIONS.SHOP_PAYMENTS_REVIEW, PERMISSIONS.SHOP_ORDERS] as Permission[],
+  fulfillment: PERMISSIONS.SHOP_ORDERS_MANAGE,
   /** Financial + order metrics — not granted to every authenticated staff member. */
   dashboard: [PERMISSIONS.SHOP_SALES_VIEW, PERMISSIONS.SHOP_ORDERS_VIEW] as Permission[],
 } as const

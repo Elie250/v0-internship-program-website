@@ -5,6 +5,7 @@
 import bcrypt from 'bcryptjs'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import {
+  extrasToPreserveOnRoleChange,
   getPermissionsForRole,
   resolvePermissions,
   type Permission,
@@ -338,7 +339,12 @@ export async function updateShopStaffUser(input: {
     }
     nextRole = input.role
     updates.role = input.role
-    updates.permissions = getPermissionsForRole(input.role)
+    const { data: storedRow } = await supabaseAdmin
+      .from('users')
+      .select('permissions')
+      .eq('id', input.id)
+      .maybeSingle()
+    updates.permissions = extrasToPreserveOnRoleChange(storedRow?.permissions, nextRole)
   }
 
   if (input.status !== undefined) {
@@ -362,9 +368,6 @@ export async function updateShopStaffUser(input: {
       }
     }
     updates.status = input.status
-    if (input.status === 'active') {
-      updates.permissions = getPermissionsForRole(nextRole)
-    }
   }
 
   const { data, error } = await supabaseAdmin
@@ -459,4 +462,15 @@ export function shopStaffIgnoresClientPermissions(
 ): Permission[] {
   void clientPermissions
   return getPermissionsForRole(role)
+}
+
+/** Name/status updates must not rewrite users.permissions. Role changes keep shop extras. */
+export function shopStaffUpdateTouchesPermissions(fields: {
+  email?: unknown
+  firstName?: unknown
+  lastName?: unknown
+  role?: unknown
+  status?: unknown
+}): boolean {
+  return fields.role !== undefined
 }

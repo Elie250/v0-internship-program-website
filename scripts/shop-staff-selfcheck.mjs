@@ -181,6 +181,8 @@ test('salesperson role permissions match Phase 1D expectations', () => {
   assert.ok(!perms.includes('shop:products'))
   assert.ok(!perms.includes('shop:stock_adjust'))
   assert.ok(!perms.includes('admin:access'))
+  assert.ok(!perms.includes('shop:payments_review'))
+  assert.ok(!perms.includes('payments:approve'))
 })
 
 test('inventory_manager role permissions match Phase 1D expectations', () => {
@@ -191,6 +193,65 @@ test('inventory_manager role permissions match Phase 1D expectations', () => {
   assert.ok(perms.includes('shop:products'))
   assert.ok(perms.includes('shop:stock_adjust'))
   assert.ok(!perms.includes('admin:access'))
+  assert.ok(!perms.includes('shop:payments_review'))
+  assert.ok(!perms.includes('payments:approve'))
+})
+
+test('shop:payments_review is not a role default', () => {
+  const src = read('lib/admin/permissions.ts')
+  assert.match(src, /SHOP_PAYMENTS_REVIEW: 'shop:payments_review'/)
+  assert.match(src, /Review Shop MoMo Payments/)
+  const salespersonBlock = src.slice(
+    src.indexOf('salesperson: ['),
+    src.indexOf('inventory_manager: [')
+  )
+  assert.doesNotMatch(salespersonBlock, /SHOP_PAYMENTS_REVIEW/)
+  const inventoryBlock = src.slice(
+    src.indexOf('inventory_manager: ['),
+    src.indexOf('}', src.indexOf('inventory_manager: ['))
+  )
+  assert.doesNotMatch(inventoryBlock, /SHOP_PAYMENTS_REVIEW/)
+})
+
+test('/manage/users does not erase custom shop permissions on name or status updates', () => {
+  const src = read('lib/shop/staff-users.ts')
+  assert.match(src, /extrasToPreserveOnRoleChange/)
+  const updateStart = src.indexOf('export async function updateShopStaffUser')
+  const updateFn = src.slice(updateStart, src.indexOf('export async function resetShopStaffPassword'))
+  assert.doesNotMatch(updateFn, /getPermissionsForRole\(nextRole\)/)
+  assert.doesNotMatch(updateFn, /getPermissionsForRole\(input\.role\)/)
+  assert.match(updateFn, /extrasToPreserveOnRoleChange/)
+  assert.match(src, /shopStaffUpdateTouchesPermissions/)
+  assert.equal(
+    src.includes("if (input.status === 'active')") &&
+      updateFn.includes('updates.permissions = getPermissionsForRole'),
+    false
+  )
+})
+
+test('role-change merge keeps shop extras and strips admin console grants', () => {
+  const ALL = [
+    'shop:pos_sell',
+    'shop:products_view',
+    'shop:sales_view',
+    'shop:stock_view',
+    'shop:orders_view',
+    'shop:payments_review',
+  ]
+  function extrasToPreserveOnRoleChange(stored, nextDefaults) {
+    return stored.filter(
+      (permission) =>
+        permission.startsWith('shop:') &&
+        permission !== 'admin:access' &&
+        !nextDefaults.includes(permission)
+    )
+  }
+  const preserved = extrasToPreserveOnRoleChange(
+    [...ROLE_PERMISSIONS.salesperson, 'shop:payments_review', 'admin:access', 'payments:approve'],
+    ROLE_PERMISSIONS.salesperson
+  )
+  assert.deepEqual(preserved, ['shop:payments_review'])
+  assert.ok(ALL.includes('shop:payments_review'))
 })
 
 test('no new auth tables or public registration introduced', () => {

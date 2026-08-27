@@ -87,6 +87,7 @@ function hasAnyShopStaffAccess(permissions: Permission[]): boolean {
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_ORDERS,
     PERMISSIONS.SHOP_CATEGORIES,
+    PERMISSIONS.SHOP_PAYMENTS_REVIEW,
   ])
 }
 

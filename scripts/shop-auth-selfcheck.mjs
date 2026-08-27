@@ -13,6 +13,7 @@ const SHOP_PORTAL_PATH_PREFIXES = [
   '/products',
   '/inventory',
   '/sales',
+  '/orders',
   '/settings',
   '/users',
 ]
@@ -61,6 +62,7 @@ function extractStaffToken({ authorization, cookie }) {
 
 test('sanitizeShopReturnPath allows internal shop portal paths', () => {
   assert.equal(sanitizeShopReturnPath('/pos'), '/pos')
+  assert.equal(sanitizeShopReturnPath('/orders'), '/orders')
   assert.equal(sanitizeShopReturnPath('/products/abc'), '/products/abc')
   assert.equal(sanitizeShopReturnPath('/dashboard?x=1'), '/dashboard?x=1')
 })

@@ -65,7 +65,7 @@ function isShopPublicPortalPath(pathname: string): boolean {
 
 /** Map public shop-host paths to internal /manage/* App Router pages. */
 function rewriteShopModulePath(pathname: string): string | null {
-  const modules = ['pos', 'products', 'inventory', 'sales', 'settings', 'users'] as const
+  const modules = ['pos', 'products', 'inventory', 'orders', 'sales', 'settings', 'users'] as const
   for (const name of modules) {
     if (pathname === `/${name}`) return `/manage/${name}`
     if (pathname.startsWith(`/${name}/`)) {
@@ -274,6 +274,8 @@ export const config = {
     '/products/:path*',
     '/inventory',
     '/inventory/:path*',
+    '/orders',
+    '/orders/:path*',
     '/sales',
     '/sales/:path*',
     '/settings',

@@ -4,6 +4,12 @@
  */
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
 
 function normalizeIdempotencyKey(value) {
   if (typeof value !== 'string') return null
@@ -84,3 +90,17 @@ test('receipt print hints stay outside checkout UI', () => {
   assert.equal(receipt.schemaVersion, 1)
   assert.equal(receipt.printHints.openCashDrawer, true)
 })
+
+test('shop MoMo review reuses reviewPaymentCore without rewriting createCommerceSale', () => {
+  const checkout = readFileSync(join(root, 'lib/shop/commerce-checkout.ts'), 'utf8')
+  assert.match(checkout, /export async function createCommerceSale/)
+  assert.match(checkout, /export async function finalizeCommercePaymentApproval/)
+  assert.match(checkout, /export async function finalizeCommercePaymentRejection/)
+  const core = readFileSync(join(root, 'lib/admin/review-payment-core.ts'), 'utf8')
+  assert.match(core, /SHOP_PAYMENTS_REVIEW/)
+  assert.match(core, /finalizeCommercePaymentApproval/)
+  const staff = readFileSync(join(root, 'lib/shop/staff-api/payment-review.ts'), 'utf8')
+  assert.match(staff, /reviewPaymentCore/)
+  assert.doesNotMatch(staff, /createCommerceSale/)
+})
+

@@ -35,7 +35,10 @@ const STOCK_STATE_KEYS: Record<string, ShopMessageKey> = {
 const PAYMENT_STATUS_KEYS: Record<string, ShopMessageKey> = {
   paid: 'common.paid',
   pending: 'common.pending',
+  pending_review: 'orders.paymentAwaiting',
   approved: 'common.approved',
+  rejected: 'orders.paymentRejected',
+  momo: 'orders.momoPayment',
 }
 
 /** UI label for known stock_state values; unknown codes stay as stored. */

@@ -16,6 +16,7 @@ const PERMISSIONS = {
 
 const SHOP_NAV_ITEMS = [
   { href: '/dashboard', permissions: [], adminOnly: false },
+  { href: '/orders', permissions: [PERMISSIONS.SHOP_ORDERS_VIEW], adminOnly: false },
   { href: '/pos', permissions: [PERMISSIONS.SHOP_POS_SELL], adminOnly: false },
   {
     href: '/products',
@@ -58,6 +59,7 @@ test('salesperson sees POS, catalog read, sales — not Staff management', () =>
   ]
   const hrefs = filterNav(perms, 'salesperson').map((i) => i.href)
   assert.ok(hrefs.includes('/dashboard'))
+  assert.ok(hrefs.includes('/orders'))
   assert.ok(hrefs.includes('/pos'))
   assert.ok(hrefs.includes('/products'))
   assert.ok(hrefs.includes('/inventory'))
@@ -72,6 +74,7 @@ test('inventory manager sees products and inventory but not POS or Staff', () =>
   assert.ok(hrefs.includes('/products'))
   assert.ok(hrefs.includes('/inventory'))
   assert.equal(hrefs.includes('/pos'), false)
+  assert.equal(hrefs.includes('/orders'), false)
   assert.equal(hrefs.includes('/sales'), false)
   assert.equal(hrefs.includes('/users'), false)
 })

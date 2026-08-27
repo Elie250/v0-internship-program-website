@@ -308,6 +308,128 @@ test('rate-limit constants match implementation file', () => {
   assert.match(src, /multi-instance|serverless/i)
 })
 
+test('staff payment review is shop-order only, CSRF-gated, and reuses reviewPaymentCore', () => {
+  const route = readFileSync(join(root, 'app/api/staff/payments/review/route.ts'), 'utf8')
+  assert.match(route, /assertStaffMutationAllowed/)
+  assert.match(route, /requireStaffPermission/)
+  assert.match(route, /STAFF_API_PERMISSIONS\.paymentReview/)
+  assert.match(route, /reviewStaffShopOrderPayment/)
+  assert.doesNotMatch(route, /payments:approve|PAYMENTS_APPROVE/)
+  assert.doesNotMatch(route, /createCommerceSale/)
+
+  const helper = readFileSync(join(root, 'lib/shop/staff-api/payment-review.ts'), 'utf8')
+  assert.match(helper, /reviewPaymentCore/)
+  assert.match(helper, /isShopCommercePayment/)
+  assert.match(helper, /This payment is not a shop order/)
+  assert.doesNotMatch(helper, /createCommerceSale/)
+
+  const core = readFileSync(join(root, 'lib/admin/review-payment-core.ts'), 'utf8')
+  assert.match(core, /SHOP_PAYMENTS_REVIEW/)
+  assert.match(core, /finalizeCommercePaymentApproval/)
+  assert.match(core, /finalizeCommercePaymentRejection/)
+})
+
+test('shop:payments_review can review shop orders but not Academy, Library, or Support', () => {
+  function hasPermission(permissions, required) {
+    if (!permissions?.length) return false
+    const list = Array.isArray(required) ? required : [required]
+    return list.some((p) => permissions.includes(p))
+  }
+  function isShopCommercePayment(payment) {
+    return Boolean(
+      payment.order_id &&
+        !payment.course_enrollment_id &&
+        !payment.support_subscription_id &&
+        !payment.library_purchase_id &&
+        !payment.application_id
+    )
+  }
+  function canReviewPayment(permissions, payment) {
+    if (payment.course_enrollment_id) {
+      return hasPermission(permissions, [
+        'payments:approve',
+        'applications:approve',
+        'learning:students',
+      ])
+    }
+    if (payment.library_purchase_id) {
+      return hasPermission(permissions, [
+        'payments:approve',
+        'applications:approve',
+        'content:announcements',
+      ])
+    }
+    if (payment.support_subscription_id) {
+      return hasPermission(permissions, ['payments:approve', 'support:tickets'])
+    }
+    if (isShopCommercePayment(payment)) {
+      return hasPermission(permissions, [
+        'payments:approve',
+        'shop:orders',
+        'shop:payments_review',
+      ])
+    }
+    return hasPermission(permissions, 'payments:approve')
+  }
+
+  const salesperson = [
+    'shop:pos_sell',
+    'shop:products_view',
+    'shop:sales_view',
+    'shop:stock_view',
+    'shop:orders_view',
+  ]
+  const salespersonWithReview = [...salesperson, 'shop:payments_review']
+  const inventory = [
+    'shop:products',
+    'shop:products_view',
+    'shop:stock_view',
+    'shop:stock_adjust',
+    'shop:orders_view',
+    'shop:sales_view',
+  ]
+  const inventoryWithReview = [...inventory, 'shop:payments_review']
+  const admin = ['payments:approve', 'shop:orders', 'shop:payments_review']
+
+  const shopPayment = { order_id: 'o1', course_enrollment_id: null, support_subscription_id: null, library_purchase_id: null, application_id: null }
+  const academy = { order_id: null, course_enrollment_id: 'e1', support_subscription_id: null, library_purchase_id: null, application_id: null }
+  const library = { order_id: null, course_enrollment_id: null, support_subscription_id: null, library_purchase_id: 'l1', application_id: null }
+  const support = { order_id: null, course_enrollment_id: null, support_subscription_id: 's1', library_purchase_id: null, application_id: null }
+
+  assert.equal(canReviewPayment(salesperson, shopPayment), false)
+  assert.equal(canReviewPayment(salespersonWithReview, shopPayment), true)
+  assert.equal(canReviewPayment(inventory, shopPayment), false)
+  assert.equal(canReviewPayment(inventoryWithReview, shopPayment), true)
+  assert.equal(canReviewPayment(admin, shopPayment), true)
+
+  assert.equal(canReviewPayment(salespersonWithReview, academy), false)
+  assert.equal(canReviewPayment(salespersonWithReview, library), false)
+  assert.equal(canReviewPayment(salespersonWithReview, support), false)
+  assert.equal(canReviewPayment(inventoryWithReview, academy), false)
+  assert.equal(canReviewPayment(admin, academy), true)
+})
+
+test('staff fulfillment PATCH cannot change payment, price, or stock', () => {
+  const route = readFileSync(join(root, 'app/api/staff/orders/[id]/route.ts'), 'utf8')
+  assert.match(route, /export async function PATCH/)
+  assert.match(route, /assertStaffMutationAllowed/)
+  assert.match(route, /STAFF_API_PERMISSIONS\.fulfillment/)
+  const svc = readFileSync(join(root, 'lib/shop/staff-api/orders.ts'), 'utf8')
+  assert.match(svc, /Fulfillment cannot change payment, price, or stock/)
+  assert.match(svc, /Payment must be approved before fulfillment/)
+  assert.doesNotMatch(svc, /createCommerceSale/)
+})
+
+test('admin permission editor includes shop staff without granting admin console', () => {
+  const roles = readFileSync(join(root, 'lib/admin/data/roles.ts'), 'utf8')
+  assert.match(roles, /isPermissionOverrideEligibleRole/)
+  const actions = readFileSync(join(root, 'app/actions/admin-roles.ts'), 'utf8')
+  assert.match(actions, /filterAssignableCustomPermissions/)
+  const ui = readFileSync(join(root, 'components/admin/roles-permissions.tsx'), 'utf8')
+  assert.match(ui, /Shop staff/)
+  assert.doesNotMatch(ui, /No staff accounts with admin access found/)
+})
+
 test('migrations 86-88 were not modified by hardening', () => {
   for (const rel of [
     'scripts/86-commerce-pos-foundation.sql',
