@@ -6,6 +6,7 @@ import { useShopI18n, useShopT } from '@/components/shop-portal/shop-i18n-provid
 import { formatShopLongDate, formatShopRwf } from '@/lib/shop/format'
 import type { PublicOrderStatus, PublicOrderView, PublicPaymentStatus } from '@/lib/shop/public-order-view'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
+import { STOREFRONT_GUTTER, STOREFRONT_NARROW } from '@/lib/shop/storefront-layout'
 
 const ORDER_STATUS_KEYS: Record<PublicOrderStatus, ShopMessageKey> = {
   received: 'storefront.status.received',
@@ -190,7 +191,8 @@ export function StorefrontOrderMissing({ attempted }: { attempted?: string }) {
   const t = useShopT()
 
   return (
-    <section className="mx-auto max-w-xl px-4 py-12 sm:px-6 sm:py-16">
+    <section className={`${STOREFRONT_GUTTER} py-10 sm:py-14`}>
+      <div className={STOREFRONT_NARROW}>
       <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
         {t('storefront.order.notFoundTitle')}
       </h1>
@@ -204,6 +206,7 @@ export function StorefrontOrderMissing({ attempted }: { attempted?: string }) {
       >
         <Link href="/track">{t('storefront.order.backToTrack')}</Link>
       </Button>
+      </div>
     </section>
   )
 }

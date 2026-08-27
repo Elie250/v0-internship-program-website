@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import type { PublicCatalogueCategory } from '@/lib/shop/public-catalogue'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +32,7 @@ export function StorefrontCategoryBar({
       aria-label={t('storefront.categories.title')}
       className="border-b border-slate-200 bg-white"
     >
-      <div className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2.5 sm:px-6">
+      <div className={`${STOREFRONT_GUTTER} flex gap-2 overflow-x-auto py-2.5`}>
         <CategoryLink active={!activeCategory} href={hrefFor()}>
           {t('storefront.catalogue.all')}
         </CategoryLink>

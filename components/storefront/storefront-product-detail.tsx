@@ -13,11 +13,13 @@ import {
 } from '@/components/storefront/storefront-add-to-cart'
 import { formatShopRwf } from '@/lib/shop/format'
 import type { PublicCatalogueItem } from '@/lib/shop/public-catalogue'
+import { STOREFRONT_GUTTER, STOREFRONT_NARROW } from '@/lib/shop/storefront-layout'
 
 export function StorefrontProductMissing() {
   const t = useShopT()
   return (
-    <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+    <section className={`${STOREFRONT_GUTTER} py-16`}>
+      <div className={STOREFRONT_NARROW}>
       <h1 className="text-2xl font-semibold text-slate-900">{t('storefront.product.title')}</h1>
       <p className="mt-3 text-slate-600">{t('storefront.product.notFound')}</p>
       <Button
@@ -26,6 +28,7 @@ export function StorefrontProductMissing() {
       >
         <Link href="/">{t('storefront.product.back')}</Link>
       </Button>
+      </div>
     </section>
   )
 }
@@ -38,7 +41,7 @@ export function StorefrontProductDetail({ product }: { product: PublicCatalogueI
   )
 
   return (
-    <section className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:py-14">
+    <section className={`${STOREFRONT_GUTTER} grid gap-10 py-10 lg:grid-cols-2 lg:py-14`}>
       <div className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
         {product.image ? (
           <Image src={product.image} alt={product.name} fill className="object-cover" unoptimized />

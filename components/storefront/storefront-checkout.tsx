@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import { STOREFRONT_FORM, STOREFRONT_GUTTER, STOREFRONT_NARROW } from '@/lib/shop/storefront-layout'
 import { getDefaultStorefrontShop } from '@/lib/shop/storefront-shops'
 import { useShopCart } from '@/lib/shop/cart-context'
 import { formatShopRwf } from '@/lib/shop/format'
@@ -120,7 +121,8 @@ export function StorefrontCheckout() {
 
   if (step === 'success') {
     return (
-      <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+      <section className={`${STOREFRONT_GUTTER} py-10 sm:py-14`}>
+        <div className={STOREFRONT_NARROW}>
         <p className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
           {t('storefront.checkout.successTitle')}
         </p>
@@ -159,13 +161,15 @@ export function StorefrontCheckout() {
             <Link href="/">{t('storefront.cart.continue')}</Link>
           </Button>
         </div>
+        </div>
       </section>
     )
   }
 
   if (items.length === 0) {
     return (
-      <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+      <section className={`${STOREFRONT_GUTTER} py-10 sm:py-14`}>
+        <div className={STOREFRONT_NARROW}>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
           {t('storefront.checkout.title')}
         </h1>
@@ -176,19 +180,17 @@ export function StorefrontCheckout() {
         >
           <Link href="/">{t('storefront.cart.continue')}</Link>
         </Button>
+        </div>
       </section>
     )
   }
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+    <section className={`${STOREFRONT_GUTTER} py-10 sm:py-14`}>
+      <div className={STOREFRONT_FORM}>
       <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
         {t('storefront.checkout.title')}
       </h1>
-      <p className="mt-2 text-sm text-slate-600">
-        {t('storefront.shoppingFrom')}:{' '}
-        <span className="font-semibold text-slate-900">{shop.name}</span>
-      </p>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
@@ -442,6 +444,7 @@ export function StorefrontCheckout() {
             {t('storefront.checkout.previewHint')}
           </p>
         </aside>
+      </div>
       </div>
     </section>
   )

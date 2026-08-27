@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
+import { STOREFRONT_GUTTER, STOREFRONT_NARROW } from '@/lib/shop/storefront-layout'
 
 export function StorefrontComingSoon({
   titleKey,
@@ -15,7 +16,8 @@ export function StorefrontComingSoon({
   const t = useShopT()
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-20">
+    <section className={`${STOREFRONT_GUTTER} py-16 sm:py-20`}>
+      <div className={STOREFRONT_NARROW}>
       <p className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-navy,#1e3a5f)]">
         {t('storefront.comingSoon')}
       </p>
@@ -29,6 +31,7 @@ export function StorefrontComingSoon({
       >
         <Link href="/">{t('storefront.cart.continue')}</Link>
       </Button>
+      </div>
     </section>
   )
 }

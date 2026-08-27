@@ -6,6 +6,7 @@ import { Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { StorefrontProductCard } from '@/components/storefront/storefront-product-card'
+import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import type { StorefrontMerchandising, StorefrontPromoKind } from '@/lib/shop/public-merchandising'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
 
@@ -32,7 +33,7 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
   return (
     <div className="bg-slate-50">
       {merch.deals.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
+        <section className={`${STOREFRONT_GUTTER} pt-8`}>
           <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
             {t('storefront.deals.title')}
           </h2>
@@ -46,7 +47,7 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
       ) : null}
 
       {merch.categoryTiles.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6">
+        <section className={`${STOREFRONT_GUTTER} pt-10`}>
           <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
             {t('storefront.categories.title')}
           </h2>
@@ -83,7 +84,7 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
       ) : null}
 
       {merch.newArrivals.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6">
+        <section className={`${STOREFRONT_GUTTER} pt-10`}>
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
@@ -104,7 +105,7 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
       ) : null}
 
       {merch.promos.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6">
+        <section className={`${STOREFRONT_GUTTER} pt-10`}>
           <div className={`grid gap-4 ${merch.promos.length > 1 ? 'md:grid-cols-2' : ''}`}>
             {merch.promos.map((promo) => (
               <Link

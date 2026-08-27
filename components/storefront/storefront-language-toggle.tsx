@@ -11,11 +11,16 @@ import { cn } from '@/lib/utils'
 export function StorefrontLanguageToggle({
   className,
   inverted,
+  compact,
 }: {
   className?: string
   inverted?: boolean
+  compact?: boolean
 }) {
   const { locale, setLocale, t } = useShopI18n()
+  const labels: Record<ShopLocale, string> = compact
+    ? { en: 'EN', rw: 'RW' }
+    : SHOP_LOCALE_LABELS
 
   return (
     <div
@@ -45,7 +50,7 @@ export function StorefrontLanguageToggle({
             )}
             aria-pressed={locale === code}
           >
-            {SHOP_LOCALE_LABELS[code]}
+            {labels[code]}
           </button>
         </span>
       ))}

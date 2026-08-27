@@ -39,6 +39,7 @@ const STOREFRONT_FILES = [
   'components/storefront/storefront-merchandising.tsx',
   'components/storefront/storefront-category-bar.tsx',
   'components/storefront/storefront-header-search.tsx',
+  'lib/shop/storefront-layout.ts',
   'lib/shop/storefront-shops.ts',
   'lib/shop/storefront-locale.ts',
   'lib/shop/public-catalogue.ts',
@@ -116,6 +117,39 @@ test('staff portal layout remains protected', () => {
   assert.match(layout, /isCurrentRequestShopHost/)
 })
 
+test('public storefront uses a full-width retail shell, not the staff sidebar', () => {
+  const shell = read('components/storefront/storefront-shell.tsx')
+  assert.match(shell, /StorefrontHeader/)
+  assert.match(shell, /flex min-h-screen w-full min-w-0 flex-col/)
+  assert.doesNotMatch(shell, /ShopShell/)
+  assert.doesNotMatch(shell, /<aside/)
+  assert.doesNotMatch(shell, /w-60/)
+  assert.doesNotMatch(shell, /max-w-6xl|max-w-7xl/)
+  assert.doesNotMatch(shell, /StorefrontShopContext/)
+
+  const header = read('components/storefront/storefront-header.tsx')
+  assert.match(header, /STOREFRONT_GUTTER/)
+  assert.match(header, /StorefrontHeaderSearch/)
+  assert.match(header, /StorefrontShopContext/)
+  assert.match(header, /storefront\.nav\.track/)
+  assert.match(header, /storefront\.header\.download/)
+  assert.match(header, /storefront\.header\.downloadSoon/)
+  assert.match(header, /useShopCart/)
+  assert.match(header, /itemCount/)
+  assert.match(header, /storefront\.header\.cart/)
+  assert.doesNotMatch(header, /play\.google|apk|\.apk/i)
+  assert.doesNotMatch(header, /STOREFRONT_NAV_ITEMS/)
+
+  const layout = read('lib/shop/storefront-layout.ts')
+  assert.match(layout, /STOREFRONT_GUTTER/)
+  assert.match(layout, /px-3 sm:px-4 lg:px-6/)
+  assert.doesNotMatch(layout, /max-w-6xl/)
+
+  const staff = read('components/shop-portal/shop-shell.tsx')
+  assert.match(staff, /aside className="hidden w-60/)
+  assert.match(read('app/manage/(portal)/layout.tsx'), /ShopShell/)
+})
+
 test('storefront UI never exposes staff-only or implementation details', () => {
   const files = [
     'app/storefront/layout.tsx',
@@ -136,6 +170,7 @@ test('storefront UI never exposes staff-only or implementation details', () => {
     'components/storefront/storefront-merchandising.tsx',
     'components/storefront/storefront-category-bar.tsx',
     'components/storefront/storefront-header-search.tsx',
+    'lib/shop/storefront-layout.ts',
     'lib/shop/storefront-shops.ts',
     'lib/shop/public-catalogue.ts',
     'lib/shop/public-order-view.ts',
@@ -159,7 +194,9 @@ test('customer nav uses public URLs, not /storefront or staff /products', () => 
   assert.doesNotMatch(nav, /href: '\/products'/)
   const header = read('components/storefront/storefront-header.tsx')
   assert.match(header, /href="\/login"/)
-  assert.match(header, /STOREFRONT_NAV_ITEMS/)
+  assert.match(header, /href="\/track"/)
+  assert.match(header, /href="\/cart"/)
+  assert.doesNotMatch(header, /href="\/manage"/)
 })
 
 test('only Nyanza Shop is available for customer shopping context', () => {
@@ -256,12 +293,19 @@ test('availability and out-of-stock cart rules', () => {
   assert.doesNotMatch(addBtn, /createCommerceSale/)
 })
 
-test('catalogue search and categories reuse published product data', () => {
+test('catalogue search lives in the header; categories stay in the category bar', () => {
   const catalogue = read('components/storefront/storefront-catalogue.tsx')
-  assert.match(catalogue, /searchPlaceholder|action\.search/)
-  assert.match(catalogue, /params\.set\('q'/)
-  assert.match(catalogue, /params\.set\('category'/)
-  assert.match(catalogue, /storefront\.catalogue\.all/)
+  assert.doesNotMatch(catalogue, /searchPlaceholder/)
+  assert.doesNotMatch(catalogue, /params\.set\('q'/)
+  assert.doesNotMatch(catalogue, /params\.set\('category'/)
+  const search = read('components/storefront/storefront-header-search.tsx')
+  assert.match(search, /searchPlaceholder/)
+  assert.match(search, /action\.search/)
+  assert.match(search, /\/\?q=/)
+  const bar = read('components/storefront/storefront-category-bar.tsx')
+  assert.match(bar, /params\.set\('q'/)
+  assert.match(bar, /params\.set\('category'/)
+  assert.match(bar, /storefront\.catalogue\.all/)
   const loader = read('lib/shop/public-catalogue.ts')
   assert.match(loader, /item\.sku/)
   assert.match(loader, /item\.categoryName/)

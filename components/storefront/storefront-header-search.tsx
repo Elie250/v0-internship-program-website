@@ -1,16 +1,30 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { cn } from '@/lib/utils'
 
 export function StorefrontHeaderSearch({ className }: { className?: string }) {
+  return (
+    <Suspense fallback={<div className={cn('h-10 min-w-0 flex-1 rounded-md bg-white/15', className)} />}>
+      <StorefrontHeaderSearchForm className={className} />
+    </Suspense>
+  )
+}
+
+function StorefrontHeaderSearchForm({ className }: { className?: string }) {
   const t = useShopT()
   const router = useRouter()
-  const [query, setQuery] = useState('')
+  const params = useSearchParams()
+  const urlQuery = params.get('q') ?? ''
+  const [query, setQuery] = useState(urlQuery)
+
+  useEffect(() => {
+    setQuery(urlQuery)
+  }, [urlQuery])
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()

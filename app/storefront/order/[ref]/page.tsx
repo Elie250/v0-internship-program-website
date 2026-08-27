@@ -5,6 +5,7 @@ import {
 } from '@/components/storefront/storefront-order-card'
 import { getPublicOrder } from '@/lib/shop/public-order'
 import { normalizeOrderCode } from '@/lib/shop/order-lookup'
+import { STOREFRONT_GUTTER, STOREFRONT_NARROW } from '@/lib/shop/storefront-layout'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,8 +39,10 @@ export default async function StorefrontOrderPage({ params, searchParams }: Page
   }
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
-      <StorefrontOrderCard order={order} placed={placed === '1'} />
+    <section className={`${STOREFRONT_GUTTER} py-10 sm:py-14`}>
+      <div className={STOREFRONT_NARROW}>
+        <StorefrontOrderCard order={order} placed={placed === '1'} />
+      </div>
     </section>
   )
 }

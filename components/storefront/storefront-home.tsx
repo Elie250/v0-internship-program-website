@@ -18,6 +18,7 @@ import {
   publicDiscountPercent,
   type PublicCatalogueItem,
 } from '@/lib/shop/public-catalogue'
+import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import { cn } from '@/lib/utils'
 
 const AUTOPLAY_MS = 7000
@@ -64,7 +65,7 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
   if (products.length === 0) {
     return (
       <section className="relative overflow-hidden bg-[var(--brand-navy,#1e3a5f)] text-white">
-        <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
+        <div className={`relative ${STOREFRONT_GUTTER} py-12 sm:py-16`}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
             {t('storefront.hero.eyebrow')}
           </p>
@@ -126,7 +127,7 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
                     className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/25 to-transparent md:bg-gradient-to-r md:from-slate-950/80 md:via-slate-950/35 md:to-transparent"
                     aria-hidden
                   />
-                  <div className="absolute inset-0 flex flex-col justify-end px-4 py-6 sm:px-8 sm:py-8 lg:px-12 lg:py-10">
+                  <div className={`absolute inset-0 flex flex-col justify-end ${STOREFRONT_GUTTER} py-6 sm:py-8 lg:py-10`}>
                     <div className="max-w-xl">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300">
                         {t('storefront.arrivals.title')}

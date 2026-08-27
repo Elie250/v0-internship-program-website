@@ -80,6 +80,8 @@ test('approved storefront Kinyarwanda vocabulary is present', () => {
   const rw = read('lib/shop/i18n/messages/rw.ts')
   assert.match(rw, /'storefront\.nav\.cart': 'Ibyatoranijwe'/)
   assert.match(rw, /'storefront\.shoppingFrom': 'Ugurira kuri'/)
+  assert.match(rw, /'storefront\.header\.cart': 'Ibyatoranijwe \(\{n\}\)'/)
+  assert.match(rw, /'storefront\.header\.download': 'Manura App'/)
   assert.match(rw, /'storefront\.nav\.track': 'Kurikirana icyatumijwe'/)
   assert.match(rw, /'storefront\.checkout\.title': 'Soza igurisha'/)
   assert.match(rw, /'storefront\.catalogue\.addToCart': 'Ongeramo mu byatoranijwe'/)
