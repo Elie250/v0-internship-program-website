@@ -38,6 +38,7 @@ test('POS page and terminal modules exist', () => {
     'app/manage/(portal)/pos/page.tsx',
     'components/shop-portal/shop-pos-terminal.tsx',
     'lib/shop/pos-pricing.ts',
+    'lib/shop/pos-cart.ts',
     'app/api/staff/pos/sales/route.ts',
   ]) {
     assert.ok(existsSync(join(root, rel)), rel)
@@ -85,6 +86,86 @@ test('commerce-checkout was not rewritten by POS UI phase', () => {
   const src = readFileSync(join(root, 'lib/shop/commerce-checkout.ts'), 'utf8')
   assert.match(src, /export async function createCommerceSale/)
   assert.match(src, /consumeStockForLines|createActiveReservations/)
+  assert.match(src, /allocateCommerceOrderNumber/)
+})
+
+test('POS cart merges duplicate products and rejects empty checkout', () => {
+  function isPosCartEmpty(cart) {
+    return !cart.some((line) => line.quantity > 0)
+  }
+  function addProductToCart(cart, product) {
+    const stock = Math.max(0, Math.floor(Number(product.stock) || 0))
+    if (stock < 1) return cart
+    const existing = cart.find((line) => line.productId === product.id)
+    if (existing) {
+      if (existing.quantity >= stock) return cart
+      return cart.map((line) =>
+        line.productId === product.id ? { ...line, quantity: line.quantity + 1 } : line
+      )
+    }
+    return [...cart, { productId: product.id, quantity: 1, maxStock: stock }]
+  }
+  function setCartLineQuantity(cart, productId, nextQty) {
+    const qty = Math.floor(Number(nextQty))
+    if (!Number.isFinite(qty) || qty < 1) {
+      return cart.filter((line) => line.productId !== productId)
+    }
+    return cart
+      .map((line) =>
+        line.productId === productId ? { ...line, quantity: Math.min(line.maxStock, qty) } : line
+      )
+      .filter((line) => line.quantity > 0)
+  }
+  function removeCartLine(cart, productId) {
+    return cart.filter((line) => line.productId !== productId)
+  }
+  function cartToSaleItems(cart) {
+    return cart
+      .filter((line) => line.quantity > 0)
+      .map((line) => ({ productId: line.productId, quantity: line.quantity }))
+  }
+
+  const uno = { id: 'a', stock: 10 }
+  const esp = { id: 'b', stock: 5 }
+  let cart = []
+  assert.equal(isPosCartEmpty(cart), true)
+  cart = addProductToCart(cart, uno)
+  cart = addProductToCart(cart, uno)
+  cart = addProductToCart(cart, esp)
+  assert.equal(cart.length, 2)
+  assert.equal(cart.find((l) => l.productId === 'a').quantity, 2)
+  cart = setCartLineQuantity(cart, 'a', 3)
+  assert.equal(cart.find((l) => l.productId === 'a').quantity, 3)
+  cart = setCartLineQuantity(cart, 'a', 0)
+  assert.equal(cart.some((l) => l.productId === 'a'), false)
+  cart = addProductToCart(cart, uno)
+  cart = removeCartLine(cart, 'a')
+  assert.equal(cart.some((l) => l.productId === 'a'), false)
+  const payload = cartToSaleItems(addProductToCart(addProductToCart([], uno), esp))
+  assert.deepEqual(payload, [
+    { productId: 'a', quantity: 1 },
+    { productId: 'b', quantity: 1 },
+  ])
+  assert.equal('price' in payload[0], false)
+  assert.equal('total' in payload[0], false)
+})
+
+test('POS terminal posts IDs and quantities only through the existing sales API', () => {
+  const src = readFileSync(join(root, 'components/shop-portal/shop-pos-terminal.tsx'), 'utf8')
+  const cart = readFileSync(join(root, 'lib/shop/pos-cart.ts'), 'utf8')
+  assert.match(src, /addProductToCart/)
+  assert.match(src, /cartToSaleItems/)
+  assert.match(src, /setCart\(\[\]\)/)
+  assert.match(src, /pos\.reviewTitle|pos\.reviewSale/)
+  assert.match(src, /pos\.thankYou/)
+  assert.match(src, /pos\.confirmSale/)
+  assert.doesNotMatch(src, /success\.orderId|\{success\.orderId\}/)
+  assert.match(src, /SheetContent/)
+  assert.match(src, /paymentMethod:\s*'cash'/)
+  assert.doesNotMatch(src, /\/api\/staff\/inventory|shop_consume_stock/)
+  assert.match(cart, /productId: line\.productId/)
+  assert.match(cart, /quantity: line\.quantity/)
+  assert.doesNotMatch(cart, /price: line\.price/)
 })
 
 test('package.json exposes test:shop-pos', () => {

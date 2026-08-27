@@ -1,44 +1,37 @@
 'use client'
 
 import { useCallback, useEffect, useEffectEvent, useId, useState, useTransition } from 'react'
-import { Minus, Plus, Search, Trash2 } from 'lucide-react'
+import { Minus, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { previewCartTotals, previewUnitPrice } from '@/lib/shop/pos-pricing'
+import {
+  addProductToCart,
+  cartToSaleItems,
+  isPosCartEmpty,
+  removeCartLine,
+  setCartLineQuantity,
+  type PosCartLine,
+  type PosCatalogProduct,
+} from '@/lib/shop/pos-cart'
 import { useShopI18n, useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { shopPaymentStatusLabel, shopStockStateLabel } from '@/lib/shop/i18n/translate'
 import type { ReceiptModel } from '@/lib/shop/receipt-model'
 
-type PosProduct = {
-  id: string
-  name: string
-  sku: string | null
-  barcode: string | null
-  price: number
-  discount: number
-  stock: number
-  status: string | null
-}
-
-type CartLine = {
-  productId: string
-  name: string
-  sku: string | null
-  price: number
-  discount: number
-  quantity: number
-  maxStock: number
-}
-
 type SaleSuccess = {
-  orderId: string
   orderNumber: string
   totalAmount: number
   paymentStatus: string
   stockState: string
-  message: string
   receipt: ReceiptModel | null
   replay?: boolean
 }
@@ -55,13 +48,14 @@ export function ShopPosTerminal() {
   const { locale } = useShopI18n()
   const searchId = useId()
   const [query, setQuery] = useState('')
-  const [products, setProducts] = useState<PosProduct[]>([])
+  const [products, setProducts] = useState<PosCatalogProduct[]>([])
   const [searchError, setSearchError] = useState('')
   const [searching, setSearching] = useState(false)
-  const [cart, setCart] = useState<CartLine[]>([])
+  const [cart, setCart] = useState<PosCartLine[]>([])
   const [customerName, setCustomerName] = useState(() => t('pos.defaultCustomer'))
   const [customerPhone, setCustomerPhone] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [mobileCartOpen, setMobileCartOpen] = useState(false)
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -97,11 +91,9 @@ export function ShopPosTerminal() {
           id: String(row.id),
           name: String(row.name ?? ''),
           sku: row.sku != null ? String(row.sku) : null,
-          barcode: row.barcode != null ? String(row.barcode) : null,
           price: Number(row.price ?? 0),
           discount: Number(row.discount ?? 0),
           stock: Number(row.stock ?? 0),
-          status: row.status != null ? String(row.status) : null,
         }))
       )
     } catch {
@@ -122,68 +114,43 @@ export function ShopPosTerminal() {
   }, [query])
 
   const totals = previewCartTotals(cart)
+  const itemCount = cart.reduce((sum, line) => sum + line.quantity, 0)
+  const cartEmpty = isPosCartEmpty(cart)
 
-  const addToCart = useCallback((product: PosProduct) => {
+  const addToCart = useCallback((product: PosCatalogProduct) => {
     if (product.stock <= 0) return
     setSuccess(null)
     setError('')
+    setConfirmOpen(false)
     setIdempotencyKey(null)
-    setCart((prev) => {
-      const existing = prev.find((line) => line.productId === product.id)
-      if (existing) {
-        if (existing.quantity >= product.stock) return prev
-        return prev.map((line) =>
-          line.productId === product.id
-            ? { ...line, quantity: line.quantity + 1, maxStock: product.stock }
-            : line
-        )
-      }
-      return [
-        ...prev,
-        {
-          productId: product.id,
-          name: product.name,
-          sku: product.sku,
-          price: product.price,
-          discount: product.discount,
-          quantity: 1,
-          maxStock: product.stock,
-        },
-      ]
-    })
+    setCart((prev) => addProductToCart(prev, product))
   }, [])
 
   const updateQty = useCallback((productId: string, nextQty: number) => {
     setSuccess(null)
     setError('')
     setIdempotencyKey(null)
-    setCart((prev) =>
-      prev
-        .map((line) => {
-          if (line.productId !== productId) return line
-          const quantity = Math.max(0, Math.min(line.maxStock, Math.floor(nextQty)))
-          return { ...line, quantity }
-        })
-        .filter((line) => line.quantity > 0)
-    )
+    setCart((prev) => setCartLineQuantity(prev, productId, nextQty))
   }, [])
 
   const removeLine = useCallback((productId: string) => {
     setSuccess(null)
     setError('')
     setIdempotencyKey(null)
-    setCart((prev) => prev.filter((line) => line.productId !== productId))
+    setCart((prev) => removeCartLine(prev, productId))
   }, [])
 
   function openConfirm() {
-    if (!cart.length) return
+    if (cartEmpty || submitting) return
     setError('')
     setConfirmOpen(true)
     setIdempotencyKey((key) => key || newIdempotencyKey())
   }
 
   async function completeCashSale() {
-    if (!cart.length) return
+    if (cartEmpty || submitting) return
+    const items = cartToSaleItems(cart)
+    if (!items.length) return
     const key = idempotencyKey || newIdempotencyKey()
     setIdempotencyKey(key)
     setSubmitting(true)
@@ -197,10 +164,7 @@ export function ShopPosTerminal() {
           'Idempotency-Key': key,
         },
         body: JSON.stringify({
-          items: cart.map((line) => ({
-            productId: line.productId,
-            quantity: line.quantity,
-          })),
+          items,
           customerName: customerName.trim() || t('pos.defaultCustomer'),
           customerPhone: customerPhone.trim() || null,
           paymentMethod: 'cash',
@@ -214,17 +178,16 @@ export function ShopPosTerminal() {
         )
       }
       setSuccess({
-        orderId: String(data.orderId ?? ''),
         orderNumber: String(data.orderNumber ?? ''),
         totalAmount: Number(data.totalAmount ?? 0),
         paymentStatus: String(data.paymentStatus ?? ''),
         stockState: String(data.stockState ?? ''),
-        message: String(data.message ?? t('pos.successTitle')),
         receipt: data.receipt ?? null,
         replay: Boolean(data.replay),
       })
       setCart([])
       setConfirmOpen(false)
+      setMobileCartOpen(false)
       setIdempotencyKey(null)
       void runProductSearch(query)
     } catch (err) {
@@ -238,15 +201,37 @@ export function ShopPosTerminal() {
     setSuccess(null)
     setError('')
     setConfirmOpen(false)
+    setMobileCartOpen(false)
     setIdempotencyKey(null)
+    setCart([])
     setCustomerName(t('pos.defaultCustomer'))
     setCustomerPhone('')
   }
 
+  const salePanel = (
+    <PosSalePanel
+      cart={cart}
+      totals={totals}
+      customerName={customerName}
+      customerPhone={customerPhone}
+      confirmOpen={confirmOpen}
+      submitting={submitting}
+      error={error}
+      cartEmpty={cartEmpty}
+      onCustomerName={setCustomerName}
+      onCustomerPhone={setCustomerPhone}
+      onUpdateQty={updateQty}
+      onRemove={removeLine}
+      onReview={openConfirm}
+      onBack={() => setConfirmOpen(false)}
+      onConfirm={() => void completeCashSale()}
+    />
+  )
+
   if (success) {
     const receipt = success.receipt
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-xl">
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
           <p className="text-sm font-semibold text-emerald-950">{t('pos.successTitle')}</p>
           <p className="mt-1 text-sm text-emerald-900/90">{t('pos.successBody')}</p>
@@ -261,12 +246,12 @@ export function ShopPosTerminal() {
               <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
                 {t('common.receipt')}
               </p>
-              <p className="mt-1 text-xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-[var(--brand-navy,#1e3a5f)]">
                 {success.orderNumber || t('common.emDash')}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-500">{t('pos.serverTotal')}</p>
+              <p className="text-xs text-slate-500">{t('pos.previewTotal')}</p>
               <p className="text-2xl font-semibold tabular-nums text-slate-900">
                 {formatShopRwf(success.totalAmount)}
               </p>
@@ -274,6 +259,10 @@ export function ShopPosTerminal() {
           </div>
 
           <dl className="grid gap-2 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-slate-500">{t('pos.shop')}</dt>
+              <dd className="font-medium text-slate-900">{t('brand.siteLabel')}</dd>
+            </div>
             <div>
               <dt className="text-slate-500">{t('common.payment')}</dt>
               <dd className="font-medium text-slate-900">
@@ -288,12 +277,12 @@ export function ShopPosTerminal() {
                 {shopStockStateLabel(locale, success.stockState)}
               </dd>
             </div>
-            {receipt?.customerName ? (
-              <div>
-                <dt className="text-slate-500">{t('common.customer')}</dt>
-                <dd className="font-medium text-slate-900">{receipt.customerName}</dd>
-              </div>
-            ) : null}
+            <div>
+              <dt className="text-slate-500">{t('common.customer')}</dt>
+              <dd className="font-medium text-slate-900">
+                {receipt?.customerName || t('pos.defaultCustomer')}
+              </dd>
+            </div>
           </dl>
 
           {receipt?.items?.length ? (
@@ -316,6 +305,8 @@ export function ShopPosTerminal() {
               ))}
             </ul>
           ) : null}
+
+          <p className="text-sm text-slate-700 pt-2 border-t border-slate-100">{t('pos.thankYou')}</p>
         </div>
 
         <Button
@@ -330,220 +321,322 @@ export function ShopPosTerminal() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-5">
-      <div className="lg:col-span-3 space-y-4">
-        <div>
-          <Label htmlFor={searchId} className="sr-only">
-            {t('pos.searchLabel')}
-          </Label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              id={searchId}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('pos.searchPlaceholder')}
-              className="pl-9 bg-white"
-              autoComplete="off"
-            />
+    <div className="relative pb-24 lg:pb-0">
+      <div className="grid gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3 space-y-4">
+          <div>
+            <Label htmlFor={searchId} className="sr-only">
+              {t('pos.searchLabel')}
+            </Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id={searchId}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('pos.searchPlaceholder')}
+                className="pl-9 bg-white"
+                autoComplete="off"
+                autoFocus
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-slate-500">
+              {searching ? t('pos.searching') : t('pos.catalogHint')}
+            </p>
+            {searchError ? <p className="mt-1 text-sm text-red-700">{searchError}</p> : null}
           </div>
-          <p className="mt-1.5 text-xs text-slate-500">
-            {searching ? t('pos.searching') : t('pos.catalogHint')}
-          </p>
-          {searchError ? <p className="mt-1 text-sm text-red-700">{searchError}</p> : null}
+
+          <div className="grid gap-2 sm:grid-cols-2 max-h-[560px] overflow-y-auto pr-1">
+            {products.map((product) => {
+              const unit = previewUnitPrice(product.price, product.discount)
+              const disabled = product.stock <= 0
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => addToCart(product)}
+                  className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-[var(--brand-navy,#1e3a5f)]/40 hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
+                  <p className="mt-1 text-xs text-slate-500 truncate">
+                    {product.sku || t('pos.noSku')}
+                  </p>
+                  <div className="mt-3 flex items-end justify-between gap-2">
+                    <div>
+                      <p className="text-base font-semibold tabular-nums text-[var(--brand-navy,#1e3a5f)]">
+                        {formatShopRwf(unit)}
+                      </p>
+                      {product.discount > 0 ? (
+                        <p className="text-xs text-slate-400 line-through tabular-nums">
+                          {formatShopRwf(product.price)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {t('pos.stockLabel', { n: formatShopInteger(product.stock) })}
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+            {!searching && products.length === 0 ? (
+              <p className="sm:col-span-2 text-sm text-slate-600 py-8 text-center">
+                {t('pos.emptyProducts')}
+              </p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2 max-h-[560px] overflow-y-auto pr-1">
-          {products.map((product) => {
-            const unit = previewUnitPrice(product.price, product.discount)
-            const disabled = product.stock <= 0
+        <aside className="hidden lg:block lg:col-span-2">
+          <div className="lg:sticky lg:top-4">{salePanel}</div>
+        </aside>
+      </div>
+
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white px-4 py-3">
+        <Button
+          type="button"
+          className="w-full h-12 bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+          onClick={() => setMobileCartOpen(true)}
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          {t('pos.openCart')}
+          <span className="ml-auto tabular-nums">
+            {itemCount
+              ? `${t(itemCount === 1 ? 'pos.itemCount' : 'pos.itemCountPlural', { n: formatShopInteger(itemCount) })} · ${formatShopRwf(totals.payableTotal)}`
+              : formatShopRwf(0)}
+          </span>
+        </Button>
+      </div>
+
+      <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
+        <SheetContent
+          side="bottom"
+          className="lg:hidden max-h-[90vh] overflow-y-auto sm:max-w-none p-0"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>{t('pos.cartTitle')}</SheetTitle>
+            <SheetDescription>{t('pos.cartHint')}</SheetDescription>
+          </SheetHeader>
+          <div className="p-4">{salePanel}</div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+function PosSalePanel({
+  cart,
+  totals,
+  customerName,
+  customerPhone,
+  confirmOpen,
+  submitting,
+  error,
+  cartEmpty,
+  onCustomerName,
+  onCustomerPhone,
+  onUpdateQty,
+  onRemove,
+  onReview,
+  onBack,
+  onConfirm,
+}: {
+  cart: PosCartLine[]
+  totals: { listSubtotal: number; discountTotal: number; payableTotal: number }
+  customerName: string
+  customerPhone: string
+  confirmOpen: boolean
+  submitting: boolean
+  error: string
+  cartEmpty: boolean
+  onCustomerName: (value: string) => void
+  onCustomerPhone: (value: string) => void
+  onUpdateQty: (productId: string, qty: number) => void
+  onRemove: (productId: string) => void
+  onReview: () => void
+  onBack: () => void
+  onConfirm: () => void
+}) {
+  const t = useShopT()
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      <div>
+        <h2 className="text-base font-semibold text-slate-900">
+          {confirmOpen ? t('pos.reviewTitle') : t('pos.cartTitle')}
+        </h2>
+        <p className="text-xs text-slate-500 mt-0.5">
+          {confirmOpen ? t('pos.confirmHint') : t('pos.cartHint')}
+        </p>
+      </div>
+
+      {cartEmpty ? (
+        <p className="text-sm text-slate-600">{t('pos.cartEmpty')}</p>
+      ) : (
+        <ul className="space-y-3 max-h-64 overflow-y-auto">
+          {cart.map((line) => {
+            const unit = previewUnitPrice(line.price, line.discount)
+            const lineTotal = unit * line.quantity
             return (
-              <button
-                key={product.id}
-                type="button"
-                disabled={disabled}
-                onClick={() => addToCart(product)}
-                className="rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-[var(--brand-navy,#1e3a5f)]/40 hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <p className="text-sm font-semibold text-slate-900 line-clamp-2">{product.name}</p>
-                <p className="mt-1 text-xs text-slate-500 truncate">
-                  {product.sku || product.barcode || t('pos.noSku')}
-                </p>
-                <div className="mt-3 flex items-end justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold tabular-nums text-[var(--brand-navy,#1e3a5f)]">
-                      {formatShopRwf(unit)}
+              <li key={line.productId} className="border-b border-slate-100 pb-3">
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-900 truncate">{line.name}</p>
+                    <p className="text-xs text-slate-500 tabular-nums">
+                      {formatShopInteger(line.quantity)} × {formatShopRwf(unit)}
+                      {line.discount > 0
+                        ? ` ${t('pos.offList', { discount: formatShopRwf(line.discount) })}`
+                        : ''}
                     </p>
-                    {product.discount > 0 ? (
-                      <p className="text-xs text-slate-400 line-through tabular-nums">
-                        {formatShopRwf(product.price)}
-                      </p>
-                    ) : null}
                   </div>
-                  <p className="text-xs text-slate-500">
-                    {t('pos.stockLabel', { n: formatShopInteger(product.stock) })}
+                  <p className="text-sm font-medium tabular-nums text-slate-900">
+                    {formatShopRwf(lineTotal)}
                   </p>
                 </div>
-              </button>
+                {!confirmOpen ? (
+                  <div className="mt-2 flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8"
+                      onClick={() => onUpdateQty(line.productId, line.quantity - 1)}
+                      aria-label={t('a11y.decreaseQty')}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-8 text-center text-sm tabular-nums">{line.quantity}</span>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8"
+                      onClick={() => onUpdateQty(line.productId, line.quantity + 1)}
+                      disabled={line.quantity >= line.maxStock}
+                      aria-label={t('a11y.increaseQty')}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-red-600"
+                      onClick={() => onRemove(line.productId)}
+                      aria-label={t('pos.remove')}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : null}
+              </li>
             )
           })}
-          {!searching && products.length === 0 ? (
-            <p className="sm:col-span-2 text-sm text-slate-600 py-8 text-center">
-              {t('pos.emptyProducts')}
-            </p>
-          ) : null}
+        </ul>
+      )}
+
+      <div className="space-y-1.5 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-sm">
+        <div className="flex justify-between text-slate-600">
+          <span>{t('pos.listSubtotal')}</span>
+          <span className="tabular-nums">{formatShopRwf(totals.listSubtotal)}</span>
+        </div>
+        <div className="flex justify-between text-slate-600">
+          <span>{t('pos.discounts')}</span>
+          <span className="tabular-nums">−{formatShopRwf(totals.discountTotal)}</span>
+        </div>
+        <div className="flex justify-between font-semibold text-slate-900 pt-1 border-t border-slate-200">
+          <span>{t('pos.previewTotal')}</span>
+          <span className="tabular-nums">{formatShopRwf(totals.payableTotal)}</span>
         </div>
       </div>
 
-      <div className="lg:col-span-2 space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-4">
+      {confirmOpen ? (
+        <dl className="grid gap-2 text-sm rounded-lg border border-slate-200 px-3 py-3">
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">{t('pos.shop')}</dt>
+            <dd className="font-medium text-slate-900">{t('brand.siteLabel')}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">{t('common.payment')}</dt>
+            <dd className="font-medium text-slate-900">{t('common.cash')}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-slate-500">{t('common.customer')}</dt>
+            <dd className="font-medium text-slate-900 text-right">
+              {customerName.trim() || t('pos.defaultCustomer')}
+            </dd>
+          </div>
+        </dl>
+      ) : (
+        <div className="space-y-2">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">{t('pos.cartTitle')}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{t('pos.cartHint')}</p>
+            <Label htmlFor="pos-customer-name">{t('pos.customerName')}</Label>
+            <Input
+              id="pos-customer-name"
+              className="mt-1"
+              value={customerName}
+              onChange={(e) => onCustomerName(e.target.value)}
+            />
           </div>
-
-          {cart.length === 0 ? (
-            <p className="text-sm text-slate-600">{t('pos.cartEmpty')}</p>
-          ) : (
-            <ul className="space-y-3 max-h-56 overflow-y-auto">
-              {cart.map((line) => {
-                const unit = previewUnitPrice(line.price, line.discount)
-                return (
-                  <li key={line.productId} className="flex items-start gap-2 border-b border-slate-100 pb-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-900 truncate">{line.name}</p>
-                      <p className="text-xs text-slate-500 tabular-nums">
-                        {t('pos.each', { price: formatShopRwf(unit) })}
-                        {line.discount > 0
-                          ? ` ${t('pos.offList', { discount: formatShopRwf(line.discount) })}`
-                          : ''}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="h-7 w-7"
-                        onClick={() => updateQty(line.productId, line.quantity - 1)}
-                        aria-label={t('a11y.decreaseQty')}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-7 text-center text-sm tabular-nums">{line.quantity}</span>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="h-7 w-7"
-                        onClick={() => updateQty(line.productId, line.quantity + 1)}
-                        disabled={line.quantity >= line.maxStock}
-                        aria-label={t('a11y.increaseQty')}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-red-600"
-                        onClick={() => removeLine(line.productId)}
-                        aria-label={t('a11y.removeItem')}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-
-          <div className="space-y-1.5 rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 text-sm">
-            <div className="flex justify-between text-slate-600">
-              <span>{t('pos.listSubtotal')}</span>
-              <span className="tabular-nums">{formatShopRwf(totals.listSubtotal)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>{t('pos.discounts')}</span>
-              <span className="tabular-nums">−{formatShopRwf(totals.discountTotal)}</span>
-            </div>
-            <div className="flex justify-between font-semibold text-slate-900 pt-1 border-t border-slate-200">
-              <span>{t('pos.previewTotal')}</span>
-              <span className="tabular-nums">{formatShopRwf(totals.payableTotal)}</span>
-            </div>
+          <div>
+            <Label htmlFor="pos-customer-phone">{t('pos.phoneOptional')}</Label>
+            <Input
+              id="pos-customer-phone"
+              className="mt-1"
+              value={customerPhone}
+              onChange={(e) => onCustomerPhone(e.target.value)}
+            />
           </div>
+        </div>
+      )}
 
-          <div className="space-y-2">
-            <div>
-              <Label htmlFor="pos-customer-name">{t('pos.customerName')}</Label>
-              <Input
-                id="pos-customer-name"
-                className="mt-1"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pos-customer-phone">{t('pos.phoneOptional')}</Label>
-              <Input
-                id="pos-customer-phone"
-                className="mt-1"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-            </div>
-          </div>
+      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        <p className="font-medium text-slate-900">{t('pos.paymentCash')}</p>
+        <p className="text-xs text-slate-500 mt-0.5">{t('pos.paymentNote')}</p>
+      </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-            <p className="font-medium text-slate-900">{t('pos.paymentCash')}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{t('pos.paymentNote')}</p>
-          </div>
+      {error ? (
+        <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+          {error}
+        </p>
+      ) : null}
 
-          {error ? (
-            <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md px-3 py-2">
-              {error}
-            </p>
-          ) : null}
-
-          {!confirmOpen ? (
+      {!confirmOpen ? (
+        <Button
+          type="button"
+          className="w-full h-11 bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+          disabled={cartEmpty || submitting}
+          onClick={onReview}
+        >
+          {t('pos.reviewSale')}
+        </Button>
+      ) : (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+          <p className="text-sm font-medium text-amber-950">
+            {t('pos.confirmPrompt', { total: formatShopRwf(totals.payableTotal) })}
+          </p>
+          <div className="flex gap-2 pt-1">
             <Button
               type="button"
-              className="w-full bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
-              disabled={cart.length === 0 || submitting}
-              onClick={openConfirm}
+              variant="outline"
+              className="flex-1"
+              disabled={submitting}
+              onClick={onBack}
             >
-              {t('pos.reviewSale')}
+              {t('action.back')}
             </Button>
-          ) : (
-            <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm font-medium text-amber-950">
-                {t('pos.confirmPrompt', { total: formatShopRwf(totals.payableTotal) })}
-              </p>
-              <p className="text-xs text-amber-900/80">{t('pos.confirmHint')}</p>
-              <div className="flex gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={submitting}
-                  onClick={() => setConfirmOpen(false)}
-                >
-                  {t('action.back')}
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1 bg-[var(--brand-navy,#1e3a5f)] text-white"
-                  disabled={submitting}
-                  onClick={() => void completeCashSale()}
-                >
-                  {submitting ? t('pos.processing') : t('pos.confirmSale')}
-                </Button>
-              </div>
-            </div>
-          )}
+            <Button
+              type="button"
+              className="flex-1 bg-[var(--brand-navy,#1e3a5f)] text-white"
+              disabled={submitting || cartEmpty}
+              onClick={onConfirm}
+            >
+              {submitting ? t('pos.processing') : t('pos.confirmSale')}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
