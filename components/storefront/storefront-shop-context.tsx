@@ -30,7 +30,7 @@ export function StorefrontShopContext({
     getDefaultStorefrontShop()
 
   const header = tone === 'header'
-  const labelClass = header ? 'text-white/80' : 'text-slate-600'
+  const labelClass = header ? 'text-white/80' : 'text-slate-700'
   const valueClass = header ? 'text-white' : 'text-slate-900'
 
   if (available.length <= 1) {

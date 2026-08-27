@@ -139,6 +139,7 @@ test('public storefront uses a full-width retail shell, not the staff sidebar', 
   assert.match(header, /storefront\.header\.cart/)
   assert.doesNotMatch(header, /play\.google|apk|\.apk/i)
   assert.doesNotMatch(header, /STOREFRONT_NAV_ITEMS/)
+  assert.doesNotMatch(header, /href="\/manage"|href="\/pos"|href="\/inventory"/)
 
   const layout = read('lib/shop/storefront-layout.ts')
   assert.match(layout, /STOREFRONT_GUTTER/)
@@ -221,6 +222,29 @@ test('storefront reuses Shop i18n and English|Kinyarwanda toggle', () => {
   const header = read('components/storefront/storefront-header.tsx')
   assert.match(header, /StorefrontLanguageToggle/)
   assert.match(header, /useShopT/)
+})
+
+test('mobile menu is an opaque high-contrast drawer with customer links only', () => {
+  const header = read('components/storefront/storefront-header.tsx')
+  assert.match(header, /SheetContent/)
+  assert.match(header, /bg-white/)
+  assert.match(header, /text-slate-900/)
+  assert.match(header, /overflow-x-hidden/)
+  assert.match(header, /min-h-11/)
+  assert.match(header, /storefront\.nav\.products/)
+  assert.match(header, /href="\/"/)
+  assert.match(header, /href="\/cart"/)
+  assert.match(header, /href="\/track"/)
+  assert.match(header, /href="\/login"/)
+  assert.match(header, /StorefrontLanguageToggle emphasis/)
+  assert.match(header, /focus-visible:ring-2/)
+  assert.doesNotMatch(header, /text-slate-500/)
+  assert.doesNotMatch(header, /bg-background|opacity-70/)
+  assert.doesNotMatch(header, /href="\/manage"|href="\/users"|href="\/pos"/)
+  const toggle = read('components/storefront/storefront-language-toggle.tsx')
+  assert.match(toggle, /emphasis/)
+  assert.match(toggle, /min-h-11/)
+  assert.match(toggle, /bg-\[var\(--brand-navy,#1e3a5f\)\] text-white/)
 })
 
 test('cart shell does not create a second checkout', () => {

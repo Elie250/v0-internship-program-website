@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, ShoppingBag, Smartphone } from 'lucide-react'
+import { ClipboardList, LogIn, Menu, Package, ShoppingBag, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
@@ -13,6 +14,10 @@ import { StorefrontShopContext } from '@/components/storefront/storefront-shop-c
 import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import type { StorefrontShopOption } from '@/lib/shop/storefront-shops'
 import { useShopCart } from '@/lib/shop/cart-context'
+import { cn } from '@/lib/utils'
+
+const MOBILE_NAV_LINK =
+  'flex min-h-11 min-w-0 items-center gap-2 overflow-hidden rounded-md px-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy,#1e3a5f)] focus-visible:ring-offset-2'
 
 export function StorefrontHeader({
   shops,
@@ -23,7 +28,11 @@ export function StorefrontHeader({
 }) {
   const t = useShopT()
   const { itemCount } = useShopCart()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  const mobileNavClass = (href: string) =>
+    cn(MOBILE_NAV_LINK, pathname === href && 'bg-slate-100 text-[var(--brand-navy,#1e3a5f)]')
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[var(--brand-navy,#1e3a5f)] text-white">
@@ -42,36 +51,65 @@ export function StorefrontHeader({
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0">
-                <SheetHeader className="border-b border-slate-200 px-4 py-4 text-left">
-                  <SheetTitle className="text-base text-[var(--brand-navy,#1e3a5f)]">
+              <SheetContent
+                side="left"
+                className="flex h-full w-full max-w-xs flex-col gap-0 overflow-x-hidden bg-white p-0 text-slate-900 shadow-none [&>button]:text-slate-800 [&>button]:opacity-100 [&>button]:hover:bg-slate-100 [&>button]:hover:opacity-100 [&>button]:focus-visible:ring-2 [&>button]:focus-visible:ring-[var(--brand-navy,#1e3a5f)]"
+              >
+                <SheetHeader className="border-b border-slate-200 bg-white px-4 py-4 pr-12 text-left">
+                  <SheetTitle className="text-base font-semibold text-[var(--brand-navy,#1e3a5f)]">
                     {t('brand.name')}
                   </SheetTitle>
                 </SheetHeader>
-                <nav aria-label={t('storefront.a11y.nav')} className="grid gap-1 px-3 py-4">
-                  <div className="px-3 py-2">
+                <nav
+                  aria-label={t('storefront.a11y.nav')}
+                  className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3"
+                >
+                  <div className="px-3 py-2 text-slate-800">
                     <StorefrontShopContext shops={shops} currentCode={currentShopCode} />
                   </div>
-                  <Link
-                    href="/track"
-                    onClick={() => setOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100"
-                  >
-                    {t('storefront.nav.track')}
-                  </Link>
-                  <p className="rounded-md px-3 py-2 text-sm text-slate-500">
-                    {t('storefront.header.download')}
-                    <span className="ml-2 text-xs">{t('storefront.header.downloadSoon')}</span>
-                  </p>
+                  <div className="grid gap-1">
+                    <Link href="/" onClick={() => setOpen(false)} className={mobileNavClass('/')}>
+                      <Package className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <span className="min-w-0 break-words">{t('storefront.nav.products')}</span>
+                    </Link>
+                    <Link
+                      href="/track"
+                      onClick={() => setOpen(false)}
+                      className={mobileNavClass('/track')}
+                    >
+                      <ClipboardList className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <span className="min-w-0 break-words">{t('storefront.nav.track')}</span>
+                    </Link>
+                    <Link
+                      href="/cart"
+                      onClick={() => setOpen(false)}
+                      className={mobileNavClass('/cart')}
+                    >
+                      <ShoppingBag className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <span className="min-w-0 break-words">
+                        {t('storefront.header.cart', { n: itemCount })}
+                      </span>
+                    </Link>
+                    <p className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-3 text-sm font-medium text-slate-800">
+                      <Smartphone className="h-4 w-4 shrink-0 text-slate-700" aria-hidden />
+                      <span className="min-w-0 break-words">
+                        {t('storefront.header.download')}
+                        <span className="ml-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          {t('storefront.header.downloadSoon')}
+                        </span>
+                      </span>
+                    </p>
+                  </div>
                 </nav>
-                <div className="space-y-4 border-t border-slate-200 px-4 py-4">
-                  <StorefrontLanguageToggle />
+                <div className="space-y-3 border-t border-slate-200 bg-white px-4 py-4">
+                  <StorefrontLanguageToggle emphasis />
                   <Link
                     href="/login"
                     onClick={() => setOpen(false)}
-                    className="block text-sm text-slate-500 hover:text-slate-800"
+                    className={cn(MOBILE_NAV_LINK, 'font-medium text-slate-800')}
                   >
-                    {t('storefront.footer.manage')}
+                    <LogIn className="h-4 w-4 shrink-0 text-slate-700" aria-hidden />
+                    <span className="min-w-0 break-words">{t('storefront.footer.manage')}</span>
                   </Link>
                 </div>
               </SheetContent>
