@@ -626,6 +626,73 @@ function selectDealProducts(products, limit = 8) {
     .slice(0, Math.max(0, limit))
 }
 
+function selectLatestProducts(products, heroProducts, limit = 8) {
+  const heroSlugs = new Set(heroProducts.map((item) => item.slug))
+  const rest = uniqueBySlug(
+    products.filter((item) => !heroSlugs.has(item.slug)),
+    Math.max(0, limit),
+    new Set()
+  )
+  if (rest.length > 0) return rest
+  if (products.length === 1) return uniqueBySlug(products, 1, new Set())
+  return []
+}
+
+function recencyBoost(catalogueIndex) {
+  if (catalogueIndex < 0) return 0
+  if (catalogueIndex < 4) return 3
+  if (catalogueIndex < 8) return 2
+  if (catalogueIndex < 16) return 1
+  return 0
+}
+
+function trendScore(item, catalogueIndex) {
+  let score = 0
+  if (item.inStock) score += 4
+  if (item.image) score += 4
+  if (
+    (item.discountAmount ?? 0) > 0 &&
+    item.listPrice != null &&
+    item.listPrice > item.price
+  ) {
+    score += 3
+  }
+  score += recencyBoost(catalogueIndex)
+  return score
+}
+
+function selectTrendProducts(products, excluded, limit = 4) {
+  const skip = new Set(excluded.map((item) => item.slug))
+  const indexBySlug = new Map(products.map((item, index) => [item.slug, index]))
+  const pool = products.filter(
+    (item) => !skip.has(item.slug) && item.inStock && Boolean(item.image)
+  )
+  if (pool.length === 0) return []
+  const ranked = [...pool].sort((a, b) => {
+    const scoreA = trendScore(a, indexBySlug.get(a.slug) ?? 999)
+    const scoreB = trendScore(b, indexBySlug.get(b.slug) ?? 999)
+    if (scoreB !== scoreA) return scoreB - scoreA
+    return (indexBySlug.get(a.slug) ?? 0) - (indexBySlug.get(b.slug) ?? 0)
+  })
+  const selected = []
+  const seen = new Set()
+  const seenCats = new Set()
+  const take = (requireNewCategory) => {
+    for (const item of ranked) {
+      if (selected.length >= limit) break
+      if (seen.has(item.slug)) continue
+      const category = item.categorySlug?.trim() ?? ''
+      if (requireNewCategory && category && seenCats.has(category)) continue
+      seen.add(item.slug)
+      if (category) seenCats.add(category)
+      selected.push(item)
+    }
+  }
+  take(true)
+  take(false)
+  return selected
+}
+
 function formatSellingQuantity(quantity) {
   const n = Number(quantity)
   if (!Number.isFinite(n)) return '1'
@@ -647,7 +714,8 @@ test('new arrivals take the newest published catalogue products', () => {
   assert.match(merch, /products\.slice\(0/)
   assert.match(merch, /NEW_ARRIVALS_LIMIT = 8/)
   assert.match(read('app/storefront/page.tsx'), /buildStorefrontMerchandising\(result\.products, result\.categories\)/)
-  assert.match(read('components/storefront/storefront-merchandising.tsx'), /storefront\.arrivals\.title/)
+  assert.match(read('components/storefront/storefront-home.tsx'), /storefront\.arrivals\.title/)
+  assert.doesNotMatch(read('components/storefront/storefront-merchandising.tsx'), /storefront\.arrivals\.title/)
   const products = [
     sampleItem({ slug: 'newest' }),
     sampleItem({ slug: 'older' }),
@@ -706,6 +774,93 @@ test('featured products are derived without an is_featured column', () => {
   const merch = read('lib/shop/public-merchandising.ts')
   assert.match(merch, /export function selectFeaturedProducts/)
   assert.doesNotMatch(merch, /is_featured/)
+})
+
+test('latest products are independent of the New Arrivals hero', () => {
+  const merch = read('lib/shop/public-merchandising.ts')
+  const ui = read('components/storefront/storefront-merchandising.tsx')
+  assert.match(merch, /export function selectLatestProducts/)
+  assert.match(merch, /LATEST_LIMIT = 8/)
+  assert.match(ui, /storefront\.latest\.title/)
+  assert.match(ui, /merch\.latestProducts/)
+  assert.doesNotMatch(ui, /merch\.newArrivals/)
+  assert.doesNotMatch(ui, /merch\.heroProducts/)
+
+  const catalogue = [
+    sampleItem({ slug: 'a', inStock: true, image: '/a.jpg' }),
+    sampleItem({ slug: 'b', inStock: true, image: '/b.jpg' }),
+    sampleItem({ slug: 'c', inStock: true, image: '/c.jpg' }),
+    sampleItem({ slug: 'd', inStock: true, image: '/d.jpg' }),
+    sampleItem({ slug: 'e', inStock: true, image: '/e.jpg' }),
+    sampleItem({ slug: 'latest-only', inStock: true, image: '/f.jpg' }),
+  ]
+  const hero = selectHeroProducts(catalogue)
+  const latest = selectLatestProducts(catalogue, hero)
+  assert.deepEqual(
+    hero.map((item) => item.slug),
+    ['a', 'b', 'c', 'd', 'e']
+  )
+  assert.ok(latest.every((item) => !hero.some((slide) => slide.slug === item.slug)))
+  assert.deepEqual(
+    latest.map((item) => item.slug),
+    ['latest-only']
+  )
+
+  const tiny = [sampleItem({ slug: 'arduino', inStock: true, image: '/a.jpg' })]
+  const tinyHero = selectHeroProducts(tiny)
+  assert.deepEqual(
+    selectLatestProducts(tiny, tinyHero).map((item) => item.slug),
+    ['arduino']
+  )
+
+  const three = [
+    sampleItem({ slug: 'a', inStock: true, image: '/a.jpg' }),
+    sampleItem({ slug: 'b', inStock: true, image: '/b.jpg' }),
+    sampleItem({ slug: 'c', inStock: true, image: '/c.jpg' }),
+  ]
+  assert.deepEqual(selectLatestProducts(three, selectHeroProducts(three)), [])
+})
+
+test('trends are derived without analytics or unsupported popularity claims', () => {
+  const merch = read('lib/shop/public-merchandising.ts')
+  const ui = read('components/storefront/storefront-merchandising.tsx')
+  const en = read('lib/shop/i18n/messages/en.ts')
+  const rw = read('lib/shop/i18n/messages/rw.ts')
+  assert.match(merch, /export function selectTrendProducts/)
+  assert.match(merch, /export function trendScore/)
+  assert.match(merch, /TRENDS_LIMIT = 4/)
+  assert.match(merch, /not purchase or view analytics/i)
+  assert.match(ui, /storefront\.trends\.title/)
+  assert.doesNotMatch(en, /Best Sellers|Most Popular|Most Purchased|Most Viewed/)
+  assert.doesNotMatch(rw, /Best Sellers|Most Popular|Most Purchased/)
+  assert.doesNotMatch(ui, /Best Sellers|Most Popular|Most Purchased/)
+  assert.doesNotMatch(merch, /is_trending/)
+
+  const excluded = [
+    sampleItem({ slug: 'hero-a', categorySlug: 'audio', inStock: true, image: '/a.jpg' }),
+    sampleItem({ slug: 'latest-d', categorySlug: 'cables', inStock: true, image: '/d.jpg' }),
+  ]
+  const catalogue = [
+    ...excluded,
+    sampleItem({
+      slug: 'trend-sale',
+      categorySlug: 'batteries',
+      inStock: true,
+      image: '/e.jpg',
+      price: 8000,
+      listPrice: 10000,
+      discountAmount: 2000,
+    }),
+    sampleItem({ slug: 'trend-f', categorySlug: 'phones', inStock: true, image: '/f.jpg' }),
+    sampleItem({ slug: 'ghost', categorySlug: 'audio', inStock: true, image: null }),
+  ]
+  const trends = selectTrendProducts(catalogue, excluded)
+  const used = new Set(excluded.map((item) => item.slug))
+  assert.ok(trends.length > 0)
+  assert.ok(trends.every((item) => !used.has(item.slug)))
+  assert.ok(trends.every((item) => item.inStock && item.image))
+  assert.ok(trends.some((item) => item.slug === 'trend-sale'))
+  assert.equal(selectTrendProducts(catalogue, catalogue).length, 0)
 })
 
 test('promos and category tiles use database slugs, not hard-coded IDs', () => {

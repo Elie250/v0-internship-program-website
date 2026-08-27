@@ -1,11 +1,21 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
+import {
+  StorefrontAddToCart,
+  StorefrontAvailability,
+} from '@/components/storefront/storefront-add-to-cart'
 import { StorefrontProductCard } from '@/components/storefront/storefront-product-card'
+import { formatShopRwf } from '@/lib/shop/format'
+import {
+  publicDiscountPercent,
+  type PublicCatalogueItem,
+} from '@/lib/shop/public-catalogue'
 import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import type { StorefrontMerchandising, StorefrontPromoKind } from '@/lib/shop/public-merchandising'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
@@ -27,7 +37,16 @@ const PROMO_COPY: Record<
 const PRODUCT_GRID =
   'mt-5 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
 
-export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandising }) {
+const LATEST_ROW =
+  'mt-5 flex gap-2 overflow-x-auto pb-2 sm:gap-3 md:grid md:grid-cols-3 md:overflow-visible md:pb-0 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+
+export function StorefrontMerchandising({
+  merch,
+  children,
+}: {
+  merch: StorefrontMerchandising
+  children?: ReactNode
+}) {
   const t = useShopT()
 
   return (
@@ -45,6 +64,8 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
           </div>
         </section>
       ) : null}
+
+      {children}
 
       {merch.categoryTiles.length > 0 ? (
         <section className={`${STOREFRONT_GUTTER} pt-10`}>
@@ -83,26 +104,26 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
         </section>
       ) : null}
 
-      {merch.newArrivals.length > 0 ? (
+      {merch.latestProducts.length > 0 ? (
         <section className={`${STOREFRONT_GUTTER} pt-10`}>
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                {t('storefront.arrivals.title')}
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">{t('storefront.arrivals.subtitle')}</p>
-            </div>
-            <Button asChild variant="outline" className="hidden border-slate-300 sm:inline-flex">
-              <Link href="#products">{t('storefront.hero.browse')}</Link>
-            </Button>
-          </div>
-          <div className={PRODUCT_GRID}>
-            {merch.newArrivals.map((product) => (
-              <StorefrontProductCard key={product.slug} product={product} />
+          <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+            {t('storefront.latest.title')}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">{t('storefront.latest.subtitle')}</p>
+          <div className={LATEST_ROW}>
+            {merch.latestProducts.map((product) => (
+              <div
+                key={product.slug}
+                className="w-[11.5rem] shrink-0 sm:w-[13rem] md:w-auto md:min-w-0"
+              >
+                <StorefrontProductCard product={product} />
+              </div>
             ))}
           </div>
         </section>
       ) : null}
+
+      {merch.trends.length > 0 ? <StorefrontTrends products={merch.trends} /> : null}
 
       {merch.promos.length > 0 ? (
         <section className={`${STOREFRONT_GUTTER} pt-10`}>
@@ -140,5 +161,83 @@ export function StorefrontMerchandising({ merch }: { merch: StorefrontMerchandis
         </section>
       ) : null}
     </div>
+  )
+}
+
+function StorefrontTrends({ products }: { products: PublicCatalogueItem[] }) {
+  const t = useShopT()
+  const [featured, ...rest] = products
+  if (!featured) return null
+  const href = `/product/${encodeURIComponent(featured.slug)}`
+  const percent = publicDiscountPercent(featured.listPrice, featured.price)
+
+  return (
+    <section className={`${STOREFRONT_GUTTER} pt-10`}>
+      <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        {t('storefront.trends.title')}
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">{t('storefront.trends.subtitle')}</p>
+      <article className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:grid lg:grid-cols-[1.15fr_0.85fr]">
+        <Link href={href} className="relative block min-h-[220px] bg-slate-100 sm:min-h-[280px] lg:min-h-[360px]">
+          {featured.image ? (
+            <Image
+              src={featured.image}
+              alt={featured.name}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          ) : (
+            <div className="flex h-full min-h-[220px] items-center justify-center text-slate-300">
+              <Package className="h-12 w-12" aria-hidden />
+            </div>
+          )}
+          {percent ? (
+            <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-bold text-[var(--brand-navy,#1e3a5f)]">
+              −{percent}%
+            </span>
+          ) : null}
+        </Link>
+        <div className="flex flex-col justify-center p-5 sm:p-8">
+          {featured.categoryName ? (
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {featured.categoryName}
+            </p>
+          ) : null}
+          <Link href={href}>
+            <h3 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+              {featured.name}
+            </h3>
+          </Link>
+          <p className="mt-2 text-sm text-slate-500">{featured.sellingUnitLabel}</p>
+          <div className="mt-4 flex flex-wrap items-baseline gap-3">
+            <p className="text-2xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
+              {formatShopRwf(featured.price)}
+            </p>
+            {featured.listPrice ? (
+              <p className="text-sm text-slate-400 line-through">
+                {formatShopRwf(featured.listPrice)}
+              </p>
+            ) : null}
+          </div>
+          <div className="mt-3">
+            <StorefrontAvailability value={featured.availability} />
+          </div>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <StorefrontAddToCart product={featured} className="min-w-[9rem]" />
+            <Button asChild variant="outline" className="border-slate-300">
+              <Link href={href}>{t('storefront.hero.viewProduct')}</Link>
+            </Button>
+          </div>
+        </div>
+      </article>
+      {rest.length > 0 ? (
+        <div className={`${PRODUCT_GRID} lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3`}>
+          {rest.map((product) => (
+            <StorefrontProductCard key={product.slug} product={product} />
+          ))}
+        </div>
+      ) : null}
+    </section>
   )
 }

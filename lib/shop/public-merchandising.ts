@@ -4,6 +4,8 @@ export const NEW_ARRIVALS_LIMIT = 8
 export const FEATURED_LIMIT = 4
 export const HERO_LIMIT = 5
 export const DEALS_LIMIT = 8
+export const LATEST_LIMIT = 8
+export const TRENDS_LIMIT = 4
 
 export type StorefrontPromoKind = 'sound' | 'power'
 
@@ -23,8 +25,8 @@ export type StorefrontCategoryTile = {
 
 export type StorefrontMerchandising = {
   heroProducts: PublicCatalogueItem[]
-  newArrivals: PublicCatalogueItem[]
-  featured: PublicCatalogueItem[]
+  latestProducts: PublicCatalogueItem[]
+  trends: PublicCatalogueItem[]
   deals: PublicCatalogueItem[]
   promos: StorefrontPromo[]
   categoryTiles: StorefrontCategoryTile[]
@@ -60,6 +62,15 @@ function uniqueBySlug(
   return selected
 }
 
+function slugSet(items: PublicCatalogueItem[]): Set<string> {
+  return new Set(items.map((item) => item.slug))
+}
+
+function hasRealDiscount(item: PublicCatalogueItem): boolean {
+  return (item.discountAmount ?? 0) > 0 && item.listPrice != null && item.listPrice > item.price
+}
+
+/** Newest published products. Catalogue order is created_at descending. */
 export function selectNewArrivals(
   products: PublicCatalogueItem[],
   limit: number = NEW_ARRIVALS_LIMIT
@@ -88,15 +99,98 @@ export function selectDealProducts(
   limit: number = DEALS_LIMIT
 ): PublicCatalogueItem[] {
   return products
-    .filter(
-      (item) =>
-        (item.discountAmount ?? 0) > 0 &&
-        item.listPrice != null &&
-        item.listPrice > item.price
-    )
+    .filter((item) => hasRealDiscount(item))
     .slice(0, Math.max(0, limit))
 }
 
+/**
+ * Latest Products: newest catalogue items, excluding Hero when other products exist.
+ * A one-product shop may still show that product as a buyable card (Hero has no Add to Cart).
+ * Do not refill the section with Hero products just to look fuller.
+ */
+export function selectLatestProducts(
+  products: PublicCatalogueItem[],
+  heroProducts: PublicCatalogueItem[],
+  limit: number = LATEST_LIMIT
+): PublicCatalogueItem[] {
+  const heroSlugs = slugSet(heroProducts)
+  const rest = uniqueBySlug(
+    products.filter((item) => !heroSlugs.has(item.slug)),
+    Math.max(0, limit),
+    new Set()
+  )
+  if (rest.length > 0) return rest
+  if (products.length === 1) return uniqueBySlug(products, 1, new Set())
+  return []
+}
+
+function recencyBoost(catalogueIndex: number): number {
+  if (catalogueIndex < 0) return 0
+  if (catalogueIndex < 4) return 3
+  if (catalogueIndex < 8) return 2
+  if (catalogueIndex < 16) return 1
+  return 0
+}
+
+/**
+ * Derived Trends score — not purchase or view analytics.
+ * Uses only public catalogue fields: in-stock, image, real discount, recency.
+ */
+export function trendScore(item: PublicCatalogueItem, catalogueIndex: number): number {
+  let score = 0
+  if (item.inStock) score += 4
+  if (item.image) score += 4
+  if (hasRealDiscount(item)) score += 3
+  score += recencyBoost(catalogueIndex)
+  return score
+}
+
+/**
+ * Trends: discovery picks that are not already in Hero or Latest Products.
+ * Hide when no remaining in-stock photographed products exist.
+ * Derived from public catalogue fields only, not sales or view counts.
+ */
+export function selectTrendProducts(
+  products: PublicCatalogueItem[],
+  excluded: PublicCatalogueItem[],
+  limit: number = TRENDS_LIMIT
+): PublicCatalogueItem[] {
+  const skip = slugSet(excluded)
+  const indexBySlug = new Map(products.map((item, index) => [item.slug, index]))
+  const pool = products.filter(
+    (item) => !skip.has(item.slug) && item.inStock && Boolean(item.image)
+  )
+  if (pool.length === 0) return []
+
+  const ranked = [...pool].sort((a, b) => {
+    const scoreA = trendScore(a, indexBySlug.get(a.slug) ?? 999)
+    const scoreB = trendScore(b, indexBySlug.get(b.slug) ?? 999)
+    if (scoreB !== scoreA) return scoreB - scoreA
+    return (indexBySlug.get(a.slug) ?? 0) - (indexBySlug.get(b.slug) ?? 0)
+  })
+
+  const selected: PublicCatalogueItem[] = []
+  const seen = new Set<string>()
+  const seenCats = new Set<string>()
+
+  const take = (requireNewCategory: boolean) => {
+    for (const item of ranked) {
+      if (selected.length >= limit) break
+      if (seen.has(item.slug)) continue
+      const category = item.categorySlug?.trim() ?? ''
+      if (requireNewCategory && category && seenCats.has(category)) continue
+      seen.add(item.slug)
+      if (category) seenCats.add(category)
+      selected.push(item)
+    }
+  }
+
+  take(true)
+  take(false)
+  return selected
+}
+
+/** Kept for derived merchandising without a featured database column. */
 export function selectFeaturedProducts(
   products: PublicCatalogueItem[],
   newArrivals: PublicCatalogueItem[],
@@ -161,11 +255,12 @@ export function buildStorefrontMerchandising(
   products: PublicCatalogueItem[],
   categories: PublicCatalogueCategory[]
 ): StorefrontMerchandising {
-  const newArrivals = selectNewArrivals(products)
+  const heroProducts = selectHeroProducts(products)
+  const latestProducts = selectLatestProducts(products, heroProducts)
   return {
-    heroProducts: selectHeroProducts(products),
-    newArrivals,
-    featured: selectFeaturedProducts(products, newArrivals),
+    heroProducts,
+    latestProducts,
+    trends: selectTrendProducts(products, [...heroProducts, ...latestProducts]),
     deals: selectDealProducts(products),
     promos: selectPromoCollections(products, categories),
     categoryTiles: selectCategoryTiles(products, categories),

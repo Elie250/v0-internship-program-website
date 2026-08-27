@@ -35,10 +35,9 @@ async function StorefrontCatalogueSection({
         searchQuery={search}
       />
       {merch ? (
-        <>
+        <StorefrontMerchandising merch={merch}>
           <StorefrontHome slides={merch.heroProducts} />
-          <StorefrontMerchandising merch={merch} />
-        </>
+        </StorefrontMerchandising>
       ) : null}
       <StorefrontCatalogue
         products={result.products}
