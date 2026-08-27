@@ -69,6 +69,22 @@ test('shell and login mount ShopI18nProvider and language selector', () => {
   assert.match(read('components/shop-portal/shop-login-screen.tsx'), /ShopLanguageSelector/)
 })
 
+test('storefront layout mounts ShopI18nProvider without staff auth', () => {
+  const layout = read('app/storefront/layout.tsx')
+  assert.match(layout, /ShopI18nProvider/)
+  assert.match(layout, /isCurrentRequestShopHost/)
+  assert.doesNotMatch(layout, /requireShopPortalSession|requireShopPortalAdmin|requireShopPortalAccess/)
+})
+
+test('approved storefront Kinyarwanda vocabulary is present', () => {
+  const rw = read('lib/shop/i18n/messages/rw.ts')
+  assert.match(rw, /'storefront\.nav\.cart': 'Ibyatoranijwe'/)
+  assert.match(rw, /'storefront\.shoppingFrom': 'Ugurira kuri'/)
+  assert.match(rw, /'storefront\.nav\.track': 'Kurikirana icyatumijwe'/)
+  assert.match(rw, /'storefront\.checkout\.title': 'Soza igurisha'/)
+  assert.match(rw, /'brand\.siteLabel': 'Nyanza Shop'/)
+})
+
 test('nav items expose labelKey for localization', () => {
   const src = read('lib/shop/portal-nav.ts')
   assert.match(src, /labelKey: 'nav\.dashboard'/)

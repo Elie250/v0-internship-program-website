@@ -395,6 +395,40 @@ export const shopMessagesEn = {
   'settings.prefs.body':
     'User management, payment configuration, and EBM settings are not available yet.',
   'settings.prefs.phaseHint': 'Coming later',
+
+  // Public storefront
+  'storefront.nav.products': 'Products',
+  'storefront.nav.cart': 'Cart',
+  'storefront.nav.track': 'Track Order',
+  'storefront.staff': 'Staff',
+  'storefront.shoppingFrom': 'Shopping from',
+  'storefront.a11y.nav': 'Shop navigation',
+  'storefront.a11y.cart': 'Cart',
+  'storefront.hero.eyebrow': 'Electrical and electronic supplies',
+  'storefront.hero.title': 'Components and tools for workshops, sites, and labs',
+  'storefront.hero.body':
+    'Energy & Logics supplies industrial and electronic parts from Nyanza Shop.',
+  'storefront.hero.browse': 'Browse products',
+  'storefront.catalogue.title': 'Products',
+  'storefront.catalogue.hint':
+    'Electrical, electronic, and industrial supplies for practical engineering work.',
+  'storefront.catalogue.soon': 'The product list will appear here shortly.',
+  'storefront.cart.title': 'Cart',
+  'storefront.cart.empty': 'Your cart is empty.',
+  'storefront.cart.continue': 'Continue shopping',
+  'storefront.cart.checkoutSoon': 'Checkout will be available shortly.',
+  'storefront.checkout.title': 'Checkout',
+  'storefront.checkout.soon':
+    'Checkout will be available shortly. You can keep browsing products in the meantime.',
+  'storefront.track.title': 'Track Order',
+  'storefront.track.soon': 'Order tracking will be available shortly.',
+  'storefront.product.title': 'Product',
+  'storefront.product.soon': 'Product details will be available shortly.',
+  'storefront.order.title': 'Order',
+  'storefront.order.soon': 'Order confirmation will be available shortly.',
+  'storefront.comingSoon': 'Coming shortly',
+  'storefront.footer.tagline': 'Electrical and electronic supplies in Rwanda.',
+  'storefront.footer.manage': 'Staff sign in',
 } as const
 
 export type ShopMessageKey = keyof typeof shopMessagesEn

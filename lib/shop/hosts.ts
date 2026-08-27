@@ -1,7 +1,8 @@
 /**
- * Hosts that serve the Energy & Logics Shop Management Platform.
- * shop.energyandlogics.com is the staff portal (POS, inventory, sales).
- * The public customer storefront remains www.energyandlogics.com/shop.
+ * Hosts that serve the Energy & Logics Shop.
+ * shop.energyandlogics.com is the public customer storefront; staff live under /manage
+ * (and short aliases such as /pos). The Academy catalog at www.energyandlogics.com/shop
+ * remains on the main site.
  */
 import { getMainSiteOrigin, normalizeHostname } from '@/lib/recruitment/hosts'
 
@@ -18,7 +19,7 @@ export function getShopHosts(): string[] {
   return [...new Set([...DEFAULT_SHOP_HOSTS, ...fromEnv])]
 }
 
-/** True when the request is on the dedicated Shop management subdomain. */
+/** True when the request is on the dedicated Shop subdomain. */
 export function isShopHost(hostHeader: string | null): boolean {
   const host = normalizeHostname(hostHeader)
   if (!host) return false
@@ -28,7 +29,7 @@ export function isShopHost(hostHeader: string | null): boolean {
   return false
 }
 
-/** Public origin for the Shop management portal (emails, redirects). */
+/** Public origin for the Shop host (storefront, emails, redirects). */
 export function getShopPublicOrigin(): string {
   const url =
     process.env.SHOP_PUBLIC_BASE_URL?.trim() ||
@@ -40,7 +41,7 @@ export function getShopPublicOrigin(): string {
 /**
  * Path prefixes that belong to the Shop management portal on the shop host.
  * These must NOT be redirected to the main Academy site when on shop.*.
- * Public customer catalog `/shop` is intentionally excluded.
+ * Academy catalog `/shop` and customer storefront routes are excluded.
  */
 export const SHOP_PORTAL_PATH_PREFIXES = [
   '/manage',
@@ -65,9 +66,50 @@ export function isShopStaffApiPath(pathname: string): boolean {
   return pathname === '/api/staff' || pathname.startsWith('/api/staff/')
 }
 
-/** Public customer storefront paths — stay on the main site, not the shop host. */
+/**
+ * Academy catalog on the main site. On the shop host these still redirect to www.
+ * Do not confuse with shop-host customer routes (`/`, `/cart`, `/product`, …).
+ */
 export function isPublicStorefrontPath(pathname: string): boolean {
   return pathname === '/shop' || pathname.startsWith('/shop/')
+}
+
+/**
+ * Customer storefront paths on the shop host (public, no staff session).
+ * `/` is handled separately so Talent `/` is not treated as a shop route.
+ * `/products` (staff) is not included — only singular `/product`.
+ */
+export const SHOP_HOST_STOREFRONT_PATH_PREFIXES = [
+  '/cart',
+  '/checkout',
+  '/track',
+  '/product',
+  '/order',
+  '/storefront',
+] as const
+
+export function isShopHostStorefrontPath(pathname: string): boolean {
+  return SHOP_HOST_STOREFRONT_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
+const STOREFRONT_PUBLIC_MODULES = ['cart', 'checkout', 'track', 'product', 'order'] as const
+
+/**
+ * Map public shop-host URLs to internal `/storefront/*` App Router pages.
+ * Returns null when the path is already internal or is not a customer route.
+ */
+export function rewriteShopStorefrontPath(pathname: string): string | null {
+  if (pathname === '/') return '/storefront'
+  if (pathname === '/storefront' || pathname.startsWith('/storefront/')) return null
+  for (const name of STOREFRONT_PUBLIC_MODULES) {
+    if (pathname === `/${name}`) return `/storefront/${name}`
+    if (pathname.startsWith(`/${name}/`)) {
+      return `/storefront/${name}${pathname.slice(name.length + 1)}`
+    }
+  }
+  return null
 }
 
 export { getMainSiteOrigin, normalizeHostname }

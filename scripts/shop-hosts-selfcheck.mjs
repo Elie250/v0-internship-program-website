@@ -62,6 +62,35 @@ function isPublicStorefrontPath(pathname) {
   return pathname === '/shop' || pathname.startsWith('/shop/')
 }
 
+const SHOP_HOST_STOREFRONT_PATH_PREFIXES = [
+  '/cart',
+  '/checkout',
+  '/track',
+  '/product',
+  '/order',
+  '/storefront',
+]
+
+function isShopHostStorefrontPath(pathname) {
+  return SHOP_HOST_STOREFRONT_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+}
+
+const STOREFRONT_PUBLIC_MODULES = ['cart', 'checkout', 'track', 'product', 'order']
+
+function rewriteShopStorefrontPath(pathname) {
+  if (pathname === '/') return '/storefront'
+  if (pathname === '/storefront' || pathname.startsWith('/storefront/')) return null
+  for (const name of STOREFRONT_PUBLIC_MODULES) {
+    if (pathname === `/${name}`) return `/storefront/${name}`
+    if (pathname.startsWith(`/${name}/`)) {
+      return `/storefront/${name}${pathname.slice(name.length + 1)}`
+    }
+  }
+  return null
+}
+
 test('shop.energyandlogics.com is a Shop host', () => {
   assert.equal(isShopHost('shop.energyandlogics.com'), true)
   assert.equal(isShopHost('shop.energyandlogics.com:443'), true)
@@ -91,6 +120,39 @@ test('public /shop storefront path is not a shop portal path', () => {
   assert.equal(isShopPortalPath('/manage'), true)
   assert.equal(isShopPortalPath('/pos'), true)
   assert.equal(isShopPortalPath('/dashboard'), true)
+})
+
+test('shop-host customer routes are public storefront, not staff portal', () => {
+  assert.equal(isShopHostStorefrontPath('/cart'), true)
+  assert.equal(isShopHostStorefrontPath('/checkout'), true)
+  assert.equal(isShopHostStorefrontPath('/track'), true)
+  assert.equal(isShopHostStorefrontPath('/product/relay'), true)
+  assert.equal(isShopHostStorefrontPath('/order/EL-NYZ-20260827-0001'), true)
+  assert.equal(isShopHostStorefrontPath('/storefront'), true)
+  assert.equal(isShopPortalPath('/cart'), false)
+  assert.equal(isShopPortalPath('/product'), false)
+  assert.equal(isShopPortalPath('/product/relay'), false)
+})
+
+test('staff /products remains a portal path and is not /product', () => {
+  assert.equal(isShopPortalPath('/products'), true)
+  assert.equal(isShopPortalPath('/products/abc'), true)
+  assert.equal(isShopHostStorefrontPath('/products'), false)
+  assert.equal(isShopHostStorefrontPath('/products/abc'), false)
+  assert.equal(isShopHostStorefrontPath('/product'), true)
+})
+
+test('shop-host public URLs rewrite to internal /storefront pages', () => {
+  assert.equal(rewriteShopStorefrontPath('/'), '/storefront')
+  assert.equal(rewriteShopStorefrontPath('/cart'), '/storefront/cart')
+  assert.equal(rewriteShopStorefrontPath('/checkout'), '/storefront/checkout')
+  assert.equal(rewriteShopStorefrontPath('/track'), '/storefront/track')
+  assert.equal(rewriteShopStorefrontPath('/product/relay'), '/storefront/product/relay')
+  assert.equal(rewriteShopStorefrontPath('/order/EL-NYZ-20260827-0001'), '/storefront/order/EL-NYZ-20260827-0001')
+  assert.equal(rewriteShopStorefrontPath('/storefront'), null)
+  assert.equal(rewriteShopStorefrontPath('/products'), null)
+  assert.equal(rewriteShopStorefrontPath('/login'), null)
+  assert.equal(rewriteShopStorefrontPath('/pos'), null)
 })
 
 test('SHOP_HOSTS env can add extra hosts', () => {

@@ -398,4 +398,38 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'settings.prefs.body':
     'Gucunga abakozi, ubwishyu, na EBM ntibiri muri iki gice.',
   'settings.prefs.phaseHint': 'Bizaza nyuma',
+
+  // Public storefront
+  'storefront.nav.products': 'Ibicuruzwa',
+  'storefront.nav.cart': 'Ibyatoranijwe',
+  'storefront.nav.track': 'Kurikirana icyatumijwe',
+  'storefront.staff': 'Abakozi',
+  'storefront.shoppingFrom': 'Ugurira kuri',
+  'storefront.a11y.nav': 'Igenamigambi ry’iduka',
+  'storefront.a11y.cart': 'Ibyatoranijwe',
+  'storefront.hero.eyebrow': 'Ibicuruzwa by’amashanyarazi n’ibya elektronike',
+  'storefront.hero.title': 'Ibikoresho n’ibicuruzwa by’akazi',
+  'storefront.hero.body':
+    'Energy & Logics itanga ibicuruzwa by’inganda n’ibya elektronike kuri Nyanza Shop.',
+  'storefront.hero.browse': 'Reba ibicuruzwa',
+  'storefront.catalogue.title': 'Ibicuruzwa',
+  'storefront.catalogue.hint':
+    'Ibicuruzwa by’amashanyarazi, bya elektronike, n’iby’inganda by’akazi k’ubuhanga.',
+  'storefront.catalogue.soon': 'Urutonde rw’ibicuruzwa ruzagaragara hano vuba.',
+  'storefront.cart.title': 'Ibyatoranijwe',
+  'storefront.cart.empty': 'Nta bicuruzwa byatoranijwe.',
+  'storefront.cart.continue': 'Komeza kugura',
+  'storefront.cart.checkoutSoon': 'Soza igurisha bizaboneka vuba.',
+  'storefront.checkout.title': 'Soza igurisha',
+  'storefront.checkout.soon':
+    'Soza igurisha bizaboneka vuba. Urashobora gukomeza kureba ibicuruzwa.',
+  'storefront.track.title': 'Kurikirana icyatumijwe',
+  'storefront.track.soon': 'Gukurikirana icyatumijwe bizaboneka vuba.',
+  'storefront.product.title': 'Igicuruzwa',
+  'storefront.product.soon': 'Ibisobanuro by’igicuruzwa bizaboneka vuba.',
+  'storefront.order.title': 'Icyatumijwe',
+  'storefront.order.soon': 'Kwemeza icyatumijwe bizaboneka vuba.',
+  'storefront.comingSoon': 'Bizaza vuba',
+  'storefront.footer.tagline': 'Ibicuruzwa by’amashanyarazi n’ibya elektronike mu Rwanda.',
+  'storefront.footer.manage': 'Abakozi binjire',
 }

@@ -82,10 +82,14 @@ Dictionaries live in `lib/shop/i18n/messages/`. Add French later as a new locale
 | MoMo | MoMo | Payment | Do not translate |
 | EBM | EBM | Settings | Do not translate |
 | RWF | RWF | Currency suffix | Do not translate amounts |
+| Cart | Ibyatoranijwe | Customer storefront navigation | Selected items; not POS “Current Sale” |
+| Track Order | Kurikirana icyatumijwe | Customer storefront | Follow a purchase |
+| Shopping from | Ugurira kuri | Shop context | Followed by shop display name (Nyanza Shop) |
+| Checkout | Soza igurisha | Customer storefront | Complete the purchase; not POS Confirm Cash Sale |
 
 ## User-facing language principles
 
-Shop UI speaks to shop staff in natural, professional business language. Describe the business action or result. Do not explain how the software works internally.
+Shop UI speaks to shop staff and public customers in natural, professional business language. Describe the business action or result. Do not explain how the software works internally.
 
 - Avoid internal implementation details.
 - Do not expose APIs, servers, databases, or endpoints to normal users.
@@ -108,6 +112,13 @@ Approved stock-on-confirm copy:
 
 - English: “Stock is updated when the sale is confirmed.”
 - Kinyarwanda: “Ububiko buragabanuka igurisha rimaze kwemezwa.”
+
+Approved public storefront terms:
+
+- Cart (customer): Ibyatoranijwe. Do not reuse POS “Current Sale”.
+- Shopping from: “Ugurira kuri” + shop display name (Nyanza Shop).
+- Checkout: Soza igurisha.
+- Track Order: Kurikirana icyatumijwe.
 
 ## Usage rules
 
