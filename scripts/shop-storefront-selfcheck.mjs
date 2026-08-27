@@ -34,10 +34,14 @@ const STOREFRONT_FILES = [
   'components/storefront/storefront-product-detail.tsx',
   'components/storefront/storefront-add-to-cart.tsx',
   'components/storefront/storefront-checkout.tsx',
+  'components/storefront/storefront-track-form.tsx',
+  'components/storefront/storefront-order-card.tsx',
   'lib/shop/storefront-shops.ts',
   'lib/shop/storefront-locale.ts',
   'lib/shop/public-catalogue.ts',
   'lib/shop/public-checkout.ts',
+  'lib/shop/public-order.ts',
+  'lib/shop/public-order-view.ts',
 ]
 
 const FORBIDDEN_IN_STOREFRONT =
@@ -123,8 +127,11 @@ test('storefront UI never exposes staff-only or implementation details', () => {
     'components/storefront/storefront-product-detail.tsx',
     'components/storefront/storefront-add-to-cart.tsx',
     'components/storefront/storefront-checkout.tsx',
+    'components/storefront/storefront-track-form.tsx',
+    'components/storefront/storefront-order-card.tsx',
     'lib/shop/storefront-shops.ts',
     'lib/shop/public-catalogue.ts',
+    'lib/shop/public-order-view.ts',
   ]
   for (const rel of files) {
     const src = read(rel)
@@ -364,7 +371,7 @@ test('successful confirmation uses required English and Kinyarwanda wording', ()
   assert.match(ui, /storefront\.checkout\.thankYou/)
   assert.match(ui, /storefront\.checkout\.keepNumber/)
   assert.match(ui, /storefront\.nav\.track/)
-  assert.match(ui, /href="\/track"/)
+  assert.match(ui, /\/order\/\$\{encodeURIComponent\(orderNumber\)\}/)
   const en = read('lib/shop/i18n/messages/en.ts')
   const rw = read('lib/shop/i18n/messages/rw.ts')
   assert.match(en, /'storefront\.checkout\.successTitle': 'Order placed successfully'/)
@@ -375,10 +382,123 @@ test('successful confirmation uses required English and Kinyarwanda wording', ()
   assert.match(rw, /'storefront\.checkout\.keepNumber': 'Ukoreshe iyi nimero ukurikirana ibyo watumije\.'/)
 })
 
+test('public /track and /order/[ref] reuse lookupOrder by order_number', () => {
+  const track = read('app/storefront/track/page.tsx')
+  const orderPage = read('app/storefront/order/[ref]/page.tsx')
+  const lookup = read('lib/shop/public-order.ts')
+  const view = read('lib/shop/public-order-view.ts')
+  assert.match(track, /getPublicOrder/)
+  assert.match(track, /StorefrontTrackForm/)
+  assert.doesNotMatch(track, /StorefrontComingSoon/)
+  assert.match(orderPage, /getPublicOrder/)
+  assert.match(orderPage, /StorefrontOrderCard/)
+  assert.doesNotMatch(orderPage, /StorefrontComingSoon/)
+  assert.match(lookup, /lookupOrder/)
+  assert.match(lookup, /toPublicOrderView/)
+  assert.match(read('lib/shop/order-lookup.ts'), /\.eq\('order_number', orderNumber\)/)
+  assert.match(read('lib/shop/order-lookup.ts'), /export function normalizeOrderCode/)
+  assert.doesNotMatch(lookup, /createCommerceSale/)
+  assert.doesNotMatch(view, /supabaseAdmin|SERVICE_ROLE/)
+})
+
+test('public tracking accepts unified and historical order numbers, not UUIDs', () => {
+  function normalizeTrackCode(raw) {
+    try {
+      return decodeURIComponent(raw).trim().toUpperCase()
+    } catch {
+      return raw.trim().toUpperCase()
+    }
+  }
+  function isUuidLike(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      String(value).trim()
+    )
+  }
+  function isPublicTrackableOrderNumber(raw) {
+    const code = normalizeTrackCode(raw)
+    if (!code) return false
+    if (isUuidLike(code)) return false
+    return true
+  }
+  assert.equal(isPublicTrackableOrderNumber('EL-NYZ-20260827-0001'), true)
+  assert.equal(isPublicTrackableOrderNumber('el-nyz-20260827-0001'), true)
+  assert.equal(isPublicTrackableOrderNumber('POS-M5K8X2-AB3F'), true)
+  assert.equal(isPublicTrackableOrderNumber('EL-M5K8X2-XY9Z'), true)
+  assert.equal(isPublicTrackableOrderNumber(''), false)
+  assert.equal(isPublicTrackableOrderNumber('3fa85f64-5717-4562-b3fc-2c963f66afa6'), false)
+  const view = read('lib/shop/public-order-view.ts')
+  assert.match(view, /isUuidLike\(code\)/)
+  assert.match(read('lib/shop/public-order.ts'), /isPublicTrackableOrderNumber/)
+})
+
+test('unknown order numbers produce a safe not-found and omit internals', () => {
+  const track = read('app/storefront/track/page.tsx')
+  const missing = read('components/storefront/storefront-order-card.tsx')
+  assert.match(track, /StorefrontTrackNotFound/)
+  assert.match(missing, /storefront\.track\.notFound/)
+  assert.match(missing, /href="\/track"/)
+  const view = read('lib/shop/public-order-view.ts')
+  const typeStart = view.indexOf('export type PublicOrderView')
+  const typeEnd = view.indexOf('export type PublicOrderLookupSource')
+  const typeBlock = view.slice(typeStart, typeEnd)
+  assert.match(typeBlock, /orderNumber:/)
+  assert.match(typeBlock, /shopName:/)
+  assert.doesNotMatch(typeBlock, /\nid:/)
+  assert.doesNotMatch(typeBlock, /orderId|productId|costPrice|unitCost|customerPhone|createdBy|stockState/)
+  assert.doesNotMatch(view, /cost_price|unit_cost|receipt_url/)
+  const lookup = read('lib/shop/public-order.ts')
+  assert.doesNotMatch(lookup, /customerName|customerPhone|order\.id|product_id/)
+  const card = read('components/storefront/storefront-order-card.tsx')
+  assert.doesNotMatch(card, /pending_review|gateway_pending|stock_state|unitCost/)
+  assert.doesNotMatch(card, /createCommerceSale|supabaseAdmin/)
+})
+
+test('internal payment codes map to customer-facing labels', () => {
+  function mapPublicOrderStatus(orderStatus, paymentStatus) {
+    const order = String(orderStatus || '').trim().toLowerCase()
+    const pay = String(paymentStatus || '').trim().toLowerCase()
+    if (order === 'cancelled' || order === 'canceled') return 'cancelled'
+    if (order === 'completed') return 'completed'
+    if (order === 'ready' || order === 'ready_for_pickup') return 'ready'
+    if (order === 'preparing' || order === 'processing') return 'preparing'
+    if (pay === 'paid' || pay === 'approved') return 'payment_confirmed'
+    if (pay === 'pending_review' || pay === 'pending' || pay === 'gateway_pending') {
+      return 'payment_awaiting'
+    }
+    if (order === 'confirmed') return 'payment_confirmed'
+    return 'received'
+  }
+  function mapPublicPaymentStatus(paymentStatus) {
+    const pay = String(paymentStatus || '').trim().toLowerCase()
+    if (pay === 'paid' || pay === 'approved') return 'confirmed'
+    if (pay === 'rejected' || pay === 'failed' || pay === 'unpaid') return 'not_completed'
+    return 'awaiting'
+  }
+  assert.equal(mapPublicOrderStatus('pending', 'pending_review'), 'payment_awaiting')
+  assert.equal(mapPublicOrderStatus('confirmed', 'paid'), 'payment_confirmed')
+  assert.equal(mapPublicOrderStatus('cancelled', 'pending_review'), 'cancelled')
+  assert.equal(mapPublicPaymentStatus('pending_review'), 'awaiting')
+  assert.equal(mapPublicPaymentStatus('paid'), 'confirmed')
+  assert.equal(mapPublicPaymentStatus('rejected'), 'not_completed')
+  const card = read('components/storefront/storefront-order-card.tsx')
+  assert.match(card, /storefront\.status\.paymentAwaiting/)
+  assert.match(card, /storefront\.payment\.momo/)
+  assert.doesNotMatch(card, /pending_review/)
+})
+
+test('existing receipt lookup route remains on lookupOrder', () => {
+  const page = read('app/receipt/[code]/page.tsx')
+  assert.match(page, /lookupOrder/)
+  assert.match(page, /Order found/)
+  assert.doesNotMatch(page, /getPublicOrder/)
+  assert.match(read('lib/shop/order-lookup.ts'), /getOrderReceiptUrl/)
+})
+
 test('no schema migration was introduced for the public catalogue', () => {
   const src = read('lib/shop/public-catalogue.ts')
   assert.doesNotMatch(src, /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-checkout.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
+  assert.doesNotMatch(read('lib/shop/public-order.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   const sqlFiles = readdirSync(join(root, 'scripts')).filter((name) => name.endsWith('.sql'))
   assert.equal(
     sqlFiles.some((name) => /90-|public-catalogue|product_location_stock|products\.slug/i.test(name)),

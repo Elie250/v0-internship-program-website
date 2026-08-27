@@ -199,6 +199,17 @@ test('public shop orders resolve NYANZA server-side and omit order UUID', () => 
   assert.doesNotMatch(src, /cost_price|costPrice|unitCost/)
 })
 
+test('public order tracking looks up by order_number and omits UUIDs', () => {
+  const lookup = readFileSync(join(root, 'lib/shop/order-lookup.ts'), 'utf8')
+  assert.match(lookup, /\.eq\('order_number', orderNumber\)/)
+  assert.doesNotMatch(lookup, /cost_price|unit_cost|created_by/)
+  const pub = readFileSync(join(root, 'lib/shop/public-order.ts'), 'utf8')
+  assert.match(pub, /lookupOrder/)
+  assert.match(pub, /toPublicOrderView/)
+  const view = readFileSync(join(root, 'lib/shop/public-order-view.ts'), 'utf8')
+  assert.doesNotMatch(view, /orderId|costPrice|unitCost|stockState/)
+})
+
 test('location resolver uses SHOP_LOCATION_CODES.NYANZA not a hard-coded UUID', () => {
   const src = readFileSync(join(root, 'lib/shop/resolve-pos-location.ts'), 'utf8')
   assert.match(src, /SHOP_LOCATION_CODES\.NYANZA/)

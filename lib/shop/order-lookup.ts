@@ -29,7 +29,11 @@ export type OrderLookupResult =
     }
 
 export function normalizeOrderCode(raw: string): string {
-  return decodeURIComponent(raw).trim().toUpperCase()
+  try {
+    return decodeURIComponent(raw).trim().toUpperCase()
+  } catch {
+    return raw.trim().toUpperCase()
+  }
 }
 
 export function getOrderReceiptUrl(orderNumber: string): string {

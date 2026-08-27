@@ -151,7 +151,9 @@ export function StorefrontCheckout() {
             asChild
             className="flex-1 bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
           >
-            <Link href="/track">{t('storefront.nav.track')}</Link>
+            <Link href={`/order/${encodeURIComponent(orderNumber)}?placed=1`}>
+              {t('storefront.nav.track')}
+            </Link>
           </Button>
           <Button asChild variant="outline" className="flex-1 border-slate-300">
             <Link href="/">{t('storefront.cart.continue')}</Link>
