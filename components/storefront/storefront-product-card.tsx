@@ -17,33 +17,36 @@ export function StorefrontProductCard({ product }: { product: PublicCatalogueIte
   const href = `/product/${encodeURIComponent(product.slug)}`
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <Link href={href} className="relative block aspect-[4/3] bg-slate-100">
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <Link href={href} className="relative block aspect-square bg-slate-50">
         {product.image ? (
           <Image src={product.image} alt={product.name} fill className="object-cover" unoptimized />
         ) : (
           <div className="flex h-full items-center justify-center text-slate-400">
-            <Package className="h-10 w-10" aria-hidden />
+            <Package className="h-8 w-8" aria-hidden />
           </div>
         )}
       </Link>
-      <div className="flex flex-1 flex-col p-4">
-        {product.categoryName ? (
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            {product.categoryName}
-          </p>
-        ) : null}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <p
+          className="min-h-[1rem] text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+          aria-hidden={!product.categoryName}
+        >
+          {product.categoryName || '\u00a0'}
+        </p>
         <Link href={href} className="mt-1">
-          <h3 className="text-base font-semibold leading-snug text-slate-900">{product.name}</h3>
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-slate-900">
+            {product.name}
+          </h3>
         </Link>
-        <p className="mt-3 text-lg font-semibold text-[var(--brand-navy,#1e3a5f)]">
+        <p className="mt-2 text-base font-semibold text-[var(--brand-navy,#1e3a5f)]">
           {formatShopRwf(product.price)}
         </p>
-        <div className="mt-2">
+        <div className="mt-1">
           <StorefrontAvailability value={product.availability} />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button asChild size="sm" variant="outline" className="border-slate-300">
+        <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+          <Button asChild size="sm" variant="outline" className="h-8 border-slate-300">
             <Link href={href}>{t('action.details')}</Link>
           </Button>
           <StorefrontAddToCart product={product} className="h-8 px-3 text-sm" />

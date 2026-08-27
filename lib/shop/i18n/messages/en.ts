@@ -410,6 +410,18 @@ export const shopMessagesEn = {
   'storefront.hero.body':
     'Phones, audio, chargers, batteries and everyday electronics at Nyanza Shop.',
   'storefront.hero.browse': 'Browse products',
+  'storefront.hero.viewProduct': 'View product',
+  'storefront.hero.nowAt': 'Available now at Nyanza Shop.',
+  'storefront.arrivals.title': 'New Arrivals',
+  'storefront.arrivals.subtitle': 'Recently added to Nyanza Shop.',
+  'storefront.featured.title': 'Featured products',
+  'storefront.featured.subtitle': 'Highlighted from products we sell at Nyanza Shop.',
+  'storefront.promo.sound.title': 'Premium Sound',
+  'storefront.promo.sound.body': 'Audio products available in the shop.',
+  'storefront.promo.power.title': 'Stay Powered',
+  'storefront.promo.power.body': 'Chargers, batteries and power accessories.',
+  'storefront.promo.shop': 'Shop this range',
+  'storefront.categories.title': 'Shop by category',
   'storefront.catalogue.title': 'Products',
   'storefront.catalogue.hint':
     'Phones, audio, chargers, batteries and electronics accessories.',

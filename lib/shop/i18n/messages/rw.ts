@@ -413,6 +413,18 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'storefront.hero.body':
     'Telefoni, amajwi, charger, amabateri n’ibindi bikoresho kuri Nyanza Shop.',
   'storefront.hero.browse': 'Reba ibicuruzwa',
+  'storefront.hero.viewProduct': 'Reba igicuruzwa',
+  'storefront.hero.nowAt': 'Kirahari ubu kuri Nyanza Shop.',
+  'storefront.arrivals.title': 'Ibicuruzwa bishya',
+  'storefront.arrivals.subtitle': 'Byashyizwe ku rutonde rwa Nyanza Shop vuba aha.',
+  'storefront.featured.title': 'Ibicuruzwa by’ingenzi',
+  'storefront.featured.subtitle': 'Bivuye mu bicuruzwa tugurisha kuri Nyanza Shop.',
+  'storefront.promo.sound.title': 'Amajwi meza',
+  'storefront.promo.sound.body': 'Ibicuruzwa by’amajwi birahari mu iduka.',
+  'storefront.promo.power.title': 'Guma ufite amashanyarazi',
+  'storefront.promo.power.body': 'Charger, amabateri n’ibikoresho by’amashanyarazi.',
+  'storefront.promo.shop': 'Gura muri iyi tsinda',
+  'storefront.categories.title': 'Gura ukurikije icyiciro',
   'storefront.catalogue.title': 'Ibicuruzwa',
   'storefront.catalogue.hint':
     'Telefoni, amajwi, charger, amabateri n’ibikoresho bya elektronike.',

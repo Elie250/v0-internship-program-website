@@ -4,7 +4,9 @@ import {
   StorefrontCatalogue,
   StorefrontCatalogueLoading,
 } from '@/components/storefront/storefront-catalogue'
+import { StorefrontMerchandising } from '@/components/storefront/storefront-merchandising'
 import { loadPublicCatalogue } from '@/lib/shop/public-catalogue'
+import { buildStorefrontMerchandising } from '@/lib/shop/public-merchandising'
 
 function readParam(value: string | string[] | undefined): string | undefined {
   if (typeof value !== 'string') return undefined
@@ -21,15 +23,21 @@ async function StorefrontCatalogueSection({
   const categorySlug = readParam(params.category)
   const search = readParam(params.q)
   const result = await loadPublicCatalogue({ categorySlug, search })
+  const filtered = Boolean(categorySlug || search)
+  const merch = filtered ? null : buildStorefrontMerchandising(result.products, result.categories)
 
   return (
-    <StorefrontCatalogue
-      products={result.products}
-      categories={result.categories}
-      activeCategory={categorySlug}
-      searchQuery={search ?? ''}
-      error={result.error}
-    />
+    <>
+      <StorefrontHome hero={filtered ? null : merch?.hero ?? null} />
+      {merch ? <StorefrontMerchandising merch={merch} /> : null}
+      <StorefrontCatalogue
+        products={result.products}
+        categories={result.categories}
+        activeCategory={categorySlug}
+        searchQuery={search ?? ''}
+        error={result.error}
+      />
+    </>
   )
 }
 
@@ -39,11 +47,8 @@ export default function StorefrontHomePage({
   searchParams: Promise<{ category?: string; q?: string }>
 }) {
   return (
-    <>
-      <StorefrontHome />
-      <Suspense fallback={<StorefrontCatalogueLoading />}>
-        <StorefrontCatalogueSection searchParams={searchParams} />
-      </Suspense>
-    </>
+    <Suspense fallback={<StorefrontCatalogueLoading />}>
+      <StorefrontCatalogueSection searchParams={searchParams} />
+    </Suspense>
   )
 }

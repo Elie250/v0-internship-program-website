@@ -199,6 +199,21 @@ test('public shop orders resolve NYANZA server-side and omit order UUID', () => 
   assert.doesNotMatch(src, /cost_price|costPrice|unitCost/)
 })
 
+test('public merchandising reuses catalogue DTOs without cost, UUIDs, or schema flags', () => {
+  const src = readFileSync(join(root, 'lib/shop/public-merchandising.ts'), 'utf8')
+  assert.match(src, /PublicCatalogueItem/)
+  assert.match(src, /PublicCatalogueCategory/)
+  assert.doesNotMatch(src, /costPrice|cost_price|unitCost|unit_cost/)
+  assert.doesNotMatch(src, /is_featured|category_id|staff/)
+  assert.doesNotMatch(src, /supabaseAdmin|SERVICE_ROLE|createCommerceSale/)
+  const dto = readFileSync(join(root, 'lib/shop/public-catalogue.ts'), 'utf8')
+  const typeStart = dto.indexOf('export type PublicCatalogueItem')
+  const typeEnd = dto.indexOf('const UUID_RE')
+  const typeBlock = dto.slice(typeStart, typeEnd)
+  assert.doesNotMatch(typeBlock, /\nid:/)
+  assert.doesNotMatch(typeBlock, /costPrice|cost_price/)
+})
+
 test('public order tracking looks up by order_number and omits UUIDs', () => {
   const lookup = readFileSync(join(root, 'lib/shop/order-lookup.ts'), 'utf8')
   assert.match(lookup, /\.eq\('order_number', orderNumber\)/)

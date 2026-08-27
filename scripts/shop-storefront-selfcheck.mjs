@@ -36,12 +36,14 @@ const STOREFRONT_FILES = [
   'components/storefront/storefront-checkout.tsx',
   'components/storefront/storefront-track-form.tsx',
   'components/storefront/storefront-order-card.tsx',
+  'components/storefront/storefront-merchandising.tsx',
   'lib/shop/storefront-shops.ts',
   'lib/shop/storefront-locale.ts',
   'lib/shop/public-catalogue.ts',
   'lib/shop/public-checkout.ts',
   'lib/shop/public-order.ts',
   'lib/shop/public-order-view.ts',
+  'lib/shop/public-merchandising.ts',
 ]
 
 const FORBIDDEN_IN_STOREFRONT =
@@ -129,9 +131,11 @@ test('storefront UI never exposes staff-only or implementation details', () => {
     'components/storefront/storefront-checkout.tsx',
     'components/storefront/storefront-track-form.tsx',
     'components/storefront/storefront-order-card.tsx',
+    'components/storefront/storefront-merchandising.tsx',
     'lib/shop/storefront-shops.ts',
     'lib/shop/public-catalogue.ts',
     'lib/shop/public-order-view.ts',
+    'lib/shop/public-merchandising.ts',
   ]
   for (const rel of files) {
     const src = read(rel)
@@ -499,11 +503,144 @@ test('no schema migration was introduced for the public catalogue', () => {
   assert.doesNotMatch(src, /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-checkout.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   assert.doesNotMatch(read('lib/shop/public-order.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
+  assert.doesNotMatch(read('lib/shop/public-merchandising.ts'), /ALTER TABLE|CREATE TABLE|product_location_stock/)
   const sqlFiles = readdirSync(join(root, 'scripts')).filter((name) => name.endsWith('.sql'))
   assert.equal(
-    sqlFiles.some((name) => /90-|public-catalogue|product_location_stock|products\.slug/i.test(name)),
+    sqlFiles.some((name) => /90-|public-catalogue|product_location_stock|products\.slug|products\.is_featured/i.test(name)),
     false
   )
+})
+
+function sampleItem(overrides = {}) {
+  return {
+    slug: 'item',
+    name: 'Item',
+    description: null,
+    image: '/img.jpg',
+    price: 1000,
+    categoryName: 'Audio',
+    categorySlug: 'audio',
+    sku: 'SKU',
+    availability: 'available',
+    inStock: true,
+    maxQuantity: 4,
+    specifications: {},
+    ...overrides,
+  }
+}
+
+test('new arrivals take the newest published catalogue products', () => {
+  const queries = read('lib/platform/queries.ts')
+  assert.match(queries, /export async function getPublishedProducts/)
+  assert.match(queries, /\.order\('created_at', \{ ascending: false \}\)/)
+  const merch = read('lib/shop/public-merchandising.ts')
+  assert.match(merch, /export function selectNewArrivals/)
+  assert.match(merch, /products\.slice\(0/)
+  assert.match(merch, /NEW_ARRIVALS_LIMIT = 8/)
+  assert.match(read('app/storefront/page.tsx'), /buildStorefrontMerchandising\(result\.products, result\.categories\)/)
+  assert.match(read('components/storefront/storefront-merchandising.tsx'), /storefront\.arrivals\.title/)
+  const products = [
+    sampleItem({ slug: 'newest' }),
+    sampleItem({ slug: 'older' }),
+    sampleItem({ slug: 'oldest' }),
+  ]
+  assert.deepEqual(
+    products.slice(0, 8).map((item) => item.slug),
+    ['newest', 'older', 'oldest']
+  )
+})
+
+test('featured products are derived without an is_featured column', () => {
+  const productType = read('types/platform.ts')
+  const typeStart = productType.indexOf('export interface Product')
+  const typeEnd = productType.indexOf('export interface SupportTicket')
+  const typeBlock = productType.slice(typeStart, typeEnd)
+  assert.doesNotMatch(typeBlock, /is_featured/)
+  assert.doesNotMatch(read('lib/platform/queries.ts').slice(
+    read('lib/platform/queries.ts').indexOf('const PUBLIC_PRODUCT_SELECT'),
+    read('lib/platform/queries.ts').indexOf('function mapPublishedProductRow')
+  ), /is_featured/)
+  const merch = read('lib/shop/public-merchandising.ts')
+  assert.match(merch, /export function selectFeaturedProducts/)
+  assert.doesNotMatch(merch, /is_featured/)
+  assert.match(read('components/storefront/storefront-merchandising.tsx'), /storefront\.featured\.title/)
+
+  const newest = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+  const rest = ['i', 'j', 'k', 'l'].filter((slug) => !newest.includes(slug))
+  assert.deepEqual(rest, ['i', 'j', 'k', 'l'])
+  const duplicateFeatured = ['a', 'b', 'c', 'd']
+  assert.equal(
+    duplicateFeatured.every((slug) => newest.includes(slug)),
+    true
+  )
+})
+
+test('promos and category tiles use database slugs, not hard-coded IDs', () => {
+  const merch = read('lib/shop/public-merchandising.ts')
+  assert.match(merch, /category\.slug/)
+  assert.match(merch, /SOUND_RE/)
+  assert.match(merch, /POWER_RE/)
+  assert.doesNotMatch(merch, /category_id|categoryId/)
+  assert.doesNotMatch(
+    merch,
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+  )
+  const ui = read('components/storefront/storefront-merchandising.tsx')
+  assert.match(ui, /\/\?category=\$\{encodeURIComponent\(category\.slug\)\}/)
+  assert.match(ui, /\/\?category=\$\{encodeURIComponent\(promo\.categorySlug\)\}/)
+  assert.match(ui, /storefront\.promo\.sound\.title/)
+  assert.match(ui, /storefront\.promo\.power\.title/)
+  assert.match(ui, /storefront\.categories\.title/)
+})
+
+test('homepage merchandising is hidden when search or category filters are active', () => {
+  const page = read('app/storefront/page.tsx')
+  assert.match(page, /const filtered = Boolean\(categorySlug \|\| search\)/)
+  assert.match(page, /filtered \? null : buildStorefrontMerchandising/)
+  assert.match(page, /\{merch \? <StorefrontMerchandising merch=\{merch\} \/> : null\}/)
+  assert.match(page, /StorefrontHome hero=\{filtered \? null : merch\?\.hero/)
+})
+
+test('product grid uses a denser 2/3/4 column layout with square images', () => {
+  const catalogue = read('components/storefront/storefront-catalogue.tsx')
+  const merchUi = read('components/storefront/storefront-merchandising.tsx')
+  const card = read('components/storefront/storefront-product-card.tsx')
+  assert.match(catalogue, /grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4/)
+  assert.match(merchUi, /grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4/)
+  assert.match(card, /aspect-square/)
+  assert.match(card, /mt-auto grid grid-cols-2/)
+  assert.match(card, /line-clamp-2/)
+})
+
+test('storefront merchandising stays product-focused and does not market company services', () => {
+  const files = [
+    'components/storefront/storefront-home.tsx',
+    'components/storefront/storefront-merchandising.tsx',
+    'components/storefront/storefront-catalogue.tsx',
+    'lib/shop/public-merchandising.ts',
+    'lib/shop/i18n/messages/en.ts',
+    'lib/shop/i18n/messages/rw.ts',
+  ]
+  const SERVICE_MARKETING =
+    /Engineering Hub|technical training|\bAcademy\b|internship program|getPublishedServices|engineering services/i
+  for (const rel of files) {
+    const src = read(rel)
+    assert.doesNotMatch(src, SERVICE_MARKETING, rel)
+    assert.doesNotMatch(src, /unsplash\.com|picsum\.photos|loremflickr/i, rel)
+  }
+  const merch = read('lib/shop/public-merchandising.ts')
+  assert.doesNotMatch(merch, /costPrice|cost_price|unitCost|staff/)
+  assert.match(merch, /PublicCatalogueItem/)
+})
+
+test('hero and merchandising reuse the public catalogue instead of inventing products', () => {
+  const home = read('components/storefront/storefront-home.tsx')
+  assert.match(home, /hero\.name/)
+  assert.match(home, /hero\.price/)
+  assert.match(home, /hero\.image/)
+  assert.match(home, /hero\.slug/)
+  assert.doesNotMatch(home, /createCommerceSale/)
+  assert.doesNotMatch(read('lib/shop/public-merchandising.ts'), /createCommerceSale/)
 })
 
 test('package.json exposes test:shop-storefront', () => {

@@ -89,6 +89,11 @@ test('approved storefront Kinyarwanda vocabulary is present', () => {
   assert.match(rw, /'storefront\.track\.heading': 'Kurikirana icyatumijwe'/)
   assert.match(rw, /'storefront\.status\.paymentAwaiting': 'Ubwishyu butegereje kwemezwa'/)
   assert.match(rw, /'brand\.siteLabel': 'Nyanza Shop'/)
+  assert.match(rw, /'storefront\.arrivals\.title': 'Ibicuruzwa bishya'/)
+  assert.match(rw, /'storefront\.featured\.title': 'Ibicuruzwa by’ingenzi'/)
+  assert.match(rw, /'storefront\.promo\.sound\.title': 'Amajwi meza'/)
+  assert.match(rw, /'storefront\.promo\.power\.title': 'Guma ufite amashanyarazi'/)
+  assert.match(rw, /'storefront\.categories\.title': 'Gura ukurikije icyiciro'/)
 })
 
 test('nav items expose labelKey for localization', () => {
