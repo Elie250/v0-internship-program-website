@@ -6,6 +6,7 @@ import { STAFF_API_PERMISSIONS } from '@/lib/shop/staff-api/permissions'
 import { canViewStaffProductCost } from '@/lib/shop/staff-api/cost-policy'
 import { getStaffProductById, updateStaffProductSellingUnit } from '@/lib/shop/staff-api/products'
 import { parseSellingUnitPatch } from '@/lib/shop/selling-unit'
+import { parseStorefrontFeaturedFlag } from '@/lib/shop/storefront-featured'
 
 export async function GET(
   request: Request,
@@ -47,10 +48,24 @@ export async function PATCH(
       return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
 
+    const featuredRaw = body.isFeatured ?? body.is_featured
+    let isFeatured: boolean | undefined
+    if (featuredRaw !== undefined) {
+      const featured = parseStorefrontFeaturedFlag(featuredRaw)
+      if (!featured.ok) {
+        return NextResponse.json({ error: featured.error }, { status: 400 })
+      }
+      isFeatured = featured.value
+    }
+
     const includeCost = canViewStaffProductCost(auth.ctx.user.permissions)
     const result = await updateStaffProductSellingUnit(
       id,
-      { sellingQuantity: parsed.sellingQuantity, sellingUnit: parsed.sellingUnit },
+      {
+        sellingQuantity: parsed.sellingQuantity,
+        sellingUnit: parsed.sellingUnit,
+        isFeatured,
+      },
       { includeCost }
     )
     if (!('body' in result)) {

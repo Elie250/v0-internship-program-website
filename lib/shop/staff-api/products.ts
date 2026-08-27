@@ -13,9 +13,15 @@ import {
 } from '@/lib/shop/selling-unit'
 
 const PRODUCT_SELECT =
-  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_NO_BARCODE =
+  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
+
+const PRODUCT_SELECT_NO_FEATURED =
+  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+
+const PRODUCT_SELECT_NO_FEATURED_NO_BARCODE =
   'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_LEGACY =
@@ -42,6 +48,7 @@ export type StaffProductDto = {
   sellingQuantity: number
   sellingUnit: string
   sellingUnitLabel: string
+  isFeatured: boolean
   createdAt: string | null
   updatedAt: string | null
 }
@@ -78,6 +85,7 @@ function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffPr
     sellingQuantity: selling.sellingQuantity,
     sellingUnit: selling.sellingUnit,
     sellingUnitLabel: formatSellingUnit(selling.sellingQuantity, selling.sellingUnit),
+    isFeatured: Boolean(row.is_featured),
     createdAt: row.created_at != null ? String(row.created_at) : null,
     updatedAt: row.updated_at != null ? String(row.updated_at) : null,
   }
@@ -128,6 +136,11 @@ export async function listStaffProducts(
   if (error) {
     if (/barcode/i.test(error.message)) {
       return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_NO_BARCODE, {
+        barcode: true,
+      })
+    }
+    if (/\bis_featured\b/i.test(error.message)) {
+      return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_NO_FEATURED, {
         barcode: true,
       })
     }
@@ -187,6 +200,22 @@ async function listStaffProductsWithSelect(
   if (error) {
     if (
       options.barcode === false &&
+      /\bis_featured\b/i.test(error.message)
+    ) {
+      return listStaffProductsWithSelect(
+        searchParams,
+        includeCost,
+        PRODUCT_SELECT_NO_FEATURED_NO_BARCODE,
+        { barcode: false }
+      )
+    }
+    if (options.barcode && /\bis_featured\b/i.test(error.message)) {
+      return listStaffProductsWithSelect(searchParams, includeCost, PRODUCT_SELECT_NO_FEATURED, {
+        barcode: true,
+      })
+    }
+    if (
+      options.barcode === false &&
       /selling_quantity|selling_unit/i.test(error.message)
     ) {
       return listStaffProductsWithSelect(
@@ -233,6 +262,8 @@ export async function getStaffProductById(
   const attempts: { select: string; barcodeMissing: boolean }[] = [
     { select: PRODUCT_SELECT, barcodeMissing: false },
     { select: PRODUCT_SELECT_NO_BARCODE, barcodeMissing: true },
+    { select: PRODUCT_SELECT_NO_FEATURED, barcodeMissing: false },
+    { select: PRODUCT_SELECT_NO_FEATURED_NO_BARCODE, barcodeMissing: true },
     { select: PRODUCT_SELECT_LEGACY, barcodeMissing: false },
     { select: PRODUCT_SELECT_LEGACY_NO_BARCODE, barcodeMissing: true },
   ]
@@ -245,8 +276,9 @@ export async function getStaffProductById(
       .maybeSingle()
     if (error) {
       const missingBarcode = /barcode/i.test(error.message)
+      const missingFeatured = /\bis_featured\b/i.test(error.message)
       const missingSelling = /selling_quantity|selling_unit/i.test(error.message)
-      if (missingBarcode || missingSelling) continue
+      if (missingBarcode || missingFeatured || missingSelling) continue
       return { error: 'Failed to load product', httpStatus: 500 as const }
     }
     if (!data) return { error: 'Product not found', httpStatus: 404 as const }
@@ -268,19 +300,24 @@ export async function getStaffProductById(
 
 export async function updateStaffProductSellingUnit(
   id: string,
-  input: { sellingQuantity: number; sellingUnit: SellingUnit },
+  input: { sellingQuantity: number; sellingUnit: SellingUnit; isFeatured?: boolean },
   options: StaffProductQueryOptions = {}
 ) {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
 
+  const patch: Record<string, unknown> = {
+    selling_quantity: input.sellingQuantity,
+    selling_unit: input.sellingUnit,
+    updated_at: new Date().toISOString(),
+  }
+  if (typeof input.isFeatured === 'boolean') {
+    patch.is_featured = input.isFeatured
+  }
+
   const { data, error } = await supabaseAdmin
     .from('products')
-    .update({
-      selling_quantity: input.sellingQuantity,
-      selling_unit: input.sellingUnit,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq('id', id)
     .select(PRODUCT_SELECT)
     .maybeSingle()
@@ -288,6 +325,9 @@ export async function updateStaffProductSellingUnit(
   if (error) {
     if (/selling_quantity|selling_unit/i.test(error.message)) {
       return { error: 'Selling unit is not available yet', httpStatus: 503 as const }
+    }
+    if (/\bis_featured\b/i.test(error.message)) {
+      return { error: 'Storefront featured is not available yet', httpStatus: 503 as const }
     }
     return { error: 'Failed to update product', httpStatus: 500 as const }
   }

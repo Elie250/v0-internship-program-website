@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 import { applySellingUnitToProductPayload } from '@/lib/shop/selling-unit'
+import { applyStorefrontFeaturedToProductPayload } from '@/lib/shop/storefront-featured'
 
 export async function GET(request: Request) {
   try {
@@ -53,9 +54,13 @@ export async function POST(request: Request) {
     if (!overlay.ok) {
       return NextResponse.json({ error: overlay.error }, { status: 400 })
     }
+    const featured = applyStorefrontFeaturedToProductPayload(overlay.payload, 'create')
+    if (!featured.ok) {
+      return NextResponse.json({ error: featured.error }, { status: 400 })
+    }
     const { data, error } = await supabaseAdmin
       .from('products')
-      .insert([overlay.payload])
+      .insert([featured.payload])
       .select()
       .single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

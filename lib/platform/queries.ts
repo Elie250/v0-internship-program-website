@@ -190,6 +190,9 @@ export async function getCourseById(id: string): Promise<Course | null> {
 
 /** Published catalogue columns only — never select cost_price, barcode, or staff metadata. */
 const PUBLIC_PRODUCT_SELECT =
+  'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, selling_quantity, selling_unit, is_featured, images, image_url, specifications, status, category:categories(id, name, slug, type)'
+
+const PUBLIC_PRODUCT_SELECT_NO_FEATURED =
   'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, selling_quantity, selling_unit, images, image_url, specifications, status, category:categories(id, name, slug, type)'
 
 const PUBLIC_PRODUCT_SELECT_LEGACY =
@@ -216,6 +219,7 @@ function mapPublishedProductRow(p: Record<string, unknown>): Product {
       p.low_stock_threshold != null ? Number(p.low_stock_threshold) : null,
     selling_quantity: selling.sellingQuantity,
     selling_unit: selling.sellingUnit,
+    is_featured: Boolean(p.is_featured),
     images,
     specifications:
       p.specifications && typeof p.specifications === 'object' && !Array.isArray(p.specifications)
@@ -228,6 +232,10 @@ function mapPublishedProductRow(p: Record<string, unknown>): Product {
 
 function isMissingSellingUnitColumn(message: string | undefined): boolean {
   return /selling_quantity|selling_unit/i.test(message ?? '')
+}
+
+function isMissingFeaturedColumn(message: string | undefined): boolean {
+  return /\bis_featured\b/i.test(message ?? '')
 }
 
 export async function getPublishedProducts(categorySlug?: string, search?: string): Promise<Product[]> {
@@ -250,6 +258,9 @@ export async function getPublishedProducts(categorySlug?: string, search?: strin
   }
 
   let { data, error } = await run(PUBLIC_PRODUCT_SELECT)
+  if (error && isMissingFeaturedColumn(error.message)) {
+    ;({ data, error } = await run(PUBLIC_PRODUCT_SELECT_NO_FEATURED))
+  }
   if (error && isMissingSellingUnitColumn(error.message)) {
     ;({ data, error } = await run(PUBLIC_PRODUCT_SELECT_LEGACY))
   }
@@ -280,6 +291,14 @@ export async function getProductById(id: string): Promise<Product | null> {
     .eq('id', id)
     .eq('status', 'published')
     .maybeSingle()
+  if (error && isMissingFeaturedColumn(error.message)) {
+    ;({ data, error } = await client
+      .from('products')
+      .select(PUBLIC_PRODUCT_SELECT_NO_FEATURED)
+      .eq('id', id)
+      .eq('status', 'published')
+      .maybeSingle())
+  }
   if (error && isMissingSellingUnitColumn(error.message)) {
     ;({ data, error } = await client
       .from('products')

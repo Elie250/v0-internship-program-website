@@ -30,6 +30,8 @@ export type PublicCatalogueItem = {
   inStock: boolean
   maxQuantity: number
   specifications: Record<string, string>
+  /** Storefront highlight used for Hero selection. Not a UUID or cost field. */
+  featured: boolean
 }
 
 const UUID_RE =
@@ -129,6 +131,7 @@ export function toPublicCatalogueItem(product: Product): PublicCatalogueItem {
     inStock: availability !== 'out',
     maxQuantity: stock,
     specifications,
+    featured: Boolean(product.is_featured),
   }
 }
 

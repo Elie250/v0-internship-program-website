@@ -32,6 +32,7 @@ type ProductRow = {
   sellingQuantity: number
   sellingUnit: string
   sellingUnitLabel: string
+  isFeatured?: boolean
 }
 
 type ProductDetail = ProductRow & {
@@ -55,6 +56,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
   const [detailError, setDetailError] = useState('')
   const [sellingQuantity, setSellingQuantity] = useState('1')
   const [sellingUnit, setSellingUnit] = useState('PCS')
+  const [featured, setFeatured] = useState(false)
   const [sellingSaving, setSellingSaving] = useState(false)
   const [sellingMessage, setSellingMessage] = useState('')
   const [, startTransition] = useTransition()
@@ -99,6 +101,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
         ? String(result.data.item.sellingUnit)
         : 'PCS'
     )
+    setFeatured(Boolean(result.data.item.isFeatured))
     setSellingMessage('')
   })
 
@@ -196,6 +199,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                         <p className="text-xs text-slate-500">
                           {row.sellingUnitLabel ||
                             formatSellingUnit(row.sellingQuantity, row.sellingUnit)}
+                          {row.isFeatured ? ` · ${t('products.field.featured')}` : ''}
                           {row.sku ? ` · ${row.sku}` : ` · ${t('products.noSku')}`}
                           {row.category?.name ? ` · ${row.category.name}` : ''}
                         </p>
@@ -301,6 +305,12 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       formatSellingUnit(detail.sellingQuantity, detail.sellingUnit)}
                   </dd>
                 </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-slate-500">{t('products.field.featured')}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {detail.isFeatured ? t('products.featuredOn') : t('products.featuredOff')}
+                  </dd>
+                </div>
               </dl>
               {canSeeCost ? (
                 <form
@@ -323,6 +333,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                         body: JSON.stringify({
                           sellingQuantity: qty.value,
                           sellingUnit: unit.value,
+                          isFeatured: featured,
                         }),
                       }
                     )
@@ -334,6 +345,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                     setDetail(result.data.item)
                     setSellingQuantity(String(result.data.item.sellingQuantity ?? qty.value))
                     setSellingUnit(result.data.item.sellingUnit || unit.value)
+                    setFeatured(Boolean(result.data.item.isFeatured))
                     setItems((current) =>
                       current.map((row) =>
                         row.id === result.data.item.id
@@ -342,6 +354,7 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                               sellingQuantity: result.data.item.sellingQuantity,
                               sellingUnit: result.data.item.sellingUnit,
                               sellingUnitLabel: result.data.item.sellingUnitLabel,
+                              isFeatured: result.data.item.isFeatured,
                             }
                           : row
                       )
@@ -377,6 +390,26 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       ))}
                     </select>
                   </div>
+                  <label
+                    htmlFor="shop-featured"
+                    className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                  >
+                    <input
+                      id="shop-featured"
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-[var(--brand-navy,#1e3a5f)]"
+                      checked={featured}
+                      onChange={(e) => setFeatured(e.target.checked)}
+                    />
+                    <span>
+                      <span className="font-medium text-slate-900">
+                        {t('products.field.featured')}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-600">
+                        {t('products.featuredHint')}
+                      </span>
+                    </span>
+                  </label>
                   {sellingMessage ? (
                     <p className="text-xs text-slate-600">{sellingMessage}</p>
                   ) : null}

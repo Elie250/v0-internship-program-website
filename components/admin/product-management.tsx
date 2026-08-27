@@ -52,6 +52,7 @@ type Product = {
   images?: string[]
   selling_quantity?: number
   selling_unit?: string
+  is_featured?: boolean
 }
 
 const emptyForm = {
@@ -66,6 +67,7 @@ const emptyForm = {
   imageUrl: '',
   sellingQuantity: '1',
   sellingUnit: 'PCS',
+  isFeatured: false,
 }
 
 export default function ProductManagement() {
@@ -136,6 +138,7 @@ export default function ProductManagement() {
           specifications: {},
           selling_quantity: qty.value,
           selling_unit: unit.value,
+          is_featured: form.isFeatured,
         }),
       })
       const data = await res.json()
@@ -166,6 +169,7 @@ export default function ProductManagement() {
       sellingUnit: isSellingUnit(String(product.selling_unit ?? 'PCS'))
         ? String(product.selling_unit)
         : 'PCS',
+      isFeatured: Boolean(product.is_featured),
     })
   }
 
@@ -199,6 +203,7 @@ export default function ProductManagement() {
           images: editForm.imageUrl ? [editForm.imageUrl] : [],
           selling_quantity: qty.value,
           selling_unit: unit.value,
+          is_featured: editForm.isFeatured,
         }),
       })
       const data = await res.json()
@@ -376,6 +381,21 @@ export default function ProductManagement() {
               </SelectContent>
             </Select>
           </div>
+          <label className="md:col-span-2 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-[#1e3a5f]"
+              checked={form.isFeatured}
+              onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+            />
+            <span>
+              <span className="font-medium text-slate-900">Featured on storefront</span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                Featured products appear first in the New Arrivals carousel when they have a photo
+                and are in stock.
+              </span>
+            </span>
+          </label>
           <div className="md:col-span-2">
             <Label>Description</Label>
             <Textarea
@@ -428,6 +448,7 @@ export default function ProductManagement() {
                 {p.price?.toLocaleString()} RWF ·{' '}
                 {formatSellingUnit(p.selling_quantity ?? 1, p.selling_unit ?? 'PCS')} · Stock{' '}
                 {p.stock} · {p.status}
+                {p.is_featured ? ' · Featured' : ''}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(p)}>
@@ -553,6 +574,21 @@ export default function ProductManagement() {
                 </SelectContent>
               </Select>
             </div>
+            <label className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-[#1e3a5f]"
+                checked={editForm.isFeatured}
+                onChange={(e) => setEditForm({ ...editForm, isFeatured: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium text-slate-900">Featured on storefront</span>
+                <span className="mt-0.5 block text-xs text-slate-600">
+                  Featured products appear first in the New Arrivals carousel when they have a photo
+                  and are in stock.
+                </span>
+              </span>
+            </label>
             <div>
               <Label>Description</Label>
               <Textarea

@@ -228,7 +228,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'products.readOnlyNote':
     'Amakuru y’ibicuruzwa aboneka muri sisitemu y’iduka. Guhindura ntihahari muri iki gihe.',
   'products.manageNote':
-    'Ushobora kuvugurura ingano n’igipimo byo kugurisha. Ibindi bisobanuro bikurikiranwa mu rutonde rw’ubuyobozi.',
+    'Ushobora kuvugurura ingano n’igipimo byo kugurisha, n’uko igicuruzwa kigaragara ku iduka. Ibindi bisobanuro bikurikiranwa mu rutonde rw’ubuyobozi.',
   'products.searchLabel': 'Shakisha ibicuruzwa',
   'products.searchPlaceholder': 'Shakisha izina, SKU, barcode…',
   'products.statusLabel': 'Imimerere',
@@ -250,6 +250,11 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'products.field.stock': 'Ububiko',
   'products.field.sellingQuantity': 'Ingano yo kugurisha',
   'products.field.sellingUnit': 'Igipimo',
+  'products.field.featured': 'Byagaragajwe ku iduka',
+  'products.featuredHint':
+    'Ibicuruzwa by’ingenzi bigaragara mbere mu bicuruzwa bishya iyo bifite ifoto kandi biri mu bubiko.',
+  'products.featuredOn': 'Yego',
+  'products.featuredOff': 'Oya',
   'products.sellingHint':
     'Igiciro ni icy’igicuruzwa kimwe. Ububiko ni umubare w’ibicuruzwa bigurishwa.',
   'products.sellingSaved': 'Igipimo cyo kugurisha cyabitswe.',

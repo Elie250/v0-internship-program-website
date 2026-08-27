@@ -225,7 +225,7 @@ export const shopMessagesEn = {
   'products.readOnlyNote':
     'Product information from the shop system. Editing is not available yet.',
   'products.manageNote':
-    'You can update the selling quantity and unit. Other product details are managed in the admin catalog.',
+    'You can update the selling quantity, unit, and storefront featured placement. Other product details are managed in the admin catalog.',
   'products.searchLabel': 'Search products',
   'products.searchPlaceholder': 'Search name, SKU, barcode…',
   'products.statusLabel': 'Status',
@@ -247,6 +247,11 @@ export const shopMessagesEn = {
   'products.field.stock': 'Stock',
   'products.field.sellingQuantity': 'Selling quantity',
   'products.field.sellingUnit': 'Selling unit',
+  'products.field.featured': 'Featured on storefront',
+  'products.featuredHint':
+    'Featured products appear first in the New Arrivals carousel when they have a photo and are in stock.',
+  'products.featuredOn': 'Yes',
+  'products.featuredOff': 'No',
   'products.sellingHint':
     'Price applies to one selling unit. Stock is the number of selling units.',
   'products.sellingSaved': 'Selling unit saved.',

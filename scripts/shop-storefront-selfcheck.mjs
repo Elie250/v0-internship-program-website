@@ -611,6 +611,7 @@ function sampleItem(overrides = {}) {
     inStock: true,
     maxQuantity: 4,
     specifications: {},
+    featured: false,
     ...overrides,
   }
 }
@@ -630,8 +631,14 @@ function uniqueBySlug(items, limit, seen) {
 function selectHeroProducts(products, limit = 5) {
   const cap = Math.max(1, Math.min(5, limit))
   const seen = new Set()
-  const inStockWithImage = products.filter((item) => item.inStock && Boolean(item.image))
-  const selected = uniqueBySlug(inStockWithImage, cap, seen)
+  const featured = products.filter(
+    (item) => item.featured && item.inStock && Boolean(item.image)
+  )
+  const selected = uniqueBySlug(featured, cap, seen)
+  if (selected.length < cap) {
+    const inStockWithImage = products.filter((item) => item.inStock && Boolean(item.image))
+    selected.push(...uniqueBySlug(inStockWithImage, cap - selected.length, seen))
+  }
   if (selected.length < 3) {
     const withImage = products.filter((item) => Boolean(item.image))
     selected.push(...uniqueBySlug(withImage, cap - selected.length, seen))
@@ -755,7 +762,8 @@ test('hero selects 3-5 unique in-stock products with images when available', () 
   const merch = read('lib/shop/public-merchandising.ts')
   assert.match(merch, /export function selectHeroProducts/)
   assert.match(merch, /HERO_LIMIT = 5/)
-  assert.doesNotMatch(merch, /is_featured/)
+  assert.match(merch, /item\.featured/)
+  assert.doesNotMatch(merch, /is_featured|is_trending|display_priority/)
   assert.doesNotMatch(
     merch,
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
@@ -785,19 +793,44 @@ test('hero selects 3-5 unique in-stock products with images when available', () 
   assert.equal(selectHeroProducts([sampleItem({ slug: 'only', image: '/a.jpg' })]).length, 1)
 })
 
-test('featured products are derived without an is_featured column', () => {
+test('hero prefers staff-featured in-stock products with photos', () => {
+  const catalogue = [
+    sampleItem({ slug: 'newest', inStock: true, image: '/newest.jpg' }),
+    sampleItem({ slug: 'older', inStock: true, image: '/older.jpg' }),
+    sampleItem({ slug: 'radio', featured: true, inStock: true, image: '/radio.jpg' }),
+    sampleItem({ slug: 'ghost', featured: true, inStock: false, image: '/ghost.jpg' }),
+    sampleItem({ slug: 'plain', featured: true, inStock: true, image: null }),
+  ]
+  assert.deepEqual(
+    selectHeroProducts(catalogue).map((item) => item.slug),
+    ['radio', 'newest', 'older']
+  )
+  const dto = read('lib/shop/public-catalogue.ts')
+  const typeStart = dto.indexOf('export type PublicCatalogueItem')
+  const typeEnd = dto.indexOf('const UUID_RE')
+  const typeBlock = dto.slice(typeStart, typeEnd)
+  assert.match(typeBlock, /featured: boolean/)
+  assert.doesNotMatch(typeBlock, /is_featured|costPrice|\nid:/)
+  assert.match(dto, /featured: Boolean\(product\.is_featured\)/)
   const productType = read('types/platform.ts')
-  const typeStart = productType.indexOf('export interface Product')
-  const typeEnd = productType.indexOf('export interface SupportTicket')
-  const typeBlock = productType.slice(typeStart, typeEnd)
-  assert.doesNotMatch(typeBlock, /is_featured/)
-  assert.doesNotMatch(read('lib/platform/queries.ts').slice(
-    read('lib/platform/queries.ts').indexOf('const PUBLIC_PRODUCT_SELECT'),
-    read('lib/platform/queries.ts').indexOf('function mapPublishedProductRow')
-  ), /is_featured/)
-  const merch = read('lib/shop/public-merchandising.ts')
-  assert.match(merch, /export function selectFeaturedProducts/)
-  assert.doesNotMatch(merch, /is_featured/)
+  const prodStart = productType.indexOf('export interface Product')
+  const prodEnd = productType.indexOf('export interface SupportTicket')
+  assert.match(productType.slice(prodStart, prodEnd), /is_featured\?: boolean/)
+  assert.doesNotMatch(productType.slice(prodStart, prodEnd), /is_trending|display_priority/)
+})
+
+test('staff featured flag is a single products column without a second catalogue', () => {
+  const sql = read('scripts/91-shop-product-storefront-featured.sql')
+  const sqlBody = sql.replace(/--[^\n]*/g, '')
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS is_featured BOOLEAN NOT NULL DEFAULT false/)
+  assert.doesNotMatch(sql, /is_trending|display_priority/)
+  assert.doesNotMatch(sqlBody, /CREATE TABLE|ALTER TABLE order_items|product_location_stock/)
+  assert.doesNotMatch(read('scripts/90-shop-product-selling-unit.sql'), /is_featured/)
+  const queries = read('lib/platform/queries.ts')
+  const selectStart = queries.indexOf('const PUBLIC_PRODUCT_SELECT')
+  const selectEnd = queries.indexOf('const PUBLIC_PRODUCT_SELECT_NO_FEATURED')
+  assert.match(queries.slice(selectStart, selectEnd), /is_featured/)
+  assert.doesNotMatch(queries.slice(selectStart, selectEnd), /cost_price|barcode/)
 })
 
 test('latest products are independent of the New Arrivals hero', () => {

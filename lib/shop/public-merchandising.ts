@@ -78,15 +78,24 @@ export function selectNewArrivals(
   return products.slice(0, Math.max(0, limit))
 }
 
-/** Newest published products with photos, preferring items currently in stock. */
+/**
+ * Photographic carousel: featured in-stock products with photos first,
+ * then newest in-stock photographed products. No second ranking engine.
+ */
 export function selectHeroProducts(
   products: PublicCatalogueItem[],
   limit: number = HERO_LIMIT
 ): PublicCatalogueItem[] {
   const cap = Math.max(1, Math.min(5, limit))
   const seen = new Set<string>()
-  const inStockWithImage = products.filter((item) => item.inStock && Boolean(item.image))
-  const selected = uniqueBySlug(inStockWithImage, cap, seen)
+  const featured = products.filter(
+    (item) => item.featured && item.inStock && Boolean(item.image)
+  )
+  const selected = uniqueBySlug(featured, cap, seen)
+  if (selected.length < cap) {
+    const inStockWithImage = products.filter((item) => item.inStock && Boolean(item.image))
+    selected.push(...uniqueBySlug(inStockWithImage, cap - selected.length, seen))
+  }
   if (selected.length < 3) {
     const withImage = products.filter((item) => Boolean(item.image))
     selected.push(...uniqueBySlug(withImage, cap - selected.length, seen))
@@ -190,7 +199,7 @@ export function selectTrendProducts(
   return selected
 }
 
-/** Kept for derived merchandising without a featured database column. */
+/** Distinct from Hero. Uses remaining photographed in-stock items, not Trends. */
 export function selectFeaturedProducts(
   products: PublicCatalogueItem[],
   newArrivals: PublicCatalogueItem[],
@@ -250,7 +259,7 @@ export function selectCategoryTiles(
     .filter((tile) => tile.productCount > 0)
 }
 
-/** Derive homepage merchandising from the published catalogue. No extra tables or featured column. */
+/** Derive homepage merchandising from the published catalogue. No extra tables. */
 export function buildStorefrontMerchandising(
   products: PublicCatalogueItem[],
   categories: PublicCatalogueCategory[]

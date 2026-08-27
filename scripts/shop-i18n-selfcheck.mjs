@@ -244,6 +244,8 @@ test('selling-unit labels stay bilingual without translating unit abbreviations'
   assert.equal(rw.get('products.field.sellingQuantity'), 'Ingano yo kugurisha')
   assert.equal(en.get('products.field.sellingUnit'), 'Selling unit')
   assert.equal(rw.get('products.field.sellingUnit'), 'Igipimo')
+  assert.equal(en.get('products.field.featured'), 'Featured on storefront')
+  assert.equal(rw.get('products.field.featured'), 'Byagaragajwe ku iduka')
   assert.equal(rw.get('storefront.checkout.thankYou'), 'Murakoze guhahira muri Energy & Logics.')
   assert.equal(rw.get('pos.thankYou'), 'Murakoze guhahira muri Energy & Logics.')
   assert.doesNotMatch(rw.get('products.field.sellingUnit') ?? '', /PCS|PACK|KG|ML/)
