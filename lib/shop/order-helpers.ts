@@ -81,6 +81,7 @@ export async function decrementStockForLines(
   })
 }
 
+/** @deprecated Historical POS/EL random codes only. New sales use shop_next_order_number. */
 export function generateOrderNumber(prefix = 'EL') {
   const stamp = Date.now().toString(36).toUpperCase()
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase()

@@ -1,10 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import {
   buildOrderLines,
-  generateOrderNumber,
   type BuiltOrderLine,
   type OrderLineInput,
 } from '@/lib/shop/order-helpers'
+import { allocateCommerceOrderNumber } from '@/lib/shop/commerce-order-number'
 import {
   beginIdempotentRequest,
   completeIdempotentRequest,
@@ -165,7 +165,6 @@ export async function createCommerceSale(
   }
 
   const { lineItems, totalAmount } = built.order
-  const orderNumber = generateOrderNumber(input.channel === 'pos' ? 'POS' : 'EL')
   const now = new Date().toISOString()
   const isPaidNow = paymentMethod === 'cash'
   const customerName = input.customerName.trim() || 'Walk-in customer'
@@ -182,6 +181,12 @@ export async function createCommerceSale(
       return fail('Delivery address is required for delivery orders', 400)
     }
   }
+
+  const allocated = await allocateCommerceOrderNumber(input.locationId ?? null)
+  if ('error' in allocated) {
+    return fail(allocated.error, 500)
+  }
+  const orderNumber = allocated.orderNumber
 
   const orderPayloadBase = {
     order_number: orderNumber,

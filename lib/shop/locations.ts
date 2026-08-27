@@ -9,6 +9,7 @@ export type ShopLocation = {
   id: string
   name: string
   code: string
+  shortCode?: string | null
   status: ShopLocationStatus
   createdAt?: string
   updatedAt?: string
@@ -19,12 +20,18 @@ export const SHOP_LOCATION_CODES = {
   NYANZA: 'NYANZA',
 } as const
 
+/** Public commerce-number segments. Machine code NYANZA stays unchanged. */
+export const SHOP_LOCATION_SHORT_CODES = {
+  NYANZA: 'NYZ',
+} as const
+
 export type ShopLocationCode = (typeof SHOP_LOCATION_CODES)[keyof typeof SHOP_LOCATION_CODES]
 
 export function mapShopLocationRow(row: {
   id: string
   name: string
   code: string
+  short_code?: string | null
   status: string
   created_at?: string
   updated_at?: string
@@ -33,6 +40,7 @@ export function mapShopLocationRow(row: {
     id: row.id,
     name: row.name,
     code: row.code,
+    shortCode: row.short_code != null ? String(row.short_code) : null,
     status: row.status as ShopLocationStatus,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
