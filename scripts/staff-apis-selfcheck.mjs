@@ -128,8 +128,12 @@ const ROLE_PERMISSIONS = {
   ],
   inventory_manager: [
     PERMISSIONS.SHOP_PRODUCTS,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_STOCK_ADJUST,
+    PERMISSIONS.SHOP_ORDERS_VIEW,
+    PERMISSIONS.SHOP_SALES_VIEW,
+    PERMISSIONS.SHOP_CATEGORIES,
   ],
   admin: Object.values(PERMISSIONS),
 }
@@ -209,12 +213,12 @@ test('shop:products expands to products_view for managers', () => {
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
 })
 
-test('inventory manager can access products and inventory but not sales dashboard', () => {
+test('inventory manager can access products, inventory, orders, and dashboard', () => {
   const perms = [...expandShopPermissionAliases(ROLE_PERMISSIONS.inventory_manager)]
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.inventory), true)
-  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.orders), false)
-  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), false)
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.orders), true)
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), true)
 })
 
 test('admin can access all staff read APIs', () => {

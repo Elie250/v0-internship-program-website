@@ -51,6 +51,7 @@ export const SHOP_PORTAL_PATH_PREFIXES = [
   '/inventory',
   '/sales',
   '/settings',
+  '/users',
 ] as const
 
 export function isShopPortalPath(pathname: string): boolean {

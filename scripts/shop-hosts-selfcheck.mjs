@@ -49,6 +49,7 @@ const SHOP_PORTAL_PATH_PREFIXES = [
   '/inventory',
   '/sales',
   '/settings',
+  '/users',
 ]
 
 function isShopPortalPath(pathname) {

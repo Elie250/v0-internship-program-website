@@ -36,3 +36,22 @@ export async function requireStaffPermission(
 
   return auth
 }
+
+/**
+ * Shop Staff Management — administrator role only.
+ * Support staff with partial user permissions cannot manage shop staff here.
+ */
+export async function requireShopAdmin(
+  request: Request
+): Promise<{ ctx: StaffRequestContext } | { response: NextResponse }> {
+  const auth = await requireStaffSession(request)
+  if ('response' in auth) return auth
+
+  if (auth.ctx.user.role !== 'admin') {
+    return {
+      response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+    }
+  }
+
+  return auth
+}

@@ -224,6 +224,25 @@ export async function revokeStaffSession(
   return { success: true }
 }
 
+/** Revoke every active staff_sessions row for a user (admin staff management). */
+export async function revokeAllStaffSessionsForUser(
+  userId: string
+): Promise<{ success: boolean; revokedCount: number; error?: string }> {
+  if (!supabaseAdmin) return { success: false, revokedCount: 0, error: 'Database not configured' }
+  if (!userId?.trim()) return { success: false, revokedCount: 0, error: 'User id required' }
+
+  const now = new Date().toISOString()
+  const { data, error } = await supabaseAdmin
+    .from('staff_sessions')
+    .update({ revoked_at: now })
+    .eq('user_id', userId)
+    .is('revoked_at', null)
+    .select('id')
+
+  if (error) return { success: false, revokedCount: 0, error: error.message }
+  return { success: true, revokedCount: data?.length ?? 0 }
+}
+
 export function extractBearerToken(request: Request): string | null {
   const header = request.headers.get('authorization') || request.headers.get('Authorization')
   if (!header) return null
