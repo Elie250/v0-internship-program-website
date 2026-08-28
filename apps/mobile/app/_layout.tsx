@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { staffQueryClient } from '@/src/api/query-client'
 import { useSessionStore } from '@/src/auth/session-store'
 import { colors } from '@/src/theme'
@@ -16,21 +17,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={staffQueryClient}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.navy },
-            headerTintColor: colors.white,
-            headerTitleStyle: { fontWeight: '700' },
-            contentStyle: { backgroundColor: colors.bg },
-          }}
-        >
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ title: 'Staff sign in', headerBackVisible: false }} />
-          <Stack.Screen name="staff" options={{ headerShown: false }} />
-        </Stack>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={staffQueryClient}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.navy },
+              headerTintColor: colors.white,
+              headerTitleStyle: { fontWeight: '700' },
+              contentStyle: { backgroundColor: colors.bg },
+            }}
+          >
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ title: 'Staff sign in', headerBackVisible: false }} />
+            <Stack.Screen name="staff" options={{ headerShown: false }} />
+          </Stack>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   )
 }

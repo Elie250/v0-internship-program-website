@@ -23,12 +23,12 @@
         "backgroundColor": "#1e3a5f"
       },
       "package": "com.energyandlogics.staffpos",
-      "permissions": ["INTERNET"]
+      "permissions": ["INTERNET"],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
-      "expo-image"
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

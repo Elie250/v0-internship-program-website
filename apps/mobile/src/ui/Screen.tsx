@@ -23,6 +23,8 @@ export function Screen({
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       refreshControl={
         onRefresh ? (
           <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} />

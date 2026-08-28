@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Redirect, useRouter } from 'expo-router'
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { z } from 'zod'
 import { ApiError } from '@/src/api/client'
 import { useSessionStore } from '@/src/auth/session-store'
@@ -36,8 +36,12 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.wrap}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scroll}
+      >
       <View style={styles.hero}>
         <Text style={styles.kicker}>Energy & Logics</Text>
         <Text style={styles.title}>Nyanza Shop Staff</Text>
@@ -52,6 +56,8 @@ export default function LoginScreen() {
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
               autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
               keyboardType="email-address"
               onBlur={onBlur}
               onChangeText={onChange}
@@ -73,6 +79,7 @@ export default function LoginScreen() {
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
               secureTextEntry
+              autoComplete="password"
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
@@ -105,12 +112,14 @@ export default function LoginScreen() {
           })}
         />
       </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.bg, padding: space.lg, justifyContent: 'center' },
+  wrap: { flex: 1, backgroundColor: colors.bg },
+  scroll: { flexGrow: 1, padding: space.lg, justifyContent: 'center' },
   hero: { marginBottom: space.xl, gap: 6 },
   kicker: { color: colors.amber, fontWeight: '800', letterSpacing: 0.6 },
   title: { fontSize: 28, fontWeight: '800', color: colors.navy },
