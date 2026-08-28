@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { formatRwf } from '@/src/format'
-import { colors, hitSlop, radius, space } from '@/src/theme'
+import { colors, control, space, type } from '@/src/theme'
 
 export function CartBar({
   itemCount,
@@ -14,16 +14,16 @@ export function CartBar({
   const itemsLabel = itemCount === 1 ? '1 item' : `${itemCount} items`
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View style={styles.wrap}>
       <Pressable
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`${itemsLabel}, ${formatRwf(total)}. View cart and checkout`}
         style={({ pressed }) => [styles.bar, pressed && styles.pressed]}
       >
-        <View>
+        <View style={styles.copy}>
           <Text style={styles.count}>{itemsLabel}</Text>
-          <Text style={styles.total}>{formatRwf(total)}</Text>
+          <Text style={type.dockTotal}>{formatRwf(total)}</Text>
         </View>
         <View style={styles.cta}>
           <Text style={styles.ctaLabel}>Checkout</Text>
@@ -35,32 +35,30 @@ export function CartBar({
 
 const styles = StyleSheet.create({
   wrap: {
-    position: 'absolute',
-    left: space.md,
-    right: space.md,
-    bottom: space.sm,
+    backgroundColor: colors.navyDark,
+    paddingHorizontal: space.md,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.navy,
   },
   bar: {
-    minHeight: 64,
-    borderRadius: radius.lg,
-    backgroundColor: colors.navy,
-    paddingHorizontal: space.md,
-    paddingVertical: 10,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.md,
   },
   pressed: { opacity: 0.92 },
-  count: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' },
-  total: { color: colors.white, fontSize: 20, fontWeight: '800' },
+  copy: { flex: 1, minWidth: 0 },
+  count: { ...type.meta, color: '#cbd5e1' },
   cta: {
-    minHeight: hitSlop,
-    paddingHorizontal: 16,
-    borderRadius: radius.md,
+    minHeight: control.height,
+    paddingHorizontal: 20,
+    borderRadius: control.radius,
     backgroundColor: colors.amber,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaLabel: { color: colors.white, fontWeight: '800', fontSize: 15 },
+  ctaLabel: { ...type.button, color: colors.white, fontWeight: '700' },
 })

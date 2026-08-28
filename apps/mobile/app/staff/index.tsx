@@ -3,9 +3,9 @@ import { useSessionStore } from '@/src/auth/session-store'
 import { useDashboardQuery, usePendingMomoCount } from '@/src/features/commerce'
 import { hasPermission, PERMISSIONS } from '@/src/permissions'
 import { formatRwf } from '@/src/format'
-import { Card, Metric } from '@/src/ui/Card'
+import { Metric } from '@/src/ui/Card'
 import { Screen, ScreenState } from '@/src/ui/Screen'
-import { space, type } from '@/src/theme'
+import { colors, radius, space, type } from '@/src/theme'
 
 export default function StaffDashboard() {
   const user = useSessionStore((s) => s.user)
@@ -29,57 +29,47 @@ export default function StaffDashboard() {
     >
       <Text style={type.kicker}>Energy & Logics</Text>
       <Text style={type.screenTitle}>Today</Text>
-      <Card>
-        <Metric label="Signed in" value={name || 'Staff'} hint={user?.role.replace(/_/g, ' ')} />
-      </Card>
+      <Text style={type.meta} numberOfLines={1}>
+        {name} · {user?.role.replace(/_/g, ' ')}
+      </Text>
 
       <ScreenState
         loading={canDashboard && dashboard.isLoading}
         error={dashboard.error ? dashboard.error.message : null}
         onRetry={canDashboard ? () => void dashboard.refetch() : undefined}
       >
-        <View style={styles.grid}>
+        <View style={styles.panel}>
           <View style={styles.cell}>
-            <Card>
-              <Metric
-                label="Today's sales"
-                value={canDashboard && dashboard.data ? formatRwf(dashboard.data.todaySales) : '—'}
-                hint={dashboard.data?.businessDate}
-              />
-            </Card>
+            <Metric
+              label="Today's sales"
+              value={canDashboard && dashboard.data ? formatRwf(dashboard.data.todaySales) : '—'}
+              hint={dashboard.data?.businessDate}
+            />
           </View>
-          <View style={styles.cell}>
-            <Card>
-              <Metric
-                label="Pending orders"
-                value={canDashboard && dashboard.data ? String(dashboard.data.pendingOrders) : '—'}
-              />
-            </Card>
+          <View style={[styles.cell, styles.cellRight]}>
+            <Metric
+              label="Pending orders"
+              value={canDashboard && dashboard.data ? String(dashboard.data.pendingOrders) : '—'}
+            />
           </View>
-          <View style={styles.cell}>
-            <Card>
-              <Metric
-                label="Pending MoMo"
-                value={
-                  canOrders && momo.data != null && !momo.error ? String(momo.data) : '—'
-                }
-                hint={
-                  !canOrders
-                    ? 'Orders permission required'
-                    : momo.error
-                      ? 'Unable to load this metric'
-                      : 'Online payments awaiting confirmation'
-                }
-              />
-            </Card>
+          <View style={[styles.cell, styles.cellBottom]}>
+            <Metric
+              label="Pending MoMo"
+              value={canOrders && momo.data != null && !momo.error ? String(momo.data) : '—'}
+              hint={
+                !canOrders
+                  ? 'Orders permission required'
+                  : momo.error
+                    ? 'Unable to load this metric'
+                    : 'Awaiting confirmation'
+              }
+            />
           </View>
-          <View style={styles.cell}>
-            <Card>
-              <Metric
-                label="Low stock"
-                value={canDashboard && dashboard.data ? String(dashboard.data.lowStockItems) : '—'}
-              />
-            </Card>
+          <View style={[styles.cell, styles.cellRight, styles.cellBottom]}>
+            <Metric
+              label="Low stock"
+              value={canDashboard && dashboard.data ? String(dashboard.data.lowStockItems) : '—'}
+            />
           </View>
         </View>
       </ScreenState>
@@ -88,6 +78,22 @@ export default function StaffDashboard() {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  cell: { width: '48%', flexGrow: 1 },
+  panel: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    overflow: 'hidden',
+  },
+  cell: {
+    width: '50%',
+    padding: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+  },
+  cellRight: { borderRightWidth: 0 },
+  cellBottom: { borderBottomWidth: 0 },
 })

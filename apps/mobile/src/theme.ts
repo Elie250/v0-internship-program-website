@@ -26,22 +26,43 @@ export const space = {
 } as const
 
 export const radius = {
-  sm: 10,
-  md: 14,
-  lg: 18,
+  sm: 8,
+  md: 12,
+  lg: 16,
   pill: 999,
 } as const
 
 /** Minimum practical touch target on Galaxy M31. */
 export const hitSlop = 48
 
+export const control = {
+  height: 48,
+  chipHeight: 44,
+  radius: 12,
+} as const
+
 export const type = {
-  screenTitle: { fontSize: 22, fontWeight: '800' as const, color: colors.navy },
-  heading: { fontSize: 16, fontWeight: '700' as const, color: colors.navy },
-  productName: { fontSize: 16, fontWeight: '600' as const, color: colors.ink },
-  price: { fontSize: 16, fontWeight: '800' as const, color: colors.navy },
-  total: { fontSize: 28, fontWeight: '800' as const, color: colors.navy, letterSpacing: -0.4 },
+  kicker: {
+    fontSize: 11,
+    fontWeight: '600' as const,
+    color: colors.amber,
+    letterSpacing: 0.4,
+  },
+  screenTitle: { fontSize: 20, fontWeight: '700' as const, color: colors.navy },
+  heading: { fontSize: 15, fontWeight: '600' as const, color: colors.navy },
+  productName: { fontSize: 16, fontWeight: '600' as const, color: colors.ink, lineHeight: 21 },
+  sku: { fontSize: 12, fontWeight: '400' as const, color: colors.muted },
+  sellingUnit: { fontSize: 12, fontWeight: '500' as const, color: colors.slate },
+  price: { fontSize: 18, fontWeight: '700' as const, color: colors.navy },
+  lineTotal: { fontSize: 17, fontWeight: '700' as const, color: colors.navy },
+  quantity: { fontSize: 17, fontWeight: '700' as const, color: colors.ink },
+  total: { fontSize: 32, fontWeight: '700' as const, color: colors.navy, letterSpacing: -0.6 },
+  dockTotal: { fontSize: 22, fontWeight: '700' as const, color: colors.white, letterSpacing: -0.3 },
+  payment: { fontSize: 16, fontWeight: '700' as const, color: colors.navy },
   button: { fontSize: 16, fontWeight: '600' as const },
-  meta: { fontSize: 13, fontWeight: '500' as const, color: colors.muted },
-  kicker: { fontSize: 12, fontWeight: '700' as const, color: colors.amber, letterSpacing: 0.3 },
+  meta: { fontSize: 13, fontWeight: '400' as const, color: colors.muted, lineHeight: 18 },
+  status: { fontSize: 12, fontWeight: '600' as const },
+  metric: { fontSize: 26, fontWeight: '700' as const, color: colors.navy, letterSpacing: -0.4 },
+  orderRef: { fontSize: 16, fontWeight: '700' as const, color: colors.navy },
+  staff: { fontSize: 13, fontWeight: '500' as const, color: colors.navy },
 } as const

@@ -23,7 +23,7 @@ export default function StaffLayout() {
   const perms = user.permissions
   const showPos = tabVisible('pos', perms)
   const showOrders = tabVisible('orders', perms)
-  const tabPad = Math.max(insets.bottom, 8)
+  const tabPad = insets.bottom
 
   return (
     <Tabs
@@ -34,12 +34,13 @@ export default function StaffLayout() {
         tabBarActiveTintColor: colors.navy,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
-          height: 72 + tabPad,
+          height: 64 + tabPad,
           paddingTop: 6,
-          paddingBottom: tabPad,
+          paddingBottom: Math.max(tabPad, 6),
+          borderTopColor: colors.line,
         },
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
-        tabBarItemStyle: { minHeight: 44 },
+        tabBarLabelStyle: { fontWeight: '600', fontSize: 11, marginBottom: 2 },
+        tabBarItemStyle: { minHeight: 48 },
       }}
     >
       <Tabs.Screen

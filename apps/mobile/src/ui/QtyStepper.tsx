@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { colors, hitSlop, radius } from '@/src/theme'
+import { colors, control, radius, type } from '@/src/theme'
 
 export function QtyStepper({
   value,
@@ -42,8 +42,8 @@ export function QtyStepper({
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   btn: {
-    width: hitSlop,
-    height: hitSlop,
+    width: control.height,
+    height: control.height,
     borderRadius: radius.sm,
     backgroundColor: colors.bg,
     borderWidth: 1,
@@ -52,12 +52,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.75 },
-  symbol: { fontSize: 22, fontWeight: '700', color: colors.navy, lineHeight: 26 },
-  value: {
-    minWidth: 32,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.ink,
-  },
+  symbol: { fontSize: 22, fontWeight: '600', color: colors.navy, lineHeight: 26 },
+  value: { ...type.quantity, minWidth: 32, textAlign: 'center' },
 })

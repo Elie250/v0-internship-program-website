@@ -5,7 +5,7 @@ import { formatRwf, formatWhen } from '@/src/format'
 import { Card } from '@/src/ui/Card'
 import { Screen, ScreenState } from '@/src/ui/Screen'
 import { RequireStaffNav } from '@/src/ui/RequireStaffNav'
-import { colors } from '@/src/theme'
+import { type } from '@/src/theme'
 
 export default function SalesScreen() {
   return (
@@ -36,12 +36,12 @@ function SalesBody() {
             accessibilityLabel={`Open ${row.orderNumber || 'sale'}`}
           >
             <Card>
-              <Text style={styles.number}>{row.orderNumber || 'Sale'}</Text>
-              <Text style={styles.meta}>
+              <Text style={type.orderRef}>{row.orderNumber || 'Sale'}</Text>
+              <Text style={type.meta}>
                 {row.channel} · {paymentLabel(row.paymentStatus)}
               </Text>
-              <Text style={styles.amount}>{formatRwf(row.totalAmount)}</Text>
-              <Text style={styles.meta}>{formatWhen(row.orderDate || row.createdAt)}</Text>
+              <Text style={type.price}>{formatRwf(row.totalAmount)}</Text>
+              <Text style={type.meta}>{formatWhen(row.orderDate || row.createdAt)}</Text>
             </Card>
           </Pressable>
         ))}
@@ -51,8 +51,5 @@ function SalesBody() {
 }
 
 const styles = StyleSheet.create({
-  note: { color: colors.muted, fontSize: 13 },
-  number: { fontWeight: '800', color: colors.navy, fontSize: 16 },
-  meta: { color: colors.muted },
-  amount: { fontWeight: '800', fontSize: 18, color: colors.navy },
+  note: type.meta,
 })

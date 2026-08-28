@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { colors, radius } from '@/src/theme'
+import { colors, radius, type } from '@/src/theme'
 
 export function StatusBadge({
   label,
@@ -19,16 +19,16 @@ const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
     borderRadius: radius.pill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
-  text: { fontSize: 12, fontWeight: '700' },
-  amber: { backgroundColor: '#fff7ed' },
-  amberText: { color: '#c2410c' },
-  green: { backgroundColor: '#f0fdf4' },
-  greenText: { color: '#15803d' },
-  red: { backgroundColor: '#fef2f2' },
-  redText: { color: '#b91c1c' },
+  text: type.status,
+  amber: { backgroundColor: colors.amberSoft },
+  amberText: { color: colors.amber },
+  green: { backgroundColor: colors.greenSoft },
+  greenText: { color: colors.green },
+  red: { backgroundColor: colors.redSoft },
+  redText: { color: colors.red },
   slate: { backgroundColor: '#f1f5f9' },
-  slateText: { color: '#334155' },
+  slateText: { color: colors.slate },
 })

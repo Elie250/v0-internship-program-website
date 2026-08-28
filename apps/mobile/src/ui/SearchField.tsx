@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, hitSlop, radius, space } from '@/src/theme'
+import { colors, control, space, type } from '@/src/theme'
 
 /**
  * Search now. Camera scan is not implemented — the scan control stays a placeholder.
@@ -20,18 +20,21 @@ export function ProductSearchField({
 }) {
   return (
     <View style={styles.row}>
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        onSubmitEditing={onSubmit}
-        placeholder={placeholder}
-        placeholderTextColor={colors.muted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-        accessibilityLabel="Search products or SKU"
-        style={styles.input}
-      />
+      <View style={styles.field}>
+        <Ionicons name="search-outline" size={20} color={colors.muted} />
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          onSubmitEditing={onSubmit}
+          placeholder={placeholder}
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          accessibilityLabel="Search products or SKU"
+          style={styles.input}
+        />
+      </View>
       {onBarcodePlaceholder ? (
         <Pressable
           onPress={onBarcodePlaceholder}
@@ -39,7 +42,7 @@ export function ProductSearchField({
           accessibilityLabel="Scan barcode. Camera scanning is not available yet."
           style={({ pressed }) => [styles.scan, pressed && styles.pressed]}
         >
-          <Ionicons name="barcode-outline" size={22} color={colors.navy} />
+          <Ionicons name="barcode-outline" size={20} color={colors.slate} />
           <Text style={styles.scanText}>Scan</Text>
         </Pressable>
       ) : null}
@@ -48,30 +51,37 @@ export function ProductSearchField({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
-  input: {
+  row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  field: {
     flex: 1,
-    minHeight: hitSlop + 8,
-    borderRadius: radius.md,
+    minHeight: control.height + 4,
+    borderRadius: control.radius,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.white,
     paddingHorizontal: space.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  input: {
+    flex: 1,
     fontSize: 16,
     color: colors.ink,
+    paddingVertical: 8,
   },
   scan: {
-    minWidth: 72,
-    minHeight: hitSlop + 8,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.navy,
+    minWidth: 56,
+    minHeight: control.height + 4,
+    borderRadius: control.radius,
+    borderWidth: 1,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.white,
-    paddingHorizontal: 10,
+    backgroundColor: colors.bg,
+    paddingHorizontal: 8,
     gap: 2,
   },
   pressed: { opacity: 0.8 },
-  scanText: { color: colors.navy, fontWeight: '700', fontSize: 12 },
+  scanText: { ...type.sku, color: colors.slate, fontWeight: '600' },
 })

@@ -13,7 +13,6 @@ import { usePaymentReviewMutation } from '@/src/features/payments/hooks'
 import { canReviewShopPayments } from '@/src/permissions'
 import { formatRwf, formatWhen } from '@/src/format'
 import { PrimaryButton } from '@/src/ui/Button'
-import { Card } from '@/src/ui/Card'
 import { FilterChips } from '@/src/ui/FilterChips'
 import { ProofViewer } from '@/src/ui/ProofViewer'
 import { ScreenState } from '@/src/ui/Screen'
@@ -82,7 +81,7 @@ function OrdersListBody() {
           refreshControl={
             <RefreshControl refreshing={query.isRefetching} onRefresh={() => void query.refetch()} />
           }
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ItemSeparatorComponent={() => <View style={styles.hairline} />}
           renderItem={({ item }) => (
             <OrderQueueCard
               order={item}
@@ -116,22 +115,29 @@ function OrderQueueCard({
   const tone = pending ? 'amber' : paid ? 'green' : order.status === 'cancelled' ? 'red' : 'slate'
 
   return (
-    <Card>
-      {isOnlineMomo ? (
-        <Text style={styles.alert}>MoMo payment needs review</Text>
-      ) : null}
-      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Open ${order.orderNumber || 'order'}`}>
+    <View style={[styles.item, isOnlineMomo && styles.itemAlert]}>
+      {isOnlineMomo ? <Text style={styles.alert}>MoMo payment needs review</Text> : null}
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${order.orderNumber || 'order'}`}
+        style={({ pressed }) => [styles.press, pressed && styles.pressed]}
+      >
         <View style={styles.rowTop}>
-          <Text style={styles.number}>{order.orderNumber || 'Order'}</Text>
+          <Text style={type.orderRef} numberOfLines={1}>
+            {order.orderNumber || 'Order'}
+          </Text>
           <StatusBadge label={paymentLabel(order.paymentStatus)} tone={tone} />
         </View>
-        <Text style={styles.customer}>{order.customerName || 'Walk-in / customer'}</Text>
-        {order.customerPhone ? <Text style={styles.meta}>{order.customerPhone}</Text> : null}
-        <Text style={styles.meta}>{fulfillmentLabel(order.status)}</Text>
+        <Text style={styles.customer} numberOfLines={2}>
+          {order.customerName || 'Walk-in / customer'}
+        </Text>
+        {order.customerPhone ? <Text style={type.meta}>{order.customerPhone}</Text> : null}
         <View style={styles.rowTop}>
-          <Text style={styles.amount}>{formatRwf(order.totalAmount)}</Text>
-          <Text style={styles.meta}>{formatWhen(order.orderDate || order.createdAt)}</Text>
+          <Text style={type.price}>{formatRwf(order.totalAmount)}</Text>
+          <Text style={type.meta}>{formatWhen(order.orderDate || order.createdAt)}</Text>
         </View>
+        <Text style={type.sku}>{fulfillmentLabel(order.status)}</Text>
       </Pressable>
       {isOnlineMomo ? (
         <View style={styles.actions}>
@@ -151,49 +157,59 @@ function OrderQueueCard({
           {canReview ? (
             <>
               {review.error ? <Text style={styles.error}>{review.error.message}</Text> : null}
-              <PrimaryButton
-                label="Approve"
-                loading={review.isPending && review.variables?.decision === 'approve'}
-                disabled={review.isPending}
-                onPress={() => review.mutate({ decision: 'approve' })}
-              />
-              <PrimaryButton
-                label="Reject"
-                tone="danger"
-                loading={review.isPending && review.variables?.decision === 'reject'}
-                disabled={review.isPending}
-                onPress={() => review.mutate({ decision: 'reject' })}
-              />
+              <View style={styles.decisionRow}>
+                <View style={styles.decision}>
+                  <PrimaryButton
+                    label="Approve"
+                    loading={review.isPending && review.variables?.decision === 'approve'}
+                    disabled={review.isPending}
+                    onPress={() => review.mutate({ decision: 'approve' })}
+                  />
+                </View>
+                <View style={styles.decision}>
+                  <PrimaryButton
+                    label="Reject"
+                    tone="danger"
+                    loading={review.isPending && review.variables?.decision === 'reject'}
+                    disabled={review.isPending}
+                    onPress={() => review.mutate({ decision: 'reject' })}
+                  />
+                </View>
+              </View>
             </>
           ) : null}
         </View>
       ) : null}
-    </Card>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  head: { paddingHorizontal: space.md, paddingBottom: space.sm },
-  chips: { paddingLeft: space.md, paddingBottom: space.sm },
-  list: { paddingHorizontal: space.md, paddingBottom: 24 },
-  alert: {
-    color: colors.amber,
-    fontWeight: '800',
-    fontSize: 13,
+  head: { paddingHorizontal: space.md, paddingBottom: 6 },
+  chips: { paddingLeft: space.md, paddingBottom: 8 },
+  list: { backgroundColor: colors.card, paddingBottom: 24 },
+  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line, marginLeft: space.md },
+  item: { backgroundColor: colors.card, paddingHorizontal: space.md, paddingVertical: 12 },
+  itemAlert: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.amber,
+    backgroundColor: colors.amberSoft,
   },
+  press: { gap: 2 },
+  pressed: { opacity: 0.85 },
+  alert: { ...type.status, color: colors.amber, marginBottom: 6 },
   rowTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: space.sm,
   },
-  number: { fontSize: 16, fontWeight: '800', color: colors.navy, flexShrink: 1 },
-  customer: { fontSize: 15, fontWeight: '600', color: colors.slate },
-  amount: { fontSize: 16, fontWeight: '800', color: colors.navy },
-  meta: { color: colors.muted, fontSize: 13 },
-  actions: { gap: 8, marginTop: 4 },
+  customer: { ...type.productName, color: colors.slate },
+  actions: { gap: 8, marginTop: 10 },
+  decisionRow: { flexDirection: 'row', gap: 8 },
+  decision: { flex: 1 },
   linkHit: { minHeight: 44, justifyContent: 'center' },
-  link: { color: colors.navy, fontWeight: '700' },
+  link: { color: colors.navy, fontWeight: '600' },
   error: { color: colors.red, fontSize: 13 },
 })

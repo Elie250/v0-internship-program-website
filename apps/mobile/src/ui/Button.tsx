@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native'
-import { colors, hitSlop, radius, space } from '@/src/theme'
+import { colors, control, space, type } from '@/src/theme'
 
 export function PrimaryButton({
   label,
@@ -30,7 +30,7 @@ export function PrimaryButton({
         tone === 'outline' && styles.outline,
         tone === 'amber' && styles.amber,
         (disabled || loading) && styles.disabled,
-        pressed && styles.pressed,
+        pressed && !(disabled || loading) && styles.pressed,
       ]}
     >
       {loading ? (
@@ -44,8 +44,8 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: hitSlop + 4,
-    borderRadius: radius.md,
+    minHeight: control.height,
+    borderRadius: control.radius,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.lg,
@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
   danger: { backgroundColor: colors.red },
   amber: { backgroundColor: colors.amber },
   outline: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.navy },
-  disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.85 },
-  label: { color: colors.white, fontSize: 16, fontWeight: '600' },
+  disabled: { opacity: 0.4 },
+  pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
+  label: { ...type.button, color: colors.white },
   outlineLabel: { color: colors.navy },
 })

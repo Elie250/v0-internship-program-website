@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { useProductLookup, useCreatePosSale } from '@/src/features/pos/hooks'
+import { confirmTillSale } from '@/src/features/pos/confirm-sale'
 import { CartBar } from '@/src/features/pos/CartBar'
 import { CartLineRow } from '@/src/features/pos/CartLineRow'
 import { ProductRow } from '@/src/features/pos/ProductRow'
@@ -107,6 +108,20 @@ function PosBody() {
 
   const showCartBar = phase === 'browse' && lines.length > 0 && !keyboardOpen
 
+  function submitSale() {
+    if (lines.length === 0 || sale.isPending) return
+    sale.mutate({ paymentMethod: method, customerName: 'Walk-in customer' })
+  }
+
+  function requestSale() {
+    if (lines.length === 0 || sale.isPending) return
+    confirmTillSale({
+      paymentMethod: method,
+      total: preview.payableTotal,
+      onConfirm: submitSale,
+    })
+  }
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -115,7 +130,7 @@ function PosBody() {
           <Text style={type.screenTitle}>POS</Text>
         </View>
         <View style={styles.staff}>
-          <Text style={styles.staffName} numberOfLines={1}>
+          <Text style={type.staff} numberOfLines={1}>
             {staffName}
           </Text>
           <Text style={styles.live}>Till online</Text>
@@ -160,14 +175,11 @@ function PosBody() {
                 style={styles.listFlex}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
-                contentContainerStyle={[
-                  styles.list,
-                  showCartBar ? styles.listWithBar : undefined,
-                ]}
+                contentContainerStyle={styles.list}
                 renderItem={({ item }) => (
                   <ProductRow product={item} onAdd={() => addProduct(item)} />
                 )}
-                ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+                ItemSeparatorComponent={() => <View style={styles.hairline} />}
               />
             </ScreenState>
           </View>
@@ -184,104 +196,103 @@ function PosBody() {
         </>
       ) : (
         <>
-        <FlatList
-          data={lines}
-          keyExtractor={(line) => line.productId}
-          style={styles.listFlex}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.checkoutList}
-          ListHeaderComponent={
-            <View style={styles.checkoutHead}>
-              <Pressable
-                onPress={() => setPhase('browse')}
-                accessibilityRole="button"
-                accessibilityLabel="Back to products"
-                style={styles.back}
-              >
-                <Text style={styles.backLabel}>← Products</Text>
-              </Pressable>
-              <Text style={type.heading}>Checkout</Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <CartLineRow
-              line={item}
-              onDecrease={() => setQuantity(item.productId, item.quantity - 1)}
-              onIncrease={() => setQuantity(item.productId, item.quantity + 1)}
-              onRemove={() => remove(item.productId)}
-            />
-          )}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          ListEmptyComponent={
-            <Text style={styles.emptyCart}>Cart is empty. Add products to continue.</Text>
-          }
-          ListFooterComponent={
-            <View style={styles.totals}>
-              <View style={styles.totalRow}>
-                <Text style={type.meta}>Subtotal</Text>
-                <Text style={type.price}>{formatRwf(preview.listSubtotal)}</Text>
+          <FlatList
+            data={lines}
+            keyExtractor={(line) => line.productId}
+            style={styles.listFlex}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.checkoutList}
+            ListHeaderComponent={
+              <View style={styles.checkoutHead}>
+                <Pressable
+                  onPress={() => setPhase('browse')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Back to products"
+                  style={styles.back}
+                >
+                  <Text style={styles.backLabel}>← Products</Text>
+                </Pressable>
+                <Text style={type.screenTitle}>Checkout</Text>
               </View>
-              {preview.discountTotal > 0 ? (
+            }
+            renderItem={({ item }) => (
+              <CartLineRow
+                line={item}
+                onDecrease={() => setQuantity(item.productId, item.quantity - 1)}
+                onIncrease={() => setQuantity(item.productId, item.quantity + 1)}
+                onRemove={() => remove(item.productId)}
+              />
+            )}
+            ListEmptyComponent={
+              <Text style={styles.emptyCart}>Cart is empty. Add products to continue.</Text>
+            }
+            ListFooterComponent={
+              <View style={styles.totals}>
                 <View style={styles.totalRow}>
-                  <Text style={type.meta}>Discount</Text>
-                  <Text style={type.price}>-{formatRwf(preview.discountTotal)}</Text>
+                  <Text style={type.meta}>Subtotal</Text>
+                  <Text style={type.price}>{formatRwf(preview.listSubtotal)}</Text>
                 </View>
-              ) : null}
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={type.total}>{formatRwf(preview.payableTotal)}</Text>
+                {preview.discountTotal > 0 ? (
+                  <View style={styles.totalRow}>
+                    <Text style={type.meta}>Discount</Text>
+                    <Text style={type.price}>-{formatRwf(preview.discountTotal)}</Text>
+                  </View>
+                ) : null}
+                <View style={styles.totalRow}>
+                  <Text style={type.heading}>Total</Text>
+                  <Text style={type.total}>{formatRwf(preview.payableTotal)}</Text>
+                </View>
+                <Text style={styles.previewNote}>
+                  Preview only — the server confirms the total, stock, and payment state.
+                </Text>
               </View>
-              <Text style={styles.previewNote}>
-                Preview only — the server confirms the total, stock, and payment state.
-              </Text>
-            </View>
-          }
-        />
-        <View style={styles.checkoutActions}>
-          <Text style={styles.payHeading}>Payment method</Text>
-          <PaymentMethodPicker value={method} onChange={setMethod} disabled={sale.isPending} />
-          {method === 'cash' ? (
-            <Text style={styles.flowNote}>Cash payment. Confirm sale to complete at the till.</Text>
-          ) : (
-            <Text style={styles.flowNote}>
-              MoMo payment. Record MoMo payment at the till. This does not approve a customer online
-              payment.
-            </Text>
-          )}
-          {sale.error ? <Text style={styles.error}>{sale.error.message}</Text> : null}
-          {sale.data?.success && lines.length === 0 ? (
-            <View style={styles.success}>
-              <Text style={styles.ok}>
-                Sale {sale.data.orderNumber}
-                {sale.data.totalAmount != null ? ` · ${formatRwf(sale.data.totalAmount)}` : ''}
-              </Text>
-                  <Text style={styles.ok}>
-                    {sale.data.paymentStatus === 'pending_review'
-                      ? 'Pending review'
-                      : sale.data.paymentStatus === 'paid'
-                        ? 'Paid'
-                        : sale.data.paymentStatus || (method === 'momo' ? 'Pending review' : 'Paid')}
-                  </Text>
-            </View>
-          ) : null}
-          <PrimaryButton
-            label={method === 'momo' ? 'Record MoMo payment' : 'Confirm sale'}
-            tone={method === 'momo' ? 'amber' : 'navy'}
-            disabled={lines.length === 0 || sale.isPending}
-            loading={sale.isPending}
-            onPress={() => sale.mutate({ paymentMethod: method, customerName: 'Walk-in customer' })}
+            }
           />
-          <Pressable
-            onPress={() => clear()}
-            disabled={sale.isPending}
-            accessibilityRole="button"
-            accessibilityLabel="Clear cart"
-            style={styles.clearHit}
-          >
-            <Text style={styles.clearLabel}>Clear cart</Text>
-          </Pressable>
-        </View>
-      </>
+          <View style={styles.checkoutActions}>
+            <Text style={type.heading}>Payment</Text>
+            <PaymentMethodPicker value={method} onChange={setMethod} disabled={sale.isPending} />
+            {method === 'cash' ? (
+              <Text style={styles.flowNote}>Cash payment. Confirm sale to complete at the till.</Text>
+            ) : (
+              <Text style={styles.flowNote}>
+                MoMo payment. Record MoMo payment at the till. This does not approve a customer
+                online payment.
+              </Text>
+            )}
+            {sale.error ? <Text style={styles.error}>{sale.error.message}</Text> : null}
+            {sale.data?.success && lines.length === 0 ? (
+              <View style={styles.success}>
+                <Text style={styles.ok}>
+                  Sale {sale.data.orderNumber}
+                  {sale.data.totalAmount != null ? ` · ${formatRwf(sale.data.totalAmount)}` : ''}
+                </Text>
+                <Text style={styles.ok}>
+                  {sale.data.paymentStatus === 'pending_review'
+                    ? 'Pending review'
+                    : sale.data.paymentStatus === 'paid'
+                      ? 'Paid'
+                      : sale.data.paymentStatus || (method === 'momo' ? 'Pending review' : 'Paid')}
+                </Text>
+              </View>
+            ) : null}
+            <PrimaryButton
+              label={method === 'momo' ? 'Record MoMo payment' : 'Confirm sale'}
+              tone={method === 'momo' ? 'amber' : 'navy'}
+              disabled={lines.length === 0 || sale.isPending}
+              loading={sale.isPending}
+              onPress={requestSale}
+            />
+            <Pressable
+              onPress={() => clear()}
+              disabled={sale.isPending}
+              accessibilityRole="button"
+              accessibilityLabel="Clear cart"
+              style={({ pressed }) => [styles.clearHit, pressed && styles.clearPressed]}
+            >
+              <Text style={styles.clearLabel}>Clear cart</Text>
+            </Pressable>
+          </View>
+        </>
       )}
     </View>
   )
@@ -291,58 +302,60 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   header: {
     paddingHorizontal: space.md,
-    paddingTop: space.sm,
-    paddingBottom: space.sm,
+    paddingTop: 6,
+    paddingBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: space.md,
     alignItems: 'flex-end',
   },
   headerCopy: { flex: 1 },
-  staff: { maxWidth: '42%', alignItems: 'flex-end' },
-  staffName: { fontSize: 13, fontWeight: '700', color: colors.navy },
-  live: { fontSize: 12, fontWeight: '600', color: colors.green },
-  searchBlock: { paddingHorizontal: space.md, paddingBottom: space.sm },
-  chips: { paddingLeft: space.md, paddingBottom: space.sm },
-  listWrap: { flex: 1 },
+  staff: { maxWidth: '44%', alignItems: 'flex-end' },
+  live: { ...type.status, color: colors.green },
+  searchBlock: { paddingHorizontal: space.md, paddingBottom: 8 },
+  chips: { paddingLeft: space.md, paddingBottom: 8 },
+  listWrap: { flex: 1, backgroundColor: colors.card },
   listFlex: { flex: 1 },
-  list: { paddingHorizontal: space.md, paddingBottom: 24, gap: 0 },
-  listWithBar: { paddingBottom: 96 },
-  checkoutList: { paddingHorizontal: space.md, paddingBottom: 24 },
+  list: { paddingBottom: 8 },
+  hairline: { height: StyleSheet.hairlineWidth, backgroundColor: colors.line, marginLeft: 70 },
+  checkoutList: { paddingBottom: 16 },
   checkoutActions: {
     paddingHorizontal: space.md,
     paddingTop: space.sm,
     paddingBottom: space.sm,
     gap: 8,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.line,
     backgroundColor: colors.bg,
   },
-  checkoutHead: { gap: 6, marginBottom: space.sm },
+  checkoutHead: {
+    paddingHorizontal: space.md,
+    gap: 2,
+    marginBottom: space.sm,
+  },
   back: { minHeight: 44, justifyContent: 'center' },
-  backLabel: { color: colors.navy, fontWeight: '700', fontSize: 15 },
-  emptyCart: { color: colors.muted, paddingVertical: 24 },
+  backLabel: { ...type.heading, color: colors.navy },
+  emptyCart: { ...type.meta, paddingHorizontal: space.md, paddingVertical: 24 },
   totals: {
-    backgroundColor: colors.card,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: space.md,
+    marginTop: space.md,
+    marginHorizontal: space.md,
+    paddingTop: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
     gap: 8,
   },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: colors.navy },
-  previewNote: { color: colors.muted, fontSize: 12, marginTop: 4 },
-  payHeading: { fontSize: 16, fontWeight: '700', color: colors.navy },
-  flowNote: { color: colors.slate, fontSize: 13, lineHeight: 18 },
+  previewNote: { ...type.sku, marginTop: 4 },
+  flowNote: { ...type.meta, color: colors.slate },
   error: { color: colors.red, fontSize: 14 },
   clearHit: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  clearLabel: { color: colors.navy, fontWeight: '700', fontSize: 15 },
+  clearPressed: { opacity: 0.7 },
+  clearLabel: { ...type.heading, color: colors.slate },
   success: {
     backgroundColor: colors.greenSoft,
     borderRadius: 12,
     padding: space.md,
     gap: 4,
   },
-  ok: { color: colors.green, fontWeight: '700' },
+  ok: { color: colors.green, fontWeight: '600' },
 })

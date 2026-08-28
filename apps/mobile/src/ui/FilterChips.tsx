@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, hitSlop, radius, space } from '@/src/theme'
+import { colors, control, radius, space, type } from '@/src/theme'
 
 export type FilterChip = {
   id: string
@@ -46,16 +46,16 @@ export function FilterChips({
 }
 
 const styles = StyleSheet.create({
-  row: { gap: 8, paddingRight: space.md },
+  row: { gap: 8, paddingRight: space.md, alignItems: 'center' },
   chip: {
-    minHeight: hitSlop,
+    minHeight: control.chipHeight,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     backgroundColor: colors.white,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.line,
   },
   chipOn: {
@@ -64,12 +64,12 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: colors.line,
   },
   dotOn: { backgroundColor: colors.amber },
-  label: { fontSize: 14, fontWeight: '600', color: colors.slate, maxWidth: 160 },
+  label: { ...type.heading, fontSize: 14, color: colors.slate, maxWidth: 180 },
   labelOn: { color: colors.white },
 })

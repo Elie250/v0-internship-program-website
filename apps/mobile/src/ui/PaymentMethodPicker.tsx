@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { colors, hitSlop, radius, space } from '@/src/theme'
+import { colors, control, radius, space, type } from '@/src/theme'
 
 export function PaymentMethodPicker({
   value,
@@ -17,8 +17,8 @@ export function PaymentMethodPicker({
         selected={value === 'cash'}
         disabled={disabled}
         icon="cash-outline"
-        title="Cash"
-        subtitle="Marked paid at the till"
+        title="CASH"
+        subtitle="Paid at the till"
         onPress={() => onChange('cash')}
       />
       <MethodCard
@@ -80,20 +80,20 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', gap: space.sm },
   card: {
     flex: 1,
-    minHeight: 96,
+    minHeight: 92,
     borderRadius: radius.md,
     borderWidth: 2,
     borderColor: colors.line,
     backgroundColor: colors.white,
-    padding: space.md,
-    gap: 6,
+    padding: space.sm,
+    gap: 4,
   },
   cardOn: {
     backgroundColor: colors.navy,
     borderColor: colors.navyDark,
   },
   pressed: { opacity: 0.9 },
-  disabled: { opacity: 0.5 },
+  disabled: { opacity: 0.45 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   emptyCheck: {
     width: 22,
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.line,
   },
-  title: { fontSize: 18, fontWeight: '800', color: colors.navy, minHeight: hitSlop / 2.4 },
+  title: { ...type.payment, minHeight: control.height / 2.4 },
   titleOn: { color: colors.white },
-  sub: { fontSize: 12, fontWeight: '500', color: colors.muted },
+  sub: { ...type.sku, color: colors.muted },
   subOn: { color: '#cbd5e1' },
 })

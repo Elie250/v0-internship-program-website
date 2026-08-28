@@ -3,7 +3,7 @@ import type { CartLine } from '@/src/features/pos/cart-store'
 import { previewUnitPrice } from '@/src/features/pos/pricing'
 import { formatRwf } from '@/src/format'
 import { QtyStepper } from '@/src/ui/QtyStepper'
-import { colors, radius, space, type } from '@/src/theme'
+import { colors, space, type } from '@/src/theme'
 
 export function CartLineRow({
   line,
@@ -20,13 +20,13 @@ export function CartLineRow({
   const lineTotal = unit * line.quantity
 
   return (
-    <View style={styles.card}>
+    <View style={styles.row}>
       <View style={styles.top}>
         <View style={styles.copy}>
           <Text style={type.productName} numberOfLines={2}>
             {line.name}
           </Text>
-          <Text style={type.meta}>
+          <Text style={type.sku}>
             {line.sellingUnitLabel} · {formatRwf(unit)}
           </Text>
         </View>
@@ -47,25 +47,25 @@ export function CartLineRow({
           decreaseLabel={`Decrease ${line.name}`}
           increaseLabel={`Increase ${line.name}`}
         />
-        <Text style={styles.lineTotal}>{formatRwf(lineTotal)}</Text>
+        <Text style={type.lineTotal}>{formatRwf(lineTotal)}</Text>
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
+  row: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: space.md,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
     gap: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
   },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   copy: { flex: 1, gap: 2, minWidth: 0 },
   remove: { minHeight: 44, justifyContent: 'center', paddingLeft: 8 },
-  removeLabel: { color: colors.red, fontWeight: '700', fontSize: 13 },
+  removeLabel: { color: colors.red, fontWeight: '600', fontSize: 13 },
   pressed: { opacity: 0.7 },
   bottom: {
     flexDirection: 'row',
@@ -73,5 +73,4 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.sm,
   },
-  lineTotal: { fontSize: 18, fontWeight: '800', color: colors.navy },
 })

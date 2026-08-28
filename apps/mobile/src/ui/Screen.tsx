@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native'
-import { colors, space } from '@/src/theme'
+import { colors, space, type } from '@/src/theme'
 
 export function Screen({
   children,
@@ -96,8 +96,8 @@ const styles = StyleSheet.create({
     padding: space.md,
   },
   error: { color: colors.red, fontSize: 15, lineHeight: 22 },
-  retry: { color: colors.navy, fontWeight: '800', fontSize: 15 },
+  retry: { ...type.heading },
   retryHit: { minHeight: 44, justifyContent: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.navy },
-  emptyBody: { fontSize: 14, color: colors.muted, textAlign: 'center', maxWidth: 280 },
+  emptyTitle: { ...type.heading, fontSize: 17 },
+  emptyBody: { ...type.meta, textAlign: 'center', maxWidth: 280 },
 })

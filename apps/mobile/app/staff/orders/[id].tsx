@@ -14,7 +14,6 @@ import { usePaymentReviewMutation } from '@/src/features/payments/hooks'
 import { canManageFulfillment, canReviewShopPayments, canViewProductCost } from '@/src/permissions'
 import { formatRwf, formatWhen } from '@/src/format'
 import { PrimaryButton } from '@/src/ui/Button'
-import { Card } from '@/src/ui/Card'
 import { ProofViewer } from '@/src/ui/ProofViewer'
 import { Screen, ScreenState } from '@/src/ui/Screen'
 import { StatusBadge } from '@/src/ui/StatusBadge'
@@ -57,67 +56,59 @@ function OrderDetailBody() {
       >
         {order ? (
           <>
-            <Card>
-              <Text style={styles.number}>{order.orderNumber || 'Order'}</Text>
+            <View style={styles.hero}>
+              <Text style={type.orderRef}>{order.orderNumber || 'Order'}</Text>
               <Text style={type.meta}>{formatWhen(order.orderDate || order.createdAt)}</Text>
-              <StatusBadge
-                label={paymentLabel(order.paymentStatus)}
-                tone={pending ? 'amber' : paid ? 'green' : 'slate'}
-              />
-              <Text style={styles.meta}>{fulfillmentLabel(order.status)}</Text>
-            </Card>
+              <View style={styles.heroRow}>
+                <StatusBadge
+                  label={paymentLabel(order.paymentStatus)}
+                  tone={pending ? 'amber' : paid ? 'green' : 'slate'}
+                />
+                <Text style={type.sku}>{fulfillmentLabel(order.status)}</Text>
+              </View>
+              <Text style={type.total}>{formatRwf(order.totalAmount)}</Text>
+            </View>
 
-            <Card>
-              <Text style={styles.heading}>Customer</Text>
-              <Text style={styles.value}>{order.customerName || '—'}</Text>
-              <Text style={styles.meta}>{order.customerPhone || 'No phone'}</Text>
-              {order.customerEmail ? <Text style={styles.meta}>{order.customerEmail}</Text> : null}
-            </Card>
+            <Text style={styles.section}>Customer</Text>
+            <Text style={styles.value}>{order.customerName || '—'}</Text>
+            <Text style={type.meta}>{order.customerPhone || 'No phone'}</Text>
+            {order.customerEmail ? <Text style={type.meta}>{order.customerEmail}</Text> : null}
 
-            <Card>
-              <Text style={styles.heading}>Items</Text>
-              {order.items?.map((line) => (
-                <View key={line.id} style={styles.line}>
-                  <Text style={styles.value}>{line.productName}</Text>
-                  <Text style={styles.meta}>
-                    {line.quantity} × {line.sellingUnit || 'unit'} · {formatRwf(line.unitPrice)}
-                    {showCost && line.unitCost != null ? ` · cost ${formatRwf(line.unitCost)}` : ''}
-                  </Text>
-                  <Text style={styles.amount}>{formatRwf(line.lineTotal)}</Text>
-                </View>
-              ))}
-              <Text style={styles.total}>Total {formatRwf(order.totalAmount)}</Text>
-            </Card>
-
-            <Card>
-              <Text style={styles.heading}>Payment</Text>
-              <Text style={styles.value}>
-                {order.paymentMethod === 'momo'
-                  ? order.channel === 'pos'
-                    ? 'In-person MoMo (POS)'
-                    : 'Customer online MoMo'
-                  : order.paymentMethod === 'cash'
-                    ? 'Cash'
-                    : order.paymentMethod || '—'}
-              </Text>
-              <Text style={styles.meta}>
-                {paymentLabel(order.paymentStatus)}
-              </Text>
-              <Text style={styles.meta}>
-                Reference {order.payment?.referenceNumber || '—'}
-              </Text>
-              <Text style={styles.meta}>Submitted {formatWhen(order.payment?.submittedAt)}</Text>
-              {order.payment?.reviewedBy || order.payment?.reviewedAt ? (
-                <Text style={styles.meta}>
-                  Reviewed by {order.payment.reviewedBy || '—'} · {formatWhen(order.payment.reviewedAt)}
+            <Text style={styles.section}>Items</Text>
+            {order.items?.map((line) => (
+              <View key={line.id} style={styles.line}>
+                <Text style={type.productName}>{line.productName}</Text>
+                <Text style={type.sku}>
+                  {line.quantity} × {line.sellingUnit || 'unit'} · {formatRwf(line.unitPrice)}
+                  {showCost && line.unitCost != null ? ` · cost ${formatRwf(line.unitCost)}` : ''}
                 </Text>
-              ) : null}
-              <ProofViewer url={order.payment?.proofUrl} />
-            </Card>
+                <Text style={type.lineTotal}>{formatRwf(line.lineTotal)}</Text>
+              </View>
+            ))}
+
+            <Text style={styles.section}>Payment</Text>
+            <Text style={styles.value}>
+              {order.paymentMethod === 'momo'
+                ? order.channel === 'pos'
+                  ? 'In-person MoMo (POS)'
+                  : 'Customer online MoMo'
+                : order.paymentMethod === 'cash'
+                  ? 'Cash'
+                  : order.paymentMethod || '—'}
+            </Text>
+            <Text style={type.meta}>{paymentLabel(order.paymentStatus)}</Text>
+            <Text style={type.meta}>Reference {order.payment?.referenceNumber || '—'}</Text>
+            <Text style={type.meta}>Submitted {formatWhen(order.payment?.submittedAt)}</Text>
+            {order.payment?.reviewedBy || order.payment?.reviewedAt ? (
+              <Text style={type.meta}>
+                Reviewed by {order.payment.reviewedBy || '—'} · {formatWhen(order.payment.reviewedAt)}
+              </Text>
+            ) : null}
+            <ProofViewer url={order.payment?.proofUrl} />
 
             {canReview && pending && isOnlineOrder ? (
-              <Card>
-                <Text style={styles.heading}>MoMo payment needs review</Text>
+              <View style={styles.reviewBox}>
+                <Text style={type.heading}>MoMo payment needs review</Text>
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
@@ -138,12 +129,12 @@ function OrderDetailBody() {
                   loading={review.isPending && review.variables?.decision === 'reject'}
                   onPress={() => review.mutate({ decision: 'reject', adminNotes: notes || undefined })}
                 />
-              </Card>
+              </View>
             ) : null}
 
             {canFulfill && paid ? (
-              <Card>
-                <Text style={styles.heading}>Fulfillment</Text>
+              <View style={styles.fulfillBox}>
+                <Text style={type.heading}>Fulfillment</Text>
                 <View style={styles.statusRow}>
                   {FULFILLMENT_STATUSES.map((status) => (
                     <Pressable
@@ -166,7 +157,7 @@ function OrderDetailBody() {
                   loading={fulfill.isPending}
                   onPress={() => fulfill.mutate(nextStatus)}
                 />
-              </Card>
+              </View>
             ) : null}
           </>
         ) : null}
@@ -176,13 +167,16 @@ function OrderDetailBody() {
 }
 
 const styles = StyleSheet.create({
-  number: { fontSize: 22, fontWeight: '800', color: colors.navy },
-  heading: { fontSize: 15, fontWeight: '700', color: colors.navy },
-  value: { fontSize: 16, fontWeight: '600', color: colors.ink },
-  meta: { color: colors.muted, fontSize: 14 },
-  line: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  amount: { fontWeight: '800', color: colors.navy, marginTop: 4 },
-  total: { marginTop: 8, fontSize: 22, fontWeight: '800', color: colors.navy },
+  hero: { gap: 6, marginBottom: 8 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  section: { ...type.heading, marginTop: 18, marginBottom: 4 },
+  value: type.productName,
+  line: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+    gap: 2,
+  },
   notes: {
     minHeight: 80,
     borderWidth: 1,
@@ -192,8 +186,11 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     color: colors.navy,
     fontSize: 16,
+    backgroundColor: colors.white,
   },
   error: { color: colors.red },
+  reviewBox: { gap: 10, marginTop: 16 },
+  fulfillBox: { gap: 10, marginTop: 16 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 12,
@@ -202,10 +199,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.pill,
     backgroundColor: colors.white,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.line,
   },
   chipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-  chipLabel: { color: colors.slate, fontWeight: '700', fontSize: 13 },
+  chipLabel: { ...type.status, color: colors.slate },
   chipLabelOn: { color: colors.white },
 })
