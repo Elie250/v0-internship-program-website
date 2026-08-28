@@ -2,20 +2,17 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, control, space, type } from '@/src/theme'
 
-/**
- * Search now. Camera scan is not implemented — the scan control stays a placeholder.
- */
 export function ProductSearchField({
   value,
   onChange,
   onSubmit,
-  onBarcodePlaceholder,
+  onScan,
   placeholder = 'Search products or SKU',
 }: {
   value: string
   onChange: (value: string) => void
   onSubmit: () => void
-  onBarcodePlaceholder?: () => void
+  onScan?: () => void
   placeholder?: string
 }) {
   return (
@@ -35,11 +32,11 @@ export function ProductSearchField({
           style={styles.input}
         />
       </View>
-      {onBarcodePlaceholder ? (
+      {onScan ? (
         <Pressable
-          onPress={onBarcodePlaceholder}
+          onPress={onScan}
           accessibilityRole="button"
-          accessibilityLabel="Scan barcode. Camera scanning is not available yet."
+          accessibilityLabel="Scan barcode"
           style={({ pressed }) => [styles.scan, pressed && styles.pressed]}
         >
           <Ionicons name="barcode-outline" size={20} color={colors.slate} />

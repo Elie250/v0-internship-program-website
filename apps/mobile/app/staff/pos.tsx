@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Alert,
   BackHandler,
   FlatList,
   Keyboard,
@@ -9,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { useProductLookup, useCreatePosSale } from '@/src/features/pos/hooks'
@@ -148,12 +148,7 @@ function PosBody() {
                 setBarcode(undefined)
                 setSubmitted(q.trim())
               }}
-              onBarcodePlaceholder={() => {
-                Alert.alert(
-                  'Scan',
-                  'Camera scanning is not available yet. Search by SKU or name for now.'
-                )
-              }}
+              onScan={() => router.push('/staff/scan')}
             />
           </View>
           <View style={styles.chips}>

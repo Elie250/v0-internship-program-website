@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { canSeeStaffNavItem, STAFF_NAV_ITEMS } from '@/src/permissions'
 import { colors } from '@/src/theme'
+import { makeStaffTabButton } from '@/src/ui/StaffTabButton'
 
 function tabVisible(key: 'pos' | 'orders', permissions: string[] | undefined) {
   const item = STAFF_NAV_ITEMS.find((entry) => entry.key === key)
@@ -38,9 +39,10 @@ export default function StaffLayout() {
           paddingTop: 6,
           paddingBottom: Math.max(tabPad, 6),
           borderTopColor: colors.line,
+          overflow: 'visible',
         },
         tabBarLabelStyle: { fontWeight: '600', fontSize: 11, marginBottom: 2 },
-        tabBarItemStyle: { minHeight: 48 },
+        tabBarItemStyle: { minHeight: 48, paddingVertical: 0 },
       }}
     >
       <Tabs.Screen
@@ -49,6 +51,8 @@ export default function StaffLayout() {
           title: 'POS',
           headerShown: false,
           href: showPos ? undefined : null,
+          tabBarAccessibilityLabel: 'POS',
+          tabBarButton: makeStaffTabButton('POS'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart" color={color} size={size} />
           ),
@@ -60,6 +64,8 @@ export default function StaffLayout() {
           title: 'Orders',
           href: showOrders ? undefined : null,
           headerShown: false,
+          tabBarAccessibilityLabel: 'Orders',
+          tabBarButton: makeStaffTabButton('Orders'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="receipt-outline" color={color} size={size} />
           ),
@@ -69,6 +75,8 @@ export default function StaffLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          tabBarAccessibilityLabel: 'Dashboard',
+          tabBarButton: makeStaffTabButton('Dashboard'),
           tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" color={color} size={size} />,
         }}
       />
@@ -77,9 +85,20 @@ export default function StaffLayout() {
         options={{
           title: 'More',
           headerShown: false,
+          tabBarAccessibilityLabel: 'More',
+          tabBarButton: makeStaffTabButton('More'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="ellipsis-horizontal" color={color} size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{
+          href: null,
+          title: 'Scan',
+          headerShown: false,
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen name="sales" options={{ href: null, title: 'Sales' }} />

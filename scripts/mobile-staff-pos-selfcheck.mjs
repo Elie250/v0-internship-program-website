@@ -8,7 +8,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, extname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const mobile = join(root, 'apps', 'mobile')
@@ -135,6 +135,7 @@ test('mobile app foundation files exist', () => {
     'app/staff/_layout.tsx',
     'app/staff/index.tsx',
     'app/staff/pos.tsx',
+    'app/staff/scan.tsx',
     'app/staff/orders/index.tsx',
     'app/staff/orders/[id].tsx',
     'app/staff/sales.tsx',
@@ -149,6 +150,10 @@ test('mobile app foundation files exist', () => {
     'src/features/devices/index.ts',
     'src/features/pos/cart-store.ts',
     'src/features/pos/pricing.ts',
+    'src/features/pos/barcode-lookup.ts',
+    'src/features/pos/barcode-match.ts',
+    'src/features/pos/barcode-permission.ts',
+    'src/ui/StaffTabButton.tsx',
     'src/ui/ProofViewer.tsx',
     'src/ui/RequireStaffNav.tsx',
     'src/api/errors.ts',
@@ -298,7 +303,7 @@ test('POS checkout sends product IDs and quantities only; preview is display-onl
   assert.match(cart, /productId: line\.productId/)
   assert.match(cart, /quantity: line\.quantity/)
   assert.match(pricing, /Display-only/)
-  assert.match(pos, /onBarcodePlaceholder|barcode/)
+  assert.match(pos, /\/staff\/scan/)
   assert.match(read('src/features/pos/hooks.ts'), /barcode/)
 })
 
@@ -437,8 +442,9 @@ test('POS retail layout uses search, cart checkout, and till MoMo copy', () => {
   const confirm = read('src/features/pos/confirm-sale.ts')
   assert.match(search, /Search products or SKU/)
   assert.match(search, /search-outline/)
-  assert.match(search, /Camera scanning is not available yet|not implemented/)
-  assert.match(pos, /onBarcodePlaceholder/)
+  assert.match(search, /accessibilityLabel="Scan barcode"/)
+  assert.match(pos, /router\.push\('\/staff\/scan'\)/)
+  assert.doesNotMatch(pos, /onBarcodePlaceholder|Camera scanning is not available yet/)
   assert.match(pos, /Record MoMo payment/)
   assert.match(pos, /Confirm sale/)
   assert.match(pos, /Pending review/)
@@ -458,5 +464,143 @@ test('POS retail layout uses search, cart checkout, and till MoMo copy', () => {
   assert.match(theme, /screenTitle/)
   assert.match(theme, /dockTotal/)
   assert.match(theme, /productName/)
+})
+
+test('bottom tabs expose TalkBack labels without growing the bar', () => {
+  const layout = read('app/staff/_layout.tsx')
+  const tabButton = read('src/ui/StaffTabButton.tsx')
+  assert.match(layout, /makeStaffTabButton\('POS'\)/)
+  assert.match(layout, /makeStaffTabButton\('Orders'\)/)
+  assert.match(layout, /makeStaffTabButton\('Dashboard'\)/)
+  assert.match(layout, /makeStaffTabButton\('More'\)/)
+  assert.match(tabButton, /accessibilityRole="tab"/)
+  assert.match(tabButton, /\$\{label\}, selected/)
+  assert.match(tabButton, /minHeight: 48/)
+  assert.match(tabButton, /aria-selected/)
+  assert.doesNotMatch(layout, /height: 80|height: 88|height: 96/)
+})
+
+test('barcode lookup uses the staff products API and never talks to Supabase', async () => {
+  const lookup = read('src/features/pos/barcode-lookup.ts')
+  const staff = read('src/api/staff.ts')
+  const scan = read('app/staff/scan.tsx')
+  const files = walk(mobile)
+    .filter((file) => file.endsWith('.ts') || file.endsWith('.tsx'))
+    .map((file) => readFileSync(file, 'utf8'))
+    .join('\n')
+  assert.match(lookup, /fetchProducts\(\{ barcode: code/)
+  assert.match(lookup, /No product found for this barcode\./)
+  assert.match(lookup, /Unable to find product\. Check your connection\./)
+  assert.match(staff, /\/api\/staff\/products/)
+  assert.match(scan, /lookupProductByBarcode/)
+  assert.doesNotMatch(files, /createClient|SUPABASE_SERVICE_ROLE|supabaseAdmin/)
+  assert.doesNotMatch(scan, /\/api\/admin\//)
+
+  const { pickBarcodeMatch } = await import(
+    pathToFileURL(join(mobile, 'src/features/pos/barcode-match.ts')).href
+  )
+  assert.equal(
+    pickBarcodeMatch([{ id: 'a', barcode: '123' }], '123')?.id,
+    'a'
+  )
+  assert.equal(pickBarcodeMatch([], '123'), null)
+  assert.equal(
+    pickBarcodeMatch([{ id: 'only', barcode: null }], '123')?.id,
+    'only'
+  )
+  assert.equal(
+    pickBarcodeMatch(
+      [
+        { id: 'a', barcode: '123' },
+        { id: 'b', barcode: '123' },
+      ],
+      '123'
+    ),
+    null
+  )
+  assert.equal(
+    pickBarcodeMatch(
+      [
+        { id: 'a', barcode: '111' },
+        { id: 'b', barcode: '222' },
+      ],
+      '123'
+    ),
+    null
+  )
+})
+
+test('camera permission is camera-only and does not re-prompt after permanent denial', async () => {
+  const app = JSON.parse(read('app.json'))
+  const pkg = JSON.parse(read('package.json'))
+  const scan = read('app/staff/scan.tsx')
+  const perm = read('src/features/pos/barcode-permission.ts')
+  const plugin = app.expo.plugins.find(
+    (entry) => Array.isArray(entry) && entry[0] === 'expo-camera'
+  )
+  assert.equal(pkg.dependencies['expo-camera'], '~17.0.10')
+  assert.ok(plugin)
+  assert.equal(plugin[1].cameraPermission, 'Allow camera access to scan products.')
+  assert.equal(plugin[1].recordAudioAndroid, false)
+  assert.equal(plugin[1].microphonePermission, false)
+  assert.deepEqual(app.expo.android.permissions, ['INTERNET'])
+  assert.doesNotMatch(JSON.stringify(app), /RECORD_AUDIO|ACCESS_FINE_LOCATION|READ_CONTACTS|BLUETOOTH/)
+  assert.match(scan, /shouldRequestCameraPermission/)
+  assert.match(scan, /CAMERA_PERMISSION_BLOCKED/)
+  assert.match(scan, /Return to POS/)
+  assert.match(perm, /Allow camera access to scan products\./)
+
+  const { cameraPermissionPhase, shouldRequestCameraPermission } = await import(
+    pathToFileURL(join(mobile, 'src/features/pos/barcode-permission.ts')).href
+  )
+  assert.equal(cameraPermissionPhase(null), 'loading')
+  assert.equal(cameraPermissionPhase({ granted: true, canAskAgain: true }), 'ready')
+  assert.equal(cameraPermissionPhase({ granted: false, canAskAgain: true }), 'prompt')
+  assert.equal(cameraPermissionPhase({ granted: false, canAskAgain: false }), 'blocked')
+  assert.equal(shouldRequestCameraPermission({ granted: false, canAskAgain: false }), false)
+  assert.equal(shouldRequestCameraPermission({ granted: false, canAskAgain: true }), true)
+})
+
+test('scan flow locks while looking up and does not add out-of-stock products', () => {
+  const scan = read('app/staff/scan.tsx')
+  const pos = read('app/staff/pos.tsx')
+  assert.match(scan, /from 'expo-camera'/)
+  assert.match(scan, /CameraView/)
+  assert.match(scan, /onBarcodeScanned=\{processing \? undefined/)
+  assert.match(scan, /processingRef/)
+  assert.match(scan, /stayOnScanner = false/)
+  assert.match(scan, /addProduct\(lookup\.product\)/)
+  assert.match(scan, /ean13/)
+  assert.match(scan, /code128/)
+  assert.match(scan, /upc_a/)
+  assert.match(scan, /setFound\(lookup\.product\)/)
+  assert.match(scan, /RequireStaffNav navKey="pos"/)
+  assert.match(pos, /router\.push\('\/staff\/scan'\)/)
+  assert.doesNotMatch(scan, /reviewShopPayment|\/api\/staff\/payments\/review/)
+})
+
+test('POS till sales stay on the POS sales API and never use payment review', () => {
+  const pos = read('app/staff/pos.tsx')
+  const hooks = read('src/features/pos/hooks.ts')
+  const confirm = read('src/features/pos/confirm-sale.ts')
+  const order = read('app/staff/orders/[id].tsx')
+  const permissions = read('src/permissions.ts')
+  assert.match(hooks, /createPosSale/)
+  assert.match(hooks, /inflightCheckout/)
+  assert.doesNotMatch(pos, /reviewShopPayment|\/api\/staff\/payments\/review/)
+  assert.doesNotMatch(hooks, /reviewShopPayment|\/api\/staff\/payments\/review/)
+  assert.match(confirm, /Record MoMo payment/)
+  assert.match(confirm, /does not approve an online customer payment/)
+  assert.match(order, /canReviewShopPayments/)
+  assert.match(order, /isOnlineOrder/)
+  assert.match(order, /channel === 'online'/)
+  assert.doesNotMatch(permissions, /payments:approve/)
+})
+
+test('cart quantity below 1 removes the line and drops the checkout attempt', () => {
+  const cart = read('src/features/pos/cart-store.ts')
+  assert.match(cart, /quantity < 1/)
+  assert.match(cart, /dropCheckoutAttempt/)
+  assert.match(cart, /checkoutFingerprint === fingerprint/)
 })
 

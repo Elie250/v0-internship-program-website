@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.2.1",
     "@tanstack/react-query": "^5.85.5",
     "expo": "~54.0.0",
+    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.14",
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.12",
