@@ -45,6 +45,7 @@ function OrdersListBody() {
         empty={pendingItems.length === 0}
         emptyTitle="No payments waiting"
         emptyBody="New online MoMo orders will appear here."
+        onRetry={() => void pending.refetch()}
       >
         {pendingItems.map((order) => (
           <OrderRow
@@ -67,6 +68,7 @@ function OrdersListBody() {
         error={rest.error?.message}
         empty={otherItems.length === 0}
         emptyTitle="No other online orders"
+        onRetry={() => void rest.refetch()}
       >
         {otherItems.map((order) => (
           <OrderRow

@@ -34,32 +34,41 @@ export default function StaffDashboard() {
       <ScreenState
         loading={canDashboard && dashboard.isLoading}
         error={dashboard.error ? dashboard.error.message : null}
+        onRetry={canDashboard ? () => void dashboard.refetch() : undefined}
       >
         <View style={styles.grid}>
           <Card>
             <Metric
               label="Today's sales"
-              value={canDashboard ? formatRwf(dashboard.data?.todaySales ?? 0) : '—'}
+              value={canDashboard && dashboard.data ? formatRwf(dashboard.data.todaySales) : '—'}
               hint={dashboard.data?.businessDate}
             />
           </Card>
           <Card>
             <Metric
               label="Pending orders"
-              value={canDashboard ? String(dashboard.data?.pendingOrders ?? 0) : '—'}
+              value={canDashboard && dashboard.data ? String(dashboard.data.pendingOrders) : '—'}
             />
           </Card>
           <Card>
             <Metric
               label="Pending MoMo reviews"
-              value={canOrders ? (momo.isLoading ? '—' : String(momo.data ?? 0)) : '—'}
-              hint={canOrders ? 'Online payments awaiting confirmation' : 'Orders permission required'}
+              value={
+                canOrders && momo.data != null && !momo.error ? String(momo.data) : '—'
+              }
+              hint={
+                !canOrders
+                  ? 'Orders permission required'
+                  : momo.error
+                    ? momo.error.message
+                    : 'Online customer payments awaiting confirmation'
+              }
             />
           </Card>
           <Card>
             <Metric
               label="Low stock"
-              value={canDashboard ? String(dashboard.data?.lowStockItems ?? 0) : '—'}
+              value={canDashboard && dashboard.data ? String(dashboard.data.lowStockItems) : '—'}
             />
           </Card>
         </View>

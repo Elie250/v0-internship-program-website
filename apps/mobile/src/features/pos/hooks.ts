@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createPosSale, fetchProducts } from '@/src/api/staff'
-import { cartCheckoutItems, usePosCart } from '@/src/features/pos/cart-store'
+import type { PosSaleResult } from '@/src/api/types'
+import {
+  cartCheckoutItems,
+  checkoutFingerprint,
+  usePosCart,
+} from '@/src/features/pos/cart-store'
 
 export type ProductLookupInput = {
   q?: string
@@ -21,6 +26,8 @@ export function useProductLookup(input: ProductLookupInput, enabled: boolean) {
   })
 }
 
+let inflightCheckout: { fingerprint: string; promise: Promise<PosSaleResult> } | null = null
+
 export function useCreatePosSale() {
   const client = useQueryClient()
   return useMutation({
@@ -30,20 +37,30 @@ export function useCreatePosSale() {
       customerPhone?: string | null
     }) => {
       const lines = usePosCart.getState().lines
-      const idempotencyKey = `pos-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-      return createPosSale({
-        items: cartCheckoutItems(lines),
+      const items = cartCheckoutItems(lines)
+      const fingerprint = checkoutFingerprint(items, input.paymentMethod)
+      if (inflightCheckout && inflightCheckout.fingerprint === fingerprint) {
+        return inflightCheckout.promise
+      }
+      const idempotencyKey = usePosCart.getState().getOrCreateCheckoutKey(fingerprint)
+      const promise = createPosSale({
+        items,
         paymentMethod: input.paymentMethod,
         customerName: input.customerName,
         customerPhone: input.customerPhone,
         idempotencyKey,
+      }).finally(() => {
+        if (inflightCheckout?.promise === promise) inflightCheckout = null
       })
+      inflightCheckout = { fingerprint, promise }
+      return promise
     },
     onSuccess: async (result) => {
       if (result.success) {
         usePosCart.getState().clear()
         await client.invalidateQueries({ queryKey: ['staff', 'orders'] })
         await client.invalidateQueries({ queryKey: ['staff', 'dashboard'] })
+        await client.invalidateQueries({ queryKey: ['staff', 'inventory'] })
       }
     },
   })

@@ -87,23 +87,42 @@ function PosBody() {
       )}
 
       <Card>
-        <Text style={styles.meta}>Preview only — the server confirms the total.</Text>
+        <Text style={styles.meta}>Preview only — the server confirms the total, stock, and payment state.</Text>
         <Text style={styles.amount}>{formatRwf(preview.payableTotal)}</Text>
         <View style={styles.qtyRow}>
-          <Pressable onPress={() => setMethod('cash')} style={[styles.chip, method === 'cash' && styles.chipOn]}>
+          <Pressable
+            onPress={() => setMethod('cash')}
+            disabled={sale.isPending}
+            style={[styles.chip, method === 'cash' && styles.chipOn]}
+          >
             <Text style={[styles.chipLabel, method === 'cash' && styles.chipLabelOn]}>Cash</Text>
           </Pressable>
-          <Pressable onPress={() => setMethod('momo')} style={[styles.chip, method === 'momo' && styles.chipOn]}>
+          <Pressable
+            onPress={() => setMethod('momo')}
+            disabled={sale.isPending}
+            style={[styles.chip, method === 'momo' && styles.chipOn]}
+          >
             <Text style={[styles.chipLabel, method === 'momo' && styles.chipLabelOn]}>MoMo</Text>
           </Pressable>
         </View>
+        {method === 'momo' ? (
+          <Text style={styles.meta}>
+            In-person MoMo at the till. This does not approve a customer online payment.
+          </Text>
+        ) : (
+          <Text style={styles.meta}>Cash is marked paid by the server when the sale succeeds.</Text>
+        )}
         {sale.error ? <Text style={styles.error}>{sale.error.message}</Text> : null}
-        {sale.data?.success ? (
-          <Text style={styles.ok}>Sale {sale.data.orderNumber} · {formatRwf(sale.data.totalAmount ?? 0)}</Text>
+        {sale.data?.success && lines.length === 0 ? (
+          <Text style={styles.ok}>
+            Sale {sale.data.orderNumber}
+            {sale.data.totalAmount != null ? ` · ${formatRwf(sale.data.totalAmount)}` : ''}
+            {sale.data.paymentStatus ? ` · ${sale.data.paymentStatus}` : ''}
+          </Text>
         ) : null}
         <PrimaryButton
           label="Confirm sale"
-          disabled={lines.length === 0}
+          disabled={lines.length === 0 || sale.isPending}
           loading={sale.isPending}
           onPress={() => sale.mutate({ paymentMethod: method, customerName: 'Walk-in customer' })}
         />

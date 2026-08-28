@@ -1,15 +1,21 @@
-const DEFAULT_BASE = 'https://shop.energyandlogics.com'
+import Constants from 'expo-constants'
+import { PRODUCTION_API_BASE_URL, sanitizeApiErrorMessage, type ApiErrorCode } from '@/src/api/errors'
+
+export { PRODUCTION_API_BASE_URL }
 
 export function getApiBaseUrl(): string {
-  const raw = process.env.EXPO_PUBLIC_API_BASE_URL?.trim() || DEFAULT_BASE
+  const env = process.env.EXPO_PUBLIC_API_BASE_URL?.trim()
+  const extra = Constants.expoConfig?.extra?.apiBaseUrl
+  const fromExtra = typeof extra === 'string' ? extra.trim() : ''
+  const raw = env || fromExtra || PRODUCTION_API_BASE_URL
   return raw.replace(/\/$/, '')
 }
 
 export class ApiError extends Error {
   readonly status: number
-  readonly code: 'unauthorized' | 'forbidden' | 'network' | 'http'
+  readonly code: ApiErrorCode
 
-  constructor(message: string, status: number, code: ApiError['code'] = 'http') {
+  constructor(message: string, status: number, code: ApiErrorCode = 'http') {
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -22,6 +28,7 @@ export type UnauthorizedHandler = () => void | Promise<void>
 
 let tokenProvider: TokenProvider = () => null
 let onUnauthorized: UnauthorizedHandler | null = null
+let expireInFlight: Promise<void> | null = null
 
 export function configureApiClient(options: {
   getToken: TokenProvider
@@ -31,6 +38,20 @@ export function configureApiClient(options: {
   onUnauthorized = options.onUnauthorized ?? null
 }
 
+async function notifyUnauthorized() {
+  if (!onUnauthorized) return
+  if (expireInFlight) {
+    await expireInFlight
+    return
+  }
+  expireInFlight = Promise.resolve(onUnauthorized()).then(() => undefined)
+  try {
+    await expireInFlight
+  } finally {
+    expireInFlight = null
+  }
+}
+
 function shouldRetry(status: number, attempt: number, method: string): boolean {
   if (attempt >= 2) return false
   if (method !== 'GET') return false
@@ -38,38 +59,86 @@ function shouldRetry(status: number, attempt: number, method: string): boolean {
   return status === 0 || status >= 500
 }
 
+function codeForStatus(status: number): ApiErrorCode {
+  if (status === 401) return 'unauthorized'
+  if (status === 403) return 'forbidden'
+  if (status === 404) return 'not_found'
+  return 'http'
+}
+
+function abortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === 'AbortError') ||
+    (typeof error === 'object' && error != null && 'name' in error && error.name === 'AbortError')
+  )
+}
+
+export type StaffRequestOptions = RequestInit & {
+  /** Login must not expire an empty session or rewrite the error as "session expired". */
+  expireOn401?: boolean
+  isLogin?: boolean
+  timeoutMs?: number
+}
+
 export async function staffRequest<T>(
   path: string,
-  init: RequestInit = {}
+  init: StaffRequestOptions = {}
 ): Promise<T> {
-  const method = (init.method || 'GET').toUpperCase()
+  const { expireOn401 = true, isLogin = false, timeoutMs = 25_000, ...requestInit } = init
+  const method = (requestInit.method || 'GET').toUpperCase()
   let attempt = 0
 
   while (true) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
       const token = await tokenProvider()
-      const headers = new Headers(init.headers)
+      const headers = new Headers(requestInit.headers)
       headers.set('Accept', 'application/json')
-      if (init.body && !headers.has('Content-Type')) {
+      if (requestInit.body && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json')
       }
       if (token) headers.set('Authorization', `Bearer ${token}`)
 
       const response = await fetch(`${getApiBaseUrl()}${path}`, {
-        ...init,
+        ...requestInit,
         method,
         headers,
+        signal: controller.signal,
       })
 
-      const data = (await response.json().catch(() => ({}))) as {
-        error?: string
-        message?: string
+      const text = await response.text()
+      let data: { error?: string; message?: string } = {}
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text) as { error?: string; message?: string }
+        } catch {
+          if (response.ok) {
+            throw new ApiError(
+              sanitizeApiErrorMessage({ status: 500, code: 'http' }),
+              500,
+              'http'
+            )
+          }
+        }
       }
 
+      const serverMessage =
+        typeof data.error === 'string'
+          ? data.error
+          : typeof data.message === 'string'
+            ? data.message
+            : undefined
+
       if (response.status === 401) {
-        await onUnauthorized?.()
+        if (expireOn401 && !isLogin) await notifyUnauthorized()
         throw new ApiError(
-          typeof data.error === 'string' ? data.error : 'Session expired. Sign in again.',
+          sanitizeApiErrorMessage({
+            status: 401,
+            code: 'unauthorized',
+            serverMessage,
+            isLogin,
+          }),
           401,
           'unauthorized'
         )
@@ -80,25 +149,48 @@ export async function staffRequest<T>(
           attempt += 1
           continue
         }
+        const code = codeForStatus(response.status)
         throw new ApiError(
-          typeof data.error === 'string'
-            ? data.error
-            : typeof data.message === 'string'
-              ? data.message
-              : 'Request failed',
+          sanitizeApiErrorMessage({
+            status: response.status,
+            code,
+            serverMessage,
+            isLogin,
+          }),
           response.status,
-          response.status === 403 ? 'forbidden' : 'http'
+          code
         )
+      }
+
+      if (!text.trim()) {
+        throw new ApiError(sanitizeApiErrorMessage({ status: 500, code: 'http' }), 500, 'http')
       }
 
       return data as T
     } catch (error) {
       if (error instanceof ApiError) throw error
+      if (abortError(error)) {
+        if (shouldRetry(0, attempt, method)) {
+          attempt += 1
+          continue
+        }
+        throw new ApiError(
+          sanitizeApiErrorMessage({ status: 0, code: 'timeout' }),
+          0,
+          'timeout'
+        )
+      }
       if (shouldRetry(0, attempt, method)) {
         attempt += 1
         continue
       }
-      throw new ApiError('Network error. Check your connection and try again.', 0, 'network')
+      throw new ApiError(
+        sanitizeApiErrorMessage({ status: 0, code: 'network' }),
+        0,
+        'network'
+      )
+    } finally {
+      clearTimeout(timer)
     }
   }
 }

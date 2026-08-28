@@ -103,6 +103,13 @@ function cartCheckoutItems(lines) {
   return lines.map((line) => ({ productId: line.productId, quantity: line.quantity }))
 }
 
+function checkoutFingerprint(items, paymentMethod) {
+  return JSON.stringify({
+    items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+    paymentMethod,
+  })
+}
+
 function walk(dir, acc = []) {
   for (const name of readdirSync(dir)) {
     if (name === 'node_modules' || name === '.expo' || name === 'dist') continue
@@ -144,6 +151,9 @@ test('mobile app foundation files exist', () => {
     'src/features/pos/pricing.ts',
     'src/ui/ProofViewer.tsx',
     'src/ui/RequireStaffNav.tsx',
+    'src/api/errors.ts',
+    'src/api/query-client.ts',
+    'src/features/pos/idempotency.ts',
   ]) {
     assert.ok(existsSync(join(mobile, rel)), rel)
   }
@@ -327,6 +337,7 @@ test('payment proof is remote-only with loading / fail / empty states', () => {
   assert.match(proof, /No payment proof/)
   assert.match(proof, /could not be loaded/)
   assert.doesNotMatch(proof, /FileSystem|downloadAsync|MediaLibrary/)
+  assert.match(proof, /cachePolicy/)
 })
 
 test('EAS Android package is prepared but not published', () => {
@@ -336,4 +347,82 @@ test('EAS Android package is prepared but not published', () => {
   assert.ok(eas.build.preview)
   assert.ok(eas.build.production)
   assert.equal(app.expo.extra?.eas?.projectId, undefined)
+})
+
+test('production API host is the shop domain and is overridable', () => {
+  const client = read('src/api/client.ts')
+  const errors = read('src/api/errors.ts')
+  const envExample = read('.env.example')
+  const app = JSON.parse(read('app.json'))
+  assert.match(errors, /https:\/\/shop\.energyandlogics\.com/)
+  assert.match(client, /EXPO_PUBLIC_API_BASE_URL/)
+  assert.match(envExample, /https:\/\/shop\.energyandlogics\.com/)
+  assert.equal(app.expo.extra.apiBaseUrl, 'https://shop.energyandlogics.com')
+})
+
+test('Android never calls the admin payment-review endpoint', () => {
+  const files = walk(mobile)
+    .filter((file) => file.endsWith('.ts') || file.endsWith('.tsx'))
+    .map((file) => readFileSync(file, 'utf8'))
+    .join('\n')
+  assert.doesNotMatch(files, /\/api\/admin\/payments\/review/)
+  assert.match(read('src/api/staff.ts'), /\/api\/staff\/payments\/review/)
+})
+
+test('401 expiry clears SecureStore and sensitive query cache; login 401 does not', () => {
+  const session = read('src/auth/session-store.ts')
+  const staff = read('src/api/staff.ts')
+  const client = read('src/api/client.ts')
+  const query = read('src/api/query-client.ts')
+  assert.match(session, /clearSensitiveStaffCache/)
+  assert.match(session, /wipeLocalSession|clearStaffToken/)
+  assert.match(query, /removeQueries|queryKey: \['staff'\]/)
+  assert.match(staff, /expireOn401:\s*false/)
+  assert.match(staff, /isLogin:\s*true/)
+  assert.match(client, /timeoutMs/)
+  assert.match(client, /notifyUnauthorized/)
+  assert.match(session, /restoreError/)
+})
+
+test('POS reuses one idempotency key per checkout attempt', () => {
+  const hooks = read('src/features/pos/hooks.ts')
+  const cart = read('src/features/pos/cart-store.ts')
+  const idem = read('src/features/pos/idempotency.ts')
+  assert.match(hooks, /getOrCreateCheckoutKey/)
+  assert.match(hooks, /inflightCheckout/)
+  assert.match(cart, /checkoutKey/)
+  assert.match(idem, /checkoutFingerprint/)
+  assert.match(read('src/api/staff.ts'), /Idempotency-Key/)
+  assert.doesNotMatch(hooks, /pos-\$\{Date\.now/)
+
+  const fingerprintA = checkoutFingerprint(
+    [{ productId: 'p1', quantity: 2 }],
+    'cash'
+  )
+  const fingerprintB = checkoutFingerprint(
+    [{ productId: 'p1', quantity: 2 }],
+    'cash'
+  )
+  const fingerprintC = checkoutFingerprint(
+    [{ productId: 'p1', quantity: 2 }],
+    'momo'
+  )
+  assert.equal(fingerprintA, fingerprintB)
+  assert.notEqual(fingerprintA, fingerprintC)
+})
+
+test('user-facing errors are sanitized', () => {
+  const errors = read('src/api/errors.ts')
+  assert.match(errors, /Unable to connect\. Check your internet connection\./)
+  assert.match(errors, /You don't have permission to perform this action\./)
+  assert.match(errors, /Your session has expired\. Please sign in again\./)
+  assert.match(errors, /Something went wrong\. Please try again\./)
+  assert.match(errors, /LOOKS_INTERNAL/)
+})
+
+test('customer mode remains reserved and device control remains a stub', () => {
+  const index = read('app/index.tsx')
+  const devices = read('src/features/devices/index.ts')
+  assert.match(index, /customer home/i)
+  assert.match(devices, /DEVICE_CONTROL_ENABLED = false/)
 })

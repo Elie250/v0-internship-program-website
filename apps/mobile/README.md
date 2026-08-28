@@ -35,7 +35,9 @@ pnpm start
 
 `--ignore-workspace` keeps this install inside `apps/mobile` so it cannot attach to a parent `package.json`.
 
-Point `EXPO_PUBLIC_API_BASE_URL` at the shop host (production default) or your machine on the LAN when developing against `pnpm dev`. Android emulator: `http://10.0.2.2:3000`.
+Point `EXPO_PUBLIC_API_BASE_URL` at the shop host (production default is `https://shop.energyandlogics.com`) or your machine on the LAN when developing against `pnpm dev`. Android emulator: `http://10.0.2.2:3000`.
+
+Physical-device testing was not performed in Phase 1E.5-C. Use Expo Go on a phone on the same network after setting the API base URL.
 
 ## Scripts
 

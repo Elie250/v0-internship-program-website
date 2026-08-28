@@ -99,7 +99,7 @@ export default function LoginScreen() {
               router.replace('/staff')
             } catch (error) {
               const message =
-                error instanceof ApiError ? error.message : 'Unable to sign in. Try again.'
+                error instanceof ApiError ? error.message : 'Unable to sign in. Check your email and password.'
               form.setError('root', { message })
             }
           })}

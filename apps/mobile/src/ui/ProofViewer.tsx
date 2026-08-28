@@ -40,6 +40,7 @@ export function ProofViewer({ url }: { url: string | null | undefined }) {
           source={{ uri: url }}
           style={styles.thumb}
           contentFit="contain"
+          cachePolicy="memory"
           onLoad={() => setLoaded(true)}
           onError={() => setFailed(true)}
         />
@@ -56,7 +57,7 @@ export function ProofViewer({ url }: { url: string | null | undefined }) {
             contentContainerStyle={styles.zoomBox}
             centerContent
           >
-            <Image source={{ uri: url }} style={styles.full} contentFit="contain" />
+            <Image source={{ uri: url }} style={styles.full} contentFit="contain" cachePolicy="memory" />
           </ScrollView>
         </View>
       </Modal>

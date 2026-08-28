@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { StaffProduct } from '@/src/api/types'
 import { previewCartTotals } from '@/src/features/pos/pricing'
+import { checkoutFingerprint, newCheckoutIdempotencyKey } from '@/src/features/pos/idempotency'
 
 export type CartLine = {
   productId: string
@@ -13,25 +14,36 @@ export type CartLine = {
 
 type CartState = {
   lines: CartLine[]
+  checkoutKey: string | null
+  checkoutFingerprint: string | null
   addProduct: (product: StaffProduct) => void
   setQuantity: (productId: string, quantity: number) => void
   remove: (productId: string) => void
   clear: () => void
+  getOrCreateCheckoutKey: (fingerprint: string) => string
 }
 
-export const usePosCart = create<CartState>((set) => ({
+function dropCheckoutAttempt() {
+  return { checkoutKey: null as string | null, checkoutFingerprint: null as string | null }
+}
+
+export const usePosCart = create<CartState>((set, get) => ({
   lines: [],
+  checkoutKey: null,
+  checkoutFingerprint: null,
   addProduct: (product) =>
     set((state) => {
       const existing = state.lines.find((line) => line.productId === product.id)
       if (existing) {
         return {
+          ...dropCheckoutAttempt(),
           lines: state.lines.map((line) =>
             line.productId === product.id ? { ...line, quantity: line.quantity + 1 } : line
           ),
         }
       }
       return {
+        ...dropCheckoutAttempt(),
         lines: [
           ...state.lines,
           {
@@ -47,6 +59,7 @@ export const usePosCart = create<CartState>((set) => ({
     }),
   setQuantity: (productId, quantity) =>
     set((state) => ({
+      ...dropCheckoutAttempt(),
       lines:
         quantity < 1
           ? state.lines.filter((line) => line.productId !== productId)
@@ -55,8 +68,20 @@ export const usePosCart = create<CartState>((set) => ({
             ),
     })),
   remove: (productId) =>
-    set((state) => ({ lines: state.lines.filter((line) => line.productId !== productId) })),
-  clear: () => set({ lines: [] }),
+    set((state) => ({
+      ...dropCheckoutAttempt(),
+      lines: state.lines.filter((line) => line.productId !== productId),
+    })),
+  clear: () => set({ lines: [], ...dropCheckoutAttempt() }),
+  getOrCreateCheckoutKey: (fingerprint) => {
+    const current = get()
+    if (current.checkoutKey && current.checkoutFingerprint === fingerprint) {
+      return current.checkoutKey
+    }
+    const key = newCheckoutIdempotencyKey()
+    set({ checkoutKey: key, checkoutFingerprint: fingerprint })
+    return key
+  },
 }))
 
 export function cartCheckoutItems(lines: CartLine[]) {
@@ -66,3 +91,5 @@ export function cartCheckoutItems(lines: CartLine[]) {
 export function cartPreview(lines: CartLine[]) {
   return previewCartTotals(lines)
 }
+
+export { checkoutFingerprint }

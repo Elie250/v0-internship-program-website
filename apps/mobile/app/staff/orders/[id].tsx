@@ -44,10 +44,11 @@ function OrderDetailBody() {
   const showCost = canViewProductCost(user?.permissions)
   const pending = isPendingPayment(order?.paymentStatus) || isPendingPayment(order?.payment?.status)
   const paid = order?.paymentStatus === 'paid' || order?.payment?.status === 'approved'
+  const isOnlineOrder = order?.channel === 'online'
 
   return (
     <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
-      <ScreenState loading={query.isLoading} error={query.error?.message} empty={!order}>
+      <ScreenState loading={query.isLoading} error={query.error?.message} empty={!order} onRetry={() => void query.refetch()}>
         {order ? (
           <>
             <Card>
@@ -85,7 +86,11 @@ function OrderDetailBody() {
             <Card>
               <Text style={styles.heading}>Payment</Text>
               <Text style={styles.value}>
-                {order.paymentMethod === 'momo' ? 'MoMo payment' : order.paymentMethod || '—'}
+                {order.paymentMethod === 'momo'
+                  ? order.channel === 'pos'
+                    ? 'In-person MoMo (POS)'
+                    : 'Customer online MoMo'
+                  : order.paymentMethod || '—'}
               </Text>
               <Text style={styles.meta}>
                 Reference {order.payment?.referenceNumber || '—'}
@@ -99,9 +104,9 @@ function OrderDetailBody() {
               <ProofViewer url={order.payment?.proofUrl} />
             </Card>
 
-            {canReview && pending ? (
+            {canReview && pending && isOnlineOrder ? (
               <Card>
-                <Text style={styles.heading}>Review MoMo payment</Text>
+                <Text style={styles.heading}>Review online MoMo payment</Text>
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}

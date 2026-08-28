@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -39,6 +40,7 @@ export function ScreenState({
   empty,
   emptyTitle,
   emptyBody,
+  onRetry,
   children,
 }: {
   loading?: boolean
@@ -46,6 +48,7 @@ export function ScreenState({
   empty?: boolean
   emptyTitle?: string
   emptyBody?: string
+  onRetry?: () => void
   children: ReactNode
 }) {
   if (loading) {
@@ -59,6 +62,11 @@ export function ScreenState({
     return (
       <View style={styles.banner}>
         <Text style={styles.error}>{error}</Text>
+        {onRetry ? (
+          <Pressable onPress={onRetry} style={styles.retryHit}>
+            <Text style={styles.retry}>Try again</Text>
+          </Pressable>
+        ) : null}
       </View>
     )
   }
@@ -83,6 +91,8 @@ const styles = StyleSheet.create({
     padding: space.md,
   },
   error: { color: colors.red, fontSize: 15, lineHeight: 22 },
+  retry: { color: colors.navy, fontWeight: '800', fontSize: 15 },
+  retryHit: { minHeight: 44, justifyContent: 'center' },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.navy },
   emptyBody: { fontSize: 14, color: colors.muted, textAlign: 'center', maxWidth: 280 },
 })

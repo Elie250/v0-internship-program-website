@@ -1,24 +1,11 @@
+import { QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { staffQueryClient } from '@/src/api/query-client'
 import { useSessionStore } from '@/src/auth/session-store'
 import { colors } from '@/src/theme'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (count, error) => {
-        const status = (error as { status?: number }).status
-        if (status && status >= 400 && status < 500) return false
-        return count < 2
-      },
-      staleTime: 15_000,
-    },
-    mutations: { retry: false },
-  },
-})
 
 export default function RootLayout() {
   const hydrate = useSessionStore((s) => s.hydrate)
@@ -29,7 +16,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={staffQueryClient}>
         <StatusBar style="light" />
         <Stack
           screenOptions={{

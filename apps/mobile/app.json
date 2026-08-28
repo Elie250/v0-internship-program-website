@@ -32,6 +32,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "apiBaseUrl": "https://shop.energyandlogics.com"
     }
   }
 }

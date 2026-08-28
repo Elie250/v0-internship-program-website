@@ -14,7 +14,8 @@ export default function StaffLayout() {
   const user = useSessionStore((s) => s.user)
   const hydrated = useSessionStore((s) => s.hydrated)
 
-  if (hydrated && (!token || !user)) return <Redirect href="/login" />
+  if (hydrated && !token) return <Redirect href="/login" />
+  if (hydrated && token && !user) return <Redirect href="/" />
   if (!user) return null
 
   const perms = user.permissions

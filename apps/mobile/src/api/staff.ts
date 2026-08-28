@@ -19,6 +19,8 @@ export async function loginStaff(email: string, password: string) {
   }>('/api/staff/auth', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
+    expireOn401: false,
+    isLogin: true,
   })
 }
 
@@ -93,6 +95,12 @@ export async function createPosSale(input: {
   return staffRequest<PosSaleResult>('/api/staff/pos/sales', {
     method: 'POST',
     headers: { 'Idempotency-Key': input.idempotencyKey },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      items: input.items,
+      customerName: input.customerName,
+      customerPhone: input.customerPhone ?? null,
+      paymentMethod: input.paymentMethod,
+      idempotencyKey: input.idempotencyKey,
+    }),
   })
 }
