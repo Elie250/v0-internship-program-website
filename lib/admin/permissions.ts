@@ -32,6 +32,10 @@ export const PERMISSIONS = {
   SHOP_ORDERS_MANAGE: 'shop:orders_manage',
   /** Review MoMo proofs for shop/commerce orders only. Not granted by role default. */
   SHOP_PAYMENTS_REVIEW: 'shop:payments_review',
+  /** Request a refund against a completed POS sale. Does not approve money/stock. */
+  SHOP_REFUNDS_REQUEST: 'shop:refunds_request',
+  /** Approve or reject shop POS refunds and restore stock. Not payments:approve. */
+  SHOP_REFUNDS_APPROVE: 'shop:refunds_approve',
   LEARNING_PROGRAMS: 'learning:programs',
   LEARNING_STUDENTS: 'learning:students',
   CONTENT_ANNOUNCEMENTS: 'content:announcements',
@@ -125,6 +129,16 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
         key: PERMISSIONS.SHOP_PAYMENTS_REVIEW,
         label: 'Review Shop MoMo Payments',
         description: 'Approve or reject Nyanza Shop customer MoMo proofs (shop orders only)',
+      },
+      {
+        key: PERMISSIONS.SHOP_REFUNDS_REQUEST,
+        label: 'Request POS refunds',
+        description: 'Request a refund of a completed POS sale (does not return money or stock)',
+      },
+      {
+        key: PERMISSIONS.SHOP_REFUNDS_APPROVE,
+        label: 'Approve POS refunds',
+        description: 'Approve or reject POS refunds and restore stock. Not Academy payment approval.',
       },
     ],
   },
@@ -262,6 +276,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
+    PERMISSIONS.SHOP_REFUNDS_REQUEST,
   ],
   inventory_manager: [
     PERMISSIONS.SHOP_PRODUCTS,
@@ -271,6 +286,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.SHOP_ORDERS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_CATEGORIES,
+    PERMISSIONS.SHOP_REFUNDS_REQUEST,
   ],
 }
 

@@ -180,6 +180,120 @@ export async function releaseStockForLines(input: {
   return {}
 }
 
+async function returnAlreadyRecorded(refundId: string): Promise<boolean> {
+  if (!supabaseAdmin) return false
+  const { data, error } = await supabaseAdmin
+    .from('stock_movements')
+    .select('id')
+    .eq('movement_type', 'RETURN')
+    .contains('metadata', { refundId })
+    .limit(1)
+  if (error) return false
+  return Boolean(data?.length)
+}
+
+/**
+ * Restore sellable stock for an approved physical refund.
+ * Rolls back already-restored lines if a later line or movement insert fails.
+ * Does not rewrite the original sale. Repeats with the same refundId are no-ops.
+ */
+export async function restoreStockForReturn(input: {
+  lines: StockLine[]
+  orderId?: string | null
+  actorUserId?: string | null
+  reason?: string | null
+  refundId?: string | null
+}): Promise<{ error?: string; restored?: boolean }> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+  if (input.refundId && (await returnAlreadyRecorded(input.refundId))) {
+    return { restored: false }
+  }
+
+  const applied: Array<{ productId: string; quantity: number }> = []
+
+  for (const line of input.lines) {
+    const before = await readStock(line.productId)
+    const result = await releaseStockAtomic(line.productId, line.quantity)
+    if (result.error || result.quantityAfter == null) {
+      for (const prior of applied.reverse()) {
+        await consumeStockAtomic(prior.productId, prior.quantity)
+      }
+      return { error: result.error || 'Stock restore failed' }
+    }
+
+    applied.push({ productId: line.productId, quantity: line.quantity })
+
+    const movement = await recordMovement({
+      productId: line.productId,
+      movementType: 'RETURN',
+      quantityDelta: line.quantity,
+      quantityBefore: before,
+      quantityAfter: result.quantityAfter,
+      reason: input.reason,
+      orderId: input.orderId,
+      actorUserId: input.actorUserId,
+      metadata: input.refundId ? { refundId: input.refundId } : {},
+    })
+    if (movement.error) {
+      for (const prior of applied.reverse()) {
+        await consumeStockAtomic(prior.productId, prior.quantity)
+      }
+      return { error: movement.error }
+    }
+  }
+
+  return { restored: true }
+}
+
+/**
+ * Undo a stock restore when refund approval cannot be committed.
+ * Only call this for restorations performed in the same attempt.
+ */
+export async function rollbackRestoredReturn(input: {
+  lines: StockLine[]
+  orderId?: string | null
+  actorUserId?: string | null
+  reason?: string | null
+  refundId?: string | null
+}): Promise<{ error?: string }> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+
+  const applied: Array<{ productId: string; quantity: number }> = []
+
+  for (const line of input.lines) {
+    const before = await readStock(line.productId)
+    const result = await consumeStockAtomic(line.productId, line.quantity)
+    if (result.error || result.quantityAfter == null) {
+      for (const prior of applied.reverse()) {
+        await releaseStockAtomic(prior.productId, prior.quantity)
+      }
+      return { error: result.error || 'Stock rollback failed' }
+    }
+
+    applied.push({ productId: line.productId, quantity: line.quantity })
+
+    const movement = await recordMovement({
+      productId: line.productId,
+      movementType: 'ADJUSTMENT',
+      quantityDelta: -line.quantity,
+      quantityBefore: before,
+      quantityAfter: result.quantityAfter,
+      reason: input.reason,
+      orderId: input.orderId,
+      actorUserId: input.actorUserId,
+      metadata: input.refundId ? { refundId: input.refundId, rollback: true } : {},
+    })
+    if (movement.error) {
+      for (const prior of applied.reverse()) {
+        await releaseStockAtomic(prior.productId, prior.quantity)
+      }
+      return { error: movement.error }
+    }
+  }
+
+  return {}
+}
+
 export async function createActiveReservations(input: {
   orderId: string
   lines: StockLine[]

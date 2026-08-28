@@ -157,8 +157,16 @@ const LIB_FILES = [
   'lib/shop/staff-api/dashboard.ts',
 ]
 
+const REFUND_FILES = [
+  'app/api/staff/orders/[id]/refunds/route.ts',
+  'app/api/staff/refunds/[id]/decision/route.ts',
+  'lib/shop/refunds/policy.ts',
+  'lib/shop/refunds/service.ts',
+  'scripts/92-shop-refunds.sql',
+]
+
 test('staff read API route modules exist', () => {
-  for (const rel of [...ROUTE_FILES, ...LIB_FILES]) {
+  for (const rel of [...ROUTE_FILES, ...LIB_FILES, ...REFUND_FILES]) {
     assert.ok(existsSync(join(root, rel)), `missing ${rel}`)
   }
 })

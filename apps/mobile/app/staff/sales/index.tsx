@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router'
 import { Pressable, StyleSheet, Text } from 'react-native'
 import { useOrdersQuery, paymentLabel } from '@/src/features/orders/hooks'
+import { refundStatusLabel } from '@/src/features/refunds/policy'
 import { formatRwf, formatWhen } from '@/src/format'
 import { Card } from '@/src/ui/Card'
 import { Screen, ScreenState } from '@/src/ui/Screen'
@@ -20,7 +21,9 @@ function SalesBody() {
   const query = useOrdersQuery({ page: 1, limit: 25 })
   return (
     <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
-      <Text style={styles.note}>Sales history. Edits and refunds are not available here.</Text>
+      <Text style={styles.note}>
+        Sales history. Original totals are never edited. Refunds are recorded separately.
+      </Text>
       <ScreenState
         loading={query.isLoading}
         error={query.error?.message}
@@ -31,16 +34,17 @@ function SalesBody() {
         {(query.data?.items ?? []).map((row) => (
           <Pressable
             key={row.id}
-            onPress={() => router.push(`/staff/orders/${row.id}`)}
+            onPress={() => router.push(`/staff/sales/${row.id}` as never)}
             accessibilityRole="button"
             accessibilityLabel={`Open ${row.orderNumber || 'sale'}`}
           >
             <Card>
               <Text style={type.orderRef}>{row.orderNumber || 'Sale'}</Text>
               <Text style={type.meta}>
-                {row.channel} · {paymentLabel(row.paymentStatus)}
+                {row.channel} · {String(row.paymentMethod || '—').toUpperCase()} ·{' '}
+                {paymentLabel(row.paymentStatus)} · {formatRwf(row.totalAmount)}
               </Text>
-              <Text style={type.price}>{formatRwf(row.totalAmount)}</Text>
+              <Text style={type.meta}>{refundStatusLabel(row.refundStatus)}</Text>
               <Text style={type.meta}>{formatWhen(row.orderDate || row.createdAt)}</Text>
             </Card>
           </Pressable>

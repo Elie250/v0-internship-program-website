@@ -16,6 +16,9 @@ export type StaffDashboardReport = {
   stockModel: 'global_products_stock'
   /** Null until a dedicated audited profit report exists. */
   profit: null
+  /** Approved refund totals for Africa/Kigali today. Original sales stay gross. */
+  todayRefunds: number
+  todayNetSales: number
 }
 
 /**
@@ -58,6 +61,20 @@ export async function getStaffDashboardReport(): Promise<
     .select('id', { count: 'exact', head: true })
     .in('payment_status', ['unpaid', 'pending_review', 'gateway_pending'])
 
+  let todayRefunds = 0
+  const { data: refundRows, error: refundError } = await supabaseAdmin
+    .from('shop_refunds')
+    .select('amount, status, decided_at')
+    .eq('status', 'approved')
+    .gte('decided_at', startIso)
+    .lte('decided_at', endIso)
+
+  if (!refundError) {
+    for (const row of refundRows ?? []) {
+      todayRefunds += Number(row.amount ?? 0)
+    }
+  }
+
   const { data: stockRows, error: stockError } = await supabaseAdmin
     .from('products')
     .select('id, stock, low_stock_threshold, status')
@@ -85,6 +102,8 @@ export async function getStaffDashboardReport(): Promise<
       timezone: BUSINESS_TIMEZONE,
       businessDate: today,
       todaySales,
+      todayRefunds,
+      todayNetSales: Math.max(0, todaySales - todayRefunds),
       todayOrders: todayOrdersCount,
       todayPosOrders,
       todayOnlineOrders,

@@ -10,6 +10,8 @@ export const PERMISSIONS = {
   SHOP_STOCK_VIEW: 'shop:stock_view',
   SHOP_STOCK_ADJUST: 'shop:stock_adjust',
   SHOP_SALES_VIEW: 'shop:sales_view',
+  SHOP_REFUNDS_REQUEST: 'shop:refunds_request',
+  SHOP_REFUNDS_APPROVE: 'shop:refunds_approve',
 } as const
 
 export type ShopPermission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS]
@@ -91,6 +93,14 @@ export function canManageFulfillment(permissions: string[] | undefined): boolean
 
 export function canViewProductCost(permissions: string[] | undefined): boolean {
   return hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)
+}
+
+export function canRequestShopRefund(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_REFUNDS_REQUEST)
+}
+
+export function canApproveShopRefund(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_REFUNDS_APPROVE)
 }
 
 export function canAccessStaffPath(

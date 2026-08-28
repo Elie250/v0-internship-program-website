@@ -31,6 +31,7 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
+    'shop:refunds_request',
   ],
   inventory_manager: [
     PERMISSIONS.SHOP_PRODUCTS,
@@ -40,6 +41,7 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_ORDERS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_CATEGORIES,
+    'shop:refunds_request',
   ],
 }
 
@@ -182,6 +184,7 @@ test('salesperson role permissions match Phase 1D expectations', () => {
   assert.ok(!perms.includes('shop:stock_adjust'))
   assert.ok(!perms.includes('admin:access'))
   assert.ok(!perms.includes('shop:payments_review'))
+  assert.ok(!perms.includes('shop:refunds_approve'))
   assert.ok(!perms.includes('payments:approve'))
 })
 
@@ -194,6 +197,7 @@ test('inventory_manager role permissions match Phase 1D expectations', () => {
   assert.ok(perms.includes('shop:stock_adjust'))
   assert.ok(!perms.includes('admin:access'))
   assert.ok(!perms.includes('shop:payments_review'))
+  assert.ok(!perms.includes('shop:refunds_approve'))
   assert.ok(!perms.includes('payments:approve'))
 })
 

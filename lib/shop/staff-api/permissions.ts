@@ -16,4 +16,6 @@ export const STAFF_API_PERMISSIONS = {
   fulfillment: PERMISSIONS.SHOP_ORDERS_MANAGE,
   /** Financial + order metrics — not granted to every authenticated staff member. */
   dashboard: [PERMISSIONS.SHOP_SALES_VIEW, PERMISSIONS.SHOP_ORDERS_VIEW] as Permission[],
+  refundsRequest: PERMISSIONS.SHOP_REFUNDS_REQUEST,
+  refundsApprove: PERMISSIONS.SHOP_REFUNDS_APPROVE,
 } as const

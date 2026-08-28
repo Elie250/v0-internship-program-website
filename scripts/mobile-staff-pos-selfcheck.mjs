@@ -138,7 +138,9 @@ test('mobile app foundation files exist', () => {
     'app/staff/scan.tsx',
     'app/staff/orders/index.tsx',
     'app/staff/orders/[id].tsx',
-    'app/staff/sales.tsx',
+    'app/staff/sales/_layout.tsx',
+    'app/staff/sales/index.tsx',
+    'app/staff/sales/[id].tsx',
     'app/staff/products.tsx',
     'app/staff/inventory.tsx',
     'app/staff/settings.tsx',
@@ -602,5 +604,20 @@ test('cart quantity below 1 removes the line and drops the checkout attempt', ()
   assert.match(cart, /quantity < 1/)
   assert.match(cart, /dropCheckoutAttempt/)
   assert.match(cart, /checkoutFingerprint === fingerprint/)
+})
+
+test('refunds are not on POS checkout and Sales uses a confirmation dialog', () => {
+  const pos = read('app/staff/pos.tsx')
+  const sales = read('app/staff/sales/index.tsx')
+  const detail = read('app/staff/sales/[id].tsx')
+  const confirm = read('src/features/refunds/confirm-refund.ts')
+  const hooks = read('src/features/refunds/hooks.ts')
+  assert.doesNotMatch(pos, /label="Refund"/)
+  assert.match(pos, /Confirm sale/)
+  assert.match(sales, /refundStatusLabel/)
+  assert.match(detail, /confirmShopRefund/)
+  assert.match(detail, /label="Refund"/)
+  assert.match(confirm, /text: 'Cancel', style: 'cancel'/)
+  assert.match(hooks, /inflightRefund/)
 })
 

@@ -19,6 +19,8 @@ export type StaffDashboard = {
   timezone: string
   businessDate: string
   todaySales: number
+  todayRefunds?: number
+  todayNetSales?: number
   todayOrders: number
   todayPosOrders: number
   todayOnlineOrders: number
@@ -59,15 +61,38 @@ export type StaffOrderSummary = {
   orderDate: string | null
   createdAt: string | null
   payment: StaffPayment | null
+  refundStatus?: string | null
+  refundedAmount?: number
+}
+
+export type StaffRefund = {
+  id: string
+  status: string
+  reason: string
+  notes: string | null
+  paymentMethod: string
+  amount: number
+  requestedAt: string | null
+  decidedAt: string | null
+  items: Array<{
+    orderItemId: string
+    productName: string
+    quantity: number
+    unitPrice: number
+    lineTotal: number
+  }>
 }
 
 export type StaffOrderDetail = StaffOrderSummary & {
   notes: string | null
   deliveryAddress: string | null
+  stockState?: string | null
+  refunds?: StaffRefund[]
   items: Array<{
     id: string
     productName: string
     quantity: number
+    refundableQuantity?: number
     sellingUnit: string | null
     unitPrice: number
     lineTotal: number

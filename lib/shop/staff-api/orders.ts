@@ -7,6 +7,8 @@ import {
   parseOptionalUuid,
   parsePagination,
 } from '@/lib/shop/staff-api/common'
+import { loadOrderRefundView, loadRefundSummariesByOrderIds } from '@/lib/shop/refunds/service'
+import { refundableQuantity } from '@/lib/shop/refunds/policy'
 
 export const STAFF_FULFILLMENT_STATUSES = [
   'confirmed',
@@ -51,6 +53,8 @@ function mapOrderSummary(
     createdAt: row.created_at != null ? String(row.created_at) : null,
     paidAt: row.paid_at != null ? String(row.paid_at) : null,
     payment: payment ?? null,
+    refundStatus: row.refundStatus != null ? String(row.refundStatus) : 'none',
+    refundedAmount: Number(row.refundedAmount ?? 0),
   }
 }
 
@@ -289,6 +293,7 @@ async function buildStaffOrderList(
     ),
   ]
   const reviewerNames = await loadReviewerNames(reviewerIds)
+  const refundSummaries = await loadRefundSummariesByOrderIds(rows.map((row) => String(row.id)))
 
   return {
     httpStatus: 200 as const,
@@ -300,8 +305,13 @@ async function buildStaffOrderList(
           paymentRow?.reviewed_by != null
             ? reviewerNames.get(String(paymentRow.reviewed_by)) ?? null
             : null
+        const refund = refundSummaries.get(orderId)
         return mapOrderSummary(
-          row,
+          {
+            ...row,
+            refundStatus: refund?.refundStatus ?? 'none',
+            refundedAmount: refund?.refundedAmount ?? 0,
+          },
           row.location_id ? locationNames.get(String(row.location_id)) ?? null : null,
           paymentRow ? mapStaffPayment(paymentRow, reviewer) : null
         )
@@ -372,6 +382,11 @@ export async function getStaffOrderById(
     orderId: id,
   })
 
+  const soldByItem = new Map(
+    (items ?? []).map((line) => [String(line.id), Number(line.quantity ?? 0)])
+  )
+  const refundView = await loadOrderRefundView(id, soldByItem)
+
   let reviewerName: string | null = null
   if (payment?.reviewed_by) {
     const names = await loadReviewerNames([String(payment.reviewed_by)])
@@ -398,7 +413,11 @@ export async function getStaffOrderById(
     body: {
       item: {
         ...mapOrderSummary(
-          order as Record<string, unknown>,
+          {
+            ...(order as Record<string, unknown>),
+            refundStatus: refundView.refundStatus,
+            refundedAmount: refundView.refundedAmount,
+          },
           locationName,
           payment ? mapStaffPayment(payment, reviewerName) : null
         ),
@@ -406,12 +425,19 @@ export async function getStaffOrderById(
         deliveryAddress:
           order.delivery_address != null ? String(order.delivery_address) : null,
         stockState: order.stock_state != null ? String(order.stock_state) : null,
+        refunds: refundView.refunds,
         items: (items ?? []).map((line) => {
           const productId = line.product_id != null ? String(line.product_id) : null
+          const lineId = String(line.id)
+          const sold = Number(line.quantity ?? 0)
           return {
-            id: String(line.id),
+            id: lineId,
             productName: String(line.product_name ?? ''),
-            quantity: Number(line.quantity ?? 0),
+            quantity: sold,
+            refundableQuantity: refundableQuantity(
+              sold,
+              refundView.committedByItem.get(lineId) ?? 0
+            ),
             sellingUnit: productId ? sellingUnits.get(productId) ?? null : null,
             unitPrice: Number(line.unit_price ?? 0),
             lineTotal: Number(line.line_total ?? 0),
@@ -444,6 +470,9 @@ export async function updateStaffOrderFulfillment(input: {
     'stock',
     'stock_state',
     'stockState',
+    'refundStatus',
+    'refundedAmount',
+    'refunds',
   ]
   if (forbidden.some((key) => extra[key] !== undefined)) {
     return { error: 'Fulfillment cannot change payment, price, or stock fields', httpStatus: 400 as const }

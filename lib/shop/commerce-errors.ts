@@ -15,6 +15,11 @@ const BUSINESS_PATTERNS: Array<{ test: RegExp; error: string; httpStatus: number
     httpStatus: 400,
   },
   {
+    test: /idempotency key is required for refunds/i,
+    error: 'Idempotency key is required for refunds (8–128 chars)',
+    httpStatus: 400,
+  },
+  {
     test: /idempotency key is required/i,
     error: 'Idempotency key is required for POS sales (8–128 chars)',
     httpStatus: 400,
@@ -23,6 +28,16 @@ const BUSINESS_PATTERNS: Array<{ test: RegExp; error: string; httpStatus: number
     test: /idempotency|request fingerprint|conflict/i,
     error: 'Conflicting sale request',
     httpStatus: 409,
+  },
+  {
+    test: /refund quantity is not available|already fully refunded|cannot be refunded|online orders cannot be refunded/i,
+    error: 'This sale cannot be refunded for the requested quantity',
+    httpStatus: 409,
+  },
+  {
+    test: /refund amount and stock are calculated/i,
+    error: 'Refund amount and stock are calculated by the server',
+    httpStatus: 400,
   },
   {
     test: /name, email, and phone are required|delivery address is required/i,

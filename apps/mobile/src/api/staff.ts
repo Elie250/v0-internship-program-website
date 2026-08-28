@@ -7,6 +7,7 @@ import type {
   StaffOrderDetail,
   StaffOrderSummary,
   StaffProduct,
+  StaffRefund,
   StaffUser,
 } from '@/src/api/types'
 
@@ -103,4 +104,46 @@ export async function createPosSale(input: {
       idempotencyKey: input.idempotencyKey,
     }),
   })
+}
+
+export async function requestShopRefund(input: {
+  orderId: string
+  items: Array<{ orderItemId: string; quantity: number }>
+  reason: string
+  notes?: string
+  idempotencyKey: string
+}) {
+  return staffRequest<{ success: boolean; refund: StaffRefund }>(
+    `/api/staff/orders/${input.orderId}/refunds`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      body: JSON.stringify({
+        items: input.items,
+        reason: input.reason,
+        notes: input.notes,
+        idempotencyKey: input.idempotencyKey,
+      }),
+    }
+  )
+}
+
+export async function decideShopRefund(input: {
+  refundId: string
+  decision: 'approve' | 'reject'
+  notes?: string
+  idempotencyKey: string
+}) {
+  return staffRequest<{ success: boolean; refund: StaffRefund; replay?: boolean }>(
+    `/api/staff/refunds/${input.refundId}/decision`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      body: JSON.stringify({
+        decision: input.decision,
+        notes: input.notes,
+        idempotencyKey: input.idempotencyKey,
+      }),
+    }
+  )
 }
