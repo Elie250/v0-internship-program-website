@@ -1,5 +1,6 @@
 import { StyleSheet, Text } from 'react-native'
 import { useQuery } from '@tanstack/react-query'
+import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { fetchInventory } from '@/src/api/staff'
 import { formatRwf } from '@/src/format'
 import { Card } from '@/src/ui/Card'
@@ -17,6 +18,7 @@ export default function InventoryScreen() {
 }
 
 function InventoryBody() {
+  useBackToMore()
   const query = useQuery({
     queryKey: ['staff', 'inventory'],
     queryFn: () => fetchInventory({ page: 1, limit: 50 }),

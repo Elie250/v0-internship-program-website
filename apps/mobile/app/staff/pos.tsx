@@ -64,7 +64,7 @@ function PosBody() {
   const sale = useCreatePosSale()
   const preview = useMemo(() => cartPreview(lines), [lines])
   const staffName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email
-  const products = lookup.data?.items ?? []
+  const products = lookup.data?.items
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,16 +76,24 @@ function PosBody() {
 
   useEffect(() => {
     if (categoryId !== 'all') return
-    const next = new Map<string, string>()
+    if (!products) return
+    const next: { id: string; label: string }[] = [{ id: 'all', label: 'All' }]
+    const seen = new Set<string>()
     for (const product of products) {
-      if (product.categoryId && product.category?.name) {
-        next.set(product.categoryId, product.category.name)
+      if (product.categoryId && product.category?.name && !seen.has(product.categoryId)) {
+        seen.add(product.categoryId)
+        next.push({ id: product.categoryId, label: product.category.name })
       }
     }
-    setCategoryChips([
-      { id: 'all', label: 'All' },
-      ...[...next.entries()].map(([id, label]) => ({ id, label })),
-    ])
+    setCategoryChips((current) => {
+      if (
+        current.length === next.length &&
+        current.every((chip, index) => chip.id === next[index].id && chip.label === next[index].label)
+      ) {
+        return current
+      }
+      return next
+    })
   }, [categoryId, products])
 
   useEffect(() => {
@@ -118,6 +126,7 @@ function PosBody() {
     confirmTillSale({
       paymentMethod: method,
       total: preview.payableTotal,
+      lines: lines.map((line) => ({ name: line.name, quantity: line.quantity })),
       onConfirm: submitSale,
     })
   }
@@ -159,13 +168,13 @@ function PosBody() {
               fill
               loading={lookup.isLoading && !lookup.data}
               error={lookup.error?.message}
-              empty={!lookup.isLoading && products.length === 0}
+              empty={!lookup.isLoading && (products?.length ?? 0) === 0}
               emptyTitle="No products found"
               emptyBody="Try another name, SKU, or category."
               onRetry={() => void lookup.refetch()}
             >
               <FlatList
-                data={products}
+                data={products ?? []}
                 keyExtractor={(item) => item.id}
                 style={styles.listFlex}
                 keyboardShouldPersistTaps="handled"

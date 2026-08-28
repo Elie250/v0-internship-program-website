@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router'
 import { StyleSheet, Text } from 'react-native'
+import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { useSessionStore } from '@/src/auth/session-store'
 import { getApiBaseUrl } from '@/src/api/client'
 import { PrimaryButton } from '@/src/ui/Button'
@@ -8,6 +9,7 @@ import { Screen } from '@/src/ui/Screen'
 import { colors } from '@/src/theme'
 
 export default function SettingsScreen() {
+  useBackToMore()
   const router = useRouter()
   const user = useSessionStore((s) => s.user)
   const signOut = useSessionStore((s) => s.signOut)

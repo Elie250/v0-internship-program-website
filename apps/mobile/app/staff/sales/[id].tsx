@@ -269,6 +269,13 @@ function SaleDetailBody() {
 
             {statusMessage ? <Text style={styles.ok}>{statusMessage}</Text> : null}
 
+            {phase === 'view' && eligible && !canRequest ? (
+              <Text style={type.meta}>
+                This staff session cannot request refunds. Sign in again after shop refund
+                permissions are granted.
+              </Text>
+            ) : null}
+
             {phase === 'view' && canRequest && eligible ? (
               <PrimaryButton label="Refund" tone="outline" onPress={startRefund} />
             ) : null}

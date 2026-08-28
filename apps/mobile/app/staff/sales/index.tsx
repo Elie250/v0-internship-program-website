@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router'
 import { Pressable, StyleSheet, Text } from 'react-native'
+import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { useOrdersQuery, paymentLabel } from '@/src/features/orders/hooks'
 import { refundStatusLabel } from '@/src/features/refunds/policy'
 import { formatRwf, formatWhen } from '@/src/format'
@@ -17,6 +18,7 @@ export default function SalesScreen() {
 }
 
 function SalesBody() {
+  useBackToMore()
   const router = useRouter()
   const query = useOrdersQuery({ page: 1, limit: 25 })
   return (

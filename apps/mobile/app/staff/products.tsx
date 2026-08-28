@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StyleSheet, Text } from 'react-native'
+import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { useProductLookup } from '@/src/features/pos/hooks'
 import { useSessionStore } from '@/src/auth/session-store'
 import { canViewProductCost } from '@/src/permissions'
@@ -19,6 +20,7 @@ export default function ProductsScreen() {
 }
 
 function ProductsBody() {
+  useBackToMore()
   const [q, setQ] = useState('')
   const [submitted, setSubmitted] = useState('')
   const user = useSessionStore((s) => s.user)

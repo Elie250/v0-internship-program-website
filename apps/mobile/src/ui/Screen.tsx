@@ -87,7 +87,7 @@ export function ScreenState({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: space.md, paddingBottom: 40, gap: space.md },
+  content: { padding: space.md, paddingBottom: 96, gap: space.md },
   center: { paddingVertical: 48, alignItems: 'center', gap: 8 },
   fill: { flex: 1, justifyContent: 'center' },
   banner: {

@@ -31,7 +31,7 @@ export function FilterChips({
             onPress={() => onSelect(item.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
-            accessibilityLabel={item.label}
+            accessibilityLabel={on ? `${item.label}, selected` : item.label}
             style={({ pressed }) => [styles.chip, on && styles.chipOn, pressed && styles.pressed]}
           >
             <View style={[styles.dot, on && styles.dotOn]} />

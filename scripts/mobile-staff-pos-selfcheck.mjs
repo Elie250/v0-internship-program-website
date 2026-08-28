@@ -161,6 +161,7 @@ test('mobile app foundation files exist', () => {
     'src/api/errors.ts',
     'src/api/query-client.ts',
     'src/features/pos/idempotency.ts',
+    'src/navigation/use-back-to-more.ts',
   ]) {
     assert.ok(existsSync(join(mobile, rel)), rel)
   }
@@ -452,9 +453,17 @@ test('POS retail layout uses search, cart checkout, and till MoMo copy', () => {
   assert.match(pos, /Pending review/)
   assert.match(pos, /Checkout/)
   assert.match(pos, /confirmTillSale/)
+  assert.match(pos, /setCategoryChips\(\(current\) =>/)
+  assert.doesNotMatch(pos, /lookup\.data\?\.items \?\? \[\]/)
   assert.match(confirm, /Alert\.alert/)
   assert.match(confirm, /Cancel/)
   assert.match(confirm, /formatRwf/)
+  assert.match(confirm, /REAL SALE \/ PAYMENT ACTION/)
+  assert.match(confirm, /Payment:/)
+  assert.match(confirm, /text: 'Cancel', style: 'cancel'/)
+  assert.match(confirm, /\$\{line\.quantity\} × \$\{line\.name\}/)
+  assert.match(pos, /quantity: line\.quantity/)
+  assert.doesNotMatch(pos, /onChange=\{setMethod\}[\s\S]{0,80}submitSale/)
   assert.match(picker, /CASH/)
   assert.match(picker, /MoMo/)
   assert.match(orders, /MoMo payment needs review/)
@@ -617,7 +626,28 @@ test('refunds are not on POS checkout and Sales uses a confirmation dialog', () 
   assert.match(sales, /refundStatusLabel/)
   assert.match(detail, /confirmShopRefund/)
   assert.match(detail, /label="Refund"/)
+  assert.match(detail, /This staff session cannot request refunds/)
   assert.match(confirm, /text: 'Cancel', style: 'cancel'/)
   assert.match(hooks, /inflightRefund/)
+})
+
+test('More destinations return to More on hardware back and keep the sale stack intact', () => {
+  const back = read('src/navigation/use-back-to-more.ts')
+  const products = read('app/staff/products.tsx')
+  const inventory = read('app/staff/inventory.tsx')
+  const settings = read('app/staff/settings.tsx')
+  const sales = read('app/staff/sales/index.tsx')
+  const saleDetail = read('app/staff/sales/[id].tsx')
+  const chips = read('src/ui/FilterChips.tsx')
+  const screen = read('src/ui/Screen.tsx')
+  assert.match(back, /useFocusEffect/)
+  assert.match(back, /router\.replace\('\/staff\/menu'\)/)
+  assert.match(products, /useBackToMore/)
+  assert.match(inventory, /useBackToMore/)
+  assert.match(settings, /useBackToMore/)
+  assert.match(sales, /useBackToMore/)
+  assert.doesNotMatch(saleDetail, /useBackToMore/)
+  assert.match(chips, /\$\{item\.label\}, selected/)
+  assert.match(screen, /paddingBottom: 96/)
 })
 
