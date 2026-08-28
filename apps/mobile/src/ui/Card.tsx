@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { colors, space } from '@/src/theme'
+import { colors, radius, space } from '@/src/theme'
 
 export function Card({ children }: { children: ReactNode }) {
   return <View style={styles.card}>{children}</View>
@@ -23,7 +23,7 @@ export function Metric({ label, value, hint }: { label: string; value: string; h
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: radius.md,
     padding: space.md,
     borderWidth: 1,
     borderColor: colors.line,
@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.navy },
   metric: { gap: 4, minWidth: '46%', flexGrow: 1 },
   label: { fontSize: 13, color: colors.muted, fontWeight: '600' },
-  value: { fontSize: 22, fontWeight: '800', color: colors.navy },
+  value: { fontSize: 24, fontWeight: '800', color: colors.navy, letterSpacing: -0.3 },
   hint: { fontSize: 12, color: colors.muted },
 })

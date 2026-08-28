@@ -332,7 +332,7 @@ test('device control is stubbed and not implemented', () => {
 
 test('payment proof is remote-only with loading / fail / empty states', () => {
   const proof = read('src/ui/ProofViewer.tsx')
-  assert.match(proof, /Tap to enlarge|enlarge/)
+  assert.match(proof, /View payment proof|enlarge/)
   assert.match(proof, /maximumZoomScale/)
   assert.match(proof, /No payment proof/)
   assert.match(proof, /could not be loaded/)
@@ -413,7 +413,7 @@ test('POS reuses one idempotency key per checkout attempt', () => {
 
 test('user-facing errors are sanitized', () => {
   const errors = read('src/api/errors.ts')
-  assert.match(errors, /Unable to connect\. Check your internet connection\./)
+  assert.match(errors, /Unable to connect\. Check your connection and try again\./)
   assert.match(errors, /You don't have permission to perform this action\./)
   assert.match(errors, /Your session has expired\. Please sign in again\./)
   assert.match(errors, /Something went wrong\. Please try again\./)
@@ -426,3 +426,28 @@ test('customer mode remains reserved and device control remains a stub', () => {
   assert.match(index, /customer home/i)
   assert.match(devices, /DEVICE_CONTROL_ENABLED = false/)
 })
+
+test('POS retail layout uses search, cart checkout, and till MoMo copy', () => {
+  const pos = read('app/staff/pos.tsx')
+  const search = read('src/ui/SearchField.tsx')
+  const picker = read('src/ui/PaymentMethodPicker.tsx')
+  const proof = read('src/ui/ProofViewer.tsx')
+  const orders = read('app/staff/orders/index.tsx')
+  const theme = read('src/theme.ts')
+  assert.match(search, /Search products or SKU/)
+  assert.match(search, /Camera scanning is not available yet|not implemented/)
+  assert.match(pos, /onBarcodePlaceholder/)
+  assert.match(pos, /Record MoMo payment/)
+  assert.match(pos, /Confirm sale/)
+  assert.match(pos, /Pending review/)
+  assert.match(pos, /Checkout/)
+  assert.match(picker, /Cash/)
+  assert.match(picker, /MoMo/)
+  assert.match(orders, /MoMo payment needs review/)
+  assert.match(orders, /canReviewShopPayments/)
+  assert.match(proof, /cachePolicy/)
+  assert.doesNotMatch(proof, /FileSystem|downloadAsync|MediaLibrary/)
+  assert.match(theme, /#1e3a5f/)
+  assert.match(theme, /#d97706/)
+})
+

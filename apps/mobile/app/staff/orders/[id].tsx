@@ -19,7 +19,7 @@ import { ProofViewer } from '@/src/ui/ProofViewer'
 import { Screen, ScreenState } from '@/src/ui/Screen'
 import { StatusBadge } from '@/src/ui/StatusBadge'
 import { RequireStaffNav } from '@/src/ui/RequireStaffNav'
-import { colors, space } from '@/src/theme'
+import { colors, radius, space, type } from '@/src/theme'
 
 export default function OrderDetailScreen() {
   return (
@@ -48,11 +48,18 @@ function OrderDetailBody() {
 
   return (
     <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
-      <ScreenState loading={query.isLoading} error={query.error?.message} empty={!order} onRetry={() => void query.refetch()}>
+      <ScreenState
+        loading={query.isLoading}
+        error={query.error?.message}
+        empty={!order}
+        emptyTitle="Order not found"
+        onRetry={() => void query.refetch()}
+      >
         {order ? (
           <>
             <Card>
               <Text style={styles.number}>{order.orderNumber || 'Order'}</Text>
+              <Text style={type.meta}>{formatWhen(order.orderDate || order.createdAt)}</Text>
               <StatusBadge
                 label={paymentLabel(order.paymentStatus)}
                 tone={pending ? 'amber' : paid ? 'green' : 'slate'}
@@ -73,8 +80,7 @@ function OrderDetailBody() {
                 <View key={line.id} style={styles.line}>
                   <Text style={styles.value}>{line.productName}</Text>
                   <Text style={styles.meta}>
-                    {line.quantity}
-                    {line.sellingUnit ? ` ${line.sellingUnit}` : ''} × {formatRwf(line.unitPrice)}
+                    {line.quantity} × {line.sellingUnit || 'unit'} · {formatRwf(line.unitPrice)}
                     {showCost && line.unitCost != null ? ` · cost ${formatRwf(line.unitCost)}` : ''}
                   </Text>
                   <Text style={styles.amount}>{formatRwf(line.lineTotal)}</Text>
@@ -90,7 +96,12 @@ function OrderDetailBody() {
                   ? order.channel === 'pos'
                     ? 'In-person MoMo (POS)'
                     : 'Customer online MoMo'
-                  : order.paymentMethod || '—'}
+                  : order.paymentMethod === 'cash'
+                    ? 'Cash'
+                    : order.paymentMethod || '—'}
+              </Text>
+              <Text style={styles.meta}>
+                {paymentLabel(order.paymentStatus)}
               </Text>
               <Text style={styles.meta}>
                 Reference {order.payment?.referenceNumber || '—'}
@@ -106,7 +117,7 @@ function OrderDetailBody() {
 
             {canReview && pending && isOnlineOrder ? (
               <Card>
-                <Text style={styles.heading}>Review online MoMo payment</Text>
+                <Text style={styles.heading}>MoMo payment needs review</Text>
                 <TextInput
                   value={notes}
                   onChangeText={setNotes}
@@ -117,12 +128,12 @@ function OrderDetailBody() {
                 />
                 {review.error ? <Text style={styles.error}>{review.error.message}</Text> : null}
                 <PrimaryButton
-                  label="Approve payment"
+                  label="Approve"
                   loading={review.isPending && review.variables?.decision === 'approve'}
                   onPress={() => review.mutate({ decision: 'approve', adminNotes: notes || undefined })}
                 />
                 <PrimaryButton
-                  label="Reject payment"
+                  label="Reject"
                   tone="danger"
                   loading={review.isPending && review.variables?.decision === 'reject'}
                   onPress={() => review.mutate({ decision: 'reject', adminNotes: notes || undefined })}
@@ -138,6 +149,8 @@ function OrderDetailBody() {
                     <Pressable
                       key={status}
                       onPress={() => setNextStatus(status)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: nextStatus === status }}
                       style={[styles.chip, nextStatus === status && styles.chipOn]}
                     >
                       <Text style={[styles.chipLabel, nextStatus === status && styles.chipLabelOn]}>
@@ -164,20 +177,21 @@ function OrderDetailBody() {
 
 const styles = StyleSheet.create({
   number: { fontSize: 22, fontWeight: '800', color: colors.navy },
-  heading: { fontSize: 13, fontWeight: '800', color: colors.muted, textTransform: 'uppercase' },
-  value: { fontSize: 16, fontWeight: '700', color: colors.navy },
+  heading: { fontSize: 15, fontWeight: '700', color: colors.navy },
+  value: { fontSize: 16, fontWeight: '600', color: colors.ink },
   meta: { color: colors.muted, fontSize: 14 },
   line: { paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   amount: { fontWeight: '800', color: colors.navy, marginTop: 4 },
-  total: { marginTop: 8, fontSize: 18, fontWeight: '800', color: colors.navy },
+  total: { marginTop: 8, fontSize: 22, fontWeight: '800', color: colors.navy },
   notes: {
     minHeight: 80,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 12,
+    borderRadius: radius.md,
     padding: space.sm,
     textAlignVertical: 'top',
     color: colors.navy,
+    fontSize: 16,
   },
   error: { color: colors.red },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -186,10 +200,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     minHeight: 44,
     justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: colors.bg,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.line,
   },
-  chipOn: { backgroundColor: colors.navy },
-  chipLabel: { color: colors.slate, fontWeight: '700', fontSize: 12 },
+  chipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
+  chipLabel: { color: colors.slate, fontWeight: '700', fontSize: 13 },
   chipLabelOn: { color: colors.white },
 })

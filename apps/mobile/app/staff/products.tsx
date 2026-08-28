@@ -36,7 +36,7 @@ function ProductsBody() {
         loading={query.isLoading}
         error={query.error?.message}
         empty={(query.data?.items.length ?? 0) === 0}
-        emptyTitle="No products"
+        emptyTitle="No products found"
       >
         {(query.data?.items ?? []).map((product) => (
           <Card key={product.id}>

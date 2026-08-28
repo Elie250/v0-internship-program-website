@@ -49,7 +49,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         restoreError:
           error instanceof ApiError
             ? error.message
-            : 'Unable to connect. Check your internet connection.',
+            : 'Unable to connect. Check your connection and try again.',
       })
     }
   },

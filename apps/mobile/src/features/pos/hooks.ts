@@ -10,6 +10,7 @@ import {
 export type ProductLookupInput = {
   q?: string
   barcode?: string
+  categoryId?: string
 }
 
 export function useProductLookup(input: ProductLookupInput, enabled: boolean) {
@@ -19,7 +20,8 @@ export function useProductLookup(input: ProductLookupInput, enabled: boolean) {
       fetchProducts({
         q: input.q,
         barcode: input.barcode,
-        limit: 25,
+        category_id: input.categoryId,
+        limit: 40,
         page: 1,
       }),
     enabled,

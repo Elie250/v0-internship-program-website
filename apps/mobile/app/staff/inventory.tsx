@@ -29,6 +29,7 @@ function InventoryBody() {
         error={query.error?.message}
         empty={(query.data?.items.length ?? 0) === 0}
         emptyTitle="No inventory rows"
+        emptyBody="Catalog stock levels will appear here."
       >
         {(query.data?.items ?? []).map((row) => (
           <Card key={row.productId}>

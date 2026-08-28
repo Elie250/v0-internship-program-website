@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { canSeeStaffNavItem, STAFF_NAV_ITEMS } from '@/src/permissions'
 import { colors } from '@/src/theme'
@@ -13,6 +14,7 @@ export default function StaffLayout() {
   const token = useSessionStore((s) => s.token)
   const user = useSessionStore((s) => s.user)
   const hydrated = useSessionStore((s) => s.hydrated)
+  const insets = useSafeAreaInsets()
 
   if (hydrated && !token) return <Redirect href="/login" />
   if (hydrated && token && !user) return <Redirect href="/" />
@@ -21,32 +23,33 @@ export default function StaffLayout() {
   const perms = user.permissions
   const showPos = tabVisible('pos', perms)
   const showOrders = tabVisible('orders', perms)
+  const tabPad = Math.max(insets.bottom, 8)
 
   return (
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.navy },
         headerTintColor: colors.white,
+        headerTitleStyle: { fontWeight: '700' },
         tabBarActiveTintColor: colors.navy,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { minHeight: 58 },
+        tabBarStyle: {
+          height: 72 + tabPad,
+          paddingTop: 6,
+          paddingBottom: tabPad,
+        },
         tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
+        tabBarItemStyle: { minHeight: 44 },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" color={color} size={size} />,
-        }}
-      />
       <Tabs.Screen
         name="pos"
         options={{
           title: 'POS',
+          headerShown: false,
           href: showPos ? undefined : null,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" color={color} size={size} />
+            <Ionicons name="cart" color={color} size={size} />
           ),
         }}
       />
@@ -59,6 +62,13 @@ export default function StaffLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="receipt-outline" color={color} size={size} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen

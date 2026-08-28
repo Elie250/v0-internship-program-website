@@ -2,7 +2,7 @@
 export const PRODUCTION_API_BASE_URL = 'https://shop.energyandlogics.com'
 
 export const USER_MESSAGES = {
-  network: 'Unable to connect. Check your internet connection.',
+  network: 'Unable to connect. Check your connection and try again.',
   forbidden: "You don't have permission to perform this action.",
   expired: 'Your session has expired. Please sign in again.',
   generic: 'Something went wrong. Please try again.',

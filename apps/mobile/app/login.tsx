@@ -44,7 +44,7 @@ export default function LoginScreen() {
       >
       <View style={styles.hero}>
         <Text style={styles.kicker}>Energy & Logics</Text>
-        <Text style={styles.title}>Nyanza Shop Staff</Text>
+        <Text style={styles.title}>Staff POS</Text>
         <Text style={styles.sub}>Sign in with your shop staff account.</Text>
       </View>
 

@@ -43,6 +43,7 @@ export function ScreenState({
   emptyTitle,
   emptyBody,
   onRetry,
+  fill,
   children,
 }: {
   loading?: boolean
@@ -51,18 +52,19 @@ export function ScreenState({
   emptyTitle?: string
   emptyBody?: string
   onRetry?: () => void
+  fill?: boolean
   children: ReactNode
 }) {
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, fill && styles.fill]}>
         <ActivityIndicator color={colors.navy} size="large" />
       </View>
     )
   }
   if (error) {
     return (
-      <View style={styles.banner}>
+      <View style={[styles.banner, fill && styles.fill]}>
         <Text style={styles.error}>{error}</Text>
         {onRetry ? (
           <Pressable onPress={onRetry} style={styles.retryHit}>
@@ -74,9 +76,9 @@ export function ScreenState({
   }
   if (empty) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, fill && styles.fill]}>
         <Text style={styles.emptyTitle}>{emptyTitle || 'Nothing here yet'}</Text>
-        {emptyBody ? <Text style={styles.emptyBody}>{emptyBody}</Text> : null}
+        <Text style={styles.emptyBody}>{emptyBody || 'Nothing to show right now.'}</Text>
       </View>
     )
   }
@@ -87,6 +89,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: space.md, paddingBottom: 40, gap: space.md },
   center: { paddingVertical: 48, alignItems: 'center', gap: 8 },
+  fill: { flex: 1, justifyContent: 'center' },
   banner: {
     backgroundColor: colors.redSoft,
     borderRadius: 12,

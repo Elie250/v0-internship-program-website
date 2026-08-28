@@ -88,6 +88,10 @@ export type StaffProduct = {
   sellingQuantity: number
   sellingUnit: string
   sellingUnitLabel: string
+  categoryId?: string | null
+  category?: { id: string; name: string; slug: string | null; type: string | null } | null
+  images?: unknown
+  lowStockThreshold?: number | null
 }
 
 export type StaffInventoryRow = {

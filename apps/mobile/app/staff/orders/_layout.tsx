@@ -10,7 +10,7 @@ export default function OrdersStack() {
         headerTitleStyle: { fontWeight: '700' },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Orders' }} />
+      <Stack.Screen name="index" options={{ title: 'Orders', headerShown: false }} />
       <Stack.Screen name="[id]" options={{ title: 'Order' }} />
     </Stack>
   )

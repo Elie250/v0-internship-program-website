@@ -1,4 +1,5 @@
-import { StyleSheet, Text } from 'react-native'
+import { useRouter } from 'expo-router'
+import { Pressable, StyleSheet, Text } from 'react-native'
 import { useOrdersQuery, paymentLabel } from '@/src/features/orders/hooks'
 import { formatRwf, formatWhen } from '@/src/format'
 import { Card } from '@/src/ui/Card'
@@ -15,6 +16,7 @@ export default function SalesScreen() {
 }
 
 function SalesBody() {
+  const router = useRouter()
   const query = useOrdersQuery({ page: 1, limit: 25 })
   return (
     <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
@@ -24,16 +26,24 @@ function SalesBody() {
         error={query.error?.message}
         empty={(query.data?.items.length ?? 0) === 0}
         emptyTitle="No sales found"
+        emptyBody="Completed till and online sales will appear here."
       >
         {(query.data?.items ?? []).map((row) => (
-          <Card key={row.id}>
-            <Text style={styles.number}>{row.orderNumber || 'Sale'}</Text>
-            <Text style={styles.meta}>
-              {row.channel} · {paymentLabel(row.paymentStatus)}
-            </Text>
-            <Text style={styles.amount}>{formatRwf(row.totalAmount)}</Text>
-            <Text style={styles.meta}>{formatWhen(row.orderDate || row.createdAt)}</Text>
-          </Card>
+          <Pressable
+            key={row.id}
+            onPress={() => router.push(`/staff/orders/${row.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${row.orderNumber || 'sale'}`}
+          >
+            <Card>
+              <Text style={styles.number}>{row.orderNumber || 'Sale'}</Text>
+              <Text style={styles.meta}>
+                {row.channel} · {paymentLabel(row.paymentStatus)}
+              </Text>
+              <Text style={styles.amount}>{formatRwf(row.totalAmount)}</Text>
+              <Text style={styles.meta}>{formatWhen(row.orderDate || row.createdAt)}</Text>
+            </Card>
+          </Pressable>
         ))}
       </ScreenState>
     </Screen>
