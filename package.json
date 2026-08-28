@@ -31,6 +31,7 @@
     "test:shop-i18n": "node --test scripts/shop-i18n-selfcheck.mjs",
     "test:shop-storefront": "node --test scripts/shop-storefront-selfcheck.mjs",
     "test:shop-numbering": "node --test scripts/shop-commerce-numbering-selfcheck.mjs",
+    "test:mobile": "node --test scripts/mobile-staff-pos-selfcheck.mjs",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {
