@@ -14,7 +14,6 @@ import {
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { formatShopRwf } from '@/lib/shop/format'
 import { type PublicCatalogueItem } from '@/lib/shop/public-catalogue'
-import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import { cn } from '@/lib/utils'
 
 const AUTOPLAY_MS = 3800
@@ -24,7 +23,13 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
+export function StorefrontHome({
+  slides,
+  className,
+}: {
+  slides?: PublicCatalogueItem[]
+  className?: string
+}) {
   const t = useShopT()
   const products = slides ?? []
   const canRotate = products.length > 1
@@ -61,30 +66,32 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
   }, [api, canRotate, paused])
 
   return (
-    <div className={`${STOREFRONT_GUTTER} pt-4 sm:pt-5`}>
-      <section
-        className="relative overflow-hidden rounded-[var(--shop-radius-lg)] bg-[var(--shop-hero)] text-white"
-        onMouseEnter={() => setHovering(true)}
-        onMouseLeave={() => setHovering(false)}
-        onFocusCapture={() => setFocused(true)}
-        onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setFocused(false)
-          }
-        }}
-      >
+    <section
+      className={cn(
+        'relative h-[216px] overflow-hidden rounded-[var(--shop-radius-lg)] bg-[var(--shop-hero)] text-white sm:h-[232px] md:h-[248px] lg:h-full lg:min-h-[360px]',
+        className
+      )}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setFocused(false)
+        }
+      }}
+    >
         {products.length > 0 ? (
           <Carousel
             setApi={setApi}
             opts={{ loop: canRotate, duration: 22, align: 'start' }}
-            className="w-full"
+            className="h-full w-full"
             tabIndex={canRotate ? 0 : undefined}
             aria-label={t('storefront.hero.carousel')}
           >
-            <CarouselContent className="-ml-0">
+            <CarouselContent className="-ml-0 h-full">
               {products.map((product, slideIndex) => (
-                <CarouselItem key={product.slug} className="pl-0">
-                  <div className="relative h-[216px] overflow-hidden sm:h-[232px] md:h-[248px] lg:h-[260px]">
+                <CarouselItem key={product.slug} className="h-full pl-0">
+                  <div className="relative h-full">
                     {product.image ? (
                       <div className="absolute inset-y-0 right-0 w-[78%]">
                         <Image
@@ -92,7 +99,7 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
                           alt={product.name}
                           fill
                           className="object-contain object-right"
-                          sizes="(min-width: 1024px) 40vw, 78vw"
+                          sizes="(min-width: 1024px) 36vw, 78vw"
                           priority={slideIndex === 0}
                           unoptimized
                         />
@@ -111,7 +118,7 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
             </CarouselContent>
           </Carousel>
         ) : (
-          <div className="relative h-[216px] sm:h-[232px] md:h-[248px] lg:h-[260px]">
+          <div className="relative h-full min-h-[216px]">
             <div className="absolute inset-y-0 right-0 flex w-[78%] items-center justify-center text-white/30">
               <Package className="h-12 w-12" aria-hidden />
             </div>
@@ -123,17 +130,17 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
           aria-hidden
         />
 
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 px-5 py-5 sm:px-6">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 px-5 py-5 sm:px-6 lg:w-[52%] lg:px-7">
           <p className="sr-only">
             {t('brand.siteLabel')} · {t('storefront.arrivals.title')}
           </p>
-          <h1 className="truncate text-xl font-bold leading-tight sm:text-[22px]">
+          <h1 className="truncate text-xl font-bold leading-tight sm:text-[22px] lg:text-2xl">
             {t('storefront.hero.title')}
           </h1>
-          <p className="text-xl font-bold leading-tight text-[var(--shop-green)] sm:text-[22px]">
+          <p className="text-xl font-bold leading-tight text-[var(--shop-green)] sm:text-[22px] lg:text-2xl">
             {t('storefront.hero.emphasis')}
           </p>
-          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB]">
+          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB] lg:text-sm lg:leading-6">
             {t('storefront.hero.body')}
           </p>
           <Button
@@ -183,7 +190,6 @@ export function StorefrontHome({ slides }: { slides?: PublicCatalogueItem[] }) {
             </div>
           </>
         ) : null}
-      </section>
-    </div>
+    </section>
   )
 }

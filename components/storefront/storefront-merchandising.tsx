@@ -8,6 +8,7 @@ import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { StorefrontProductCard } from '@/components/storefront/storefront-product-card'
 import { STOREFRONT_GUTTER } from '@/lib/shop/storefront-layout'
 import type { StorefrontMerchandising, StorefrontPromoKind } from '@/lib/shop/public-merchandising'
+import type { PublicCatalogueItem } from '@/lib/shop/public-catalogue'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
 
 const PROMO_COPY: Record<
@@ -49,16 +50,41 @@ function SectionHead({
 
 export function StorefrontMerchandising({
   merch,
+  popular = [],
   children,
 }: {
   merch: StorefrontMerchandising
+  popular?: PublicCatalogueItem[]
   children?: ReactNode
 }) {
   const t = useShopT()
+  const popularProducts = popular.slice(0, 4)
+  const desktopTrends = merch.trends.slice(0, 4)
+  const showDesktopRails = desktopTrends.length > 0 || popularProducts.length > 0
 
   return (
     <div className="bg-[var(--shop-bg)]">
-      {children}
+      <div className={`${STOREFRONT_GUTTER} pt-4 sm:pt-5`}>
+        <div
+          className={
+            showDesktopRails
+              ? 'lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,28rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(24rem,32rem)]'
+              : undefined
+          }
+        >
+          <div className="min-w-0">{children}</div>
+          {showDesktopRails ? (
+            <aside className="hidden min-h-[360px] lg:flex lg:flex-col lg:justify-between lg:gap-5">
+              {desktopTrends.length > 0 ? (
+                <DesktopRail title={t('storefront.trends.title')} products={desktopTrends} />
+              ) : null}
+              {popularProducts.length > 0 ? (
+                <DesktopRail title={t('storefront.popular.title')} products={popularProducts} />
+              ) : null}
+            </aside>
+          ) : null}
+        </div>
+      </div>
 
       {merch.categoryTiles.length > 0 ? (
         <section className={`${STOREFRONT_GUTTER} pt-6`}>
@@ -115,7 +141,7 @@ export function StorefrontMerchandising({
       ) : null}
 
       {merch.trends.length > 0 ? (
-        <section className={`${STOREFRONT_GUTTER} pt-6`}>
+        <section className={`${STOREFRONT_GUTTER} pt-6 lg:hidden`}>
           <SectionHead title={t('storefront.trends.title')} />
           <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
             {merch.trends.map((product) => (
@@ -168,5 +194,18 @@ export function StorefrontMerchandising({
         </section>
       ) : null}
     </div>
+  )
+}
+
+function DesktopRail({ title, products }: { title: string; products: PublicCatalogueItem[] }) {
+  return (
+    <section className="min-w-0">
+      <SectionHead title={title} href="/#products" />
+      <div className="mt-3 grid grid-cols-2 gap-4">
+        {products.slice(0, 2).map((product) => (
+          <StorefrontProductCard key={product.slug} product={product} />
+        ))}
+      </div>
+    </section>
   )
 }

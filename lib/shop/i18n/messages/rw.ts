@@ -484,6 +484,7 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'storefront.latest.subtitle': 'Ibicuruzwa byashyizwe ku rutonde vuba, ushobora kugura ubu.',
   'storefront.trends.title': 'Ibicuruzwa byo kureba',
   'storefront.trends.subtitle': 'Ibicuruzwa byo kureba kuri Nyanza Shop.',
+  'storefront.popular.title': 'Ibicuruzwa bikunzwe',
   'storefront.featured.title': 'Ibicuruzwa by’ingenzi',
   'storefront.featured.subtitle': 'Bivuye mu bicuruzwa tugurisha kuri Nyanza Shop.',
   'storefront.promo.sound.title': 'Amajwi meza',

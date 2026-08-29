@@ -481,6 +481,7 @@ export const shopMessagesEn = {
   'storefront.latest.subtitle': 'Recently added products you can buy now.',
   'storefront.trends.title': 'Trending now',
   'storefront.trends.subtitle': 'Products to explore at Nyanza Shop.',
+  'storefront.popular.title': 'Popular',
   'storefront.featured.title': 'Featured products',
   'storefront.featured.subtitle': 'Highlighted from products we sell at Nyanza Shop.',
   'storefront.promo.sound.title': 'Premium Sound',

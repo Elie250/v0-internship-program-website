@@ -36,7 +36,7 @@ async function StorefrontCatalogueSection({
         searchQuery={search}
       />
       {merch ? (
-        <StorefrontMerchandising merch={merch}>
+        <StorefrontMerchandising merch={merch} popular={merch.heroProducts}>
           <StorefrontHome slides={latestSlides.length > 0 ? latestSlides : merch.heroProducts} />
         </StorefrontMerchandising>
       ) : null}
