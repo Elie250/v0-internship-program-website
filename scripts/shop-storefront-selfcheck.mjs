@@ -440,6 +440,8 @@ test('MoMo checkout reuses the existing card and receipt upload', () => {
   assert.match(momo, /PAYMENT\.momoPayCode/)
   const upload = read('app/api/public/upload-receipt/route.ts')
   assert.match(upload, /uploadObject/)
+  assert.match(upload, /receiptContentType/)
+  assert.match(upload, /No file provided/)
 })
 
 test('successful confirmation uses required English and Kinyarwanda wording', () => {

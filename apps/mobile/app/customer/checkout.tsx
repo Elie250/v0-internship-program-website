@@ -11,7 +11,7 @@ import { useRouter } from 'expo-router'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Image } from 'expo-image'
-import { File } from 'expo-file-system'
+import { File, Paths } from 'expo-file-system'
 import { Ionicons } from '@expo/vector-icons'
 import { ApiError } from '@/src/api/client'
 import { USER_MESSAGES } from '@/src/api/errors'
@@ -80,20 +80,16 @@ export default function CustomerCheckout() {
     setFormError(null)
     try {
       const picked = await File.pickFileAsync(undefined, 'image/*')
-      const file = Array.isArray(picked) ? picked[0] : picked
-      if (!file?.uri) return
-      const name = file.uri.split('/').pop() || `receipt-${Date.now()}.jpg`
-      setReceiptUri(file.uri)
+      const file = unwrapPickedFile(picked)
+      if (!file) return
+      const local = copyReceiptForUpload(file)
+      setReceiptUri(local.uri)
       setReceiptUrl('')
       setUploading(true)
-      const uploaded = await uploadPublicReceipt({
-        uri: file.uri,
-        name,
-        type: receiptMime(name),
-      })
+      const uploaded = await uploadPublicReceipt(local)
       setReceiptUrl(uploaded.url)
     } catch (error) {
-      if (error instanceof Error && /cancel|dismiss/i.test(error.message)) return
+      if (error instanceof Error && /cancel|dismiss|canceled/i.test(error.message)) return
       setReceiptUrl('')
       setFormError(
         error instanceof ApiError && error.message !== USER_MESSAGES.generic
@@ -451,13 +447,38 @@ export default function CustomerCheckout() {
   )
 }
 
-function receiptMime(name: string): string {
-  const ext = name.split('.').pop()?.toLowerCase()
-  if (ext === 'png') return 'image/png'
-  if (ext === 'webp') return 'image/webp'
-  if (ext === 'gif') return 'image/gif'
-  if (ext === 'pdf') return 'application/pdf'
-  return 'image/jpeg'
+function unwrapPickedFile(picked: unknown): File | null {
+  if (!picked) return null
+  if (typeof picked === 'object' && picked !== null && 'canceled' in picked) {
+    const row = picked as { canceled?: boolean; result?: File | File[] }
+    if (row.canceled) return null
+    const result = row.result
+    return Array.isArray(result) ? result[0] ?? null : result ?? null
+  }
+  if (Array.isArray(picked)) return picked[0] ?? null
+  return picked instanceof File ? picked : null
+}
+
+function receiptExtension(file: File): string {
+  const fromName = (file.name || file.uri || '').split('?')[0].split('.').pop()?.toLowerCase()
+  if (fromName === 'jpeg') return 'jpg'
+  if (fromName && ['jpg', 'png', 'webp', 'gif', 'pdf'].includes(fromName)) return fromName
+  const type = String(file.type || '').toLowerCase()
+  if (type.includes('png')) return 'png'
+  if (type.includes('webp')) return 'webp'
+  if (type.includes('gif')) return 'gif'
+  if (type.includes('pdf')) return 'pdf'
+  return 'jpg'
+}
+
+function copyReceiptForUpload(file: File): File {
+  const dest = new File(Paths.cache, `receipt-${Date.now()}.${receiptExtension(file)}`)
+  try {
+    file.copy(dest)
+    return dest
+  } catch {
+    return file
+  }
 }
 
 function Field({

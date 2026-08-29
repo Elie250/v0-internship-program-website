@@ -1,4 +1,5 @@
 import Constants from 'expo-constants'
+import { fetch as expoFetch } from 'expo/fetch'
 import { PRODUCTION_API_BASE_URL, resolveApiBaseUrl } from '@/src/api/config'
 import { sanitizeApiErrorMessage, type ApiErrorCode } from '@/src/api/errors'
 
@@ -115,13 +116,60 @@ export async function publicFormRequest<T>(
   body: FormData,
   init: { timeoutMs?: number } = {}
 ): Promise<T> {
-  return jsonRequest<T>(path, {
-    method: 'POST',
-    body,
-    auth: false,
-    expireOn401: false,
-    timeoutMs: init.timeoutMs ?? 60_000,
-  })
+  const url = `${getApiBaseUrl()}${path}`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? 60_000)
+  try {
+    const response = await expoFetch(url, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      body,
+      signal: controller.signal,
+    })
+    const text = await response.text()
+    let parsed: unknown = undefined
+    let jsonOk = false
+    if (text.trim()) {
+      try {
+        parsed = JSON.parse(text)
+        jsonOk = true
+      } catch {
+        jsonOk = false
+      }
+    }
+    const data = jsonOk && parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
+    const serverMessage =
+      typeof data.error === 'string'
+        ? data.error
+        : typeof data.message === 'string'
+          ? data.message
+          : undefined
+    if (!response.ok) {
+      const status = response.status
+      const code = codeForStatus(status)
+      throw new ApiError(
+        sanitizeApiErrorMessage({ status, code, serverMessage }),
+        status,
+        code
+      )
+    }
+    if (!text.trim() || !jsonOk) {
+      throw new ApiError(
+        sanitizeApiErrorMessage({ status: 500, code: 'invalid_json' }),
+        500,
+        'invalid_json'
+      )
+    }
+    return parsed as T
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    if (error instanceof Error && /abort|timeout/i.test(error.name + error.message)) {
+      throw new ApiError(sanitizeApiErrorMessage({ status: 0, code: 'timeout' }), 0, 'timeout')
+    }
+    throw new ApiError(sanitizeApiErrorMessage({ status: 0, code: 'network' }), 0, 'network')
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export async function staffRequest<T>(

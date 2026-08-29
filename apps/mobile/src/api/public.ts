@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system'
 import { ApiError, getApiBaseUrl, publicFormRequest, publicRequest } from '@/src/api/client'
 import { sanitizeApiErrorMessage } from '@/src/api/errors'
 import type {
@@ -226,16 +227,10 @@ export async function createPublicOrder(input: {
   return parsePublicShopOrderCreated(data)
 }
 
-export async function uploadPublicReceipt(file: { uri: string; name: string; type: string }) {
+export async function uploadPublicReceipt(file: File | { uri: string; name?: string; type?: string }) {
+  const expoFile = file instanceof File ? file : new File(file.uri)
   const body = new FormData()
-  body.append(
-    'file',
-    {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
-    } as unknown as Blob
-  )
+  body.append('file', expoFile)
   const data = await publicFormRequest<unknown>('/api/public/upload-receipt', body)
   const row = asRecord(data)
   const url = typeof row?.url === 'string' ? row.url.trim() : ''

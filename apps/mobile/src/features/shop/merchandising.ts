@@ -1,5 +1,6 @@
 import type { PublicCatalogueCategory, PublicCatalogueItem } from '@/src/api/public-types'
 
+const HERO_LIMIT = 5
 const LATEST_LIMIT = 8
 const TRENDS_LIMIT = 4
 const DEALS_LIMIT = 8
@@ -11,7 +12,7 @@ export function latestArrivals(products: PublicCatalogueItem[]) {
 
 /** Photographed Latest Arrivals only — the home hero slides these, not a single featured pick. */
 export function selectHeroSlides(latest: PublicCatalogueItem[]): PublicCatalogueItem[] {
-  return latest.filter((item) => Boolean(item.image))
+  return latest.filter((item) => Boolean(item.image)).slice(0, HERO_LIMIT)
 }
 
 function slugSet(items: PublicCatalogueItem[]) {

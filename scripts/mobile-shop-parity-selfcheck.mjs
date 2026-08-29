@@ -64,6 +64,8 @@ test('home merchandising de-duplicates and only shows deals with a real discount
   assert.match(home, /home.deals/)
   assert.match(home, /home.more/)
   assert.match(home, /latestCards/)
+  assert.match(home, /products\.length > 0/)
+  assert.match(merch, /slice\(0, HERO_LIMIT\)/)
 })
 
 test('search idle state does not claim products were found', () => {

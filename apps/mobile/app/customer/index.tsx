@@ -35,7 +35,8 @@ export default function CustomerHome() {
   const latestCards = selectLatestProducts(products, heroSlides)
   const deals = selectDealProducts(products)
   const trending = trendingProducts(products, [...heroSlides, ...latestCards, ...deals])
-  const more = moreInShop(products, [...heroSlides, ...latestCards, ...deals, ...trending])
+  const leftover = moreInShop(products, [...latestCards, ...deals, ...trending])
+  const more = leftover.length > 0 ? leftover : products
 
   const openHero = (product: (typeof heroSlides)[number] | null) => {
     if (product) {
@@ -170,7 +171,7 @@ export default function CustomerHome() {
           </ShopSection>
         ) : null}
 
-        {more.length > 0 ? (
+        {products.length > 0 ? (
           <ShopSection>
             <SectionHead
               title={t('home.more')}
@@ -179,7 +180,7 @@ export default function CustomerHome() {
               }
             />
             <View style={styles.grid}>
-              {more.map((product) => (
+              {(more.length > 0 ? more : products).map((product) => (
                 <View key={product.slug} style={styles.gridItem}>
                   <ShopProductCard
                     product={product}
