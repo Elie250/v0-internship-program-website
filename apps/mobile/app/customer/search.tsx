@@ -1,80 +1,176 @@
-import { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { useMemo, useState } from 'react'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicCatalogue } from '@/src/features/shop/hooks'
 import { useShopCart } from '@/src/features/shop/cart-store'
-import { ProductCard } from '@/src/features/shop/ProductCard'
+import { ShopProductCard } from '@/src/features/shop/ShopProductCard'
+import { ShopScreen } from '@/src/features/shop/ShopScreen'
+import { sortProducts } from '@/src/features/shop/merchandising'
+import { shopColor, shopRadius } from '@/src/features/shop/shop-theme'
 import { useShopText } from '@/src/i18n/locale-store'
-import { FilterChips } from '@/src/ui/FilterChips'
-import { ProductSearchField } from '@/src/ui/SearchField'
-import { Screen, ScreenState } from '@/src/ui/Screen'
-import { colors, space, type } from '@/src/theme'
+import { ScreenState } from '@/src/ui/Screen'
+import { font } from '@/src/theme'
+
+type SortId = 'name' | 'price_asc' | 'price_desc'
 
 export default function CustomerSearch() {
   const router = useRouter()
   const t = useShopText()
   const params = useLocalSearchParams<{ category?: string }>()
   const [q, setQ] = useState('')
-  const [submitted, setSubmitted] = useState('')
-  const [category, setCategory] = useState(params.category || 'all')
+  const [category] = useState(params.category || undefined)
+  const [sort, setSort] = useState<SortId>('name')
   const addProduct = useShopCart((s) => s.addProduct)
+  const activeQuery = q.trim()
+  const searching = activeQuery.length > 0
   const query = usePublicCatalogue({
-    q: submitted || undefined,
-    category: category === 'all' ? undefined : category,
+    q: searching ? activeQuery : undefined,
+    category,
   })
 
-  const chips = [
-    { id: 'all', label: t('catalogue.all') },
-    ...(query.data?.categories ?? []).map((item) => ({ id: item.slug, label: item.name })),
-  ]
+  const products = useMemo(
+    () => sortProducts(query.data?.products ?? [], sort),
+    [query.data?.products, sort]
+  )
+
+  const cycleSort = () => {
+    setSort((current) =>
+      current === 'name' ? 'price_asc' : current === 'price_asc' ? 'price_desc' : 'name'
+    )
+  }
 
   return (
-    <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
-      <Text style={type.kicker}>{t('brand.short')}</Text>
-      <Text style={type.screenTitle}>{t('nav.search')}</Text>
-      <ProductSearchField
-        value={q}
-        onChange={setQ}
-        placeholder={t('catalogue.searchPlaceholder')}
-        onSubmit={() => setSubmitted(q.trim())}
-      />
-      <FilterChips items={chips} selectedId={category} onSelect={setCategory} />
+    <ShopScreen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
+      <View style={styles.searchRow}>
+        <View style={styles.field}>
+          <Ionicons name="search-outline" size={18} color={shopColor.muted} />
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder={t('catalogue.searchPlaceholder')}
+            placeholderTextColor={shopColor.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel={t('catalogue.searchPlaceholder')}
+            style={styles.input}
+            maxFontSizeMultiplier={1.2}
+          />
+          {q ? (
+            <Pressable
+              onPress={() => setQ('')}
+              accessibilityRole="button"
+              accessibilityLabel={t('catalogue.cancel')}
+            >
+              <Ionicons name="close-circle" size={18} color={shopColor.muted} />
+            </Pressable>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={() => router.push('/customer' as never)}
+          accessibilityRole="button"
+          accessibilityLabel={t('catalogue.cancel')}
+        >
+          <Text style={styles.cancel}>{t('catalogue.cancel')}</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.meta}>
+        <Text style={styles.results} maxFontSizeMultiplier={1.2}>
+          {searching
+            ? products.length === 0
+              ? t('catalogue.resultsNone')
+              : products.length === 1
+                ? t('catalogue.resultsOne')
+                : t('catalogue.resultsMany', { n: products.length })
+            : t('catalogue.searchHint')}
+        </Text>
+        <Pressable onPress={cycleSort} accessibilityRole="button" accessibilityLabel={t('catalogue.sort')}>
+          <Text style={styles.sort}>
+            {t('catalogue.sort')}: {t(
+              sort === 'name'
+                ? 'catalogue.sortName'
+                : sort === 'price_asc'
+                  ? 'catalogue.sortPriceAsc'
+                  : 'catalogue.sortPriceDesc'
+            )}
+          </Text>
+        </Pressable>
+      </View>
+
       <ScreenState
         loading={query.isLoading && !query.data}
         loadingLabel={t('catalogue.loading')}
         error={query.error ? t(catalogueErrorKey(query.error)) : null}
-        empty={(query.data?.products.length ?? 0) === 0}
-        emptyTitle={submitted || category !== 'all' ? t('catalogue.noResults') : t('catalogue.empty')}
+        empty={products.length === 0}
+        emptyTitle={searching ? t('catalogue.resultsNone') : t('catalogue.empty')}
         onRetry={() => void query.refetch()}
         retryLabel={t('catalogue.retry')}
       >
-        <View style={styles.list}>
-          {(query.data?.products ?? []).map((product, index, all) => (
-            <View key={product.slug}>
-              <ProductCard
+        <View style={styles.grid}>
+          {products.map((product) => (
+            <View key={product.slug} style={styles.cell}>
+              <ShopProductCard
                 product={product}
+                compact
                 onOpen={() =>
                   router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
                 }
                 onAdd={() => addProduct(product)}
               />
-              {index < all.length - 1 ? <View style={styles.line} /> : null}
             </View>
           ))}
         </View>
       </ScreenState>
-    </Screen>
+    </ShopScreen>
   )
 }
 
 const styles = StyleSheet.create({
-  list: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  field: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: shopRadius.pill,
+    backgroundColor: shopColor.tile,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    gap: 8,
   },
-  line: { height: 1, backgroundColor: colors.divider, marginLeft: 76 },
+  input: {
+    flex: 1,
+    fontFamily: font.regular,
+    fontSize: 15,
+    color: shopColor.text,
+    paddingVertical: 8,
+  },
+  cancel: {
+    fontFamily: font.semibold,
+    fontSize: 15,
+    color: shopColor.green,
+  },
+  meta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  results: {
+    fontFamily: font.regular,
+    fontSize: 13,
+    color: shopColor.muted,
+  },
+  sort: {
+    fontFamily: font.semibold,
+    fontSize: 13,
+    color: shopColor.text,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  cell: { width: '31%', flexGrow: 1, maxWidth: '32%' },
 })
