@@ -1,5 +1,4 @@
-/** Production shop host. Overridable in development via EXPO_PUBLIC_API_BASE_URL. */
-export const PRODUCTION_API_BASE_URL = 'https://shop.energyandlogics.com'
+export { PRODUCTION_API_BASE_URL } from '@/src/api/config'
 
 export const USER_MESSAGES = {
   network: 'Unable to connect. Check your connection and try again.',
@@ -49,6 +48,8 @@ export type ApiErrorCode =
   | 'network'
   | 'timeout'
   | 'not_found'
+  | 'invalid_json'
+  | 'invalid_payload'
   | 'http'
 
 export function sanitizeApiErrorMessage(input: {

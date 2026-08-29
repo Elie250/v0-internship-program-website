@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicCatalogue } from '@/src/features/shop/hooks'
 import { useShopCart } from '@/src/features/shop/cart-store'
 import { ProductCard } from '@/src/features/shop/ProductCard'
@@ -41,10 +42,12 @@ export default function CustomerSearch() {
       <FilterChips items={chips} selectedId={category} onSelect={setCategory} />
       <ScreenState
         loading={query.isLoading && !query.data}
-        error={query.error ? t('catalogue.error') : null}
+        loadingLabel={t('catalogue.loading')}
+        error={query.error ? t(catalogueErrorKey(query.error)) : null}
         empty={(query.data?.products.length ?? 0) === 0}
         emptyTitle={submitted || category !== 'all' ? t('catalogue.noResults') : t('catalogue.empty')}
         onRetry={() => void query.refetch()}
+        retryLabel={t('catalogue.retry')}
       >
         <View style={styles.list}>
           {(query.data?.products ?? []).map((product, index, all) => (

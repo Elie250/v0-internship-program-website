@@ -24,6 +24,7 @@
       },
       "package": "com.energyandlogics.staffpos",
       "permissions": ["INTERNET"],
+      "usesCleartextTraffic": false,
       "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
+import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicCatalogue } from '@/src/features/shop/hooks'
 import { useShopCart } from '@/src/features/shop/cart-store'
 import { ProductCard } from '@/src/features/shop/ProductCard'
@@ -44,11 +45,12 @@ export default function CustomerHome() {
       <Text style={type.sectionTitle}>{t('home.browse')}</Text>
       <ScreenState
         loading={query.isLoading && !query.data}
-        error={query.error ? t('catalogue.error') : null}
-        errorTitle={t('catalogue.error')}
+        loadingLabel={t('catalogue.loading')}
+        error={query.error ? t(catalogueErrorKey(query.error)) : null}
         empty={(query.data?.products.length ?? 0) === 0}
         emptyTitle={t('catalogue.empty')}
         onRetry={() => void query.refetch()}
+        retryLabel={t('catalogue.retry')}
       >
         <View style={styles.list}>
           {(query.data?.products ?? []).map((product, index, all) => (

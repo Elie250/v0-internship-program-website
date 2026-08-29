@@ -374,13 +374,16 @@ test('EAS Android package is prepared but not published', () => {
 
 test('production API host is the shop domain and is overridable', () => {
   const client = read('src/api/client.ts')
-  const errors = read('src/api/errors.ts')
+  const config = read('src/api/config.ts')
   const envExample = read('.env.example')
   const app = JSON.parse(read('app.json'))
-  assert.match(errors, /https:\/\/shop\.energyandlogics\.com/)
+  assert.match(config, /https:\/\/shop\.energyandlogics\.com/)
+  assert.match(config, /isLocalDevApiHost/)
   assert.match(client, /EXPO_PUBLIC_API_BASE_URL/)
+  assert.match(client, /resolveApiBaseUrl/)
   assert.match(envExample, /https:\/\/shop\.energyandlogics\.com/)
   assert.equal(app.expo.extra.apiBaseUrl, 'https://shop.energyandlogics.com')
+  assert.equal(app.expo.android.usesCleartextTraffic, false)
 })
 
 test('Android never calls the admin payment-review endpoint', () => {

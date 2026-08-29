@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicCatalogue } from '@/src/features/shop/hooks'
 import { useShopText } from '@/src/i18n/locale-store'
 import { Screen, ScreenState } from '@/src/ui/Screen'
@@ -17,10 +18,12 @@ export default function CustomerCategories() {
       <Text style={type.screenTitle}>{t('nav.categories')}</Text>
       <ScreenState
         loading={query.isLoading && !query.data}
-        error={query.error ? t('catalogue.error') : null}
+        loadingLabel={t('catalogue.loading')}
+        error={query.error ? t(catalogueErrorKey(query.error)) : null}
         empty={(query.data?.categories.length ?? 0) === 0}
         emptyTitle={t('catalogue.empty')}
         onRetry={() => void query.refetch()}
+        retryLabel={t('catalogue.retry')}
       >
         <View style={styles.list}>
           {(query.data?.categories ?? []).map((category, index, all) => (

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Image } from 'expo-image'
+import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicProduct } from '@/src/features/shop/hooks'
 import { useShopCart } from '@/src/features/shop/cart-store'
 import { formatRwf } from '@/src/format'
@@ -29,10 +30,12 @@ export default function CustomerProductDetail() {
       />
       <ScreenState
         loading={query.isLoading && !query.data}
-        error={query.error ? t('catalogue.error') : null}
+        loadingLabel={t('catalogue.loading')}
+        error={query.error ? t(catalogueErrorKey(query.error)) : null}
         empty={!query.isLoading && !product}
         emptyTitle={t('product.notFound')}
         onRetry={() => void query.refetch()}
+        retryLabel={t('catalogue.retry')}
       >
         {product ? (
           <View style={styles.body}>

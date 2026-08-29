@@ -1,14 +1,29 @@
 import Constants from 'expo-constants'
-import { PRODUCTION_API_BASE_URL, sanitizeApiErrorMessage, type ApiErrorCode } from '@/src/api/errors'
+import { PRODUCTION_API_BASE_URL, resolveApiBaseUrl } from '@/src/api/config'
+import { sanitizeApiErrorMessage, type ApiErrorCode } from '@/src/api/errors'
 
-export { PRODUCTION_API_BASE_URL }
+export { PRODUCTION_API_BASE_URL, resolveApiBaseUrl }
 
 export function getApiBaseUrl(): string {
-  const env = process.env.EXPO_PUBLIC_API_BASE_URL?.trim()
-  const extra = Constants.expoConfig?.extra?.apiBaseUrl
-  const fromExtra = typeof extra === 'string' ? extra.trim() : ''
-  const raw = env || fromExtra || PRODUCTION_API_BASE_URL
-  return raw.replace(/\/$/, '')
+  return resolveApiBaseUrl({
+    env: process.env.EXPO_PUBLIC_API_BASE_URL,
+    extra: Constants.expoConfig?.extra?.apiBaseUrl,
+    isDev: typeof __DEV__ !== 'undefined' ? __DEV__ : false,
+  })
+}
+
+function logApiFailure(details: {
+  method: string
+  url: string
+  status: number
+  code: ApiErrorCode
+  reason?: string
+}) {
+  if (typeof __DEV__ === 'undefined' || !__DEV__) return
+  const extra = details.reason ? ` ${details.reason}` : ''
+  console.warn(
+    `[el-api] ${details.method} ${details.url} -> ${details.code} HTTP ${details.status}${extra}`
+  )
 }
 
 export class ApiError extends Error {
@@ -63,6 +78,7 @@ function codeForStatus(status: number): ApiErrorCode {
   if (status === 401) return 'unauthorized'
   if (status === 403) return 'forbidden'
   if (status === 404) return 'not_found'
+  if (status >= 500) return 'http'
   return 'http'
 }
 
@@ -101,7 +117,13 @@ async function jsonRequest<T>(
   const { expireOn401 = true, isLogin = false, timeoutMs = 25_000, auth: useAuth, ...requestInit } =
     init
   const method = (requestInit.method || 'GET').toUpperCase()
+  const url = `${getApiBaseUrl()}${path}`
   let attempt = 0
+
+  const fail = (error: ApiError, reason?: string): ApiError => {
+    logApiFailure({ method, url, status: error.status, code: error.code, reason })
+    return error
+  }
 
   while (true) {
     const controller = new AbortController()
@@ -115,7 +137,7 @@ async function jsonRequest<T>(
       }
       if (useAuth && token) headers.set('Authorization', `Bearer ${token}`)
 
-      const response = await fetch(`${getApiBaseUrl()}${path}`, {
+      const response = await fetch(url, {
         ...requestInit,
         method,
         headers,
@@ -123,21 +145,18 @@ async function jsonRequest<T>(
       })
 
       const text = await response.text()
-      let data: { error?: string; message?: string } = {}
+      let parsed: unknown = undefined
+      let jsonOk = false
       if (text.trim()) {
         try {
-          data = JSON.parse(text) as { error?: string; message?: string }
+          parsed = JSON.parse(text)
+          jsonOk = true
         } catch {
-          if (response.ok) {
-            throw new ApiError(
-              sanitizeApiErrorMessage({ status: 500, code: 'http' }),
-              500,
-              'http'
-            )
-          }
+          jsonOk = false
         }
       }
 
+      const data = jsonOk && parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {}
       const serverMessage =
         typeof data.error === 'string'
           ? data.error
@@ -147,15 +166,17 @@ async function jsonRequest<T>(
 
       if (response.status === 401) {
         if (expireOn401 && !isLogin) await notifyUnauthorized()
-        throw new ApiError(
-          sanitizeApiErrorMessage({
-            status: 401,
-            code: 'unauthorized',
-            serverMessage,
-            isLogin,
-          }),
-          401,
-          'unauthorized'
+        throw fail(
+          new ApiError(
+            sanitizeApiErrorMessage({
+              status: 401,
+              code: 'unauthorized',
+              serverMessage,
+              isLogin,
+            }),
+            401,
+            'unauthorized'
+          )
         )
       }
 
@@ -165,23 +186,33 @@ async function jsonRequest<T>(
           continue
         }
         const code = codeForStatus(response.status)
-        throw new ApiError(
-          sanitizeApiErrorMessage({
-            status: response.status,
-            code,
-            serverMessage,
-            isLogin,
-          }),
-          response.status,
-          code
+        throw fail(
+          new ApiError(
+            sanitizeApiErrorMessage({
+              status: response.status,
+              code,
+              serverMessage,
+              isLogin,
+            }),
+            response.status,
+            code
+          ),
+          jsonOk ? undefined : 'non-json body'
         )
       }
 
-      if (!text.trim()) {
-        throw new ApiError(sanitizeApiErrorMessage({ status: 500, code: 'http' }), 500, 'http')
+      if (!text.trim() || !jsonOk) {
+        throw fail(
+          new ApiError(
+            sanitizeApiErrorMessage({ status: 500, code: 'invalid_json' }),
+            500,
+            'invalid_json'
+          ),
+          'invalid json'
+        )
       }
 
-      return data as T
+      return parsed as T
     } catch (error) {
       if (error instanceof ApiError) throw error
       if (abortError(error)) {
@@ -189,20 +220,16 @@ async function jsonRequest<T>(
           attempt += 1
           continue
         }
-        throw new ApiError(
-          sanitizeApiErrorMessage({ status: 0, code: 'timeout' }),
-          0,
-          'timeout'
+        throw fail(
+          new ApiError(sanitizeApiErrorMessage({ status: 0, code: 'timeout' }), 0, 'timeout')
         )
       }
       if (shouldRetry(0, attempt, method)) {
         attempt += 1
         continue
       }
-      throw new ApiError(
-        sanitizeApiErrorMessage({ status: 0, code: 'network' }),
-        0,
-        'network'
+      throw fail(
+        new ApiError(sanitizeApiErrorMessage({ status: 0, code: 'network' }), 0, 'network')
       )
     } finally {
       clearTimeout(timer)

@@ -35,15 +35,21 @@ test('customer catalogue uses the public shop API and never staff products', () 
   const detail = readRoot('app/api/shop/catalogue/[slug]/route.ts')
   const home = readMobile('app/customer/index.tsx')
   const client = readMobile('src/api/client.ts')
+  const config = readMobile('src/api/config.ts')
 
   assert.match(catalogue, /loadPublicCatalogue/)
   assert.match(detail, /getPublicCatalogueItemBySlug/)
   assert.match(publicApi, /\/api\/shop\/catalogue/)
   assert.match(publicApi, /publicRequest/)
+  assert.match(publicApi, /parsePublicCatalogue/)
   assert.match(home, /usePublicCatalogue/)
+  assert.match(home, /catalogueErrorKey/)
   assert.doesNotMatch(home, /\/api\/staff\/products/)
+  assert.doesNotMatch(home, /t\('catalogue.error'\)/)
   assert.match(client, /export async function publicRequest/)
   assert.match(client, /useAuth && token/)
+  assert.match(config, /PRODUCTION_API_BASE_URL = 'https:\/\/shop\.energyandlogics\.com'/)
+  assert.match(config, /isLocalDevApiHost/)
   assert.doesNotMatch(catalogue, /costPrice|cost_price|service.role/i)
   assert.doesNotMatch(detail, /costPrice|cost_price/)
 })
@@ -85,6 +91,32 @@ test('customer cart is local selling-unit quantity and does not checkout', () =>
   assert.doesNotMatch(cart, /createCommerceSale|\/api\/shop\/orders/)
   assert.match(screen, /cart.checkoutSoon/)
   assert.doesNotMatch(screen, /createCommerceSale|submitSale/)
+})
+
+test('release API base URL cannot silently become localhost', () => {
+  const config = readMobile('src/api/config.ts')
+  const eas = JSON.parse(readMobile('eas.json'))
+  assert.match(config, /!input\.isDev/)
+  assert.match(config, /isLocalDevApiHost/)
+  assert.equal(
+    eas.build.production.env.EXPO_PUBLIC_API_BASE_URL,
+    'https://shop.energyandlogics.com'
+  )
+  assert.doesNotMatch(config, /SUPABASE_SERVICE_ROLE|localhost:3000/)
+})
+
+test('catalogue errors distinguish network from HTTP failures', () => {
+  const helper = readMobile('src/features/shop/catalogue-error.ts')
+  const client = readMobile('src/api/client.ts')
+  const publicApi = readMobile('src/api/public.ts')
+  assert.match(helper, /code === 'network'/)
+  assert.match(helper, /code === 'timeout'/)
+  assert.match(helper, /not_found/)
+  assert.match(helper, /catalogue.unavailableShop/)
+  assert.match(client, /invalid_json/)
+  assert.match(client, /\[el-api\]/)
+  assert.match(publicApi, /invalid_payload/)
+  assert.match(publicApi, /throw payloadError/)
 })
 
 test('mobile app never embeds service-role or duplicate commerce', () => {
