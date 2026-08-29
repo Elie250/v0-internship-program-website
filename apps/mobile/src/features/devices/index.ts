@@ -1,6 +1,6 @@
 /**
  * Future Energy & Logics device control (Bluetooth lamps, Wi-Fi, Matter, MQTT).
- * Not implemented in Phase 1E.5-B — commerce/POS only.
+ * Not implemented — shop/customer/staff only. Future modules can live beside this stub.
  */
 export const DEVICE_CONTROL_ENABLED = false
 

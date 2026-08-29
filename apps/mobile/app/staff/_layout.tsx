@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { canSeeStaffNavItem, STAFF_NAV_ITEMS } from '@/src/permissions'
-import { colors } from '@/src/theme'
+import { colors, font, type } from '@/src/theme'
 import { makeStaffTabButton } from '@/src/ui/StaffTabButton'
 
 function tabVisible(key: 'pos' | 'orders', permissions: string[] | undefined) {
@@ -18,7 +18,7 @@ export default function StaffLayout() {
   const insets = useSafeAreaInsets()
 
   if (hydrated && !token) return <Redirect href="/login" />
-  if (hydrated && token && !user) return <Redirect href="/" />
+  if (hydrated && token && !user) return <Redirect href="/login" />
   if (!user) return null
 
   const perms = user.permissions
@@ -29,19 +29,19 @@ export default function StaffLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.navy },
-        headerTintColor: colors.white,
-        headerTitleStyle: { fontWeight: '700' },
-        tabBarActiveTintColor: colors.navy,
-        tabBarInactiveTintColor: colors.muted,
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: colors.textOnPrimary,
+        headerTitleStyle: { fontFamily: font.semibold, fontSize: 17 },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           height: 64 + tabPad,
-          paddingTop: 6,
+          paddingTop: 8,
           paddingBottom: Math.max(tabPad, 6),
-          borderTopColor: colors.line,
+          borderTopColor: colors.border,
           overflow: 'visible',
         },
-        tabBarLabelStyle: { fontWeight: '600', fontSize: 11, marginBottom: 2 },
+        tabBarLabelStyle: { ...type.tab, marginBottom: 2 },
         tabBarItemStyle: { minHeight: 48, paddingVertical: 0 },
       }}
     >
@@ -54,7 +54,7 @@ export default function StaffLayout() {
           tabBarAccessibilityLabel: 'POS',
           tabBarButton: makeStaffTabButton('POS'),
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart" color={color} size={size} />
+            <Ionicons name="cart-outline" color={color} size={size} />
           ),
         }}
       />
@@ -75,9 +75,12 @@ export default function StaffLayout() {
         name="index"
         options={{
           title: 'Dashboard',
+          headerShown: false,
           tabBarAccessibilityLabel: 'Dashboard',
           tabBarButton: makeStaffTabButton('Dashboard'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -88,7 +91,7 @@ export default function StaffLayout() {
           tabBarAccessibilityLabel: 'More',
           tabBarButton: makeStaffTabButton('More'),
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="ellipsis-horizontal" color={color} size={size} />
+            <Ionicons name="ellipsis-horizontal-outline" color={color} size={size} />
           ),
         }}
       />
@@ -101,10 +104,10 @@ export default function StaffLayout() {
           tabBarStyle: { display: 'none' },
         }}
       />
-      <Tabs.Screen name="sales" options={{ href: null, title: 'Sales' }} />
-      <Tabs.Screen name="products" options={{ href: null, title: 'Products' }} />
-      <Tabs.Screen name="inventory" options={{ href: null, title: 'Inventory' }} />
-      <Tabs.Screen name="settings" options={{ href: null, title: 'Settings' }} />
+      <Tabs.Screen name="sales" options={{ href: null, title: 'Sales', headerShown: false }} />
+      <Tabs.Screen name="products" options={{ href: null, title: 'Products', headerShown: false }} />
+      <Tabs.Screen name="inventory" options={{ href: null, title: 'Inventory', headerShown: false }} />
+      <Tabs.Screen name="settings" options={{ href: null, title: 'Settings', headerShown: false }} />
     </Tabs>
   )
 }

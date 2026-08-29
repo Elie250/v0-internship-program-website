@@ -80,11 +80,26 @@ export type StaffRequestOptions = RequestInit & {
   timeoutMs?: number
 }
 
+export async function publicRequest<T>(
+  path: string,
+  init: Omit<StaffRequestOptions, 'expireOn401' | 'isLogin'> = {}
+): Promise<T> {
+  return jsonRequest<T>(path, { ...init, auth: false, expireOn401: false })
+}
+
 export async function staffRequest<T>(
   path: string,
   init: StaffRequestOptions = {}
 ): Promise<T> {
-  const { expireOn401 = true, isLogin = false, timeoutMs = 25_000, ...requestInit } = init
+  return jsonRequest<T>(path, { ...init, auth: true })
+}
+
+async function jsonRequest<T>(
+  path: string,
+  init: StaffRequestOptions & { auth: boolean }
+): Promise<T> {
+  const { expireOn401 = true, isLogin = false, timeoutMs = 25_000, auth: useAuth, ...requestInit } =
+    init
   const method = (requestInit.method || 'GET').toUpperCase()
   let attempt = 0
 
@@ -98,7 +113,7 @@ export async function staffRequest<T>(
       if (requestInit.body && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json')
       }
-      if (token) headers.set('Authorization', `Bearer ${token}`)
+      if (useAuth && token) headers.set('Authorization', `Bearer ${token}`)
 
       const response = await fetch(`${getApiBaseUrl()}${path}`, {
         ...requestInit,

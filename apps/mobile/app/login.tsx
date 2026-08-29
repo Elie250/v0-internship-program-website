@@ -2,12 +2,15 @@ import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Redirect, useRouter } from 'expo-router'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image } from 'expo-image'
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { z } from 'zod'
 import { ApiError } from '@/src/api/client'
 import { useSessionStore } from '@/src/auth/session-store'
+import { BackLink } from '@/src/ui/BackLink'
 import { PrimaryButton } from '@/src/ui/Button'
-import { colors, space } from '@/src/theme'
+import { Input } from '@/src/ui/Input'
+import { colors, space, type } from '@/src/theme'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -38,103 +41,104 @@ export default function LoginScreen() {
       style={styles.wrap}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scroll}
-      >
-      <View style={styles.hero}>
-        <Text style={styles.kicker}>Energy & Logics</Text>
-        <Text style={styles.title}>Staff POS</Text>
-        <Text style={styles.sub}>Sign in with your shop staff account.</Text>
-      </View>
-
-      <View style={styles.form}>
-        <Text style={styles.label}>Email</Text>
-        <Controller
-          control={form.control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              keyboardType="email-address"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              style={styles.input}
-              placeholder="you@energyandlogics.com"
-              placeholderTextColor={colors.muted}
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+        <BackLink
+          label="Shop"
+          accessibilityLabel="Back to shop"
+          onPress={() => router.replace('/customer' as never)}
+        />
+        <View style={styles.hero}>
+          <View style={styles.mark} accessibilityLabel="Energy & Logics">
+            <Image
+              source={require('../assets/brand-mark.png')}
+              style={styles.logo}
+              contentFit="contain"
             />
-          )}
-        />
-        {form.formState.errors.email ? (
-          <Text style={styles.error}>{form.formState.errors.email.message}</Text>
-        ) : null}
+          </View>
+          <Text style={type.kicker}>Energy & Logics</Text>
+          <Text style={type.appTitle}>Staff POS</Text>
+          <Text style={type.helper}>Sign in with your shop staff account.</Text>
+        </View>
 
-        <Text style={styles.label}>Password</Text>
-        <Controller
-          control={form.control}
-          name="password"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <TextInput
-              secureTextEntry
-              autoComplete="password"
-              onBlur={onBlur}
-              onChangeText={onChange}
-              value={value}
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.muted}
-            />
-          )}
-        />
-        {form.formState.errors.password ? (
-          <Text style={styles.error}>{form.formState.errors.password.message}</Text>
-        ) : null}
+        <View style={styles.form}>
+          <Controller
+            control={form.control}
+            name="email"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                keyboardType="email-address"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                placeholder="you@energyandlogics.com"
+                accessibilityLabel="Email"
+                error={form.formState.errors.email?.message}
+              />
+            )}
+          />
 
-        {form.formState.errors.root ? (
-          <Text style={styles.error}>{form.formState.errors.root.message}</Text>
-        ) : null}
+          <Controller
+            control={form.control}
+            name="password"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Password"
+                secureTextEntry
+                autoComplete="password"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                placeholder="Password"
+                accessibilityLabel="Password"
+                error={form.formState.errors.password?.message}
+              />
+            )}
+          />
 
-        <PrimaryButton
-          label="Sign in"
-          loading={form.formState.isSubmitting}
-          onPress={form.handleSubmit(async (values) => {
-            try {
-              await signIn(values.email.trim(), values.password)
-              router.replace('/staff')
-            } catch (error) {
-              const message =
-                error instanceof ApiError ? error.message : 'Unable to sign in. Check your email and password.'
-              form.setError('root', { message })
-            }
-          })}
-        />
-      </View>
+          {form.formState.errors.root ? (
+            <Text style={type.error}>{form.formState.errors.root.message}</Text>
+          ) : null}
+
+          <PrimaryButton
+            label="Sign in"
+            loading={form.formState.isSubmitting}
+            onPress={form.handleSubmit(async (values) => {
+              try {
+                await signIn(values.email.trim(), values.password)
+                router.replace('/staff')
+              } catch (error) {
+                const message =
+                  error instanceof ApiError
+                    ? error.message
+                    : 'Unable to sign in. Check your email and password.'
+                form.setError('root', { message })
+              }
+            })}
+          />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, backgroundColor: colors.bg },
+  wrap: { flex: 1, backgroundColor: colors.background },
   scroll: { flexGrow: 1, padding: space.lg, justifyContent: 'center' },
-  hero: { marginBottom: space.xl, gap: 6 },
-  kicker: { color: colors.amber, fontWeight: '800', letterSpacing: 0.6 },
-  title: { fontSize: 28, fontWeight: '800', color: colors.navy },
-  sub: { color: colors.muted, fontSize: 15 },
-  form: { gap: 10 },
-  label: { fontWeight: '700', color: colors.slate, marginTop: 8 },
-  input: {
-    minHeight: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.white,
-    paddingHorizontal: space.md,
-    fontSize: 16,
-    color: colors.navy,
+  hero: { marginBottom: space.xl, gap: space.sm, alignItems: 'flex-start' },
+  mark: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: space.sm,
   },
-  error: { color: colors.red, fontSize: 13 },
+  logo: { width: 44, height: 44 },
+  form: { gap: space.md },
 })
