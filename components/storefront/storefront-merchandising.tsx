@@ -68,13 +68,13 @@ export function StorefrontMerchandising({
         <div
           className={
             showDesktopRails
-              ? 'lg:grid lg:grid-cols-[minmax(26rem,50%)_minmax(0,1fr)] lg:items-start lg:gap-6'
+              ? 'lg:grid lg:grid-cols-[minmax(26rem,50%)_minmax(0,1fr)] lg:items-stretch lg:gap-6'
               : undefined
           }
         >
-          <div className="min-w-0">{children}</div>
+          <div className="min-w-0 lg:h-[50vh]">{children}</div>
           {showDesktopRails ? (
-            <aside className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
+            <aside className="hidden min-h-0 lg:grid lg:h-[50vh] lg:grid-cols-2 lg:gap-6">
               {desktopTrends.length > 0 ? (
                 <DesktopRail title={t('storefront.trends.title')} products={desktopTrends} />
               ) : null}
@@ -199,11 +199,11 @@ export function StorefrontMerchandising({
 
 function DesktopRail({ title, products }: { title: string; products: PublicCatalogueItem[] }) {
   return (
-    <section className="min-w-0">
+    <section className="flex h-full min-h-0 min-w-0 flex-col">
       <SectionHead title={title} href="/#products" />
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        {products.slice(0, 2).map((product) => (
-          <StorefrontProductCard key={product.slug} product={product} compact />
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-3">
+        {products.slice(0, 4).map((product) => (
+          <StorefrontProductCard key={product.slug} product={product} stretch />
         ))}
       </div>
     </section>

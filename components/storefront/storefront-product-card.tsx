@@ -14,20 +14,22 @@ import { cn } from '@/lib/utils'
 export function StorefrontProductCard({
   product,
   compact = false,
+  stretch = false,
 }: {
   product: PublicCatalogueItem
   compact?: boolean
+  stretch?: boolean
 }) {
   const href = `/product/${encodeURIComponent(product.slug)}`
   const percent = publicDiscountPercent(product.listPrice, product.price)
 
   return (
-    <article className="flex h-full flex-col gap-1.5">
+    <article className={cn('flex h-full flex-col gap-1.5', stretch && 'min-h-0')}>
       <Link
         href={href}
         className={cn(
           'relative block overflow-hidden rounded-[var(--shop-radius-md)] bg-[var(--shop-tile)]',
-          compact ? 'h-24' : 'aspect-square'
+          stretch ? 'min-h-0 flex-1' : compact ? 'h-24' : 'aspect-square'
         )}
       >
         {product.image ? (

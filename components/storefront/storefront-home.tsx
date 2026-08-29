@@ -128,22 +128,22 @@ export function StorefrontHome({
           />
         </div>
 
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 py-5 pl-5 pr-2 sm:pl-6">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 py-5 pl-5 pr-2 sm:pl-6 lg:w-[50%] lg:gap-3 lg:py-8 lg:pl-8 lg:pr-4">
           <p className="sr-only">
             {t('brand.siteLabel')} · {t('storefront.arrivals.title')}
           </p>
-          <h1 className="truncate text-xl font-bold leading-[24px] text-white">
+          <h1 className="truncate text-xl font-bold leading-[24px] text-white lg:whitespace-normal lg:text-4xl lg:leading-10">
             {t('storefront.hero.title')}
           </h1>
-          <p className="text-[22px] font-bold leading-[26px] text-[#1FA64A]">
+          <p className="text-[22px] font-bold leading-[26px] text-[#1FA64A] lg:text-5xl lg:leading-none">
             {t('storefront.hero.emphasis')}
           </p>
-          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB]">
+          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB] lg:mt-1 lg:text-lg lg:leading-7">
             {t('storefront.hero.body')}
           </p>
           <Link
             href={href}
-            className="pointer-events-auto mt-2 inline-flex h-10 w-fit items-center justify-center rounded-full bg-[#1FA64A] px-4 text-sm font-semibold text-white hover:bg-[#17863B]"
+            className="pointer-events-auto mt-2 inline-flex h-10 w-fit items-center justify-center rounded-full bg-[#1FA64A] px-4 text-sm font-semibold text-white hover:bg-[#17863B] lg:mt-4 lg:h-12 lg:px-6 lg:text-base"
           >
             {t('storefront.hero.shopNow')}
           </Link>
