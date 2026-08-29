@@ -67,7 +67,7 @@ export function StorefrontHome({
   return (
     <section
       className={cn(
-        'relative h-[216px] w-full overflow-hidden rounded-[var(--shop-radius-lg)] bg-[#0E1F16] text-white',
+        'relative isolate h-[216px] w-full overflow-hidden rounded-[var(--shop-radius-lg)] bg-[#0E1F16] text-white lg:aspect-[4/3] lg:h-auto lg:min-h-[240px]',
         className
       )}
       onMouseEnter={() => setHovering(true)}
@@ -83,28 +83,22 @@ export function StorefrontHome({
           <Carousel
             setApi={setApi}
             opts={{ loop: canRotate, duration: 22, align: 'start' }}
-            className="h-full w-full"
+            className="absolute inset-0 z-0 h-full w-full [&>[data-slot=carousel-content]]:h-full"
             tabIndex={canRotate ? 0 : undefined}
             aria-label={t('storefront.hero.carousel')}
           >
             <CarouselContent className="-ml-0 h-full">
-              {products.map((product, slideIndex) => (
-                <CarouselItem key={product.slug} className="h-full pl-0">
-                  <div className="relative h-full">
+              {products.map((product) => (
+                <CarouselItem key={product.slug} className="h-full min-h-0 pl-0">
+                  <div className="relative h-full w-full">
                     {product.image ? (
-                      <div className="absolute inset-y-0 right-0 w-[78%]">
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-contain object-right"
-                          sizes="(min-width: 1024px) 19rem, 78vw"
-                          priority={slideIndex === 0}
-                          unoptimized
-                        />
-                      </div>
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="absolute inset-y-0 right-0 h-full w-[78%] object-contain object-right"
+                      />
                     ) : (
-                      <div className="absolute inset-y-0 right-0 flex w-[78%] items-center justify-center text-white/30">
+                      <div className="absolute inset-y-0 right-0 flex h-full w-[78%] items-center justify-center text-white/30">
                         <Package className="h-12 w-12" aria-hidden />
                       </div>
                     )}
@@ -117,8 +111,8 @@ export function StorefrontHome({
             </CarouselContent>
           </Carousel>
         ) : (
-          <div className="relative h-full">
-            <div className="absolute inset-y-0 right-0 flex w-[78%] items-center justify-center text-white/30">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-y-0 right-0 flex h-full w-[78%] items-center justify-center text-white/30">
               <Package className="h-12 w-12" aria-hidden />
             </div>
           </div>
