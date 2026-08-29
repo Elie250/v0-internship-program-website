@@ -68,7 +68,7 @@ export function StorefrontMerchandising({
         <div
           className={
             showDesktopRails
-              ? 'lg:grid lg:grid-cols-[minmax(26rem,25vw)_minmax(0,1fr)] lg:items-start lg:gap-6'
+              ? 'lg:grid lg:grid-cols-[minmax(26rem,50%)_minmax(0,1fr)] lg:items-start lg:gap-6'
               : undefined
           }
         >

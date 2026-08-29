@@ -67,7 +67,7 @@ export function StorefrontHome({
   return (
     <section
       className={cn(
-        'relative isolate h-[216px] w-full overflow-hidden rounded-[var(--shop-radius-lg)] bg-[#0E1F16] text-white lg:aspect-[4/3] lg:h-auto lg:min-h-[240px]',
+        'relative isolate h-[216px] w-full overflow-hidden rounded-[var(--shop-radius-lg)] bg-[#0E1F16] text-white lg:h-[50vh] lg:min-h-[240px]',
         className
       )}
       onMouseEnter={() => setHovering(true)}
