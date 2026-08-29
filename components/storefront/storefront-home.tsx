@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Carousel,
   CarouselContent,
@@ -68,7 +67,7 @@ export function StorefrontHome({
   return (
     <section
       className={cn(
-        'relative h-[216px] overflow-hidden rounded-[var(--shop-radius-lg)] bg-[var(--shop-hero)] text-white sm:h-[232px] md:h-[248px] lg:h-full lg:min-h-[360px]',
+        'relative h-[216px] w-full overflow-hidden rounded-[var(--shop-radius-lg)] bg-[#0E1F16] text-white',
         className
       )}
       onMouseEnter={() => setHovering(true)}
@@ -99,7 +98,7 @@ export function StorefrontHome({
                           alt={product.name}
                           fill
                           className="object-contain object-right"
-                          sizes="(min-width: 1024px) 36vw, 78vw"
+                          sizes="(min-width: 1024px) 19rem, 78vw"
                           priority={slideIndex === 0}
                           unoptimized
                         />
@@ -118,61 +117,62 @@ export function StorefrontHome({
             </CarouselContent>
           </Carousel>
         ) : (
-          <div className="relative h-full min-h-[216px]">
+          <div className="relative h-full">
             <div className="absolute inset-y-0 right-0 flex w-[78%] items-center justify-center text-white/30">
               <Package className="h-12 w-12" aria-hidden />
             </div>
           </div>
         )}
 
-        <div
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#0e1f16_0%,#0e1f16_34%,rgba(14,31,22,0.72)_46%,rgba(14,31,22,0.28)_68%,rgba(14,31,22,0)_86%)]"
-          aria-hidden
-        />
+        <div className="pointer-events-none absolute inset-0 z-[1]" aria-hidden>
+          <Image
+            src="/shop-hero-fade.png"
+            alt=""
+            fill
+            className="object-fill"
+            unoptimized
+          />
+        </div>
 
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 px-5 py-5 sm:px-6 lg:w-[52%] lg:px-7">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[56%] flex-col justify-center gap-1.5 py-5 pl-5 pr-2 sm:pl-6">
           <p className="sr-only">
             {t('brand.siteLabel')} · {t('storefront.arrivals.title')}
           </p>
-          <h1 className="truncate text-xl font-bold leading-tight sm:text-[22px] lg:text-2xl">
+          <h1 className="truncate text-xl font-bold leading-[24px] text-white">
             {t('storefront.hero.title')}
           </h1>
-          <p className="text-xl font-bold leading-tight text-[var(--shop-green)] sm:text-[22px] lg:text-2xl">
+          <p className="text-[22px] font-bold leading-[26px] text-[#1FA64A]">
             {t('storefront.hero.emphasis')}
           </p>
-          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB] lg:text-sm lg:leading-6">
+          <p className="mt-0.5 text-[13px] leading-[18px] text-[#D1D5DB]">
             {t('storefront.hero.body')}
           </p>
-          <Button
-            asChild
-            className="pointer-events-auto mt-2 h-10 w-fit rounded-full bg-[var(--shop-green)] px-4 text-sm font-semibold text-white hover:bg-[var(--shop-green-pressed)]"
+          <Link
+            href={href}
+            className="pointer-events-auto mt-2 inline-flex h-10 w-fit items-center justify-center rounded-full bg-[#1FA64A] px-4 text-sm font-semibold text-white hover:bg-[#17863B]"
           >
-            <Link href={href}>{t('storefront.hero.shopNow')}</Link>
-          </Button>
+            {t('storefront.hero.shopNow')}
+          </Link>
         </div>
 
         {canRotate ? (
           <>
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="icon"
-              className="absolute left-3 top-1/2 z-10 size-9 -translate-y-1/2 rounded-full border-white/20 bg-[var(--shop-hero)]/40 text-white hover:bg-[var(--shop-hero)]/70 hover:text-white"
+              className="absolute right-12 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#0E1F16]/40 text-white hover:bg-[#0E1F16]/70"
               onClick={() => api?.scrollPrev()}
               aria-label={t('storefront.hero.previous')}
             >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
               type="button"
-              variant="outline"
-              size="icon"
-              className="absolute right-3 top-1/2 z-10 size-9 -translate-y-1/2 rounded-full border-white/20 bg-[var(--shop-hero)]/40 text-white hover:bg-[var(--shop-hero)]/70 hover:text-white"
+              className="absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#0E1F16]/40 text-white hover:bg-[#0E1F16]/70"
               onClick={() => api?.scrollNext()}
               aria-label={t('storefront.hero.next')}
             >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
+              <ChevronRight className="h-4 w-4" />
+            </button>
             <div className="absolute bottom-3 right-4 z-10 flex gap-2">
               {products.map((product, slideIndex) => (
                 <button

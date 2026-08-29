@@ -68,13 +68,13 @@ export function StorefrontMerchandising({
         <div
           className={
             showDesktopRails
-              ? 'lg:grid lg:grid-cols-[minmax(0,1.35fr)_minmax(22rem,28rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(24rem,32rem)]'
+              ? 'lg:grid lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start lg:gap-6'
               : undefined
           }
         >
           <div className="min-w-0">{children}</div>
           {showDesktopRails ? (
-            <aside className="hidden min-h-[360px] lg:flex lg:flex-col lg:justify-between lg:gap-5">
+            <aside className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
               {desktopTrends.length > 0 ? (
                 <DesktopRail title={t('storefront.trends.title')} products={desktopTrends} />
               ) : null}
@@ -201,9 +201,9 @@ function DesktopRail({ title, products }: { title: string; products: PublicCatal
   return (
     <section className="min-w-0">
       <SectionHead title={title} href="/#products" />
-      <div className="mt-3 grid grid-cols-2 gap-4">
+      <div className="mt-3 grid grid-cols-2 gap-3">
         {products.slice(0, 2).map((product) => (
-          <StorefrontProductCard key={product.slug} product={product} />
+          <StorefrontProductCard key={product.slug} product={product} compact />
         ))}
       </div>
     </section>
