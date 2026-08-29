@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { useLocalSearchParams } from 'expo-router'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { StatusBar } from 'expo-status-bar'
+import { Ionicons } from '@expo/vector-icons'
 import { useSessionStore } from '@/src/auth/session-store'
 import {
   FULFILLMENT_STATUSES,
   fulfillmentLabel,
   isPendingPayment,
+  needsShopPaymentReview,
   paymentLabel,
   useFulfillmentMutation,
   useOrderQuery,
@@ -14,6 +17,7 @@ import { usePaymentReviewMutation } from '@/src/features/payments/hooks'
 import { canManageFulfillment, canReviewShopPayments, canViewProductCost } from '@/src/permissions'
 import { formatRwf, formatWhen } from '@/src/format'
 import { PrimaryButton } from '@/src/ui/Button'
+import { Input } from '@/src/ui/Input'
 import { ProofViewer } from '@/src/ui/ProofViewer'
 import { Screen, ScreenState } from '@/src/ui/Screen'
 import { StatusBadge } from '@/src/ui/StatusBadge'
@@ -43,10 +47,15 @@ function OrderDetailBody() {
   const showCost = canViewProductCost(user?.permissions)
   const pending = isPendingPayment(order?.paymentStatus) || isPendingPayment(order?.payment?.status)
   const paid = order?.paymentStatus === 'paid' || order?.payment?.status === 'approved'
-  const isOnlineOrder = order?.channel === 'online'
+  const needsReview = order ? needsShopPaymentReview(order) : false
 
   return (
-    <Screen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
+    <Screen
+      safeTop={false}
+      refreshing={query.isRefetching}
+      onRefresh={() => void query.refetch()}
+    >
+      <StatusBar style="light" />
       <ScreenState
         loading={query.isLoading}
         error={query.error?.message}
@@ -106,27 +115,29 @@ function OrderDetailBody() {
             ) : null}
             <ProofViewer url={order.payment?.proofUrl} />
 
-            {canReview && pending && isOnlineOrder ? (
+            {canReview && needsReview ? (
               <View style={styles.reviewBox}>
-                <Text style={type.heading}>MoMo payment needs review</Text>
-                <TextInput
+                <Text style={type.sectionTitle}>MoMo payment needs review</Text>
+                <Input
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Optional notes"
-                  placeholderTextColor={colors.muted}
-                  style={styles.notes}
+                  accessibilityLabel="Payment review notes"
                   multiline
+                  style={styles.notes}
                 />
                 {review.error ? <Text style={styles.error}>{review.error.message}</Text> : null}
                 <PrimaryButton
                   label="Approve"
                   loading={review.isPending && review.variables?.decision === 'approve'}
+                  accessibilityLabel={`Approve MoMo payment for ${order.orderNumber || 'order'}`}
                   onPress={() => review.mutate({ decision: 'approve', adminNotes: notes || undefined })}
                 />
                 <PrimaryButton
                   label="Reject"
-                  tone="danger"
+                  variant="danger"
                   loading={review.isPending && review.variables?.decision === 'reject'}
+                  accessibilityLabel={`Reject MoMo payment for ${order.orderNumber || 'order'}`}
                   onPress={() => review.mutate({ decision: 'reject', adminNotes: notes || undefined })}
                 />
               </View>
@@ -134,7 +145,7 @@ function OrderDetailBody() {
 
             {canFulfill && paid ? (
               <View style={styles.fulfillBox}>
-                <Text style={type.heading}>Fulfillment</Text>
+                <Text style={type.sectionTitle}>Fulfillment</Text>
                 <View style={styles.statusRow}>
                   {FULFILLMENT_STATUSES.map((status) => (
                     <Pressable
@@ -142,8 +153,21 @@ function OrderDetailBody() {
                       onPress={() => setNextStatus(status)}
                       accessibilityRole="button"
                       accessibilityState={{ selected: nextStatus === status }}
+                      accessibilityLabel={
+                        nextStatus === status
+                          ? `${fulfillmentLabel(status)}, selected`
+                          : fulfillmentLabel(status)
+                      }
                       style={[styles.chip, nextStatus === status && styles.chipOn]}
                     >
+                      {nextStatus === status ? (
+                        <Ionicons
+                          name="checkmark"
+                          size={14}
+                          color={colors.textOnPrimary}
+                          importantForAccessibility="no"
+                        />
+                      ) : null}
                       <Text style={[styles.chipLabel, nextStatus === status && styles.chipLabelOn]}>
                         {fulfillmentLabel(status)}
                       </Text>
@@ -169,26 +193,16 @@ function OrderDetailBody() {
 const styles = StyleSheet.create({
   hero: { gap: 6, marginBottom: 8 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  section: { ...type.heading, marginTop: 18, marginBottom: 4 },
+  section: { ...type.sectionTitle, marginTop: 18, marginBottom: 4 },
   value: type.productName,
   line: {
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.divider,
     gap: 2,
   },
-  notes: {
-    minHeight: 80,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.md,
-    padding: space.sm,
-    textAlignVertical: 'top',
-    color: colors.navy,
-    fontSize: 16,
-    backgroundColor: colors.white,
-  },
-  error: { color: colors.red },
+  notes: { minHeight: 80, textAlignVertical: 'top' },
+  error: type.error,
   reviewBox: { gap: 10, marginTop: 16 },
   fulfillBox: { gap: 10, marginTop: 16 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -196,13 +210,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     minHeight: 44,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderRadius: radius.pill,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.border,
   },
-  chipOn: { backgroundColor: colors.navy, borderColor: colors.navy },
-  chipLabel: { ...type.status, color: colors.slate },
-  chipLabelOn: { color: colors.white },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipLabel: { ...type.status, color: colors.textSecondary },
+  chipLabelOn: { color: colors.textOnPrimary },
 })

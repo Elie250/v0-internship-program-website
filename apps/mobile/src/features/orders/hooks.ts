@@ -63,6 +63,16 @@ export function isPendingPayment(status: string | null | undefined): boolean {
   return ['pending_review', 'gateway_pending', 'pending', 'Pending'].includes(String(status ?? ''))
 }
 
+/** Pending shop MoMo from web checkout or Android POS — not cash, not channel-gated. */
+export function needsShopPaymentReview(order: {
+  paymentStatus?: string | null
+  paymentMethod?: string | null
+  payment?: { status?: string | null } | null
+}): boolean {
+  if (order.paymentMethod === 'cash') return false
+  return isPendingPayment(order.paymentStatus) || isPendingPayment(order.payment?.status)
+}
+
 export function useFulfillmentMutation(orderId: string) {
   const client = useQueryClient()
   return useMutation({

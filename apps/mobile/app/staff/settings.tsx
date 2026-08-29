@@ -1,12 +1,11 @@
 import { useRouter } from 'expo-router'
-import { StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text, View } from 'react-native'
 import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { useSessionStore } from '@/src/auth/session-store'
 import { getApiBaseUrl } from '@/src/api/client'
 import { PrimaryButton } from '@/src/ui/Button'
-import { Card } from '@/src/ui/Card'
 import { Screen } from '@/src/ui/Screen'
-import { colors } from '@/src/theme'
+import { colors, space, type } from '@/src/theme'
 
 export default function SettingsScreen() {
   useBackToMore()
@@ -16,26 +15,28 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <Card>
+      <Text style={type.kicker}>Energy & Logics</Text>
+      <Text style={type.screenTitle}>Settings</Text>
+      <View style={styles.group}>
         <Text style={styles.label}>Signed in</Text>
-        <Text style={styles.value}>
+        <Text style={type.bodyMedium}>
           {[user?.firstName, user?.lastName].filter(Boolean).join(' ') || user?.email}
         </Text>
-        <Text style={styles.meta}>{user?.email}</Text>
-        <Text style={styles.meta}>{user?.role.replace(/_/g, ' ')}</Text>
-      </Card>
-      <Card>
+        <Text style={type.helper}>{user?.email}</Text>
+        <Text style={type.helper}>{user?.role.replace(/_/g, ' ')}</Text>
+      </View>
+      <View style={styles.group}>
         <Text style={styles.label}>API host</Text>
-        <Text style={styles.meta}>{getApiBaseUrl()}</Text>
-        <Text style={styles.meta}>The app never stores database credentials.</Text>
-        <Text style={styles.meta}>Admin Console is web-only and is not available here.</Text>
-      </Card>
+        <Text style={type.helper}>{getApiBaseUrl()}</Text>
+        <Text style={type.helper}>The app never stores database credentials.</Text>
+        <Text style={type.helper}>Admin Console is web-only and is not available here.</Text>
+      </View>
       <PrimaryButton
         label="Sign out"
-        tone="danger"
+        variant="danger"
         onPress={async () => {
           await signOut()
-          router.replace('/login')
+          router.replace('/customer' as never)
         }}
       />
     </Screen>
@@ -43,7 +44,13 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  label: { color: colors.muted, fontWeight: '700' },
-  value: { fontSize: 18, fontWeight: '800', color: colors.navy },
-  meta: { color: colors.muted },
+  group: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: space.md,
+    gap: space.xs,
+  },
+  label: type.kicker,
 })

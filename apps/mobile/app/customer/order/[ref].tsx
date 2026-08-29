@@ -1,7 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ApiError } from '@/src/api/client'
-import { catalogueErrorKey } from '@/src/features/shop/catalogue-error'
+import { trackErrorKey } from '@/src/features/shop/catalogue-error'
 import { usePublicOrder } from '@/src/features/shop/hooks'
 import { ShopHeader } from '@/src/features/shop/ShopHeader'
 import { ShopScreen } from '@/src/features/shop/ShopScreen'
@@ -47,13 +46,7 @@ export default function CustomerOrder() {
       <ScreenState
         loading={query.isLoading && !query.data}
         loadingLabel={t('track.loading')}
-        error={
-          query.error instanceof ApiError && query.error.status === 404
-            ? t('track.notFound')
-            : query.error
-              ? t(catalogueErrorKey(query.error))
-              : null
-        }
+        error={query.error ? t(trackErrorKey(query.error)) : null}
         empty={!query.isLoading && !order && !query.error}
         emptyTitle={t('track.notFound')}
         onRetry={() => void query.refetch()}

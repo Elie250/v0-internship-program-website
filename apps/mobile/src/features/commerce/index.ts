@@ -14,7 +14,6 @@ export function usePendingMomoCount(enabled: boolean) {
     queryKey: ['staff', 'orders', 'pending-momo-count'],
     queryFn: async () => {
       const result = await fetchOrders({
-        channel: 'online',
         payment_status: 'pending_review',
         page: 1,
         limit: 1,

@@ -23,6 +23,7 @@ export default function CustomerAccount() {
   return (
     <ShopScreen>
       <ShopHeader title={t('account.title')} showSearch={false} />
+      <Text style={styles.hint}>{t('account.guestHint')}</Text>
       <Pressable
         onPress={() => router.push('/customer/language' as never)}
         accessibilityRole="button"
@@ -79,6 +80,7 @@ export default function CustomerAccount() {
 }
 
 const styles = StyleSheet.create({
+  hint: { fontFamily: font.regular, fontSize: 13, color: shopColor.muted, lineHeight: 18 },
   row: {
     minHeight: 56,
     borderRadius: shopRadius.md,

@@ -4,13 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Redirect, useRouter } from 'expo-router'
 import { Image } from 'expo-image'
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { z } from 'zod'
 import { ApiError } from '@/src/api/client'
 import { useSessionStore } from '@/src/auth/session-store'
 import { BackLink } from '@/src/ui/BackLink'
 import { PrimaryButton } from '@/src/ui/Button'
 import { Input } from '@/src/ui/Input'
-import { colors, space, type } from '@/src/theme'
+import { colors, font, space, type } from '@/src/theme'
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -21,6 +22,7 @@ type FormValues = z.infer<typeof schema>
 
 export default function LoginScreen() {
   const router = useRouter()
+  const insets = useSafeAreaInsets()
   const token = useSessionStore((s) => s.token)
   const user = useSessionStore((s) => s.user)
   const hydrated = useSessionStore((s) => s.hydrated)
@@ -41,21 +43,31 @@ export default function LoginScreen() {
       style={styles.wrap}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+      <View style={[styles.topBar, { paddingTop: Math.max(insets.top, space.sm) }]}>
         <BackLink
           label="Shop"
           accessibilityLabel="Back to shop"
           onPress={() => router.replace('/customer' as never)}
         />
+      </View>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
         <View style={styles.hero}>
-          <View style={styles.mark} accessibilityLabel="Energy & Logics">
-            <Image
-              source={require('../assets/brand-mark.png')}
-              style={styles.logo}
-              contentFit="contain"
-            />
+          <View style={styles.brandRow}>
+            <View style={styles.mark} accessibilityLabel="Energy & Logics">
+              <Image
+                source={require('../assets/energy-logics-company-mark.png')}
+                style={styles.logo}
+                contentFit="contain"
+              />
+            </View>
+            <View style={styles.brandCopy}>
+              <Text style={styles.brand} accessibilityRole="header">
+                <Text style={styles.brandEnergy}>Energy</Text>
+                <Text style={styles.brandLogics}> & Logics</Text>
+              </Text>
+              <Text style={styles.slogan}>Engineering Sustainable Solutions</Text>
+            </View>
           </View>
-          <Text style={type.kicker}>Energy & Logics</Text>
           <Text style={type.appTitle}>Staff POS</Text>
           <Text style={type.helper}>Sign in with your shop staff account.</Text>
         </View>
@@ -127,18 +139,49 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, padding: space.lg, justifyContent: 'center' },
-  hero: { marginBottom: space.xl, gap: space.sm, alignItems: 'flex-start' },
+  topBar: {
+    paddingHorizontal: space.lg,
+    paddingBottom: 0,
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: space.lg,
+    paddingBottom: space.lg,
+    justifyContent: 'center',
+  },
+  hero: { marginBottom: space.xl, gap: space.md, alignItems: 'flex-start' },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    width: '100%',
+  },
   mark: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
+    width: 112,
+    height: 112,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: space.sm,
   },
-  logo: { width: 44, height: 44 },
+  logo: { width: 112, height: 112 },
+  brandCopy: { flex: 1, justifyContent: 'center', gap: 4 },
+  brand: { color: colors.primary },
+  brandEnergy: {
+    fontFamily: font.bold,
+    fontSize: 22,
+    color: colors.primary,
+  },
+  brandLogics: {
+    fontFamily: font.regular,
+    fontSize: 22,
+    fontStyle: 'italic',
+    color: colors.primary,
+  },
+  slogan: {
+    fontFamily: font.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
+    color: colors.textMuted,
+  },
   form: { gap: space.md },
 })

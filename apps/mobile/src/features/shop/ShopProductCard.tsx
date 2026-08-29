@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
@@ -23,6 +24,8 @@ export function ShopProductCard({
   const saved = useFavorites((s) => s.slugs.includes(product.slug))
   const toggle = useFavorites((s) => s.toggle)
   const available = product.inStock && product.availability !== 'out'
+  const [imageFailed, setImageFailed] = useState(false)
+  const image = product.image && !imageFailed ? product.image : null
 
   return (
     <Pressable
@@ -32,8 +35,13 @@ export function ShopProductCard({
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={[styles.imageWrap, compact && styles.imageWrapCompact]}>
-        {product.image ? (
-          <Image source={{ uri: product.image }} style={styles.image} contentFit="contain" />
+        {image ? (
+          <Image
+            source={{ uri: image }}
+            style={styles.image}
+            contentFit="contain"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <Ionicons name="cube-outline" size={compact ? 22 : 28} color={shopColor.muted} />
         )}
@@ -56,6 +64,19 @@ export function ShopProductCard({
       </Text>
       <Text style={styles.price} maxFontSizeMultiplier={1.2}>
         {formatRwf(product.price)}
+      </Text>
+      <Text
+        style={[styles.stock, product.availability === 'out' && styles.stockOut]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={1.1}
+      >
+        {t(
+          product.availability === 'out'
+            ? 'availability.out'
+            : product.availability === 'few'
+              ? 'availability.few'
+              : 'availability.available'
+        )}
       </Text>
       <View style={styles.foot}>
         <Text style={styles.unit} numberOfLines={1} maxFontSizeMultiplier={1.2}>
@@ -118,6 +139,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: shopColor.green,
   },
+  stock: {
+    fontFamily: font.regular,
+    fontSize: 11,
+    color: shopColor.muted,
+  },
+  stockOut: { color: shopColor.danger },
   foot: {
     flexDirection: 'row',
     alignItems: 'center',

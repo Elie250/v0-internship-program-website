@@ -137,6 +137,7 @@ test('mobile app foundation files exist', () => {
     'app/customer/categories.tsx',
     'app/customer/search.tsx',
     'app/customer/cart.tsx',
+    'app/customer/account.tsx',
     'app/customer/language.tsx',
     'app/customer/product/[slug].tsx',
     'app/staff/_layout.tsx',
@@ -335,6 +336,8 @@ test('staff mode lives under /staff so / can become customer home later', () => 
   assert.match(login, /zodResolver/)
   assert.doesNotMatch(settings, /href=.*\/admin|canAccessAdmin/)
   assert.match(settings, /web-only/)
+  assert.match(settings, /\/customer/)
+  assert.doesNotMatch(settings, /router\.replace\('\/login'\)/)
 })
 
 test('device control is stubbed and not implemented', () => {
@@ -405,6 +408,8 @@ test('401 expiry clears SecureStore and sensitive query cache; login 401 does no
   assert.match(query, /removeQueries|queryKey: \['staff'\]/)
   assert.match(staff, /expireOn401:\s*false/)
   assert.match(staff, /isLogin:\s*true/)
+  assert.match(staff, /auth:\s*false/)
+  assert.match(client, /credentials: 'omit'/)
   assert.match(client, /timeoutMs/)
   assert.match(client, /notifyUnauthorized/)
   assert.match(session, /restoreError/)
@@ -633,8 +638,8 @@ test('POS till sales stay on the POS sales API and never use payment review', ()
   assert.match(confirm, /Record MoMo payment/)
   assert.match(confirm, /does not approve an online customer payment/)
   assert.match(order, /canReviewShopPayments/)
-  assert.match(order, /isOnlineOrder/)
-  assert.match(order, /channel === 'online'/)
+  assert.match(order, /needsShopPaymentReview/)
+  assert.doesNotMatch(order, /isOnlineOrder/)
   assert.doesNotMatch(permissions, /payments:approve/)
 })
 

@@ -10,7 +10,10 @@ import { HeroBanner } from '@/src/features/shop/HeroBanner'
 import {
   categoryCover,
   latestArrivals,
+  moreInShop,
+  selectDealProducts,
   selectHeroSlides,
+  selectLatestProducts,
   trendingProducts,
 } from '@/src/features/shop/merchandising'
 import { shopColor, shopRadius } from '@/src/features/shop/shop-theme'
@@ -28,8 +31,11 @@ export default function CustomerHome() {
   const products = query.data?.products ?? []
   const categories = query.data?.categories ?? []
   const latest = latestArrivals(products)
-  const trending = trendingProducts(products)
   const heroSlides = selectHeroSlides(latest)
+  const latestCards = selectLatestProducts(products, heroSlides)
+  const deals = selectDealProducts(products)
+  const trending = trendingProducts(products, [...heroSlides, ...latestCards, ...deals])
+  const more = moreInShop(products, [...heroSlides, ...latestCards, ...deals, ...trending])
 
   const openHero = (product: (typeof heroSlides)[number] | null) => {
     if (product) {
@@ -101,25 +107,29 @@ export default function CustomerHome() {
           </ShopSection>
         ) : null}
 
-        <ShopSection>
-          <SectionHead
-            title={t('home.latest')}
-            onSeeAll={() => router.push('/customer/search' as never)}
-          />
-          <View style={styles.grid}>
-            {latest.map((product) => (
-              <View key={product.slug} style={styles.gridItem}>
-                <ShopProductCard
-                  product={product}
-                  onOpen={() =>
-                    router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
-                  }
-                  onAdd={() => addProduct(product)}
-                />
-              </View>
-            ))}
-          </View>
-        </ShopSection>
+        {latestCards.length > 0 ? (
+          <ShopSection>
+            <SectionHead
+              title={t('home.latest')}
+              onSeeAll={() =>
+                router.push({ pathname: '/customer/search', params: { browse: '1' } } as never)
+              }
+            />
+            <View style={styles.grid}>
+              {latestCards.map((product) => (
+                <View key={product.slug} style={styles.gridItem}>
+                  <ShopProductCard
+                    product={product}
+                    onOpen={() =>
+                      router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
+                    }
+                    onAdd={() => addProduct(product)}
+                  />
+                </View>
+              ))}
+            </View>
+          </ShopSection>
+        ) : null}
 
         {trending.length > 0 ? (
           <ShopSection>
@@ -138,6 +148,49 @@ export default function CustomerHome() {
                 </View>
               ))}
             </ScrollView>
+          </ShopSection>
+        ) : null}
+
+        {deals.length > 0 ? (
+          <ShopSection>
+            <SectionHead title={t('home.deals')} />
+            <View style={styles.grid}>
+              {deals.map((product) => (
+                <View key={product.slug} style={styles.gridItem}>
+                  <ShopProductCard
+                    product={product}
+                    onOpen={() =>
+                      router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
+                    }
+                    onAdd={() => addProduct(product)}
+                  />
+                </View>
+              ))}
+            </View>
+          </ShopSection>
+        ) : null}
+
+        {more.length > 0 ? (
+          <ShopSection>
+            <SectionHead
+              title={t('home.more')}
+              onSeeAll={() =>
+                router.push({ pathname: '/customer/search', params: { browse: '1' } } as never)
+              }
+            />
+            <View style={styles.grid}>
+              {more.map((product) => (
+                <View key={product.slug} style={styles.gridItem}>
+                  <ShopProductCard
+                    product={product}
+                    onOpen={() =>
+                      router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
+                    }
+                    onAdd={() => addProduct(product)}
+                  />
+                </View>
+              ))}
+            </View>
           </ShopSection>
         ) : null}
       </ScreenState>

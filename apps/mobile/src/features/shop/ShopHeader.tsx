@@ -7,7 +7,7 @@ import { shopColor } from '@/src/features/shop/shop-theme'
 import { useShopText } from '@/src/i18n/locale-store'
 import { font } from '@/src/theme'
 
-const mark = require('../../../assets/brand-mark.png')
+const mark = require('../../../assets/energy-logics-company-mark.png')
 
 export function ShopHeader({
   title,

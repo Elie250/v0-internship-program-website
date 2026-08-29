@@ -27,6 +27,7 @@ export function HeroBanner({
   onOpen: (product: PublicCatalogueItem | null) => void
 }) {
   const [index, setIndex] = useState(0)
+  const [failed, setFailed] = useState<Record<string, boolean>>({})
   const [stageWidth, setStageWidth] = useState(0)
   const shift = useRef(new Animated.Value(0)).current
   const indexRef = useRef(0)
@@ -36,6 +37,8 @@ export function HeroBanner({
   indexRef.current = index
   const current = slides[index] ?? null
   const next = slides.length > 1 ? slides[(index + 1) % slides.length] : null
+  const currentImage = current?.image && !failed[current.slug] ? current.image : null
+  const nextImage = next?.image && !failed[next.slug] ? next.image : null
 
   useEffect(() => {
     indexRef.current = 0
@@ -94,29 +97,32 @@ export function HeroBanner({
           if (nextWidth > 0 && nextWidth !== stageWidth) setStageWidth(nextWidth)
         }}
       >
-        {current?.image && next?.image && stageWidth > 0 ? (
+        {currentImage && nextImage && stageWidth > 0 ? (
           <Animated.View
             style={[styles.heroTrack, { width: stageWidth * 2, transform: [{ translateX }] }]}
           >
             <Image
-              source={{ uri: current.image }}
+              source={{ uri: currentImage }}
               style={[styles.heroSlide, { width: stageWidth }]}
               contentFit="contain"
               contentPosition="right"
+              onError={() => current && setFailed((prev) => ({ ...prev, [current.slug]: true }))}
             />
             <Image
-              source={{ uri: next.image }}
+              source={{ uri: nextImage }}
               style={[styles.heroSlide, { width: stageWidth }]}
               contentFit="contain"
               contentPosition="right"
+              onError={() => next && setFailed((prev) => ({ ...prev, [next.slug]: true }))}
             />
           </Animated.View>
-        ) : current?.image ? (
+        ) : currentImage ? (
           <Image
-            source={{ uri: current.image }}
+            source={{ uri: currentImage }}
             style={styles.heroSlideFill}
             contentFit="contain"
             contentPosition="right"
+            onError={() => current && setFailed((prev) => ({ ...prev, [current.slug]: true }))}
           />
         ) : (
           <View style={styles.heroPlaceholder}>
