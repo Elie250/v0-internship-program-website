@@ -459,6 +459,17 @@ test('successful confirmation uses required English and Kinyarwanda wording', ()
   assert.match(rw, /'storefront\.checkout\.keepNumber': 'Ukoreshe iyi nimero ukurikirana ibyo watumije\.'/)
 })
 
+test('public shop orders accept optional idempotency and expose GET by order number', () => {
+  const api = read('app/api/shop/orders/route.ts')
+  const get = read('app/api/shop/orders/[ref]/route.ts')
+  assert.match(api, /normalizeIdempotencyKey/)
+  assert.match(api, /idempotencyKey/)
+  assert.match(api, /request\.headers\.get\('idempotency-key'\)/)
+  assert.doesNotMatch(api, /Idempotency key is required/)
+  assert.match(get, /getPublicOrder/)
+  assert.doesNotMatch(get, /orderId|costPrice|supabaseAdmin|createCommerceSale/)
+})
+
 test('public /track and /order/[ref] reuse lookupOrder by order_number', () => {
   const track = read('app/storefront/track/page.tsx')
   const orderPage = read('app/storefront/order/[ref]/page.tsx')

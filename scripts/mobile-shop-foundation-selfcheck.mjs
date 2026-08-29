@@ -88,14 +88,17 @@ test('EN/RW language architecture is centralized and persisted', () => {
   assert.doesNotMatch(language, /English[\s\S]*Kinyarwanda[\s\S]*English/)
 })
 
-test('customer cart is local selling-unit quantity and does not checkout', () => {
+test('customer cart is local selling-unit quantity and does not own checkout', () => {
   const cart = readMobile('src/features/shop/cart-store.ts')
+  const rules = readMobile('src/features/shop/cart-rules.ts')
   const screen = readMobile('app/customer/cart.tsx')
-  assert.match(cart, /quantity: number/)
-  assert.match(cart, /sellingUnitLabel/)
-  assert.match(cart, /slug:/)
+  assert.match(rules, /quantity: number/)
+  assert.match(rules, /sellingUnitLabel/)
+  assert.match(rules, /slug:/)
+  assert.match(cart, /maxQuantity/)
+  assert.match(cart, /hydrate/)
   assert.doesNotMatch(cart, /createCommerceSale|\/api\/shop\/orders/)
-  assert.match(screen, /cart.checkoutSoon/)
+  assert.match(screen, /\/customer\/checkout/)
   assert.doesNotMatch(screen, /createCommerceSale|submitSale/)
 })
 

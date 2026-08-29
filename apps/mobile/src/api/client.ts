@@ -29,12 +29,19 @@ function logApiFailure(details: {
 export class ApiError extends Error {
   readonly status: number
   readonly code: ApiErrorCode
+  readonly serverCode?: string
 
-  constructor(message: string, status: number, code: ApiErrorCode = 'http') {
+  constructor(
+    message: string,
+    status: number,
+    code: ApiErrorCode = 'http',
+    serverCode?: string
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
+    this.serverCode = serverCode
   }
 }
 
@@ -103,11 +110,26 @@ export async function publicRequest<T>(
   return jsonRequest<T>(path, { ...init, auth: false, expireOn401: false })
 }
 
+export async function publicFormRequest<T>(
+  path: string,
+  body: FormData,
+  init: { timeoutMs?: number } = {}
+): Promise<T> {
+  return jsonRequest<T>(path, {
+    method: 'POST',
+    body,
+    auth: false,
+    expireOn401: false,
+    timeoutMs: init.timeoutMs ?? 60_000,
+  })
+}
+
 export async function staffRequest<T>(
   path: string,
-  init: StaffRequestOptions = {}
+  init: StaffRequestOptions & { auth?: boolean } = {}
 ): Promise<T> {
-  return jsonRequest<T>(path, { ...init, auth: true })
+  const { auth = true, ...rest } = init
+  return jsonRequest<T>(path, { ...rest, auth })
 }
 
 async function jsonRequest<T>(
@@ -132,7 +154,8 @@ async function jsonRequest<T>(
       const token = await tokenProvider()
       const headers = new Headers(requestInit.headers)
       headers.set('Accept', 'application/json')
-      if (requestInit.body && !headers.has('Content-Type')) {
+      const isForm = typeof FormData !== 'undefined' && requestInit.body instanceof FormData
+      if (requestInit.body && !isForm && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json')
       }
       if (useAuth && token) headers.set('Authorization', `Bearer ${token}`)
@@ -142,6 +165,7 @@ async function jsonRequest<T>(
         method,
         headers,
         signal: controller.signal,
+        credentials: 'omit',
       })
 
       const text = await response.text()
@@ -163,6 +187,7 @@ async function jsonRequest<T>(
           : typeof data.message === 'string'
             ? data.message
             : undefined
+      const serverCode = typeof data.code === 'string' ? data.code : undefined
 
       if (response.status === 401) {
         if (expireOn401 && !isLogin) await notifyUnauthorized()
@@ -175,7 +200,8 @@ async function jsonRequest<T>(
               isLogin,
             }),
             401,
-            'unauthorized'
+            'unauthorized',
+            serverCode
           )
         )
       }
@@ -195,7 +221,8 @@ async function jsonRequest<T>(
               isLogin,
             }),
             response.status,
-            code
+            code,
+            serverCode
           ),
           jsonOk ? undefined : 'non-json body'
         )

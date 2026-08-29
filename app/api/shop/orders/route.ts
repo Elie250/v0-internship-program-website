@@ -8,6 +8,7 @@ import {
 } from '@/lib/shop/public-checkout'
 import { resolveShopPortalPosLocation } from '@/lib/shop/resolve-pos-location'
 import { getDefaultStorefrontShop } from '@/lib/shop/storefront-shops'
+import { normalizeIdempotencyKey } from '@/lib/shop/stock-types'
 
 function cartChangedResponse() {
   return NextResponse.json(
@@ -43,6 +44,10 @@ export async function POST(request: Request) {
       return cartChangedResponse()
     }
 
+    const idempotencyKey =
+      normalizeIdempotencyKey(body.idempotencyKey) ||
+      normalizeIdempotencyKey(request.headers.get('idempotency-key'))
+
     const result = await createCommerceSale({
       channel: 'online',
       items: resolved.items,
@@ -56,6 +61,7 @@ export async function POST(request: Request) {
       receiptUrl: receiptUrl || null,
       receiptNumber: receiptNumber || null,
       locationId: portalLocation?.id ?? null,
+      idempotencyKey,
     })
 
     if (!result.ok) {

@@ -11,12 +11,25 @@ export const USER_MESSAGES = {
 const SAFE_BUSINESS_MESSAGES = new Set([
   'Insufficient stock',
   'Invalid cart',
+  'Cart is empty',
+  'Prices or availability changed. Please review your cart.',
+  'Name, email, and phone are required',
+  'Delivery address is required for delivery orders',
+  'Failed to submit order',
+  'Order not found',
+  'No file provided',
+  'Upload a JPG, PNG, WebP, or PDF receipt',
+  'File must be under 5 MB',
   'Conflicting sale request',
   'Sale could not be completed.',
   'Idempotency key is required for POS sales (8–128 chars)',
   'Too many login attempts. Please try again later.',
   'This payment is not a shop order',
   'Invalid email or password',
+  'This account is not authorized for shop / POS access',
+  'Your account is awaiting admin approval. Please contact the administrator.',
+  'This account is inactive. Contact the administrator to restore access.',
+  'This account has been suspended. Contact the administrator for assistance.',
   'Refund amount and stock are calculated by the server',
   'This sale cannot be refunded',
   'This sale cannot be refunded for the requested quantity',
@@ -65,6 +78,15 @@ export function sanitizeApiErrorMessage(input: {
     return input.isLogin ? USER_MESSAGES.signIn : USER_MESSAGES.expired
   }
   if (input.status === 403 || input.code === 'forbidden') {
+    const rawForbidden = String(input.serverMessage ?? '').trim()
+    if (
+      input.isLogin &&
+      rawForbidden &&
+      SAFE_BUSINESS_MESSAGES.has(rawForbidden) &&
+      !LOOKS_INTERNAL.test(rawForbidden)
+    ) {
+      return rawForbidden
+    }
     return USER_MESSAGES.forbidden
   }
 

@@ -9,6 +9,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { staffQueryClient } from '@/src/api/query-client'
 import { useSessionStore } from '@/src/auth/session-store'
 import { plexFontMap } from '@/src/fonts'
+import { useShopCart } from '@/src/features/shop/cart-store'
+import { useFavorites } from '@/src/features/shop/favorites-store'
 import { useLocaleStore } from '@/src/i18n/locale-store'
 import { colors, font } from '@/src/theme'
 
@@ -17,6 +19,8 @@ SplashScreen.preventAutoHideAsync()
 export default function RootLayout() {
   const hydrateSession = useSessionStore((s) => s.hydrate)
   const hydrateLocale = useLocaleStore((s) => s.hydrate)
+  const hydrateFavorites = useFavorites((s) => s.hydrate)
+  const hydrateCart = useShopCart((s) => s.hydrate)
   const localeReady = useLocaleStore((s) => s.hydrated)
   const [fontsLoaded, fontError] = useFonts(plexFontMap)
   const fontsReady = fontsLoaded || Boolean(fontError)
@@ -24,8 +28,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     void hydrateLocale()
+    void hydrateFavorites()
+    void hydrateCart()
     void hydrateSession()
-  }, [hydrateLocale, hydrateSession])
+  }, [hydrateLocale, hydrateFavorites, hydrateCart, hydrateSession])
 
   useEffect(() => {
     if (ready) {

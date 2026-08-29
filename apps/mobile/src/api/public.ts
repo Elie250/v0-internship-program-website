@@ -1,6 +1,14 @@
-import { ApiError, getApiBaseUrl, publicRequest } from '@/src/api/client'
+import { ApiError, getApiBaseUrl, publicFormRequest, publicRequest } from '@/src/api/client'
 import { sanitizeApiErrorMessage } from '@/src/api/errors'
-import type { PublicAvailability, PublicCatalogueCategory, PublicCatalogueItem } from '@/src/api/public-types'
+import type {
+  PublicAvailability,
+  PublicCatalogueCategory,
+  PublicCatalogueItem,
+  PublicOrderStatus,
+  PublicPaymentStatus,
+  PublicShopOrderCreated,
+  PublicTrackedOrder,
+} from '@/src/api/public-types'
 
 const AVAILABILITY: ReadonlySet<string> = new Set(['available', 'few', 'out'])
 
@@ -118,4 +126,124 @@ export async function fetchPublicProduct(slug: string) {
   const item = parsePublicCatalogueItem(row?.item)
   if (!item) throw payloadError()
   return { item }
+}
+
+export function parsePublicShopOrderCreated(value: unknown): PublicShopOrderCreated {
+  const row = asRecord(value)
+  const orderNumber = typeof row?.orderNumber === 'string' ? row.orderNumber.trim() : ''
+  const totalAmount = Number(row?.totalAmount)
+  if (!row || row.success !== true || !orderNumber || !Number.isFinite(totalAmount)) {
+    throw payloadError()
+  }
+  return {
+    success: true,
+    orderNumber,
+    totalAmount,
+    shopName: typeof row.shopName === 'string' ? row.shopName : '',
+    status: 'pending',
+    paymentStatus: 'pending',
+    message: typeof row.message === 'string' ? row.message : '',
+  }
+}
+
+const ORDER_STATUSES: ReadonlySet<string> = new Set([
+  'received',
+  'payment_awaiting',
+  'payment_confirmed',
+  'preparing',
+  'ready',
+  'completed',
+  'cancelled',
+])
+
+const PAY_STATUSES: ReadonlySet<string> = new Set(['awaiting', 'confirmed', 'not_completed'])
+
+export function parsePublicTrackedOrder(value: unknown): PublicTrackedOrder {
+  const wrap = asRecord(value)
+  const row = asRecord(wrap?.order) ?? wrap
+  const orderNumber = typeof row?.orderNumber === 'string' ? row.orderNumber.trim() : ''
+  const totalAmount = Number(row?.totalAmount)
+  if (!row || !orderNumber || !Number.isFinite(totalAmount) || !Array.isArray(row.items)) {
+    throw payloadError()
+  }
+  return {
+    orderNumber,
+    shopName: typeof row.shopName === 'string' ? row.shopName : '',
+    orderDate: typeof row.orderDate === 'string' ? row.orderDate : '',
+    status: ORDER_STATUSES.has(String(row.status)) ? (row.status as PublicOrderStatus) : 'received',
+    paymentStatus: PAY_STATUSES.has(String(row.paymentStatus))
+      ? (row.paymentStatus as PublicPaymentStatus)
+      : 'awaiting',
+    paymentMethod: row.paymentMethod === 'cash' ? 'cash' : 'momo',
+    fulfillmentType: row.fulfillmentType === 'delivery' ? 'delivery' : 'pickup',
+    deliveryAddress: typeof row.deliveryAddress === 'string' ? row.deliveryAddress : null,
+    totalAmount,
+    items: row.items.flatMap((item) => {
+      const line = asRecord(item)
+      if (!line || typeof line.productName !== 'string') return []
+      return [
+        {
+          productName: line.productName,
+          quantity: Number(line.quantity) || 0,
+          unitPrice: Number(line.unitPrice) || 0,
+          lineTotal: Number(line.lineTotal) || 0,
+          sellingUnitLabel: typeof line.sellingUnitLabel === 'string' ? line.sellingUnitLabel : null,
+        },
+      ]
+    }),
+  }
+}
+
+export async function createPublicOrder(input: {
+  items: Array<{ slug: string; quantity: number; quotedUnitPrice: number }>
+  customerName: string
+  customerEmail: string
+  customerPhone: string
+  fulfillmentType: 'pickup' | 'delivery'
+  deliveryAddress: string
+  notes: string
+  receiptUrl: string
+  receiptNumber: string
+  idempotencyKey: string
+}) {
+  const data = await publicRequest<unknown>('/api/shop/orders', {
+    method: 'POST',
+    headers: { 'Idempotency-Key': input.idempotencyKey },
+    body: JSON.stringify({
+      items: input.items,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+      fulfillmentType: input.fulfillmentType,
+      deliveryAddress: input.deliveryAddress,
+      notes: input.notes,
+      receiptUrl: input.receiptUrl,
+      receiptNumber: input.receiptNumber,
+      paymentMethod: 'momo',
+      idempotencyKey: input.idempotencyKey,
+    }),
+  })
+  return parsePublicShopOrderCreated(data)
+}
+
+export async function uploadPublicReceipt(file: { uri: string; name: string; type: string }) {
+  const body = new FormData()
+  body.append(
+    'file',
+    {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob
+  )
+  const data = await publicFormRequest<unknown>('/api/public/upload-receipt', body)
+  const row = asRecord(data)
+  const url = typeof row?.url === 'string' ? row.url.trim() : ''
+  if (!url) throw payloadError()
+  return { url, path: typeof row?.path === 'string' ? row.path : '' }
+}
+
+export async function fetchPublicOrder(ref: string) {
+  const data = await publicRequest<unknown>(`/api/shop/orders/${encodeURIComponent(ref)}`)
+  return parsePublicTrackedOrder(data)
 }

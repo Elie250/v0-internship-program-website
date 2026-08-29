@@ -1,69 +1,74 @@
 import { create } from 'zustand'
 import type { PublicCatalogueItem } from '@/src/api/public-types'
+import {
+  applyAddProduct,
+  applySetQuantity,
+  applyStockLimits,
+  parsePersistedCart,
+  type ShopCartLine,
+} from '@/src/features/shop/cart-rules'
+import { readPersistedCartJson, writePersistedCartJson } from '@/src/features/shop/cart-persist'
 
-/**
- * Customer cart — local display state only.
- * `quantity` is the number of selling units (e.g. 2 × 5 M), never converted.
- * Checkout is not submitted from this store.
- */
-export type ShopCartLine = {
-  slug: string
-  name: string
-  image: string | null
-  displayPrice: number
-  sellingQuantity: number
-  sellingUnit: string
-  sellingUnitLabel: string
-  quantity: number
-}
+export type { ShopCartLine }
 
 type ShopCartState = {
   lines: ShopCartLine[]
-  addProduct: (product: PublicCatalogueItem) => void
+  hydrated: boolean
+  hydrate: () => Promise<void>
+  addProduct: (product: PublicCatalogueItem, quantity?: number) => void
   setQuantity: (slug: string, quantity: number) => void
   remove: (slug: string) => void
   clear: () => void
+  applyLiveStock: (products: PublicCatalogueItem[]) => void
 }
 
-export const useShopCart = create<ShopCartState>((set) => ({
+function persist(lines: ShopCartLine[]) {
+  void writePersistedCartJson(JSON.stringify(lines)).catch(() => undefined)
+}
+
+export const useShopCart = create<ShopCartState>((set, get) => ({
   lines: [],
-  addProduct: (product) =>
-    set((state) => {
-      const existing = state.lines.find((line) => line.slug === product.slug)
-      if (existing) {
-        return {
-          lines: state.lines.map((line) =>
-            line.slug === product.slug ? { ...line, quantity: line.quantity + 1 } : line
-          ),
-        }
-      }
-      return {
-        lines: [
-          ...state.lines,
-          {
-            slug: product.slug,
-            name: product.name,
-            image: product.image,
-            displayPrice: product.price,
-            sellingQuantity: product.sellingQuantity,
-            sellingUnit: product.sellingUnit,
-            sellingUnitLabel: product.sellingUnitLabel,
-            quantity: 1,
-          },
-        ],
-      }
-    }),
-  setQuantity: (slug, quantity) =>
-    set((state) => ({
-      lines:
-        quantity < 1
-          ? state.lines.filter((line) => line.slug !== slug)
-          : state.lines.map((line) =>
-              line.slug === slug ? { ...line, quantity: Math.floor(quantity) } : line
-            ),
-    })),
-  remove: (slug) => set((state) => ({ lines: state.lines.filter((line) => line.slug !== slug) })),
-  clear: () => set({ lines: [] }),
+  hydrated: false,
+  hydrate: async () => {
+    try {
+      const raw = await readPersistedCartJson()
+      const parsed = raw ? (JSON.parse(raw) as unknown) : []
+      set({ lines: parsePersistedCart(parsed), hydrated: true })
+    } catch {
+      set({ hydrated: true })
+    }
+  },
+  addProduct: (product, quantity = 1) => {
+    const lines = applyAddProduct(get().lines, product, quantity)
+    set({ lines })
+    persist(lines)
+  },
+  setQuantity: (slug, quantity) => {
+    const lines = applySetQuantity(get().lines, slug, quantity)
+    set({ lines })
+    persist(lines)
+  },
+  remove: (slug) => {
+    const lines = get().lines.filter((line) => line.slug !== slug)
+    set({ lines })
+    persist(lines)
+  },
+  clear: () => {
+    set({ lines: [] })
+    persist([])
+  },
+  applyLiveStock: (products) => {
+    const lines = applyStockLimits(
+      get().lines,
+      products.map((product) => ({
+        slug: product.slug,
+        maxQuantity: product.maxQuantity,
+        price: product.price,
+      }))
+    )
+    set({ lines })
+    persist(lines)
+  },
 }))
 
 export function shopCartItemCount(lines: ShopCartLine[]) {
