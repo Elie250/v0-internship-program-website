@@ -8,6 +8,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const root = process.cwd()
 const read = (rel) => readFileSync(join(root, rel), 'utf8')
@@ -244,7 +245,7 @@ test('mobile menu is an opaque high-contrast drawer with customer links only', (
   const toggle = read('components/storefront/storefront-language-toggle.tsx')
   assert.match(toggle, /emphasis/)
   assert.match(toggle, /min-h-11/)
-  assert.match(toggle, /bg-\[var\(--brand-navy,#1e3a5f\)\] text-white/)
+  assert.match(toggle, /bg-\[var\(--shop-green,#1fa64a\)\] text-white/)
 })
 
 test('cart shell does not create a second checkout', () => {
@@ -946,7 +947,8 @@ test('homepage merchandising is hidden when search or category filters are activ
   assert.match(page, /const filtered = Boolean\(categorySlug \|\| search\)/)
   assert.match(page, /filtered \? null : buildStorefrontMerchandising/)
   assert.match(page, /\{merch \?/)
-  assert.match(page, /StorefrontHome slides=\{merch\.heroProducts\}/)
+  assert.match(page, /StorefrontHome slides=\{latestSlides\.length > 0 \? latestSlides : merch\.heroProducts\}/)
+  assert.match(page, /selectNewArrivals/)
   assert.match(page, /StorefrontCategoryBar/)
 })
 
@@ -964,10 +966,10 @@ test('marketplace sections stay distinct and do not duplicate chrome', () => {
   assert.doesNotMatch(home, /storefront\.shoppingFrom/)
   assert.doesNotMatch(shell, /storefront\.shoppingFrom/)
   assert.doesNotMatch(shell, /ShopShell|<aside|w-60/)
-  assert.match(merchUi, /bg-amber-50/)
   assert.match(merchUi, /storefront\.latest\.title/)
   assert.match(merchUi, /storefront\.trends\.title/)
-  assert.match(merchUi, /lg:grid-cols-\[1\.15fr_0\.85fr\]/)
+  assert.match(merchUi, /storefront\.seeAll/)
+  assert.match(merchUi, /w-\[132px\]/)
   assert.doesNotMatch(merchUi, /merch\.newArrivals/)
   assert.match(bar, /overflow-x-auto/)
   assert.match(bar, /max-w-full/)
@@ -1018,9 +1020,10 @@ test('hero is a full-bleed carousel of real catalogue products', () => {
   assert.match(home, /product\.image/)
   assert.match(home, /product\.slug/)
   assert.match(home, /from '@\/components\/ui\/carousel'/)
-  assert.match(home, /scale-125/)
-  assert.match(home, /object-cover/)
-  assert.match(home, /sizes="100vw"/)
+  assert.match(home, /object-contain/)
+  assert.match(home, /object-right/)
+  assert.match(home, /storefront\.hero\.title/)
+  assert.match(home, /storefront\.hero\.shopNow/)
   assert.match(home, /prefers-reduced-motion/)
   assert.match(home, /storefront\.hero\.previous/)
   assert.match(home, /storefront\.hero\.next/)
@@ -1148,6 +1151,34 @@ test('selling quantity and unit validation rejects invalid writes', () => {
   const adminUi = read('components/admin/product-management.tsx')
   assert.match(adminUi, /SELLING_UNITS\.map/)
   assert.match(adminUi, /SelectItem key=\{unit\}/)
+})
+
+test('admin product create and edit persist barcode separately from SKU', async () => {
+  const adminUi = read('components/admin/product-management.tsx')
+  assert.match(adminUi, /<Label>Barcode<\/Label>/)
+  assert.match(adminUi, /barcode: form\.barcode/)
+  assert.match(adminUi, /barcode: editForm\.barcode/)
+  assert.match(adminUi, /This is not the SKU/)
+  assert.doesNotMatch(read('components/storefront/storefront-product-detail.tsx'), /barcode/)
+
+  const { parseProductBarcode, applyBarcodeToProductPayload } = await import(
+    pathToFileURL(join(root, 'lib/shop/product-barcode.ts')).href
+  )
+  assert.equal(parseProductBarcode('').value, null)
+  assert.equal(parseProductBarcode('5 449000 219299').value, '5449000219299')
+  assert.equal(parseProductBarcode('232323').value, '232323')
+  assert.equal(parseProductBarcode('abc-12').value, 'abc12')
+  assert.equal(parseProductBarcode('hello!').ok, false)
+  const created = applyBarcodeToProductPayload({ name: 'Fanta', sku: 'FANTA' }, 'create')
+  assert.equal(created.ok, true)
+  assert.equal(created.payload.barcode, null)
+  const withCode = applyBarcodeToProductPayload(
+    { name: 'Fanta', sku: 'FANTA', barcode: '5 449000 219299' },
+    'create'
+  )
+  assert.equal(withCode.ok, true)
+  assert.equal(withCode.payload.sku, 'FANTA')
+  assert.equal(withCode.payload.barcode, '5449000219299')
 })
 
 test('package.json exposes test:shop-storefront', () => {

@@ -24,7 +24,7 @@ export function StorefrontProductMissing() {
       <p className="mt-3 text-slate-600">{t('storefront.product.notFound')}</p>
       <Button
         asChild
-        className="mt-8 bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+        className="mt-8 bg-[var(--shop-green,#1fa64a)] text-white hover:bg-[var(--shop-green-pressed,#17863b)]"
       >
         <Link href="/">{t('storefront.product.back')}</Link>
       </Button>
@@ -42,9 +42,9 @@ export function StorefrontProductDetail({ product }: { product: PublicCatalogueI
 
   return (
     <section className={`${STOREFRONT_GUTTER} grid gap-10 py-10 lg:grid-cols-2 lg:py-14`}>
-      <div className="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+      <div className="relative aspect-square overflow-hidden rounded-[var(--shop-radius-lg)] bg-[var(--shop-tile)]">
         {product.image ? (
-          <Image src={product.image} alt={product.name} fill className="object-cover" unoptimized />
+          <Image src={product.image} alt={product.name} fill className="object-contain p-6" unoptimized />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
             <Package className="h-12 w-12" aria-hidden />
@@ -60,7 +60,7 @@ export function StorefrontProductDetail({ product }: { product: PublicCatalogueI
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{product.name}</h1>
         <p className="mt-2 text-sm text-slate-600">{product.sellingUnitLabel}</p>
         <div className="mt-4 flex flex-wrap items-baseline gap-3">
-          <p className="text-3xl font-semibold text-[var(--brand-navy,#1e3a5f)]">
+          <p className="text-3xl font-bold text-[var(--shop-green,#1fa64a)]">
             {formatShopRwf(product.price)}
           </p>
           {product.listPrice ? (

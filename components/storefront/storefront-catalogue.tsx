@@ -37,21 +37,21 @@ export function StorefrontCatalogue({
   else if (hasFilters && products.length === 0) emptyMessage = t('storefront.catalogue.noResults')
 
   return (
-    <section id="products" className={`${STOREFRONT_GUTTER} py-8 sm:py-10`}>
+    <section id="products" className={`${STOREFRONT_GUTTER} py-6 sm:py-8`}>
       <div>
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        <h2 className="text-lg font-bold tracking-tight text-[var(--shop-text)]">
           {t(moreInShop ? 'storefront.more.title' : 'storefront.catalogue.title')}
         </h2>
-        <p className="mt-2 text-sm text-slate-600 sm:text-base">{t('storefront.catalogue.hint')}</p>
+        <p className="mt-1 text-sm text-[var(--shop-text-secondary)]">{t('storefront.catalogue.hint')}</p>
       </div>
 
       {products.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-          <Package className="mx-auto h-10 w-10 text-slate-400" aria-hidden />
-          <p className="mt-4 text-sm font-medium text-slate-700">{emptyMessage}</p>
+        <div className="mt-6 rounded-[var(--shop-radius-lg)] bg-[var(--shop-tile)] px-6 py-16 text-center">
+          <Package className="mx-auto h-10 w-10 text-[var(--shop-muted)]" aria-hidden />
+          <p className="mt-4 text-sm font-medium text-[var(--shop-text)]">{emptyMessage}</p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {products.map((product) => (
             <StorefrontProductCard key={product.slug} product={product} />
           ))}

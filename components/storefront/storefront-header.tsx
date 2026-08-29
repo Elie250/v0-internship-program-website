@@ -17,7 +17,7 @@ import { useShopCart } from '@/lib/shop/cart-context'
 import { cn } from '@/lib/utils'
 
 const MOBILE_NAV_LINK =
-  'flex min-h-11 min-w-0 items-center gap-2 overflow-hidden rounded-md px-3 text-sm font-semibold text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy,#1e3a5f)] focus-visible:ring-offset-2'
+  'flex min-h-11 min-w-0 items-center gap-2 overflow-hidden rounded-md px-3 text-sm font-semibold text-slate-900 hover:bg-[var(--shop-tile)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-green)] focus-visible:ring-offset-2'
 
 export function StorefrontHeader({
   shops,
@@ -32,10 +32,10 @@ export function StorefrontHeader({
   const [open, setOpen] = useState(false)
 
   const mobileNavClass = (href: string) =>
-    cn(MOBILE_NAV_LINK, pathname === href && 'bg-slate-100 text-[var(--brand-navy,#1e3a5f)]')
+    cn(MOBILE_NAV_LINK, pathname === href && 'bg-[var(--shop-green-soft)] text-[var(--shop-green)]')
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[var(--brand-navy,#1e3a5f)] text-white">
+    <header className="sticky top-0 z-40 border-b border-[var(--shop-border)] bg-[var(--shop-bg)] text-[var(--shop-text)]">
       <div className={STOREFRONT_GUTTER}>
         <div className="flex items-center gap-2 py-2 lg:h-16 lg:gap-3 lg:py-0">
           <div className="lg:hidden">
@@ -45,7 +45,7 @@ export function StorefrontHeader({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/10 hover:text-white"
+                  className="text-[var(--shop-text)] hover:bg-[var(--shop-tile)] hover:text-[var(--shop-text)]"
                   aria-label={t('a11y.openMenu')}
                 >
                   <Menu className="h-5 w-5" />
@@ -53,10 +53,10 @@ export function StorefrontHeader({
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="flex h-full w-full max-w-xs flex-col gap-0 overflow-x-hidden bg-white p-0 text-slate-900 shadow-none [&>button]:text-slate-800 [&>button]:opacity-100 [&>button]:hover:bg-slate-100 [&>button]:hover:opacity-100 [&>button]:focus-visible:ring-2 [&>button]:focus-visible:ring-[var(--brand-navy,#1e3a5f)]"
+                className="flex h-full w-full max-w-xs flex-col gap-0 overflow-x-hidden bg-white p-0 text-slate-900 shadow-none [&>button]:text-slate-800 [&>button]:opacity-100 [&>button]:hover:bg-slate-100 [&>button]:hover:opacity-100 [&>button]:focus-visible:ring-2 [&>button]:focus-visible:ring-[var(--shop-green)]"
               >
                 <SheetHeader className="border-b border-slate-200 bg-white px-4 py-4 pr-12 text-left">
-                  <SheetTitle className="text-base font-semibold text-[var(--brand-navy,#1e3a5f)]">
+                  <SheetTitle className="text-base font-semibold text-[var(--shop-text)]">
                     {t('brand.name')}
                   </SheetTitle>
                 </SheetHeader>
@@ -69,7 +69,7 @@ export function StorefrontHeader({
                   </div>
                   <div className="grid gap-1">
                     <Link href="/" onClick={() => setOpen(false)} className={mobileNavClass('/')}>
-                      <Package className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <Package className="h-4 w-4 shrink-0 text-[var(--shop-green)]" aria-hidden />
                       <span className="min-w-0 break-words">{t('storefront.nav.products')}</span>
                     </Link>
                     <Link
@@ -77,7 +77,7 @@ export function StorefrontHeader({
                       onClick={() => setOpen(false)}
                       className={mobileNavClass('/track')}
                     >
-                      <ClipboardList className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <ClipboardList className="h-4 w-4 shrink-0 text-[var(--shop-green)]" aria-hidden />
                       <span className="min-w-0 break-words">{t('storefront.nav.track')}</span>
                     </Link>
                     <Link
@@ -85,7 +85,7 @@ export function StorefrontHeader({
                       onClick={() => setOpen(false)}
                       className={mobileNavClass('/cart')}
                     >
-                      <ShoppingBag className="h-4 w-4 shrink-0 text-[var(--brand-navy,#1e3a5f)]" aria-hidden />
+                      <ShoppingBag className="h-4 w-4 shrink-0 text-[var(--shop-green)]" aria-hidden />
                       <span className="min-w-0 break-words">
                         {t('storefront.header.cart', { n: itemCount })}
                       </span>
@@ -118,13 +118,13 @@ export function StorefrontHeader({
 
           <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
             <Image
-              src="/images/energy-logics-logo.png"
+              src="/energy-logics-avatar.png"
               alt=""
               width={36}
               height={36}
-              className="h-9 w-9 rounded-sm bg-white object-contain p-0.5"
+              className="h-9 w-9 rounded-[8px] bg-white object-contain"
             />
-            <span className="hidden truncate text-sm font-semibold tracking-tight sm:inline">
+            <span className="truncate text-sm font-bold tracking-tight text-[var(--shop-text)] sm:text-base">
               {t('brand.short')}
             </span>
           </Link>
@@ -142,13 +142,13 @@ export function StorefrontHeader({
 
           <Link
             href="/track"
-            className="hidden shrink-0 text-sm font-medium text-white/90 hover:text-white md:inline"
+            className="hidden shrink-0 text-sm font-medium text-[var(--shop-text-secondary)] hover:text-[var(--shop-text)] md:inline"
           >
             {t('storefront.nav.track')}
           </Link>
 
           <span
-            className="hidden shrink-0 items-center gap-1 text-xs text-white/55 xl:inline-flex"
+            className="hidden shrink-0 items-center gap-1 text-xs text-[var(--shop-muted)] xl:inline-flex"
             title={t('storefront.header.downloadSoon')}
           >
             <Smartphone className="h-3.5 w-3.5" aria-hidden />
@@ -158,26 +158,26 @@ export function StorefrontHeader({
             </span>
           </span>
 
-          <StorefrontLanguageToggle inverted compact className="hidden md:flex" />
+          <StorefrontLanguageToggle compact className="hidden md:flex" />
 
           <Link
             href="/login"
-            className="hidden shrink-0 text-xs text-white/55 hover:text-white/80 xl:inline"
+            className="hidden shrink-0 text-xs text-[var(--shop-muted)] hover:text-[var(--shop-text)] xl:inline"
           >
             {t('storefront.footer.manage')}
           </Link>
 
           <Link
             href="/cart"
-            className="relative ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-white hover:bg-white/10 md:ml-0"
+            className="relative ml-auto inline-flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--shop-text)] hover:bg-[var(--shop-tile)] md:ml-0 md:h-auto md:w-auto md:gap-1.5 md:rounded-md md:px-2 md:py-1.5"
             aria-label={t('storefront.header.cart', { n: itemCount })}
           >
             <ShoppingBag className="h-5 w-5" />
             <span className="hidden text-sm font-medium sm:inline">
               {t('storefront.header.cart', { n: itemCount })}
             </span>
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-[var(--brand-navy,#1e3a5f)] sm:hidden">
-              {itemCount}
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--shop-green)] px-1 text-[10px] font-bold text-white sm:static sm:ml-0.5">
+              {itemCount > 9 ? '9+' : itemCount}
             </span>
           </Link>
         </div>

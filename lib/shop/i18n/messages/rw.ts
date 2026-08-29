@@ -466,11 +466,12 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'storefront.a11y.nav': 'Igenamigambi ry’iduka',
   'storefront.a11y.cart': 'Ibyatoranijwe',
   'storefront.hero.eyebrow': 'Ibyuma bya elektronike n’ibikoresho',
-  'storefront.hero.title':
-    'Ibyuma bya elektronike, ibikoresho n’ikoranabuhanga ry’ubuzima bwa buri munsi.',
-  'storefront.hero.body':
-    'Telefoni, amajwi, charger, amabateri n’ibindi bikoresho kuri Nyanza Shop.',
+  'storefront.hero.title': 'Ibyuma byiza',
+  'storefront.hero.emphasis': 'Buri munsi',
+  'storefront.hero.body': 'Ibikoresho, imashini, n’ibindi.',
+  'storefront.hero.shopNow': 'Gura none',
   'storefront.hero.browse': 'Reba ibicuruzwa',
+  'storefront.seeAll': 'Reba byose',
   'storefront.hero.viewProduct': 'Reba igicuruzwa',
   'storefront.hero.nowAt': 'Kirahari ubu kuri Nyanza Shop.',
   'storefront.hero.previous': 'Igicuruzwa kibanziriza',

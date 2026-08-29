@@ -42,7 +42,7 @@ export function StorefrontLanguageToggle({
             type="button"
             onClick={() => setLocale(code as ShopLocale)}
             className={cn(
-              'rounded-sm px-0.5 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy,#1e3a5f)] focus-visible:ring-offset-2',
+              'rounded-sm px-0.5 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-green,#1fa64a)] focus-visible:ring-offset-2',
               emphasis && 'min-h-11 w-full rounded-md px-3',
               inverted
                 ? locale === code
@@ -50,10 +50,10 @@ export function StorefrontLanguageToggle({
                   : 'text-white/80 hover:text-white'
                 : emphasis
                   ? locale === code
-                    ? 'bg-[var(--brand-navy,#1e3a5f)] text-white'
+                    ? 'bg-[var(--shop-green,#1fa64a)] text-white'
                     : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
                   : locale === code
-                    ? 'text-[var(--brand-navy,#1e3a5f)]'
+                    ? 'text-[var(--shop-green,#1fa64a)]'
                     : 'text-slate-700 hover:text-slate-900'
             )}
             aria-pressed={locale === code}

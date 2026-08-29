@@ -7,7 +7,7 @@ import {
 import { StorefrontMerchandising } from '@/components/storefront/storefront-merchandising'
 import { StorefrontCategoryBar } from '@/components/storefront/storefront-category-bar'
 import { loadPublicCatalogue } from '@/lib/shop/public-catalogue'
-import { buildStorefrontMerchandising } from '@/lib/shop/public-merchandising'
+import { buildStorefrontMerchandising, selectNewArrivals } from '@/lib/shop/public-merchandising'
 
 function readParam(value: string | string[] | undefined): string | undefined {
   if (typeof value !== 'string') return undefined
@@ -26,6 +26,7 @@ async function StorefrontCatalogueSection({
   const result = await loadPublicCatalogue({ categorySlug, search })
   const filtered = Boolean(categorySlug || search)
   const merch = filtered ? null : buildStorefrontMerchandising(result.products, result.categories)
+  const latestSlides = selectNewArrivals(result.products).filter((item) => item.image)
 
   return (
     <>
@@ -36,7 +37,7 @@ async function StorefrontCatalogueSection({
       />
       {merch ? (
         <StorefrontMerchandising merch={merch}>
-          <StorefrontHome slides={merch.heroProducts} />
+          <StorefrontHome slides={latestSlides.length > 0 ? latestSlides : merch.heroProducts} />
         </StorefrontMerchandising>
       ) : null}
       <StorefrontCatalogue

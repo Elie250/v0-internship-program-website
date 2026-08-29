@@ -65,8 +65,8 @@ function CategoryLink({
       className={cn(
         'inline-flex shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
         active
-          ? 'border-[var(--brand-navy,#1e3a5f)] bg-[var(--brand-navy,#1e3a5f)] text-white'
-          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+          ? 'border-[var(--shop-green,#1fa64a)] bg-[var(--shop-green,#1fa64a)] text-white'
+          : 'border-[var(--shop-border)] bg-white text-[var(--shop-text-secondary)] hover:bg-[var(--shop-tile)]'
       )}
     >
       {children}

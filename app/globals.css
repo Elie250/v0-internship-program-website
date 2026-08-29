@@ -59,6 +59,34 @@
   --brand-sky: #7eb8e8;
 }
 
+/* Customer shop (Android client home is the visual source of truth) */
+.storefront-app {
+  --shop-bg: #ffffff;
+  --shop-tile: #f3f4f6;
+  --shop-hero: #0e1f16;
+  --shop-green: #1fa64a;
+  --shop-green-pressed: #17863b;
+  --shop-green-soft: #e8f8ee;
+  --shop-text: #111827;
+  --shop-text-secondary: #4b5563;
+  --shop-muted: #6b7280;
+  --shop-border: #e5e7eb;
+  --shop-danger: #b91c1c;
+  --shop-radius-sm: 10px;
+  --shop-radius-md: 14px;
+  --shop-radius-lg: 18px;
+  background-color: var(--shop-bg);
+  color: var(--shop-text);
+}
+
+.storefront-app a {
+  color: inherit;
+}
+
+.storefront-app a:hover {
+  text-decoration: none;
+}
+
 .dark {
   /* Dark mode: Deep blue backgrounds with bright text */
   --background: oklch(0.12 0 0); /* Very dark gray */

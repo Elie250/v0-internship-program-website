@@ -11,7 +11,7 @@ export function StorefrontFooter() {
   const shop = getDefaultStorefrontShop()
 
   return (
-    <footer className="mt-auto w-full border-t border-white/10 bg-[var(--brand-navy-deep,#152a45)] text-white">
+    <footer className="mt-auto w-full border-t border-white/10 bg-[var(--shop-hero,#0e1f16)] text-white">
       <div className={`${STOREFRONT_GUTTER} grid gap-8 py-10 md:grid-cols-3`}>
         <div>
           <p className="text-sm font-semibold">{t('brand.short')}</p>

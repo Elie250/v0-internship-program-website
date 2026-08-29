@@ -14,16 +14,31 @@ export function StorefrontAddToCart({
   product,
   quantity = 1,
   className,
+  variant = 'button',
 }: {
   product: PublicCatalogueItem
   quantity?: number
   className?: string
+  variant?: 'button' | 'icon'
 }) {
   const t = useShopT()
   const { addItem } = useShopCart()
   const canAdd = canAddPublicProductToCart(product)
 
   if (!canAdd) {
+    if (variant === 'icon') {
+      return (
+        <Button
+          type="button"
+          disabled
+          size="icon"
+          aria-label={t('storefront.catalogue.unavailable')}
+          className={cn('size-8 rounded-full bg-[#D1D5DB] text-white hover:bg-[#D1D5DB]', className)}
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      )
+    }
     return (
       <Button type="button" disabled className={className}>
         {t('storefront.catalogue.unavailable')}
@@ -34,8 +49,11 @@ export function StorefrontAddToCart({
   return (
     <Button
       type="button"
+      size={variant === 'icon' ? 'icon' : 'default'}
+      aria-label={variant === 'icon' ? t('storefront.catalogue.addToCart') : undefined}
       className={cn(
-        'bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90',
+        'bg-[var(--shop-green,#1fa64a)] text-white hover:bg-[var(--shop-green-pressed,#17863b)]',
+        variant === 'icon' && 'size-8 rounded-full',
         className
       )}
       onClick={() =>
@@ -52,7 +70,7 @@ export function StorefrontAddToCart({
         )
       }
     >
-      {t('storefront.catalogue.addToCart')}
+      {variant === 'icon' ? <Plus className="h-4 w-4" /> : t('storefront.catalogue.addToCart')}
     </Button>
   )
 }

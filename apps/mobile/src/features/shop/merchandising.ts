@@ -5,17 +5,9 @@ export function latestArrivals(products: PublicCatalogueItem[]) {
   return products
 }
 
-/**
- * Same public-image convention as the web storefront hero:
- * featured in-stock with photo, then in-stock with photo, then any photographed product.
- */
-export function selectHeroProduct(products: PublicCatalogueItem[]): PublicCatalogueItem | null {
-  return (
-    products.find((item) => item.featured && item.inStock && Boolean(item.image)) ??
-    products.find((item) => item.inStock && Boolean(item.image)) ??
-    products.find((item) => Boolean(item.image)) ??
-    null
-  )
+/** Photographed Latest Arrivals only — the home hero slides these, not a single featured pick. */
+export function selectHeroSlides(latest: PublicCatalogueItem[]): PublicCatalogueItem[] {
+  return latest.filter((item) => Boolean(item.image))
 }
 
 export function trendingProducts(products: PublicCatalogueItem[]) {

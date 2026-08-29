@@ -6,13 +6,14 @@ import { useShopCart } from '@/src/features/shop/cart-store'
 import { ShopHeader } from '@/src/features/shop/ShopHeader'
 import { ShopProductCard } from '@/src/features/shop/ShopProductCard'
 import { ShopScreen, ShopSection } from '@/src/features/shop/ShopScreen'
+import { HeroBanner } from '@/src/features/shop/HeroBanner'
 import {
   categoryCover,
   latestArrivals,
-  selectHeroProduct,
+  selectHeroSlides,
   trendingProducts,
 } from '@/src/features/shop/merchandising'
-import { shopColor, shopRadius, shopSpace } from '@/src/features/shop/shop-theme'
+import { shopColor, shopRadius } from '@/src/features/shop/shop-theme'
 import { useShopText } from '@/src/i18n/locale-store'
 import { ScreenState } from '@/src/ui/Screen'
 import { Image } from 'expo-image'
@@ -28,11 +29,11 @@ export default function CustomerHome() {
   const categories = query.data?.categories ?? []
   const latest = latestArrivals(products)
   const trending = trendingProducts(products)
-  const heroProduct = selectHeroProduct(products)
+  const heroSlides = selectHeroSlides(latest)
 
-  const openHero = () => {
-    if (heroProduct) {
-      router.push(`/customer/product/${encodeURIComponent(heroProduct.slug)}` as never)
+  const openHero = (product: (typeof heroSlides)[number] | null) => {
+    if (product) {
+      router.push(`/customer/product/${encodeURIComponent(product.slug)}` as never)
       return
     }
     router.push('/customer/search' as never)
@@ -42,35 +43,15 @@ export default function CustomerHome() {
     <ShopScreen refreshing={query.isRefetching} onRefresh={() => void query.refetch()}>
       <ShopHeader />
 
-      <Pressable
-        onPress={openHero}
-        accessibilityRole="button"
-        accessibilityLabel={heroProduct ? heroProduct.name : t('home.shopNow')}
-        style={({ pressed }) => [styles.hero, pressed && styles.pressed]}
-      >
-        {heroProduct?.image ? (
-          <Image
-            source={{ uri: heroProduct.image }}
-            style={styles.heroImage}
-            contentFit="contain"
-          />
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <Ionicons name="cube-outline" size={48} color="#9CA3AF" />
-          </View>
-        )}
-        <View style={styles.heroShade} />
-        <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>
-            {t('home.heroTitle')}{' '}
-            <Text style={styles.heroEm}>{t('home.heroEmphasis')}</Text>
-          </Text>
-          <Text style={styles.heroBody}>{t('home.heroBody')}</Text>
-          <View style={styles.heroBtn}>
-            <Text style={styles.heroBtnLabel}>{t('home.shopNow')}</Text>
-          </View>
-        </View>
-      </Pressable>
+      <HeroBanner
+        slides={heroSlides}
+        title={t('home.heroTitle')}
+        emphasis={t('home.heroEmphasis')}
+        body={t('home.heroBody')}
+        shopNow={t('home.shopNow')}
+        fallbackLabel={t('home.shopNow')}
+        onOpen={openHero}
+      />
 
       <ScreenState
         loading={query.isLoading && !query.data}
@@ -94,9 +75,10 @@ export default function CustomerHome() {
                   <Pressable
                     key={category.slug}
                     onPress={() =>
-                      router.push(
-                        `/customer/search?category=${encodeURIComponent(category.slug)}` as never
-                      )
+                      router.push({
+                        pathname: '/customer/search',
+                        params: { category: category.slug },
+                      } as never)
                     }
                     accessibilityRole="button"
                     accessibilityLabel={category.name}
@@ -180,59 +162,6 @@ function SectionHead({ title, onSeeAll }: { title: string; onSeeAll?: () => void
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    minHeight: 220,
-    borderRadius: shopRadius.lg,
-    backgroundColor: shopColor.hero,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
-  },
-  heroPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: shopColor.hero,
-  },
-  heroShade: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8, 18, 12, 0.42)',
-  },
-  heroCopy: {
-    padding: shopSpace.lg,
-    gap: 10,
-    zIndex: 1,
-  },
-  heroTitle: {
-    fontFamily: font.bold,
-    fontSize: 26,
-    lineHeight: 32,
-    color: shopColor.white,
-  },
-  heroEm: { color: shopColor.green },
-  heroBody: {
-    fontFamily: font.regular,
-    fontSize: 14,
-    color: '#D1D5DB',
-  },
-  heroBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: shopColor.green,
-    borderRadius: shopRadius.pill,
-    paddingHorizontal: 16,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  heroBtnLabel: {
-    fontFamily: font.semibold,
-    fontSize: 14,
-    color: shopColor.white,
-  },
-  pressed: { opacity: 0.88 },
   sectionHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
