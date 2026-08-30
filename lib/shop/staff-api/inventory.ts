@@ -16,6 +16,10 @@ export async function listStaffInventory(searchParams: URLSearchParams) {
   const { page, limit, offset } = parsePagination(searchParams)
   const q = sanitizeSearchTerm(searchParams.get('q') || '')
   const status = searchParams.get('status')?.trim() || ''
+  const productId = parseOptionalUuid(searchParams.get('product_id'))
+  if (searchParams.get('product_id') && !productId) {
+    return { error: 'Invalid product_id', httpStatus: 400 as const }
+  }
 
   let query = supabaseAdmin
     .from('products')
@@ -23,9 +27,7 @@ export async function listStaffInventory(searchParams: URLSearchParams) {
       'id, name, sku, barcode, stock, low_stock_threshold, target_stock, status, price, updated_at',
       { count: 'exact' }
     )
-
-  if (status && status !== 'all') query = query.eq('status', status)
-  if (q) query = query.or(`name.ilike.%${q}%,sku.ilike.%${q}%`)
+  query = applyInventoryFilters(query, { q, status, productId, includeBarcode: true })
 
   const { data, error, count } = await query
     .order('name', { ascending: true })
@@ -33,11 +35,18 @@ export async function listStaffInventory(searchParams: URLSearchParams) {
 
   if (error) {
     if (/target_stock|barcode/i.test(error.message)) {
-      const fallback = await supabaseAdmin
+      let fallbackQuery = supabaseAdmin
         .from('products')
         .select('id, name, sku, stock, low_stock_threshold, status, price, updated_at', {
           count: 'exact',
         })
+      fallbackQuery = applyInventoryFilters(fallbackQuery, {
+        q,
+        status,
+        productId,
+        includeBarcode: false,
+      })
+      const fallback = await fallbackQuery
         .order('name', { ascending: true })
         .range(offset, offset + limit - 1)
       if (fallback.error) return { error: 'Failed to load inventory', httpStatus: 500 as const }
@@ -63,6 +72,28 @@ export async function listStaffInventory(searchParams: URLSearchParams) {
       total: count ?? 0,
     }),
   }
+}
+
+function applyInventoryFilters<T extends { eq: Function; or: Function }>(
+  query: T,
+  input: {
+    q: string
+    status: string
+    productId: string | null
+    includeBarcode: boolean
+  }
+): T {
+  let next = query
+  if (input.productId) next = next.eq('id', input.productId) as T
+  if (input.status && input.status !== 'all') next = next.eq('status', input.status) as T
+  if (input.q) {
+    next = (
+      input.includeBarcode
+        ? next.or(`name.ilike.%${input.q}%,sku.ilike.%${input.q}%,barcode.ilike.%${input.q}%`)
+        : next.or(`name.ilike.%${input.q}%,sku.ilike.%${input.q}%`)
+    ) as T
+  }
+  return next
 }
 
 function mapInventoryRow(
@@ -200,12 +231,18 @@ export async function mutateStaffStock(input: {
     return { error: 'Invalid product id', httpStatus: 400 as const }
   }
   const reason = input.reason.trim()
-  if (!reason) return { error: 'Reason is required', httpStatus: 400 as const }
+  if (!reason) return { error: 'Enter a reason for this stock movement.', httpStatus: 400 as const }
   if (!Number.isFinite(input.quantityDelta) || input.quantityDelta === 0) {
-    return { error: 'Quantity change is required', httpStatus: 400 as const }
+    return {
+      error:
+        input.operation === 'receive'
+          ? 'Enter how many units to receive.'
+          : 'Enter a signed quantity change, for example 5 or -2.',
+      httpStatus: 400 as const,
+    }
   }
   if (input.operation === 'receive' && input.quantityDelta < 1) {
-    return { error: 'Receive quantity must be at least 1', httpStatus: 400 as const }
+    return { error: 'Receive quantity must be at least 1.', httpStatus: 400 as const }
   }
 
   const result = await adjustStockDelta({

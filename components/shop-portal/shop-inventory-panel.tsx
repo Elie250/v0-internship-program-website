@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useEffectEvent, useState, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +43,12 @@ type MovementRow = {
 
 type Tab = 'levels' | 'movements' | 'replenishment'
 
+type StockMutationResult = {
+  operation: 'adjust' | 'receive'
+  quantityDelta: number
+  quantityAfter: number
+}
+
 export function ShopInventoryPanel({
   canAdjust = false,
   canReceive = false,
@@ -54,6 +61,8 @@ export function ShopInventoryPanel({
   canPurchaseRequest?: boolean
 }) {
   const t = useShopT()
+  const searchParams = useSearchParams()
+  const focusId = searchParams.get('productId')?.trim() || ''
   const [tab, setTab] = useState<Tab>('levels')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
@@ -63,12 +72,17 @@ export function ShopInventoryPanel({
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [movementType, setMovementType] = useState('')
-  const [selectedId, setSelectedId] = useState('')
+  const [selectedId, setSelectedId] = useState(focusId)
+  const [focusedRow, setFocusedRow] = useState<InventoryRow | null>(null)
   const [qty, setQty] = useState('')
   const [reason, setReason] = useState('')
   const [actionBusy, setActionBusy] = useState(false)
   const [, startTransition] = useTransition()
+  const selected =
+    items.find((row) => row.productId === selectedId) ??
+    (focusedRow?.productId === selectedId ? focusedRow : null)
 
   const loadLevels = useEffectEvent(async (q: string, pg: number) => {
     setLoading(true)
@@ -130,6 +144,22 @@ export function ShopInventoryPanel({
     setLoading(false)
   })
 
+  const loadFocused = useEffectEvent(async (id: string) => {
+    const params = new URLSearchParams({ product_id: id, limit: '1', page: '1' })
+    const result = await fetchStaffApi<StaffListResponse<InventoryRow>>(
+      `/api/staff/inventory?${params.toString()}`
+    )
+    if (result.ok && result.data.items?.[0]) {
+      setFocusedRow(result.data.items[0])
+    }
+  })
+
+  useEffect(() => {
+    if (!focusId) return
+    setSelectedId(focusId)
+    void loadFocused(focusId)
+  }, [focusId])
+
   useEffect(() => {
     const handle = window.setTimeout(() => {
       startTransition(() => {
@@ -141,9 +171,63 @@ export function ShopInventoryPanel({
     return () => window.clearTimeout(handle)
   }, [tab, query, page, movementType])
 
+  async function runStock(kind: 'receive' | 'adjust') {
+    setError('')
+    setSuccess('')
+    if (!reason.trim()) {
+      setError(t('inventory.error.reason'))
+      return
+    }
+    const amount = Number(qty)
+    if (kind === 'receive' && (!Number.isFinite(amount) || amount < 1)) {
+      setError(t('inventory.error.qtyReceive'))
+      return
+    }
+    if (kind === 'adjust' && (!Number.isFinite(amount) || amount === 0)) {
+      setError(t('inventory.error.qtyAdjust'))
+      return
+    }
+    setActionBusy(true)
+    const result = await fetchStaffApi<StockMutationResult>(
+      kind === 'receive' ? '/api/staff/inventory/receive' : '/api/staff/inventory/adjust',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          kind === 'receive'
+            ? { productId: selectedId, quantity: amount, reason }
+            : { productId: selectedId, quantityDelta: amount, reason }
+        ),
+      }
+    )
+    setActionBusy(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
+    }
+    const delta = result.data.quantityDelta
+    const signed = `${delta > 0 ? '+' : ''}${delta}`
+    setSuccess(
+      t(kind === 'receive' ? 'inventory.success.receive' : 'inventory.success.adjust', {
+        delta: signed,
+        n: result.data.quantityAfter,
+      })
+    )
+    setQty('')
+    if (focusedRow?.productId === selectedId) {
+      setFocusedRow({ ...focusedRow, currentStock: result.data.quantityAfter })
+    }
+    if (tab === 'replenishment') void loadReplenishment(query, page)
+    else void loadLevels(query, page)
+  }
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">{t('inventory.readOnlyNote')}</p>
+      <div className="space-y-1 text-xs text-slate-600">
+        <p>{t('inventory.readOnlyNote')}</p>
+        {canReceive ? <p>{t('inventory.receiveExplain')}</p> : null}
+        {canAdjust ? <p>{t('inventory.adjustExplain')}</p> : null}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -209,112 +293,109 @@ export function ShopInventoryPanel({
               className="bg-white max-w-md"
             />
           </div>
-          {(canAdjust || canReceive || canPurchaseRequest) && selectedId ? (
+          {(canAdjust || canReceive || canPurchaseRequest) && selected ? (
             <form
-              className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3"
-              onSubmit={async (event) => {
-                event.preventDefault()
-              }}
+              className="space-y-3 rounded-lg border border-slate-200 bg-white p-3"
+              onSubmit={(event) => event.preventDefault()}
             >
               <div>
-                <Label htmlFor="inv-qty">{t('inventory.field.qty')}</Label>
-                <Input
-                  id="inv-qty"
-                  className="mt-1 w-24 bg-white"
-                  type="number"
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                />
+                <p className="font-medium text-slate-900">{selected.name}</p>
+                <p className="text-xs text-slate-500">
+                  {selected.sku || t('products.noSku')}
+                  {selected.barcode ? ` · ${selected.barcode}` : ''}
+                </p>
+                <p className="mt-1 text-sm tabular-nums text-slate-800">
+                  {t('inventory.col.onHand')}: {formatShopInteger(selected.currentStock)}
+                </p>
+                {selected.targetStock != null ? (
+                  <p className="text-xs text-slate-500">
+                    {t('products.field.targetStock')}: {formatShopInteger(selected.targetStock)}
+                    {` · ${t('inventory.col.threshold')}: ${formatShopInteger(selected.lowStockThreshold)}`}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    {t('inventory.col.threshold')}: {formatShopInteger(selected.lowStockThreshold)}
+                  </p>
+                )}
               </div>
-              <div className="min-w-[180px] flex-1">
-                <Label htmlFor="inv-reason">{t('inventory.field.reason')}</Label>
-                <Input
-                  id="inv-reason"
-                  className="mt-1 bg-white"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                />
+              <div className="flex flex-wrap items-end gap-2">
+                <div>
+                  <Label htmlFor="inv-qty">
+                    {canReceive && !canAdjust
+                      ? t('inventory.field.receiveQty')
+                      : canAdjust && !canReceive
+                        ? t('inventory.field.adjustQty')
+                        : t('inventory.field.qty')}
+                  </Label>
+                  <Input
+                    id="inv-qty"
+                    className="mt-1 w-28 bg-white"
+                    type="number"
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-[180px] flex-1">
+                  <Label htmlFor="inv-reason">{t('inventory.field.reason')}</Label>
+                  <Input
+                    id="inv-reason"
+                    className="mt-1 bg-white"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                  />
+                </div>
+                {canReceive ? (
+                  <Button
+                    type="button"
+                    disabled={actionBusy}
+                    onClick={() => void runStock('receive')}
+                  >
+                    {t('inventory.action.receive')}
+                  </Button>
+                ) : null}
+                {canAdjust ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={actionBusy}
+                    onClick={() => void runStock('adjust')}
+                  >
+                    {t('inventory.action.adjust')}
+                  </Button>
+                ) : null}
+                {canPurchaseRequest ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={actionBusy}
+                    onClick={async () => {
+                      setActionBusy(true)
+                      setError('')
+                      setSuccess('')
+                      const result = await fetchStaffApi('/api/staff/inventory/purchase-requests', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          productId: selectedId,
+                          quantity: Number(qty),
+                          notes: reason,
+                        }),
+                      })
+                      setActionBusy(false)
+                      if (!result.ok) {
+                        setError(result.error)
+                        return
+                      }
+                      if (tab === 'replenishment') void loadReplenishment(query, page)
+                    }}
+                  >
+                    {t('inventory.action.request')}
+                  </Button>
+                ) : null}
               </div>
-              {canAdjust ? (
-                <Button
-                  type="button"
-                  disabled={actionBusy}
-                  onClick={async () => {
-                    setActionBusy(true)
-                    const result = await fetchStaffApi('/api/staff/inventory/adjust', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        productId: selectedId,
-                        quantityDelta: Number(qty),
-                        reason,
-                      }),
-                    })
-                    setActionBusy(false)
-                    if (!result.ok) {
-                      setError(result.error)
-                      return
-                    }
-                    void loadLevels(query, page)
-                  }}
-                >
-                  {t('inventory.action.adjust')}
-                </Button>
-              ) : null}
-              {canReceive ? (
-                <Button
-                  type="button"
-                  disabled={actionBusy}
-                  onClick={async () => {
-                    setActionBusy(true)
-                    const result = await fetchStaffApi('/api/staff/inventory/receive', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        productId: selectedId,
-                        quantity: Number(qty),
-                        reason,
-                      }),
-                    })
-                    setActionBusy(false)
-                    if (!result.ok) {
-                      setError(result.error)
-                      return
-                    }
-                    void loadLevels(query, page)
-                  }}
-                >
-                  {t('inventory.action.receive')}
-                </Button>
-              ) : null}
-              {canPurchaseRequest ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={actionBusy}
-                  onClick={async () => {
-                    setActionBusy(true)
-                    const result = await fetchStaffApi('/api/staff/inventory/purchase-requests', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        productId: selectedId,
-                        quantity: Number(qty),
-                        notes: reason,
-                      }),
-                    })
-                    setActionBusy(false)
-                    if (!result.ok) {
-                      setError(result.error)
-                      return
-                    }
-                    if (tab === 'replenishment') void loadReplenishment(query, page)
-                  }}
-                >
-                  {t('inventory.action.request')}
-                </Button>
-              ) : null}
             </form>
+          ) : tab !== 'movements' && (canAdjust || canReceive) ? (
+            <p className="text-sm text-slate-600">{t('inventory.selectHint')}</p>
           ) : null}
         </div>
       ) : (
@@ -341,6 +422,11 @@ export function ShopInventoryPanel({
         </div>
       )}
 
+      {success ? (
+        <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2">
+          {success}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md px-3 py-2">
           {error}

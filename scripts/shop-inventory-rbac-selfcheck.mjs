@@ -201,6 +201,41 @@ test('additive inventory migration seeds the new shop:* keys', () => {
   assert.doesNotMatch(sql, /DELETE FROM products/)
 })
 
+test('staff product forms never write current stock', () => {
+  const mobile = read('apps/mobile/app/staff/products.tsx')
+  const portal = read('components/shop-portal/shop-products-panel.tsx')
+  const create = read('lib/shop/staff-api/products.ts')
+  assert.match(create, /stock: 0/)
+  assert.doesNotMatch(create, /input\.stock/)
+  assert.doesNotMatch(mobile, /stock:\s*form\.|label="Stock"|label="Current stock"/)
+  assert.doesNotMatch(portal, /stock:\s*Number\(|createStock/)
+  assert.match(mobile, /Receive stock/)
+  assert.match(portal, /products\.receiveStock/)
+})
+
+test('inventory search uses the API and includes barcode when available', () => {
+  const inv = read('lib/shop/staff-api/inventory.ts')
+  const mobile = read('apps/mobile/app/staff/inventory.tsx')
+  const portal = read('components/shop-portal/shop-inventory-panel.tsx')
+  assert.match(inv, /barcode\.ilike/)
+  assert.match(inv, /product_id/)
+  assert.match(inv, /applyInventoryFilters/)
+  assert.match(mobile, /useInfiniteQuery/)
+  assert.match(mobile, /debouncedQ/)
+  assert.match(mobile, /PAGE_SIZE/)
+  assert.match(mobile, /productId/)
+  assert.match(mobile, /Receive stock/)
+  assert.match(mobile, /Adjust stock/)
+  assert.match(portal, /inventory\.success\.receive/)
+  assert.doesNotMatch(mobile, /limit:\s*50/)
+})
+
+test('salesperson with receive still does not get adjust from alias expansion', () => {
+  const perms = [...expandShopPermissionAliases(salespersonHelping)]
+  assert.equal(hasPermission(perms, PERMISSIONS.SHOP_STOCK_RECEIVE), true)
+  assert.equal(hasPermission(perms, PERMISSIONS.SHOP_STOCK_ADJUST), false)
+})
+
 test('package.json exposes test:shop-inventory-rbac', () => {
   const pkg = JSON.parse(read('package.json'))
   assert.equal(pkg.scripts['test:shop-inventory-rbac'], 'node --test scripts/shop-inventory-rbac-selfcheck.mjs')

@@ -50,15 +50,25 @@ test('products panel uses product endpoints and selling-unit PATCH is manager-on
   assert.match(src, /isFeatured/)
   assert.match(src, /canSeeCost/)
   assert.match(src, /products\.field\.featured/)
-  assert.doesNotMatch(src, /method:\s*'POST'|method:\s*'DELETE'/)
+  assert.match(src, /method:\s*'POST'/)
+  assert.match(src, /lowStockThreshold/)
+  assert.match(src, /targetStock/)
+  assert.match(src, /products\.receiveStock/)
+  assert.doesNotMatch(src, /stock:\s*Number\(|currentStock|on hand count/)
   assert.doesNotMatch(src, /cost_price/)
 })
 
-test('inventory panel covers levels and movements', () => {
+test('inventory panel covers levels, movements, and stock mutations', () => {
   const src = readFileSync(join(root, 'components/shop-portal/shop-inventory-panel.tsx'), 'utf8')
+  const en = readFileSync(join(root, 'lib/shop/i18n/messages/en.ts'), 'utf8')
   assert.match(src, /\/api\/staff\/inventory/)
   assert.match(src, /\/api\/staff\/inventory\/movements/)
-  assert.doesNotMatch(src, /method:\s*'(POST|PATCH|PUT|DELETE)'/)
+  assert.match(src, /\/api\/staff\/inventory\/receive/)
+  assert.match(src, /\/api\/staff\/inventory\/adjust/)
+  assert.match(src, /productId/)
+  assert.match(src, /inventory\.receiveExplain/)
+  assert.doesNotMatch(en, /Adjustments and transfers are not available yet/)
+  assert.doesNotMatch(src, /transfers are not available yet/i)
 })
 
 test('sales panel uses orders list and detail', () => {

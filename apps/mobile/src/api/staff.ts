@@ -9,6 +9,7 @@ import type {
   StaffOrderSummary,
   StaffProduct,
   StaffRefund,
+  StaffStockMutation,
   StaffUser,
 } from '@/src/api/types'
 
@@ -92,6 +93,12 @@ export async function createStaffProduct(input: {
   price?: number
   costPrice?: number
   images?: string[]
+  status?: string
+  sellingQuantity?: number
+  sellingUnit?: string
+  isFeatured?: boolean
+  lowStockThreshold?: number | null
+  targetStock?: number | null
 }) {
   return staffRequest<{ item: StaffProduct }>('/api/staff/products', {
     method: 'POST',
@@ -125,7 +132,7 @@ export async function adjustStaffStock(input: {
   quantityDelta: number
   reason: string
 }) {
-  return staffRequest('/api/staff/inventory/adjust', {
+  return staffRequest<StaffStockMutation>('/api/staff/inventory/adjust', {
     method: 'POST',
     body: JSON.stringify(input),
   })
@@ -136,7 +143,7 @@ export async function receiveStaffStock(input: {
   quantity: number
   reason: string
 }) {
-  return staffRequest('/api/staff/inventory/receive', {
+  return staffRequest<StaffStockMutation>('/api/staff/inventory/receive', {
     method: 'POST',
     body: JSON.stringify(input),
   })

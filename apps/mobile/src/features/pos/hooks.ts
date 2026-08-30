@@ -11,6 +11,7 @@ export type ProductLookupInput = {
   q?: string
   barcode?: string
   categoryId?: string
+  status?: string
 }
 
 export function useProductLookup(input: ProductLookupInput, enabled: boolean) {
@@ -21,6 +22,7 @@ export function useProductLookup(input: ProductLookupInput, enabled: boolean) {
         q: input.q,
         barcode: input.barcode,
         category_id: input.categoryId,
+        status: input.status,
         limit: 40,
         page: 1,
       }),

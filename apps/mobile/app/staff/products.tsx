@@ -6,7 +6,13 @@ import { useBackToMore } from '@/src/navigation/use-back-to-more'
 import { useProductLookup } from '@/src/features/pos/hooks'
 import { useProductDraft } from '@/src/features/products/product-draft-store'
 import { useSessionStore } from '@/src/auth/session-store'
-import { canManageProducts, canViewProductCost, canEditSellingPrice } from '@/src/permissions'
+import {
+  canManageProducts,
+  canViewProductCost,
+  canEditSellingPrice,
+  canReceiveStock,
+} from '@/src/permissions'
+import { SELLING_UNITS } from '@/src/features/products/selling-units'
 import {
   createStaffProduct,
   fetchShopCategories,
@@ -45,6 +51,12 @@ function emptyForm() {
     price: '',
     cost: '',
     imageUrl: '',
+    status: 'published',
+    sellingQuantity: '1',
+    sellingUnit: 'PCS',
+    featured: false,
+    lowStock: '5',
+    target: '',
   }
 }
 
@@ -57,6 +69,8 @@ function ProductsBody() {
   const showCost = canViewProductCost(user?.permissions)
   const canManage = canManageProducts(user?.permissions)
   const canPrice = canEditSellingPrice(user?.permissions)
+  const canReceive = canReceiveStock(user?.permissions)
+  const [created, setCreated] = useState<{ id: string; name: string } | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
@@ -68,7 +82,10 @@ function ProductsBody() {
   const pendingPhotoUri = useProductDraft((s) => s.pendingPhotoUri)
   const consumeBarcode = useProductDraft((s) => s.consumeBarcode)
   const consumePhotoUri = useProductDraft((s) => s.consumePhotoUri)
-  const query = useProductLookup({ q: submitted || undefined }, true)
+  const query = useProductLookup(
+    { q: submitted || undefined, status: canManage ? 'all' : undefined },
+    true
+  )
 
   useEffect(() => {
     void fetchShopCategories()
@@ -120,6 +137,15 @@ function ProductsBody() {
       price: product.price != null ? String(product.price) : '',
       cost: product.costPrice != null ? String(product.costPrice) : '',
       imageUrl: firstImage(product.images),
+      status:
+        product.status === 'draft' || product.status === 'archived'
+          ? product.status
+          : 'published',
+      sellingQuantity: String(product.sellingQuantity ?? 1),
+      sellingUnit: product.sellingUnit || 'PCS',
+      featured: Boolean(product.isFeatured),
+      lowStock: product.lowStockThreshold != null ? String(product.lowStockThreshold) : '5',
+      target: product.targetStock != null ? String(product.targetStock) : '',
     })
     setEditorOpen(true)
     setMessage('')
@@ -138,13 +164,24 @@ function ProductsBody() {
         price: form.price ? Number(form.price) : undefined,
         costPrice: form.cost ? Number(form.cost) : undefined,
         images: form.imageUrl ? [form.imageUrl] : [],
+        status: form.status === 'archived' ? undefined : form.status === 'draft' ? 'draft' : 'published',
+        sellingQuantity: Number(form.sellingQuantity) || 1,
+        sellingUnit: form.sellingUnit,
+        isFeatured: form.featured,
+        lowStockThreshold: form.lowStock ? Number(form.lowStock) : 5,
+        targetStock: form.target ? Number(form.target) : null,
       }
-      if (editingId) await updateStaffProduct(editingId, payload)
-      else await createStaffProduct(payload)
+      if (editingId) {
+        await updateStaffProduct(editingId, payload)
+        setMessage('Product updated.')
+      } else {
+        const createdItem = await createStaffProduct(payload)
+        setCreated({ id: createdItem.item.id, name: createdItem.item.name })
+        setMessage('')
+      }
       setEditorOpen(false)
       setEditingId(null)
       setForm(emptyForm())
-      setMessage(editingId ? 'Product updated.' : 'Product created. Stock starts at 0 — receive stock in Inventory.')
       void query.refetch()
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Save failed')
@@ -220,6 +257,79 @@ function ProductsBody() {
             multiline
             style={styles.multiline}
           />
+          <Text style={styles.label}>Status</Text>
+          {form.status === 'archived' ? (
+            <View style={styles.chips}>
+              <Text style={type.helper}>Archived. Restore as published to sell it again.</Text>
+              <PrimaryButton
+                label="Restore as published"
+                variant="secondary"
+                onPress={() => setForm((c) => ({ ...c, status: 'published' }))}
+              />
+            </View>
+          ) : (
+            <View style={styles.chips}>
+              {(['published', 'draft'] as const).map((status) => {
+                const on = form.status === status
+                return (
+                  <Pressable
+                    key={status}
+                    onPress={() => setForm((c) => ({ ...c, status }))}
+                    style={[styles.chip, on && styles.chipOn]}
+                  >
+                    <Text style={[styles.chipLabel, on && styles.chipLabelOn]}>
+                      {status === 'published' ? 'Published' : 'Draft'}
+                    </Text>
+                  </Pressable>
+                )
+              })}
+            </View>
+          )}
+          <Input
+            label="Selling quantity"
+            value={form.sellingQuantity}
+            onChangeText={(sellingQuantity) => setForm((c) => ({ ...c, sellingQuantity }))}
+            keyboardType="decimal-pad"
+          />
+          <Text style={styles.label}>Selling unit</Text>
+          <View style={styles.chips}>
+            {SELLING_UNITS.map((unit) => {
+              const on = form.sellingUnit === unit
+              return (
+                <Pressable
+                  key={unit}
+                  onPress={() => setForm((c) => ({ ...c, sellingUnit: unit }))}
+                  style={[styles.chip, on && styles.chipOn]}
+                >
+                  <Text style={[styles.chipLabel, on && styles.chipLabelOn]}>{unit}</Text>
+                </Pressable>
+              )
+            })}
+          </View>
+          <Pressable
+            onPress={() => setForm((c) => ({ ...c, featured: !c.featured }))}
+            style={[styles.chip, form.featured && styles.chipOn]}
+          >
+            <Text style={[styles.chipLabel, form.featured && styles.chipLabelOn]}>
+              Featured on storefront
+            </Text>
+          </Pressable>
+          <Input
+            label="Low-stock threshold"
+            value={form.lowStock}
+            onChangeText={(lowStock) => setForm((c) => ({ ...c, lowStock }))}
+            keyboardType="number-pad"
+          />
+          <Text style={type.helper}>
+            A product is considered low stock when current stock is at or below this value.
+          </Text>
+          <Input
+            label="Target stock"
+            value={form.target}
+            onChangeText={(target) => setForm((c) => ({ ...c, target }))}
+            keyboardType="number-pad"
+          />
+          <Text style={type.helper}>Used to calculate the suggested replenishment quantity.</Text>
           {form.imageUrl ? (
             <Image source={{ uri: form.imageUrl }} style={styles.preview} contentFit="cover" />
           ) : null}
@@ -233,6 +343,25 @@ function ProductsBody() {
             label={busy ? 'Saving…' : editingId ? 'Save changes' : 'Create product'}
             disabled={busy || uploading}
             onPress={() => void save()}
+          />
+        </View>
+      ) : null}
+      {created ? (
+        <View style={styles.create}>
+          <Text style={type.bodyMedium}>Product created successfully.</Text>
+          <Text style={type.helper}>Stock is 0. Receive stock next so the movement is recorded.</Text>
+          {canReceive ? (
+            <PrimaryButton
+              label="Receive stock"
+              onPress={() =>
+                router.replace(`/staff/inventory?productId=${created.id}` as never)
+              }
+            />
+          ) : null}
+          <PrimaryButton
+            label="Done"
+            variant="secondary"
+            onPress={() => setCreated(null)}
           />
         </View>
       ) : null}

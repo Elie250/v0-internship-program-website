@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
@@ -30,12 +31,14 @@ export default async function ShopInventoryPage() {
         titleKey="inventory.title"
         descriptionKey="inventory.description"
       />
-      <ShopInventoryPanel
-        canAdjust={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_ADJUST)}
-        canReceive={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_RECEIVE)}
-        canReplenish={hasPermission(session.user.permissions, PERMISSIONS.SHOP_REPLENISHMENT_VIEW)}
-        canPurchaseRequest={hasPermission(session.user.permissions, PERMISSIONS.SHOP_PURCHASE_REQUEST)}
-      />
+      <Suspense fallback={null}>
+        <ShopInventoryPanel
+          canAdjust={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_ADJUST)}
+          canReceive={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_RECEIVE)}
+          canReplenish={hasPermission(session.user.permissions, PERMISSIONS.SHOP_REPLENISHMENT_VIEW)}
+          canPurchaseRequest={hasPermission(session.user.permissions, PERMISSIONS.SHOP_PURCHASE_REQUEST)}
+        />
+      </Suspense>
     </div>
   )
 }

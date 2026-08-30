@@ -925,3 +925,23 @@ test('Phase 1E.5-L professional retail POS UX keeps till hierarchy without comme
   assert.doesNotMatch(uiSources, /[←→★☆⚠🔍🛒➕➖✅❌]/)
 })
 
+test('mobile inventory searches via the API and paginates past the first page', () => {
+  const inventory = read('app/staff/inventory.tsx')
+  const products = read('app/staff/products.tsx')
+  assert.match(inventory, /useInfiniteQuery/)
+  assert.match(inventory, /debouncedQ/)
+  assert.match(inventory, /Search product or SKU/)
+  assert.match(inventory, /fetchNextPage/)
+  assert.match(inventory, /productId/)
+  assert.match(inventory, /Receive stock/)
+  assert.match(inventory, /Adjust stock/)
+  assert.match(inventory, /signed change/)
+  assert.doesNotMatch(inventory, /limit:\s*50/)
+  assert.match(products, /Receive stock/)
+  assert.match(products, /\/staff\/inventory\?productId=/)
+  assert.match(products, /Featured on storefront/)
+  assert.match(products, /Low-stock threshold/)
+  assert.match(products, /Target stock/)
+  assert.doesNotMatch(products, /label="Stock"|label="Current stock"|label="On hand"/)
+})
+

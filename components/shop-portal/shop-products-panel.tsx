@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useEffectEvent, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -35,6 +36,7 @@ type ProductRow = {
   sellingUnit: string
   sellingUnitLabel: string
   isFeatured?: boolean
+  targetStock?: number | null
 }
 
 type ProductDetail = ProductRow & {
@@ -64,6 +66,7 @@ export function ShopProductsPanel({
   canEditCost?: boolean
 }) {
   const t = useShopT()
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('published')
   const [page, setPage] = useState(1)
@@ -92,11 +95,21 @@ export function ShopProductsPanel({
   const [createCategoryId, setCreateCategoryId] = useState('')
   const [createDescription, setCreateDescription] = useState('')
   const [createImage, setCreateImage] = useState('')
+  const [createStatus, setCreateStatus] = useState('published')
+  const [createSellingQty, setCreateSellingQty] = useState('1')
+  const [createSellingUnit, setCreateSellingUnit] = useState('PCS')
+  const [createFeatured, setCreateFeatured] = useState(false)
+  const [createLowStock, setCreateLowStock] = useState('5')
+  const [createTarget, setCreateTarget] = useState('')
+  const [createdProduct, setCreatedProduct] = useState<{ id: string; name: string } | null>(null)
   const [skuDraft, setSkuDraft] = useState('')
   const [barcodeDraft, setBarcodeDraft] = useState('')
   const [categoryDraft, setCategoryDraft] = useState('')
   const [descriptionDraft, setDescriptionDraft] = useState('')
   const [imageDraft, setImageDraft] = useState('')
+  const [statusDraft, setStatusDraft] = useState('published')
+  const [lowStockDraft, setLowStockDraft] = useState('5')
+  const [targetDraft, setTargetDraft] = useState('')
   const [categories, setCategories] = useState<ShopCategory[]>([])
   const [, startTransition] = useTransition()
 
@@ -149,6 +162,17 @@ export function ShopProductsPanel({
     setCategoryDraft(result.data.item.categoryId ?? result.data.item.category?.id ?? '')
     setDescriptionDraft(result.data.item.description ?? '')
     setImageDraft(firstImageUrl(result.data.item.images))
+    setStatusDraft(
+      result.data.item.status === 'draft' || result.data.item.status === 'published'
+        ? result.data.item.status
+        : result.data.item.status === 'archived'
+          ? 'archived'
+          : 'published'
+    )
+    setLowStockDraft(
+      result.data.item.lowStockThreshold != null ? String(result.data.item.lowStockThreshold) : '5'
+    )
+    setTargetDraft(result.data.item.targetStock != null ? String(result.data.item.targetStock) : '')
     setSellingMessage('')
   })
 
@@ -196,6 +220,12 @@ export function ShopProductsPanel({
           className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault()
+            const qty = parseSellingQuantity(createSellingQty)
+            const unit = parseSellingUnit(createSellingUnit)
+            if (!qty.ok || !unit.ok) {
+              setError(t('products.sellingInvalid'))
+              return
+            }
             const result = await fetchStaffApi<{ item: ProductRow }>('/api/staff/products', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -208,12 +238,19 @@ export function ShopProductsPanel({
                 price: createPrice ? Number(createPrice) : undefined,
                 costPrice: createCost ? Number(createCost) : undefined,
                 images: createImage ? [createImage] : [],
+                status: createStatus === 'draft' ? 'draft' : 'published',
+                sellingQuantity: qty.value,
+                sellingUnit: unit.value,
+                isFeatured: createFeatured,
+                lowStockThreshold: createLowStock ? Number(createLowStock) : 5,
+                targetStock: createTarget ? Number(createTarget) : undefined,
               }),
             })
             if (!result.ok) {
               setError(result.error)
               return
             }
+            setCreatedProduct({ id: result.data.item.id, name: result.data.item.name })
             setCreateOpen(false)
             setCreateName('')
             setCreatePrice('')
@@ -223,6 +260,12 @@ export function ShopProductsPanel({
             setCreateCategoryId('')
             setCreateDescription('')
             setCreateImage('')
+            setCreateStatus('published')
+            setCreateSellingQty('1')
+            setCreateSellingUnit('PCS')
+            setCreateFeatured(false)
+            setCreateLowStock('5')
+            setCreateTarget('')
             void loadList(query, status, 1)
           }}
         >
@@ -316,11 +359,111 @@ export function ShopProductsPanel({
               uploadPath="/api/staff/upload"
             />
           </div>
+          <div>
+            <Label htmlFor="create-product-status">{t('products.field.status')}</Label>
+            <select
+              id="create-product-status"
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              value={createStatus}
+              onChange={(e) => setCreateStatus(e.target.value)}
+            >
+              <option value="published">{t('common.published')}</option>
+              <option value="draft">{t('common.draft')}</option>
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="create-selling-qty">{t('products.field.sellingQuantity')}</Label>
+            <Input
+              id="create-selling-qty"
+              className="mt-1 bg-white"
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={createSellingQty}
+              onChange={(e) => setCreateSellingQty(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="create-selling-unit">{t('products.field.sellingUnit')}</Label>
+            <select
+              id="create-selling-unit"
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              value={createSellingUnit}
+              onChange={(e) => setCreateSellingUnit(e.target.value)}
+            >
+              {SELLING_UNITS.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="create-low-stock">{t('products.field.lowStockThreshold')}</Label>
+            <Input
+              id="create-low-stock"
+              className="mt-1 bg-white"
+              type="number"
+              min="0"
+              value={createLowStock}
+              onChange={(e) => setCreateLowStock(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">{t('products.lowStockHint')}</p>
+          </div>
+          <div>
+            <Label htmlFor="create-target">{t('products.field.targetStock')}</Label>
+            <Input
+              id="create-target"
+              className="mt-1 bg-white"
+              type="number"
+              min="0"
+              value={createTarget}
+              onChange={(e) => setCreateTarget(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">{t('products.targetStockHint')}</p>
+          </div>
+          <label
+            htmlFor="create-featured"
+            className="sm:col-span-2 flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+          >
+            <input
+              id="create-featured"
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-[var(--brand-navy,#1e3a5f)]"
+              checked={createFeatured}
+              onChange={(e) => setCreateFeatured(e.target.checked)}
+            />
+            <span>
+              <span className="font-medium text-slate-900">{t('products.field.featured')}</span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                {t('products.featuredHint')}
+              </span>
+            </span>
+          </label>
           <p className="sm:col-span-2 text-xs text-slate-500">{t('products.stockCreateHint')}</p>
           <div>
             <Button type="submit">{t('products.create')}</Button>
           </div>
         </form>
+      ) : null}
+
+      {createdProduct ? (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 space-y-2">
+          <p className="text-sm font-medium text-emerald-900">{t('products.createdTitle')}</p>
+          <p className="text-xs text-emerald-800">{t('products.createdBody')}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => router.push(`/inventory?productId=${createdProduct.id}`)}
+            >
+              {t('products.receiveStock')}
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setCreatedProduct(null)}>
+              {t('products.done')}
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-3">
@@ -530,6 +673,11 @@ export function ShopProductsPanel({
                       payload.categoryId = categoryDraft || null
                       payload.description = descriptionDraft
                       payload.images = imageDraft ? [imageDraft] : []
+                      if (statusDraft === 'draft' || statusDraft === 'published') {
+                        payload.status = statusDraft
+                      }
+                      payload.lowStockThreshold = lowStockDraft ? Number(lowStockDraft) : 5
+                      payload.targetStock = targetDraft === '' ? null : Number(targetDraft)
                     }
                     if (canEditSelling && priceDraft !== '') payload.price = Number(priceDraft)
                     if (canEditCost && costDraft !== '') payload.costPrice = Number(costDraft)
@@ -672,6 +820,46 @@ export function ShopProductsPanel({
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <Label htmlFor="shop-product-status">{t('products.field.status')}</Label>
+                        <select
+                          id="shop-product-status"
+                          className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                          value={statusDraft === 'archived' ? 'archived' : statusDraft}
+                          onChange={(e) => setStatusDraft(e.target.value)}
+                          disabled={statusDraft === 'archived'}
+                        >
+                          <option value="published">{t('common.published')}</option>
+                          <option value="draft">{t('common.draft')}</option>
+                          {statusDraft === 'archived' ? (
+                            <option value="archived">{t('common.archived')}</option>
+                          ) : null}
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-low-stock">{t('products.field.lowStockThreshold')}</Label>
+                        <Input
+                          id="shop-low-stock"
+                          className="mt-1 bg-white"
+                          type="number"
+                          min="0"
+                          value={lowStockDraft}
+                          onChange={(e) => setLowStockDraft(e.target.value)}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">{t('products.lowStockHint')}</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-target">{t('products.field.targetStock')}</Label>
+                        <Input
+                          id="shop-target"
+                          className="mt-1 bg-white"
+                          type="number"
+                          min="0"
+                          value={targetDraft}
+                          onChange={(e) => setTargetDraft(e.target.value)}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">{t('products.targetStockHint')}</p>
+                      </div>
                       <label
                         htmlFor="shop-featured"
                         className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
@@ -706,6 +894,36 @@ export function ShopProductsPanel({
                     >
                       {sellingSaving ? t('action.saving') : t('action.saveChanges')}
                     </Button>
+                    {canManage && detail.status === 'archived' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={sellingSaving}
+                        onClick={async () => {
+                          setSellingSaving(true)
+                          const result = await fetchStaffApi<{ item: ProductDetail }>(
+                            `/api/staff/products/${detail.id}`,
+                            {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'published' }),
+                            }
+                          )
+                          setSellingSaving(false)
+                          if (!result.ok) {
+                            setSellingMessage(result.error)
+                            return
+                          }
+                          setDetail(result.data.item)
+                          setStatusDraft('published')
+                          setSellingMessage(t('products.unarchive'))
+                          void loadList(query, status, page)
+                        }}
+                      >
+                        {t('products.unarchive')}
+                      </Button>
+                    ) : null}
                     {canManage && detail.status !== 'archived' ? (
                       <Button
                         type="button"

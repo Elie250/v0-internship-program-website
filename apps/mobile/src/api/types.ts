@@ -118,6 +118,8 @@ export type StaffProduct = {
   category?: { id: string; name: string; slug: string | null; type: string | null } | null
   images?: unknown
   lowStockThreshold?: number | null
+  targetStock?: number | null
+  isFeatured?: boolean
 }
 
 export type ShopCategory = {
@@ -131,6 +133,7 @@ export type StaffInventoryRow = {
   productId: string
   name: string
   sku: string | null
+  barcode?: string | null
   currentStock: number
   lowStockThreshold: number
   isLowStock: boolean
@@ -139,6 +142,15 @@ export type StaffInventoryRow = {
   targetStock?: number | null
   onOrder?: number
   suggestedPurchase?: number
+}
+
+export type StaffStockMutation = {
+  productId: string
+  operation: 'adjust' | 'receive'
+  quantityDelta: number
+  quantityBefore: number | null
+  quantityAfter: number
+  reason: string
 }
 
 export type PosSaleResult = {
