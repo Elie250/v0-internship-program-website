@@ -1,6 +1,6 @@
 'use client'
 
-import { getPermissionsForRole } from '@/lib/admin/permissions'
+import { getPermissionsForRole, type Permission } from '@/lib/admin/permissions'
 import {
   SHOP_STAFF_PERMISSION_LABELS,
   SHOP_STAFF_PERMISSION_MATRIX,
@@ -22,7 +22,7 @@ export function ShopStaffPermissionMatrix({
   const defaults = new Set(getPermissionsForRole(role))
   const extraSet = new Set(extras)
 
-  function toggle(key: string, checked: boolean) {
+  function toggle(key: Permission, checked: boolean) {
     if (defaults.has(key)) return
     const next = new Set(extraSet)
     if (checked) next.add(key)

@@ -468,7 +468,7 @@ export async function updateStaffProduct(
   if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
 
   const existing = await getStaffProductById(id, { includeCost: true })
-  if (!('body' in existing)) return existing
+  if (!('body' in existing) || !existing.body) return existing
   const current = existing.body.item
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }

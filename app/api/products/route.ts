@@ -27,9 +27,9 @@ export async function GET(request: Request) {
     const publicSelect =
       'id, name, description, category_id, sku, price, discount, stock, low_stock_threshold, selling_quantity, selling_unit, is_featured, images, image_url, specifications, status, category:categories(id, name, slug, type)'
     const adminSelect = '*, category:categories(*)'
-    let query = supabaseAdmin
-      .from('products')
-      .select(status === 'all' ? adminSelect : publicSelect)
+    // Dynamic select strings are not in the generated schema parser.
+    const select = (status === 'all' ? adminSelect : publicSelect) as '*'
+    let query = supabaseAdmin.from('products').select(select)
     if (status === 'all') {
       // no status filter
     } else if (status) {
@@ -41,14 +41,17 @@ export async function GET(request: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    let products = data ?? []
+    type ProductListItem = Record<string, unknown> & {
+      category?: { type?: string | null } | null
+    }
+    let products = (data ?? []) as ProductListItem[]
     if (type) {
       products = products.filter((p) => p.category?.type === type)
     }
     if (status !== 'all') {
       products = products.map((row) => {
-        const { cost_price: _cost, ...safe } = row as Record<string, unknown>
-        return safe
+        const { cost_price: _cost, ...safe } = row
+        return safe as ProductListItem
       })
     }
 
