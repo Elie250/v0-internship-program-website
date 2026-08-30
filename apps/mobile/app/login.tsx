@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { z } from 'zod'
 import { ApiError } from '@/src/api/client'
 import { useSessionStore } from '@/src/auth/session-store'
+import { leaveStaffForShop } from '@/src/navigation/leave-staff-for-shop'
 import { BackLink } from '@/src/ui/BackLink'
 import { PrimaryButton } from '@/src/ui/Button'
 import { Input } from '@/src/ui/Input'
@@ -25,18 +26,27 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets()
   const token = useSessionStore((s) => s.token)
   const user = useSessionStore((s) => s.user)
+  const locked = useSessionStore((s) => s.locked)
+  const lastEmail = useSessionStore((s) => s.lastEmail)
   const hydrated = useSessionStore((s) => s.hydrated)
   const signIn = useSessionStore((s) => s.signIn)
+  const switchUser = useSessionStore((s) => s.switchUser)
+  const unlockEmail = (user?.email || lastEmail || '').trim()
+  const needsUnlock = Boolean(hydrated && token && locked)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: unlockEmail, password: '' },
   })
 
   useEffect(() => {
-    if (hydrated && token && user) router.replace('/staff')
-  }, [hydrated, token, user, router])
+    if (unlockEmail) form.setValue('email', unlockEmail)
+  }, [unlockEmail, form])
 
-  if (hydrated && token && user) return <Redirect href="/staff" />
+  useEffect(() => {
+    if (hydrated && token && user && !locked) router.replace('/staff')
+  }, [hydrated, token, user, locked, router])
+
+  if (hydrated && token && user && !locked) return <Redirect href="/staff" />
 
   return (
     <KeyboardAvoidingView
@@ -47,7 +57,7 @@ export default function LoginScreen() {
         <BackLink
           label="Shop"
           accessibilityLabel="Back to shop"
-          onPress={() => router.replace('/customer' as never)}
+          onPress={() => leaveStaffForShop(router)}
         />
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
@@ -68,8 +78,12 @@ export default function LoginScreen() {
               <Text style={styles.slogan}>Engineering Sustainable Solutions</Text>
             </View>
           </View>
-          <Text style={type.appTitle}>Staff POS</Text>
-          <Text style={type.helper}>Sign in with your shop staff account.</Text>
+          <Text style={type.appTitle}>{needsUnlock ? 'Unlock staff' : 'Staff POS'}</Text>
+          <Text style={type.helper}>
+            {needsUnlock
+              ? 'This device is locked. Enter the staff password to continue, or switch user.'
+              : 'Sign in with your shop staff account.'}
+          </Text>
         </View>
 
         <View style={styles.form}>
@@ -83,6 +97,7 @@ export default function LoginScreen() {
                 autoCorrect={false}
                 autoComplete="email"
                 keyboardType="email-address"
+                editable={!needsUnlock}
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -116,7 +131,7 @@ export default function LoginScreen() {
           ) : null}
 
           <PrimaryButton
-            label="Sign in"
+            label={needsUnlock ? 'Unlock' : 'Sign in'}
             loading={form.formState.isSubmitting}
             onPress={form.handleSubmit(async (values) => {
               try {
@@ -131,6 +146,15 @@ export default function LoginScreen() {
               }
             })}
           />
+          {needsUnlock ? (
+            <PrimaryButton
+              label="Switch staff user"
+              onPress={async () => {
+                await switchUser()
+                form.reset({ email: '', password: '' })
+              }}
+            />
+          ) : null}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

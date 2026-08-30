@@ -40,8 +40,10 @@ export async function POST(request: Request) {
     const result = await createStaffProduct(
       {
         name: String(body.name ?? ''),
+        description: body.description != null ? String(body.description) : null,
         sku: body.sku != null ? String(body.sku) : null,
         barcode: body.barcode != null ? String(body.barcode) : null,
+        images: body.images,
         categoryId: body.categoryId != null ? String(body.categoryId) : body.category_id != null ? String(body.category_id) : null,
         price: body.price != null ? Number(body.price) : undefined,
         costPrice: body.costPrice != null ? Number(body.costPrice) : body.cost_price != null ? Number(body.cost_price) : undefined,

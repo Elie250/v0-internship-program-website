@@ -25,19 +25,6 @@ export default function CustomerAccount() {
       <ShopHeader title={t('account.title')} showSearch={false} />
       <Text style={styles.hint}>{t('account.guestHint')}</Text>
       <Pressable
-        onPress={() => router.push('/customer/track' as never)}
-        accessibilityRole="button"
-        accessibilityLabel={t('account.signIn')}
-        style={styles.row}
-      >
-        <Ionicons name="person-outline" size={20} color={shopColor.text} />
-        <View style={styles.rowCopy}>
-          <Text style={styles.rowTitle}>{t('account.signIn')}</Text>
-          <Text style={styles.rowMeta}>{t('account.signInHint')}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={shopColor.muted} />
-      </Pressable>
-      <Pressable
         onPress={() => router.push('/customer/language' as never)}
         accessibilityRole="button"
         accessibilityLabel={t('account.language')}
@@ -57,11 +44,14 @@ export default function CustomerAccount() {
         style={styles.row}
       >
         <Ionicons name="receipt-outline" size={20} color={shopColor.text} />
-        <Text style={[styles.rowTitle, styles.grow]}>{t('account.track')}</Text>
+        <View style={styles.rowCopy}>
+          <Text style={styles.rowTitle}>{t('account.track')}</Text>
+          <Text style={styles.rowMeta}>{t('account.signInHint')}</Text>
+        </View>
         <Ionicons name="chevron-forward" size={18} color={shopColor.muted} />
       </Pressable>
       <Pressable
-        onPress={() => router.push('/login')}
+        onPress={() => router.replace('/login')}
         accessibilityRole="button"
         accessibilityLabel={t('nav.staff')}
         style={styles.row}

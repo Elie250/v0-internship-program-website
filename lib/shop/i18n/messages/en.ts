@@ -227,9 +227,14 @@ export const shopMessagesEn = {
   'products.readOnlyNote':
     'Product information from the shop system. Editing is not available yet.',
   'products.manageNote':
-    'Create, edit, and archive products. Price fields require the matching price permission.',
+    'Create, edit, and archive products like the admin catalog. Inventory managers have this by default; other staff need the admin grant “Create / edit / archive products”. Price fields still require cost or selling-price permission. New stock starts at 0 — receive stock after create.',
   'products.create': 'Create product',
+  'products.edit': 'Edit product',
   'products.field.name': 'Name',
+  'products.field.description': 'Description',
+  'products.field.image': 'Photo',
+  'products.barcodeHint': 'Letters and numbers only. Scan or type. Leave blank if there is none.',
+  'products.stockCreateHint': 'Stock starts at 0. Receive units from Inventory after you create the product.',
   'products.archive': 'Archive',
   'products.archived': 'Product archived.',
   'products.searchLabel': 'Search products',

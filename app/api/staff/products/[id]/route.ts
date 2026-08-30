@@ -74,8 +74,10 @@ export async function PATCH(
       id,
       {
         name: body.name !== undefined ? String(body.name) : undefined,
+        description: body.description !== undefined ? String(body.description) : undefined,
         sku: body.sku !== undefined ? String(body.sku) : undefined,
         barcode: body.barcode !== undefined ? String(body.barcode) : undefined,
+        images: body.images,
         categoryId:
           body.categoryId !== undefined
             ? String(body.categoryId)

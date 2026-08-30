@@ -103,6 +103,7 @@ export type StaffOrderDetail = StaffOrderSummary & {
 export type StaffProduct = {
   id: string
   name: string
+  description?: string | null
   sku: string | null
   barcode: string | null
   price: number
@@ -117,6 +118,13 @@ export type StaffProduct = {
   category?: { id: string; name: string; slug: string | null; type: string | null } | null
   images?: unknown
   lowStockThreshold?: number | null
+}
+
+export type ShopCategory = {
+  id: string
+  name: string
+  slug?: string
+  type?: string
 }
 
 export type StaffInventoryRow = {

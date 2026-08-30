@@ -1,6 +1,7 @@
 import { Tabs, useSegments } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useCustomerShopBoundary } from '@/src/navigation/use-customer-shop-boundary'
 import { useShopText } from '@/src/i18n/locale-store'
 import { shopCartItemCount, useShopCart } from '@/src/features/shop/cart-store'
 import { makeShopTabButton } from '@/src/features/shop/ShopTabButton'
@@ -8,6 +9,7 @@ import { shopColor } from '@/src/features/shop/shop-theme'
 import { font, type } from '@/src/theme'
 
 export default function CustomerLayout() {
+  useCustomerShopBoundary()
   const insets = useSafeAreaInsets()
   const t = useShopText()
   const cartCount = useShopCart((s) => shopCartItemCount(s.lines))

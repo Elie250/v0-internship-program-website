@@ -336,8 +336,8 @@ test('staff mode lives under /staff so / can become customer home later', () => 
   assert.match(login, /zodResolver/)
   assert.doesNotMatch(settings, /href=.*\/admin|canAccessAdmin/)
   assert.match(settings, /web-only/)
-  assert.match(settings, /\/customer/)
-  assert.doesNotMatch(settings, /router\.replace\('\/login'\)/)
+  assert.match(settings, /leaveStaffForShop/)
+  assert.match(settings, /Lock \/ Switch user/)
 })
 
 test('device control is stubbed and not implemented', () => {
@@ -413,6 +413,7 @@ test('401 expiry clears SecureStore and sensitive query cache; login 401 does no
   assert.match(client, /timeoutMs/)
   assert.match(client, /notifyUnauthorized/)
   assert.match(session, /restoreError/)
+  assert.match(session, /if \(get\(\)\.locked\)/)
 })
 
 test('POS reuses one idempotency key per checkout attempt', () => {
@@ -524,6 +525,7 @@ test('bottom tabs expose TalkBack labels without growing the bar', () => {
   assert.match(tabButton, /minHeight: 48/)
   assert.match(tabButton, /aria-selected/)
   assert.doesNotMatch(layout, /height: 80|height: 88|height: 96/)
+  assert.doesNotMatch(layout, /href:[\s\S]{0,80}tabBarButton/)
 })
 
 test('barcode lookup uses the staff products API and never talks to Supabase', async () => {

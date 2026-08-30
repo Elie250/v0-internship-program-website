@@ -42,11 +42,11 @@ export function ShopHeader({
       <Pressable
         onPress={() => router.push('/customer/track' as never)}
         accessibilityRole="button"
-        accessibilityLabel={t('nav.signIn')}
+        accessibilityLabel={t('nav.trackOrder')}
         style={styles.signInBtn}
       >
         <Text style={styles.signIn} maxFontSizeMultiplier={1.1}>
-          {t('nav.signIn')}
+          {t('nav.trackOrder')}
         </Text>
       </Pressable>
       {showSearch ? (

@@ -1,7 +1,8 @@
-import { staffRequest } from '@/src/api/client'
+import { publicRequest, staffRequest } from '@/src/api/client'
 import type {
   Paginated,
   PosSaleResult,
+  ShopCategory,
   StaffDashboard,
   StaffInventoryRow,
   StaffOrderDetail,
@@ -78,14 +79,34 @@ export async function fetchProducts(params: Record<string, string | number | und
   return staffRequest<Paginated<StaffProduct>>(`/api/staff/products${suffix}`)
 }
 
+export async function fetchShopCategories() {
+  return publicRequest<ShopCategory[]>('/api/categories?type=shop')
+}
+
 export async function createStaffProduct(input: {
   name: string
+  description?: string | null
+  sku?: string | null
+  barcode?: string | null
+  categoryId?: string | null
   price?: number
   costPrice?: number
+  images?: string[]
 }) {
   return staffRequest<{ item: StaffProduct }>('/api/staff/products', {
     method: 'POST',
     body: JSON.stringify(input),
+  })
+}
+
+export async function uploadStaffProductImage(uri: string) {
+  const body = new FormData()
+  body.append('folder', 'products')
+  body.append('file', { uri, name: 'product.jpg', type: 'image/jpeg' } as unknown as Blob)
+  return staffRequest<{ url: string }>('/api/staff/upload', {
+    method: 'POST',
+    body,
+    timeoutMs: 60_000,
   })
 }
 

@@ -3,7 +3,9 @@
 import { useEffect, useEffectEvent, useState, useTransition } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
 import { previewUnitPrice } from '@/lib/shop/pos-pricing'
 import { fetchStaffApi, type StaffListResponse } from '@/lib/shop/staff-client'
@@ -36,9 +38,18 @@ type ProductRow = {
 }
 
 type ProductDetail = ProductRow & {
+  description?: string | null
+  categoryId?: string | null
   images: unknown
   createdAt: string | null
   updatedAt: string | null
+}
+
+type ShopCategory = { id: string; name: string; type?: string }
+
+function firstImageUrl(images: unknown): string {
+  if (Array.isArray(images) && typeof images[0] === 'string') return images[0]
+  return ''
 }
 
 export function ShopProductsPanel({
@@ -75,6 +86,18 @@ export function ShopProductsPanel({
   const [createOpen, setCreateOpen] = useState(false)
   const [createName, setCreateName] = useState('')
   const [createPrice, setCreatePrice] = useState('')
+  const [createCost, setCreateCost] = useState('')
+  const [createSku, setCreateSku] = useState('')
+  const [createBarcode, setCreateBarcode] = useState('')
+  const [createCategoryId, setCreateCategoryId] = useState('')
+  const [createDescription, setCreateDescription] = useState('')
+  const [createImage, setCreateImage] = useState('')
+  const [skuDraft, setSkuDraft] = useState('')
+  const [barcodeDraft, setBarcodeDraft] = useState('')
+  const [categoryDraft, setCategoryDraft] = useState('')
+  const [descriptionDraft, setDescriptionDraft] = useState('')
+  const [imageDraft, setImageDraft] = useState('')
+  const [categories, setCategories] = useState<ShopCategory[]>([])
   const [, startTransition] = useTransition()
 
   const loadList = useEffectEvent(async (q: string, st: string, pg: number) => {
@@ -121,8 +144,22 @@ export function ShopProductsPanel({
     setNameDraft(result.data.item.name)
     setPriceDraft(String(result.data.item.price ?? ''))
     setCostDraft(result.data.item.costPrice != null ? String(result.data.item.costPrice) : '')
+    setSkuDraft(result.data.item.sku ?? '')
+    setBarcodeDraft(result.data.item.barcode ?? '')
+    setCategoryDraft(result.data.item.categoryId ?? result.data.item.category?.id ?? '')
+    setDescriptionDraft(result.data.item.description ?? '')
+    setImageDraft(firstImageUrl(result.data.item.images))
     setSellingMessage('')
   })
+
+  useEffect(() => {
+    void fetch('/api/categories?type=shop')
+      .then((res) => res.json())
+      .then((data: unknown) => {
+        setCategories(Array.isArray(data) ? (data as ShopCategory[]) : [])
+      })
+      .catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -156,7 +193,7 @@ export function ShopProductsPanel({
       ) : null}
       {createOpen && canManage ? (
         <form
-          className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-3"
+          className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault()
             const result = await fetchStaffApi<{ item: ProductRow }>('/api/staff/products', {
@@ -164,7 +201,13 @@ export function ShopProductsPanel({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 name: createName,
+                description: createDescription,
+                sku: createSku,
+                barcode: createBarcode,
+                categoryId: createCategoryId || null,
                 price: createPrice ? Number(createPrice) : undefined,
+                costPrice: createCost ? Number(createCost) : undefined,
+                images: createImage ? [createImage] : [],
               }),
             })
             if (!result.ok) {
@@ -174,10 +217,16 @@ export function ShopProductsPanel({
             setCreateOpen(false)
             setCreateName('')
             setCreatePrice('')
+            setCreateCost('')
+            setCreateSku('')
+            setCreateBarcode('')
+            setCreateCategoryId('')
+            setCreateDescription('')
+            setCreateImage('')
             void loadList(query, status, 1)
           }}
         >
-          <div className="min-w-[180px] flex-1">
+          <div className="sm:col-span-2">
             <Label htmlFor="create-product-name">{t('products.field.name')}</Label>
             <Input
               id="create-product-name"
@@ -187,8 +236,43 @@ export function ShopProductsPanel({
               required
             />
           </div>
+          <div>
+            <Label htmlFor="create-product-category">{t('products.field.category')}</Label>
+            <select
+              id="create-product-category"
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+              value={createCategoryId}
+              onChange={(e) => setCreateCategoryId(e.target.value)}
+            >
+              <option value="">{t('common.emDash')}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="create-product-sku">{t('products.field.sku')}</Label>
+            <Input
+              id="create-product-sku"
+              className="mt-1 bg-white"
+              value={createSku}
+              onChange={(e) => setCreateSku(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="create-product-barcode">{t('products.field.barcode')}</Label>
+            <Input
+              id="create-product-barcode"
+              className="mt-1 bg-white"
+              value={createBarcode}
+              onChange={(e) => setCreateBarcode(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-500">{t('products.barcodeHint')}</p>
+          </div>
           {canEditSelling ? (
-            <div className="w-36">
+            <div>
               <Label htmlFor="create-product-price">{t('products.field.listPrice')}</Label>
               <Input
                 id="create-product-price"
@@ -200,7 +284,42 @@ export function ShopProductsPanel({
               />
             </div>
           ) : null}
-          <Button type="submit">{t('products.create')}</Button>
+          {canEditCost ? (
+            <div>
+              <Label htmlFor="create-product-cost">{t('products.field.cost')}</Label>
+              <Input
+                id="create-product-cost"
+                className="mt-1 bg-white"
+                type="number"
+                min="0"
+                value={createCost}
+                onChange={(e) => setCreateCost(e.target.value)}
+              />
+            </div>
+          ) : null}
+          <div className="sm:col-span-2">
+            <Label htmlFor="create-product-description">{t('products.field.description')}</Label>
+            <Textarea
+              id="create-product-description"
+              className="mt-1 bg-white"
+              value={createDescription}
+              onChange={(e) => setCreateDescription(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <ImageUploadField
+              label={t('products.field.image')}
+              value={createImage}
+              onChange={setCreateImage}
+              folder="products"
+              uploadPath="/api/staff/upload"
+            />
+          </div>
+          <p className="sm:col-span-2 text-xs text-slate-500">{t('products.stockCreateHint')}</p>
+          <div>
+            <Button type="submit">{t('products.create')}</Button>
+          </div>
         </form>
       ) : null}
 
@@ -406,6 +525,11 @@ export function ShopProductsPanel({
                       payload.sellingUnit = unit.value
                       payload.isFeatured = featured
                       payload.name = nameDraft
+                      payload.sku = skuDraft
+                      payload.barcode = barcodeDraft
+                      payload.categoryId = categoryDraft || null
+                      payload.description = descriptionDraft
+                      payload.images = imageDraft ? [imageDraft] : []
                     }
                     if (canEditSelling && priceDraft !== '') payload.price = Number(priceDraft)
                     if (canEditCost && costDraft !== '') payload.costPrice = Number(costDraft)
@@ -428,15 +552,69 @@ export function ShopProductsPanel({
                   }}
                 >
                   {canManage ? (
-                    <div>
-                      <Label htmlFor="shop-product-name">{t('products.field.name')}</Label>
-                      <Input
-                        id="shop-product-name"
-                        className="mt-1 bg-white"
-                        value={nameDraft}
-                        onChange={(e) => setNameDraft(e.target.value)}
+                    <>
+                      <div>
+                        <Label htmlFor="shop-product-name">{t('products.field.name')}</Label>
+                        <Input
+                          id="shop-product-name"
+                          className="mt-1 bg-white"
+                          value={nameDraft}
+                          onChange={(e) => setNameDraft(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-product-category">{t('products.field.category')}</Label>
+                        <select
+                          id="shop-product-category"
+                          className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                          value={categoryDraft}
+                          onChange={(e) => setCategoryDraft(e.target.value)}
+                        >
+                          <option value="">{t('common.emDash')}</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-product-sku">{t('products.field.sku')}</Label>
+                        <Input
+                          id="shop-product-sku"
+                          className="mt-1 bg-white"
+                          value={skuDraft}
+                          onChange={(e) => setSkuDraft(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-product-barcode">{t('products.field.barcode')}</Label>
+                        <Input
+                          id="shop-product-barcode"
+                          className="mt-1 bg-white"
+                          value={barcodeDraft}
+                          onChange={(e) => setBarcodeDraft(e.target.value)}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">{t('products.barcodeHint')}</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-product-description">{t('products.field.description')}</Label>
+                        <Textarea
+                          id="shop-product-description"
+                          className="mt-1 bg-white"
+                          value={descriptionDraft}
+                          onChange={(e) => setDescriptionDraft(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                      <ImageUploadField
+                        label={t('products.field.image')}
+                        value={imageDraft}
+                        onChange={setImageDraft}
+                        folder="products"
+                        uploadPath="/api/staff/upload"
                       />
-                    </div>
+                    </>
                   ) : null}
                   {canEditSelling ? (
                     <div>

@@ -1,12 +1,12 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useSessionStore } from '@/src/auth/session-store'
 import { useDashboardQuery, usePendingMomoCount } from '@/src/features/commerce'
 import { hasPermission, PERMISSIONS } from '@/src/permissions'
 import { formatRwf } from '@/src/format'
 import { Screen, ScreenState } from '@/src/ui/Screen'
+import { StaffModeBar } from '@/src/ui/StaffModeBar'
 import { colors, radius, space, type } from '@/src/theme'
 
 export default function StaffDashboard() {
@@ -35,15 +35,7 @@ export default function StaffDashboard() {
         void momo.refetch()
       }}
     >
-      <View style={styles.brandRow}>
-        <Image
-          source={require('../../assets/energy-logics-company-mark.png')}
-          style={styles.mark}
-          contentFit="contain"
-          accessibilityLabel="Energy & Logics"
-        />
-        <Text style={type.kicker}>Energy & Logics</Text>
-      </View>
+      <StaffModeBar />
       <Text style={type.screenTitle}>Today</Text>
       <Text style={type.helper} numberOfLines={1}>
         {name} · {user?.role.replace(/_/g, ' ')}
@@ -192,8 +184,6 @@ function ActionRow({
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  mark: { width: 36, height: 36 },
   hero: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,

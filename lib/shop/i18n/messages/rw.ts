@@ -230,9 +230,14 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'products.readOnlyNote':
     'Amakuru y’ibicuruzwa aboneka muri sisitemu y’iduka. Guhindura ntihahari muri iki gihe.',
   'products.manageNote':
-    'Ongeramo, hindura, kandi ushye ibicuruzwa. Ibiciro bisaba uburenganzira bwihariye.',
+    'Ongeramo, hindura, kandi ushye ibicuruzwa nk’umuyobozi. Umuyobozi w’ububiko afite ubu burenganzira; abandi bakenera ko umuyobozi abaha “Ongeramo / hindura / shyira mu byashize”. Ibiciro bisaba uburenganzira bwihariye. Ububiko butangira kuri 0.',
   'products.create': 'Ongeramo igicuruzwa',
+  'products.edit': 'Hindura igicuruzwa',
   'products.field.name': 'Izina',
+  'products.field.description': 'Ibisobanuro',
+  'products.field.image': 'Ifoto',
+  'products.barcodeHint': 'Inyuguti n’imibare gusa. Sikanira cyangwa wandike. Siga ubusa niba nta yo ihari.',
+  'products.stockCreateHint': 'Ububiko butangira kuri 0. Injiza ibicuruzwa mu Bubiko nyuma yo kubyongera.',
   'products.archive': 'Shyira mu byashize',
   'products.archived': 'Igicuruzwa cyashyizwe mu byashize.',
   'products.searchLabel': 'Shakisha ibicuruzwa',

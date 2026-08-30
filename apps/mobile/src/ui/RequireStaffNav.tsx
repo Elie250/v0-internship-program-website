@@ -12,8 +12,10 @@ export function RequireStaffNav({
   children: ReactNode
 }) {
   const user = useSessionStore((s) => s.user)
+  const locked = useSessionStore((s) => s.locked)
   const item = STAFF_NAV_ITEMS.find((entry) => entry.key === navKey)
-  if (!item || !canSeeStaffNavItem(user?.permissions, item)) {
+  if (locked || !user) return <Redirect href="/login" />
+  if (!item || !canSeeStaffNavItem(user.permissions, item)) {
     return <Redirect href="/staff" />
   }
   return <>{children}</>

@@ -11,28 +11,31 @@ import {
   resolveSellingUnitFields,
   type SellingUnit,
 } from '@/lib/shop/selling-unit'
+import { isDuplicateBarcodeError, parseProductBarcode } from '@/lib/shop/product-barcode'
+import { parseProductImages } from '@/lib/shop/product-images'
 
 const PRODUCT_SELECT =
-  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_NO_BARCODE =
-  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, is_featured, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_NO_FEATURED =
-  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_NO_FEATURED_NO_BARCODE =
-  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, selling_quantity, selling_unit, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_LEGACY =
-  'id, name, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, barcode, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
 
 const PRODUCT_SELECT_LEGACY_NO_BARCODE =
-  'id, name, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
+  'id, name, description, sku, category_id, price, discount, cost_price, stock, status, images, low_stock_threshold, created_at, updated_at, category:categories(id, name, slug, type)'
 
 export type StaffProductDto = {
   id: string
   name: string
+  description: string | null
   sku: string | null
   barcode: string | null
   categoryId: string | null
@@ -65,6 +68,7 @@ function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffPr
   const mapped: StaffProductDto = {
     id: String(row.id),
     name: String(row.name ?? ''),
+    description: row.description != null ? String(row.description) : null,
     sku: row.sku != null ? String(row.sku) : null,
     barcode: row.barcode != null ? String(row.barcode) : null,
     categoryId: row.category_id != null ? String(row.category_id) : null,
@@ -365,12 +369,14 @@ async function recordPriceHistory(input: {
 export async function createStaffProduct(
   input: {
     name: string
+    description?: string | null
     sku?: string | null
     barcode?: string | null
     categoryId?: string | null
     price?: number
     costPrice?: number
     status?: string
+    images?: unknown
     lowStockThreshold?: number | null
     targetStock?: number | null
     sellingQuantity?: number
@@ -382,15 +388,21 @@ export async function createStaffProduct(
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
   const name = input.name.trim()
   if (!name) return { error: 'Product name is required', httpStatus: 400 as const }
+  const barcode = parseProductBarcode(input.barcode)
+  if (!barcode.ok) return { error: barcode.error, httpStatus: 400 as const }
+  const images = parseProductImages(input.images)
+  if (!images.ok) return { error: images.error, httpStatus: 400 as const }
 
   const payload: Record<string, unknown> = {
     name,
+    description: input.description?.trim() || null,
     sku: input.sku?.trim() || null,
-    barcode: input.barcode?.trim() || null,
+    barcode: barcode.value,
     category_id: input.categoryId || null,
     status: input.status === 'draft' ? 'draft' : 'published',
     stock: 0,
     discount: 0,
+    images: images.value,
     low_stock_threshold: input.lowStockThreshold ?? 5,
     selling_quantity: input.sellingQuantity ?? 1,
     selling_unit: input.sellingUnit ?? 'PCS',
@@ -408,7 +420,7 @@ export async function createStaffProduct(
     .single()
 
   if (error) {
-    if (/duplicate|unique/i.test(error.message)) {
+    if (isDuplicateBarcodeError(error.message) || /duplicate|unique/i.test(error.message)) {
       return { error: 'A product with that SKU or barcode already exists', httpStatus: 409 as const }
     }
     return { error: 'Failed to create product', httpStatus: 400 as const }
@@ -445,9 +457,11 @@ export async function updateStaffProduct(
   id: string,
   input: {
     name?: string
+    description?: string | null
     sku?: string | null
     barcode?: string | null
     categoryId?: string | null
+    images?: unknown
     status?: string
     lowStockThreshold?: number | null
     targetStock?: number | null
@@ -488,9 +502,23 @@ export async function updateStaffProduct(
     patch.sku = input.sku?.trim() || null
     touchesProduct = true
   }
+  if (input.description !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.description = input.description?.trim() || null
+    touchesProduct = true
+  }
   if (input.barcode !== undefined) {
     if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
-    patch.barcode = input.barcode?.trim() || null
+    const barcode = parseProductBarcode(input.barcode)
+    if (!barcode.ok) return { error: barcode.error, httpStatus: 400 as const }
+    patch.barcode = barcode.value
+    touchesProduct = true
+  }
+  if (input.images !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    const images = parseProductImages(input.images)
+    if (!images.ok) return { error: images.error, httpStatus: 400 as const }
+    patch.images = images.value
     touchesProduct = true
   }
   if (input.categoryId !== undefined) {
@@ -555,7 +583,12 @@ export async function updateStaffProduct(
     .select(PRODUCT_SELECT)
     .maybeSingle()
 
-  if (error) return { error: 'Failed to update product', httpStatus: 500 as const }
+  if (error) {
+    if (isDuplicateBarcodeError(error.message) || /duplicate|unique/i.test(error.message)) {
+      return { error: 'A product with that SKU or barcode already exists', httpStatus: 409 as const }
+    }
+    return { error: 'Failed to update product', httpStatus: 500 as const }
+  }
   if (!data) return { error: 'Product not found', httpStatus: 404 as const }
 
   if (nextPrice !== undefined && nextPrice !== current.price) {

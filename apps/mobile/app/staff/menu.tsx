@@ -1,11 +1,11 @@
 import { Redirect, useRouter } from 'expo-router'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useSessionStore } from '@/src/auth/session-store'
 import { filterStaffNavItems } from '@/src/permissions'
 import { Screen } from '@/src/ui/Screen'
-import { colors, space, type } from '@/src/theme'
+import { StaffModeBar } from '@/src/ui/StaffModeBar'
+import { colors, control, radius, space, type } from '@/src/theme'
 
 const MORE_ORDER = ['products', 'inventory', 'sales', 'settings'] as const
 const MORE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -17,7 +17,6 @@ const MORE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function MoreMenuScreen() {
   const router = useRouter()
-  const insets = useSafeAreaInsets()
   const user = useSessionStore((s) => s.user)
   if (!user) return <Redirect href="/login" />
 
@@ -30,9 +29,9 @@ export default function MoreMenuScreen() {
     )
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Screen>
-        <Text style={type.kicker}>Energy & Logics</Text>
+        <StaffModeBar />
         <Text style={type.screenTitle}>More</Text>
         <View style={styles.list}>
           {extras.map((item, index) => (
@@ -50,10 +49,16 @@ export default function MoreMenuScreen() {
               <Ionicons
                 name={MORE_ICONS[item.key] || 'ellipse-outline'}
                 size={20}
-                color={colors.navy}
+                color={colors.primary}
+                importantForAccessibility="no"
               />
               <Text style={styles.label}>{item.label}</Text>
-              <Text style={styles.chev}>›</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={16}
+                color={colors.textMuted}
+                importantForAccessibility="no"
+              />
             </Pressable>
           ))}
         </View>
@@ -64,21 +69,20 @@ export default function MoreMenuScreen() {
 
 const styles = StyleSheet.create({
   list: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   row: {
-    minHeight: 52,
+    minHeight: control.height,
     paddingHorizontal: space.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.s12,
   },
-  rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
-  pressed: { backgroundColor: colors.bg },
-  label: { ...type.productName, flex: 1, color: colors.navy },
-  chev: { fontSize: 20, color: colors.muted },
+  rowLine: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+  pressed: { backgroundColor: colors.background },
+  label: { ...type.productName, flex: 1 },
 })

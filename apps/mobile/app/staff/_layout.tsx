@@ -17,8 +17,11 @@ export default function StaffLayout() {
   const hydrated = useSessionStore((s) => s.hydrated)
   const insets = useSafeAreaInsets()
 
+  const locked = useSessionStore((s) => s.locked)
+
   if (hydrated && !token) return <Redirect href="/login" />
   if (hydrated && token && !user) return <Redirect href="/login" />
+  if (hydrated && locked) return <Redirect href="/login" />
   if (!user) return null
 
   const perms = user.permissions
@@ -47,29 +50,35 @@ export default function StaffLayout() {
     >
       <Tabs.Screen
         name="pos"
-        options={{
-          title: 'POS',
-          headerShown: false,
-          href: showPos ? undefined : null,
-          tabBarAccessibilityLabel: 'POS',
-          tabBarButton: makeStaffTabButton('POS'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" color={color} size={size} />
-          ),
-        }}
+        options={
+          showPos
+            ? {
+                title: 'POS',
+                headerShown: false,
+                tabBarAccessibilityLabel: 'POS',
+                tabBarButton: makeStaffTabButton('POS'),
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name="cart-outline" color={color} size={size} />
+                ),
+              }
+            : { title: 'POS', headerShown: false, href: null }
+        }
       />
       <Tabs.Screen
         name="orders"
-        options={{
-          title: 'Orders',
-          href: showOrders ? undefined : null,
-          headerShown: false,
-          tabBarAccessibilityLabel: 'Orders',
-          tabBarButton: makeStaffTabButton('Orders'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" color={color} size={size} />
-          ),
-        }}
+        options={
+          showOrders
+            ? {
+                title: 'Orders',
+                headerShown: false,
+                tabBarAccessibilityLabel: 'Orders',
+                tabBarButton: makeStaffTabButton('Orders'),
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name="receipt-outline" color={color} size={size} />
+                ),
+              }
+            : { title: 'Orders', headerShown: false, href: null }
+        }
       />
       <Tabs.Screen
         name="index"
@@ -106,6 +115,14 @@ export default function StaffLayout() {
       />
       <Tabs.Screen name="sales" options={{ href: null, title: 'Sales', headerShown: false }} />
       <Tabs.Screen name="products" options={{ href: null, title: 'Products', headerShown: false }} />
+      <Tabs.Screen
+        name="product-scan"
+        options={{ href: null, title: 'Scan barcode', headerShown: false, tabBarStyle: { display: 'none' } }}
+      />
+      <Tabs.Screen
+        name="product-photo"
+        options={{ href: null, title: 'Product photo', headerShown: false, tabBarStyle: { display: 'none' } }}
+      />
       <Tabs.Screen name="inventory" options={{ href: null, title: 'Inventory', headerShown: false }} />
       <Tabs.Screen name="settings" options={{ href: null, title: 'Settings', headerShown: false }} />
     </Tabs>
