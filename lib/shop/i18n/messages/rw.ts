@@ -610,6 +610,8 @@ export const shopMessagesRw: Partial<Record<ShopMessageKey, string>> = {
   'storefront.checkout.successTitle': 'Ibyatumijwe byakiriwe neza',
   'storefront.checkout.thankYou': 'Murakoze guhahira muri Energy & Logics.',
   'storefront.checkout.keepNumber': 'Ukoreshe iyi nimero ukurikirana ibyo watumije.',
+  'storefront.checkout.receiptEmail':
+    'Nyuma yo kwemeza ubwishyu, tuzohereza icyemezo cyemewe n’Umuyobozi Mukuru kuri imeri wanditse.',
   'storefront.checkout.cartChanged':
     'Igiciro cyangwa kuboneka byahindutse. Subira usuzume ibyatoranijwe.',
   'storefront.checkout.previewHint':

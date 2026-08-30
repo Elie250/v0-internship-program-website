@@ -13,6 +13,7 @@ import { useShopCart } from '@/src/features/shop/cart-store'
 import { useFavorites } from '@/src/features/shop/favorites-store'
 import { useLocaleStore } from '@/src/i18n/locale-store'
 import { colors, font } from '@/src/theme'
+import { applyAvailableOtaUpdate } from '@/src/updates/apply-ota'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -36,6 +37,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) {
       void SplashScreen.hideAsync()
+      void applyAvailableOtaUpdate()
     }
   }, [ready])
 

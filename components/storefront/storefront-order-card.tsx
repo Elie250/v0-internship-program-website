@@ -70,6 +70,11 @@ export function StorefrontOrderCard({
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             {placed ? t('storefront.checkout.keepNumber') : t('storefront.track.keepNumber')}
           </p>
+          {placed ? (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              {t('storefront.checkout.receiptEmail')}
+            </p>
+          ) : null}
         </div>
 
         <dl className="grid gap-4 px-6 py-5 sm:grid-cols-2">

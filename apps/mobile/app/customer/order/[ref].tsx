@@ -40,6 +40,7 @@ export default function CustomerOrder() {
             {order?.fulfillmentType === 'delivery' ? t('checkout.nextDelivery') : t('checkout.nextPickup')}
           </Text>
           <Text style={styles.keep}>{t('confirm.keepNumber')}</Text>
+          <Text style={styles.keep}>{t('confirm.receiptEmail')}</Text>
         </View>
       ) : null}
 

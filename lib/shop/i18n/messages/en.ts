@@ -606,6 +606,8 @@ export const shopMessagesEn = {
   'storefront.checkout.successTitle': 'Order placed successfully',
   'storefront.checkout.thankYou': 'Thank you for shopping with Energy & Logics.',
   'storefront.checkout.keepNumber': 'Keep this number to track your order.',
+  'storefront.checkout.receiptEmail':
+    'After we confirm your payment, we will email the official receipt (signed by the Managing Director) to the address you provided.',
   'storefront.checkout.cartChanged':
     'Prices or availability changed. Please review your cart.',
   'storefront.checkout.previewHint':

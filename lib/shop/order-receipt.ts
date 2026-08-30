@@ -1,67 +1,79 @@
-import { COMPANY } from '@/lib/company/constants'
-import { getOrderQrImageUrl, getOrderReceiptUrl } from '@/lib/shop/order-lookup'
+import { COMPANY } from "@/lib/company/constants";
+import {
+  getOrderQrImageUrl,
+  getOrderReceiptUrl,
+} from "@/lib/shop/order-lookup";
 
 export type OrderReceiptItem = {
-  productName: string
-  quantity: number
-  unitPrice: number
-  lineTotal: number
-}
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+};
 
 export type OrderReceiptData = {
-  orderNumber: string
-  customerName: string
-  customerEmail?: string | null
-  customerPhone?: string | null
-  fulfillmentType?: string | null
-  deliveryAddress?: string | null
-  notes?: string | null
-  totalAmount: number
-  orderStatus?: string | null
-  paymentStatus?: string | null
-  paymentMethod?: string | null
-  orderDate: Date | string
-  items: OrderReceiptItem[]
-  logoUrl?: string
-  stampUrl?: string
-  signatoryName?: string
-  signatoryTitle?: string
-}
+  orderNumber: string;
+  customerName: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  fulfillmentType?: string | null;
+  deliveryAddress?: string | null;
+  notes?: string | null;
+  totalAmount: number;
+  orderStatus?: string | null;
+  paymentStatus?: string | null;
+  paymentMethod?: string | null;
+  orderDate: Date | string;
+  items: OrderReceiptItem[];
+  logoUrl?: string;
+  stampUrl?: string;
+  signatoryName?: string;
+  signatoryTitle?: string;
+};
+
+export type OrderReceiptHtmlOptions = {
+  /** Print windows auto-open the dialog. Emails must pass false. */
+  autoPrint?: boolean;
+};;
 
 function escapeHtml(value: string): string {
   return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function formatMoney(amount: number): string {
-  return `${Number(amount || 0).toLocaleString()} RWF`
+  return `${Number(amount || 0).toLocaleString()} RWF`;
 }
 
 /**
- * Printable shop / POS receipt with order code, QR (lookup), and Managing Director stamp.
+ * Printable shop / POS receipt with order number, QR (lookup), and Managing Director stamp.
  * Attach to delivery or give to the client for refund claims.
  */
-export function createOrderReceiptHTML(data: OrderReceiptData): string {
-  const orderNumber = escapeHtml(data.orderNumber)
-  const date = new Date(data.orderDate)
-  const formattedDate = date.toLocaleString('en-GB', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+export function createOrderReceiptHTML(
+  data: OrderReceiptData,
+  options: OrderReceiptHtmlOptions = {},
+): string {
+  const autoPrint = options.autoPrint !== false;
+  const orderNumber = escapeHtml(data.orderNumber);
+  const date = new Date(data.orderDate);
+  const formattedDate = date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const fulfillment =
-    data.fulfillmentType === 'delivery' ? 'Delivery' : 'Local pickup'
+    data.fulfillmentType === "delivery" ? "Delivery" : "Local pickup";
   const roleLine =
-    String(data.signatoryTitle || 'Managing Director')
-      .split('·')[0]
-      ?.trim() || 'Managing Director'
-  const receiptUrl = getOrderReceiptUrl(data.orderNumber)
-  const qrUrl = getOrderQrImageUrl(data.orderNumber)
+    String(data.signatoryTitle || "Managing Director")
+      .split("·")[0]
+      ?.trim() || "Managing Director";
+  const receiptUrl = getOrderReceiptUrl(data.orderNumber);
+  const qrUrl = getOrderQrImageUrl(data.orderNumber);
 
   const rows = data.items
     .map(
@@ -71,9 +83,9 @@ export function createOrderReceiptHTML(data: OrderReceiptData): string {
         <td class="num">${item.quantity}</td>
         <td class="num">${formatMoney(item.unitPrice)}</td>
         <td class="num">${formatMoney(item.lineTotal)}</td>
-      </tr>`
+      </tr>`,
     )
-    .join('')
+    .join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -265,7 +277,7 @@ export function createOrderReceiptHTML(data: OrderReceiptData): string {
         <p>${escapeHtml(COMPANY.slogan)} · ${escapeHtml(COMPANY.address)}</p>
       </div>
       <div class="code-box">
-        <div class="label">Order code</div>
+        <div class="label">Order number</div>
         <div class="code">${orderNumber}</div>
         <div class="label" style="margin-top:3mm">Issued</div>
         <div style="font-size:12px;margin-top:1px">${escapeHtml(formattedDate)}</div>
@@ -280,25 +292,26 @@ export function createOrderReceiptHTML(data: OrderReceiptData): string {
       ${
         data.customerPhone
           ? `<div><strong>Phone:</strong> ${escapeHtml(data.customerPhone)}</div>`
-          : ''
+          : ""
       }
       ${
         data.customerEmail
           ? `<div><strong>Email:</strong> ${escapeHtml(data.customerEmail)}</div>`
-          : ''
+          : ""
       }
       ${
-        data.fulfillmentType === 'delivery' && data.deliveryAddress
+        data.fulfillmentType === "delivery" && data.deliveryAddress
           ? `<div style="grid-column:1/-1"><strong>Delivery address:</strong> ${escapeHtml(
-              data.deliveryAddress
+              data.deliveryAddress,
             )}</div>`
-          : ''
+          : ""
       }
       <div><strong>Order status:</strong> ${escapeHtml(
-        (data.orderStatus || 'pending').replace(/_/g, ' ')
+        (data.orderStatus || "pending").replace(/_/g, " "),
       )}</div>
       <div><strong>Payment:</strong> ${escapeHtml(
-        [data.paymentStatus, data.paymentMethod].filter(Boolean).join(' · ') || '—'
+        [data.paymentStatus, data.paymentMethod].filter(Boolean).join(" · ") ||
+          "—",
       )}</div>
     </div>
 
@@ -323,14 +336,14 @@ export function createOrderReceiptHTML(data: OrderReceiptData): string {
     <div class="bottom">
       <div class="sig-block">
         <div class="sig-text">
-          <div class="sig-name">${escapeHtml(data.signatoryName || 'Elie BISAMAZA')}</div>
+          <div class="sig-name">${escapeHtml(data.signatoryName || "Elie BISAMAZA")}</div>
           <div class="sig-rule"></div>
           <div class="sig-title">${escapeHtml(roleLine)}</div>
         </div>
         ${
           data.stampUrl
             ? `<img class="stamp" src="${escapeHtml(data.stampUrl)}" alt="Company stamp">`
-            : ''
+            : ""
         }
       </div>
       <div class="qr-col">
@@ -341,15 +354,19 @@ export function createOrderReceiptHTML(data: OrderReceiptData): string {
 
     <div class="footer">
       ${escapeHtml(COMPANY.legalName)} · ${escapeHtml(COMPANY.email)} · ${escapeHtml(
-        COMPANY.phoneDisplay
+        COMPANY.phoneDisplay,
       )} · www.energyandlogics.com
     </div>
   </div>
-  <script>
+  ${
+    autoPrint
+      ? `<script>
     window.addEventListener('load', () => {
       setTimeout(() => { window.print(); }, 700);
     });
-  </script>
+  </script>`
+      : ""
+  }
 </body>
-</html>`
+</html>`;
 }

@@ -185,7 +185,7 @@ export function ShopSalesPanel({ canSeeUnitCost }: { canSeeUnitCost: boolean }) 
                     >
                       <td className="px-3 py-2.5">
                         <p className="font-medium text-slate-900">
-                          {row.orderNumber || row.id.slice(0, 8)}
+                          {row.orderNumber || t('common.emDash')}
                         </p>
                         <p className="text-xs text-slate-500">
                           {row.orderDate

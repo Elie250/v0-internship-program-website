@@ -147,6 +147,9 @@ export function StorefrontCheckout() {
           <p className="mt-4 text-sm leading-relaxed text-slate-600">
             {t('storefront.checkout.keepNumber')}
           </p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {t('storefront.checkout.receiptEmail')}
+          </p>
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Button

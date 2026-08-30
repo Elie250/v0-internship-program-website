@@ -54,6 +54,26 @@ pnpm test:mobile
 pnpm tsc --noEmit
 ```
 
-## Release later (not this phase)
+## Over-the-air updates (EAS Update)
 
-`eas.json` defines development / preview / production Android profiles. Do not publish or pay for EAS from this phase. Application ID: `com.energyandlogics.staffpos`.
+After **one** preview APK that includes `expo-updates`, later JavaScript/UI changes can be published without a new download.
+
+Application ID stays `com.energyandlogics.staffpos`. Preview still ships an internal APK that talks to `https://shop.energyandlogics.com`.
+
+Existing APKs built **before** this config cannot receive air updates. Install the next preview build once, then use:
+
+```bash
+cd apps/mobile
+pnpm ota:preview -- --message "Describe the JS change"
+```
+
+Production (Play / AAB) uses:
+
+```bash
+cd apps/mobile
+pnpm ota:production -- --message "Describe the JS change"
+```
+
+A new APK/AAB is only required when native code changes (new Expo modules, camera permissions, package name, or an `app.json` version bump — runtime version follows `appVersion`, currently `0.1.0`).
+
+Do not start an EAS build from this folder unless you are ready to download that one new APK.

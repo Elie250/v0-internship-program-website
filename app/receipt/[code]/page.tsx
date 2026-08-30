@@ -31,7 +31,7 @@ export default async function OrderReceiptLookupPage({ params }: PageProps) {
 
               <div className="rounded-lg border border-green-200 bg-green-50/50 p-4 text-sm space-y-2.5">
                 <p>
-                  <span className="text-slate-500">Order code:</span>{' '}
+                  <span className="text-slate-500">Order number:</span>{' '}
                   <strong className="font-mono text-slate-900">{result.orderNumber}</strong>
                 </p>
                 <p>

@@ -375,6 +375,34 @@ test('EAS Android package is prepared but not published', () => {
   assert.equal(app.expo.extra?.eas?.projectId, 'ed5c9cce-efb5-41ff-8720-0d34eab957dd')
 })
 
+test('EAS Update is configured for preview and production OTA', () => {
+  const app = JSON.parse(read('app.json'))
+  const eas = JSON.parse(read('eas.json'))
+  const pkg = JSON.parse(read('package.json'))
+  const ota = read('src/updates/apply-ota.ts')
+  const layout = read('app/_layout.tsx')
+  assert.equal(pkg.dependencies['expo-updates'], '~29.0.20')
+  assert.equal(
+    app.expo.updates.url,
+    'https://u.expo.dev/ed5c9cce-efb5-41ff-8720-0d34eab957dd'
+  )
+  assert.equal(app.expo.runtimeVersion.policy, 'appVersion')
+  assert.equal(app.expo.updates.checkAutomatically, 'ON_LOAD')
+  assert.equal(eas.build.preview.channel, 'preview')
+  assert.equal(eas.build.production.channel, 'production')
+  assert.equal(
+    eas.build.preview.env.EXPO_PUBLIC_API_BASE_URL,
+    'https://shop.energyandlogics.com'
+  )
+  assert.equal(eas.build.preview.android.buildType, 'apk')
+  assert.equal(app.expo.android.package, 'com.energyandlogics.staffpos')
+  assert.equal(app.expo.android.usesCleartextTraffic, false)
+  assert.match(ota, /Updates\.checkForUpdateAsync/)
+  assert.match(ota, /Updates\.reloadAsync/)
+  assert.match(ota, /!Updates\.isEnabled/)
+  assert.match(layout, /applyAvailableOtaUpdate/)
+})
+
 test('production API host is the shop domain and is overridable', () => {
   const client = read('src/api/client.ts')
   const config = read('src/api/config.ts')
