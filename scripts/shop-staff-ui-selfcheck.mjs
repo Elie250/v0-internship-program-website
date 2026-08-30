@@ -89,6 +89,8 @@ test('staff panel uses Phase 1D.1 APIs and never renders secrets', () => {
   // Create role select must not offer admin
   assert.match(src, /salesperson/)
   assert.match(src, /inventory_manager/)
+  assert.match(src, /ShopStaffPermissionMatrix/)
+  assert.match(src, /permissions: extras/)
 })
 
 test('create staff UI rejects admin role option', () => {

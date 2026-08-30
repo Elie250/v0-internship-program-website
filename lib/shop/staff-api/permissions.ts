@@ -9,7 +9,14 @@ import { PERMISSIONS, type Permission } from '@/lib/admin/permissions'
  */
 export const STAFF_API_PERMISSIONS = {
   products: [PERMISSIONS.SHOP_PRODUCTS_VIEW, PERMISSIONS.SHOP_PRODUCTS] as Permission[],
+  productManage: PERMISSIONS.SHOP_PRODUCTS,
   inventory: PERMISSIONS.SHOP_STOCK_VIEW,
+  stockAdjust: PERMISSIONS.SHOP_STOCK_ADJUST,
+  stockReceive: PERMISSIONS.SHOP_STOCK_RECEIVE,
+  costPrice: PERMISSIONS.SHOP_COST_PRICE,
+  sellingPrice: PERMISSIONS.SHOP_SELLING_PRICE,
+  replenishment: PERMISSIONS.SHOP_REPLENISHMENT_VIEW,
+  purchaseRequest: PERMISSIONS.SHOP_PURCHASE_REQUEST,
   orders: [PERMISSIONS.SHOP_ORDERS_VIEW, PERMISSIONS.SHOP_SALES_VIEW] as Permission[],
   /** Shop MoMo review — not payments:approve. Legacy shop:orders still qualifies. */
   paymentReview: [PERMISSIONS.SHOP_PAYMENTS_REVIEW, PERMISSIONS.SHOP_ORDERS] as Permission[],

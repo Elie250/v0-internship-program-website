@@ -45,6 +45,7 @@ export type StaffProductDto = {
   status: string | null
   images: unknown
   lowStockThreshold: number | null
+  targetStock: number | null
   sellingQuantity: number
   sellingUnit: string
   sellingUnitLabel: string
@@ -82,6 +83,7 @@ function mapProduct(row: Record<string, unknown>, includeCost: boolean): StaffPr
     images: row.images ?? [],
     lowStockThreshold:
       row.low_stock_threshold != null ? Number(row.low_stock_threshold) : null,
+    targetStock: row.target_stock != null ? Number(row.target_stock) : null,
     sellingQuantity: selling.sellingQuantity,
     sellingUnit: selling.sellingUnit,
     sellingUnitLabel: formatSellingUnit(selling.sellingQuantity, selling.sellingUnit),
@@ -339,4 +341,263 @@ export async function updateStaffProductSellingUnit(
       item: mapProduct(data as unknown as Record<string, unknown>, Boolean(options.includeCost)),
     },
   }
+}
+
+async function recordPriceHistory(input: {
+  productId: string
+  field: 'cost_price' | 'selling_price'
+  oldValue: number | null
+  newValue: number
+  actorUserId: string
+}) {
+  if (!supabaseAdmin) return
+  await supabaseAdmin.from('product_price_history').insert([
+    {
+      product_id: input.productId,
+      field: input.field,
+      old_value: input.oldValue,
+      new_value: input.newValue,
+      actor_user_id: input.actorUserId,
+    },
+  ])
+}
+
+export async function createStaffProduct(
+  input: {
+    name: string
+    sku?: string | null
+    barcode?: string | null
+    categoryId?: string | null
+    price?: number
+    costPrice?: number
+    status?: string
+    lowStockThreshold?: number | null
+    targetStock?: number | null
+    sellingQuantity?: number
+    sellingUnit?: SellingUnit
+    isFeatured?: boolean
+  },
+  options: StaffProductQueryOptions & { actorUserId: string; canSetCost: boolean; canSetSelling: boolean }
+) {
+  if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
+  const name = input.name.trim()
+  if (!name) return { error: 'Product name is required', httpStatus: 400 as const }
+
+  const payload: Record<string, unknown> = {
+    name,
+    sku: input.sku?.trim() || null,
+    barcode: input.barcode?.trim() || null,
+    category_id: input.categoryId || null,
+    status: input.status === 'draft' ? 'draft' : 'published',
+    stock: 0,
+    discount: 0,
+    low_stock_threshold: input.lowStockThreshold ?? 5,
+    selling_quantity: input.sellingQuantity ?? 1,
+    selling_unit: input.sellingUnit ?? 'PCS',
+    is_featured: Boolean(input.isFeatured),
+  }
+  if (input.targetStock != null) payload.target_stock = Math.max(0, Math.trunc(input.targetStock))
+  if (options.canSetSelling && input.price != null) payload.price = input.price
+  else payload.price = input.price != null && options.canSetSelling ? input.price : 0
+  if (options.canSetCost && input.costPrice != null) payload.cost_price = input.costPrice
+
+  const { data, error } = await supabaseAdmin
+    .from('products')
+    .insert([payload])
+    .select(PRODUCT_SELECT)
+    .single()
+
+  if (error) {
+    if (/duplicate|unique/i.test(error.message)) {
+      return { error: 'A product with that SKU or barcode already exists', httpStatus: 409 as const }
+    }
+    return { error: 'Failed to create product', httpStatus: 400 as const }
+  }
+
+  if (options.canSetSelling && data.price != null) {
+    await recordPriceHistory({
+      productId: String(data.id),
+      field: 'selling_price',
+      oldValue: null,
+      newValue: Number(data.price),
+      actorUserId: options.actorUserId,
+    })
+  }
+  if (options.canSetCost && data.cost_price != null) {
+    await recordPriceHistory({
+      productId: String(data.id),
+      field: 'cost_price',
+      oldValue: null,
+      newValue: Number(data.cost_price),
+      actorUserId: options.actorUserId,
+    })
+  }
+
+  return {
+    httpStatus: 201 as const,
+    body: {
+      item: mapProduct(data as unknown as Record<string, unknown>, Boolean(options.includeCost)),
+    },
+  }
+}
+
+export async function updateStaffProduct(
+  id: string,
+  input: {
+    name?: string
+    sku?: string | null
+    barcode?: string | null
+    categoryId?: string | null
+    status?: string
+    lowStockThreshold?: number | null
+    targetStock?: number | null
+    sellingQuantity?: number
+    sellingUnit?: SellingUnit
+    isFeatured?: boolean
+    price?: number
+    costPrice?: number
+  },
+  options: StaffProductQueryOptions & {
+    actorUserId: string
+    canManageProduct: boolean
+    canSetCost: boolean
+    canSetSelling: boolean
+  }
+) {
+  if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 as const }
+  if (!parseOptionalUuid(id)) return { error: 'Invalid product id', httpStatus: 400 as const }
+
+  const existing = await getStaffProductById(id, { includeCost: true })
+  if (!('body' in existing)) return existing
+  const current = existing.body.item
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  let touchesProduct = false
+  let nextPrice: number | undefined
+  let nextCost: number | undefined
+
+  if (input.name !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    const name = input.name.trim()
+    if (!name) return { error: 'Product name is required', httpStatus: 400 as const }
+    patch.name = name
+    touchesProduct = true
+  }
+  if (input.sku !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.sku = input.sku?.trim() || null
+    touchesProduct = true
+  }
+  if (input.barcode !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.barcode = input.barcode?.trim() || null
+    touchesProduct = true
+  }
+  if (input.categoryId !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.category_id = input.categoryId || null
+    touchesProduct = true
+  }
+  if (input.status !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    if (!['draft', 'published', 'archived'].includes(input.status)) {
+      return { error: 'Invalid status', httpStatus: 400 as const }
+    }
+    patch.status = input.status
+    touchesProduct = true
+  }
+  if (input.lowStockThreshold !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.low_stock_threshold = input.lowStockThreshold
+    touchesProduct = true
+  }
+  if (input.targetStock !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.target_stock = input.targetStock
+    touchesProduct = true
+  }
+  if (input.sellingQuantity !== undefined || input.sellingUnit !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    if (input.sellingQuantity !== undefined) patch.selling_quantity = input.sellingQuantity
+    if (input.sellingUnit !== undefined) patch.selling_unit = input.sellingUnit
+    touchesProduct = true
+  }
+  if (input.isFeatured !== undefined) {
+    if (!options.canManageProduct) return { error: 'Forbidden', httpStatus: 403 as const }
+    patch.is_featured = input.isFeatured
+    touchesProduct = true
+  }
+  if (input.price !== undefined) {
+    if (!options.canSetSelling) return { error: 'Forbidden', httpStatus: 403 as const }
+    if (!Number.isFinite(input.price) || input.price < 0) {
+      return { error: 'Invalid selling price', httpStatus: 400 as const }
+    }
+    patch.price = input.price
+    nextPrice = input.price
+  }
+  if (input.costPrice !== undefined) {
+    if (!options.canSetCost) return { error: 'Forbidden', httpStatus: 403 as const }
+    if (!Number.isFinite(input.costPrice) || input.costPrice < 0) {
+      return { error: 'Invalid cost price', httpStatus: 400 as const }
+    }
+    patch.cost_price = input.costPrice
+    nextCost = input.costPrice
+  }
+
+  if (!touchesProduct && nextPrice === undefined && nextCost === undefined) {
+    return { error: 'No product changes provided', httpStatus: 400 as const }
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('products')
+    .update(patch)
+    .eq('id', id)
+    .select(PRODUCT_SELECT)
+    .maybeSingle()
+
+  if (error) return { error: 'Failed to update product', httpStatus: 500 as const }
+  if (!data) return { error: 'Product not found', httpStatus: 404 as const }
+
+  if (nextPrice !== undefined && nextPrice !== current.price) {
+    await recordPriceHistory({
+      productId: id,
+      field: 'selling_price',
+      oldValue: current.price,
+      newValue: nextPrice,
+      actorUserId: options.actorUserId,
+    })
+  }
+  if (nextCost !== undefined && nextCost !== (current.costPrice ?? 0)) {
+    await recordPriceHistory({
+      productId: id,
+      field: 'cost_price',
+      oldValue: current.costPrice ?? null,
+      newValue: nextCost,
+      actorUserId: options.actorUserId,
+    })
+  }
+
+  return {
+    httpStatus: 200 as const,
+    body: {
+      item: mapProduct(data as unknown as Record<string, unknown>, Boolean(options.includeCost)),
+    },
+  }
+}
+
+export async function archiveStaffProduct(
+  id: string,
+  options: StaffProductQueryOptions = {}
+) {
+  return updateStaffProduct(
+    id,
+    { status: 'archived' },
+    {
+      includeCost: options.includeCost,
+      actorUserId: '',
+      canManageProduct: true,
+      canSetCost: false,
+      canSetSelling: false,
+    }
+  )
 }

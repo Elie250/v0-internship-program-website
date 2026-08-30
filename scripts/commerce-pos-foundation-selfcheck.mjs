@@ -40,8 +40,6 @@ function expandShopPermissionAliases(permissions) {
   }
   if (merged.has('shop:products')) {
     merged.add('shop:products_view')
-    merged.add('shop:stock_view')
-    merged.add('shop:stock_adjust')
   }
   if (merged.has('shop:pos_sell')) {
     merged.add('shop:products_view')
@@ -75,10 +73,11 @@ test('pos_sell expands to products_view for catalog READ', () => {
   assert.equal(expanded.has('shop:products'), false)
 })
 
-test('shop:products expands to products_view and stock', () => {
+test('shop:products expands to products_view without stock adjustment', () => {
   const expanded = expandShopPermissionAliases(['shop:products'])
   assert.ok(expanded.has('shop:products_view'))
-  assert.ok(expanded.has('shop:stock_view'))
+  assert.equal(expanded.has('shop:stock_view'), false)
+  assert.equal(expanded.has('shop:stock_adjust'), false)
 })
 
 test('receipt print hints stay outside checkout UI', () => {

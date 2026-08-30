@@ -311,7 +311,7 @@ test('mobile refunds start from Sales, not POS checkout', () => {
   assert.match(detail, /Math\.min\(max,/)
   assert.match(detail, /confirmShopRefund/)
   assert.match(detail, /pending/)
-  assert.match(confirm, /text: 'Cancel', style: 'cancel'/)
+  assert.match(confirm, /cancelLabel: 'Cancel'/)
   assert.match(confirm, /Confirm refund/)
   assert.match(hooks, /inflightRefund/)
   assert.match(refundRequestFn, /\/api\/staff\/orders\/\$\{input\.orderId\}\/refunds/)

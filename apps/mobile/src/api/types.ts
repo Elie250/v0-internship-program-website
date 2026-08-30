@@ -128,6 +128,9 @@ export type StaffInventoryRow = {
   isLowStock: boolean
   status: string | null
   price: number
+  targetStock?: number | null
+  onOrder?: number
+  suggestedPurchase?: number
 }
 
 export type PosSaleResult = {

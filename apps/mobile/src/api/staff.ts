@@ -22,6 +22,7 @@ export async function loginStaff(email: string, password: string) {
     body: JSON.stringify({ email, password }),
     expireOn401: false,
     isLogin: true,
+    auth: false,
   })
 }
 
@@ -75,6 +76,69 @@ export async function fetchProducts(params: Record<string, string | number | und
   }
   const suffix = search.toString() ? `?${search.toString()}` : ''
   return staffRequest<Paginated<StaffProduct>>(`/api/staff/products${suffix}`)
+}
+
+export async function createStaffProduct(input: {
+  name: string
+  price?: number
+  costPrice?: number
+}) {
+  return staffRequest<{ item: StaffProduct }>('/api/staff/products', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function updateStaffProduct(
+  id: string,
+  input: Record<string, unknown>
+) {
+  return staffRequest<{ item: StaffProduct }>(`/api/staff/products/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function adjustStaffStock(input: {
+  productId: string
+  quantityDelta: number
+  reason: string
+}) {
+  return staffRequest('/api/staff/inventory/adjust', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function receiveStaffStock(input: {
+  productId: string
+  quantity: number
+  reason: string
+}) {
+  return staffRequest('/api/staff/inventory/receive', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function fetchReplenishment(params: Record<string, string | number | undefined> = {}) {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value != null && String(value).length) search.set(key, String(value))
+  }
+  const suffix = search.toString() ? `?${search.toString()}` : ''
+  return staffRequest<Paginated<StaffInventoryRow>>(`/api/staff/inventory/replenishment${suffix}`)
+}
+
+export async function createPurchaseRequest(input: {
+  productId: string
+  quantity: number
+  notes?: string
+}) {
+  return staffRequest('/api/staff/inventory/purchase-requests', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
 }
 
 export async function fetchInventory(params: Record<string, string | number | undefined> = {}) {

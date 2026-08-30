@@ -66,12 +66,11 @@ test('sales metrics require sales/orders permission; stock uses stock_view', () 
   const salesperson = [
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
   ]
   const inventoryManager = [PERMISSIONS.SHOP_STOCK_VIEW]
   assert.equal(hasPermission(salesperson, DASHBOARD_API_PERMS), true)
-  assert.equal(hasPermission(salesperson, PERMISSIONS.SHOP_STOCK_VIEW), true)
+  assert.equal(hasPermission(salesperson, PERMISSIONS.SHOP_STOCK_VIEW), false)
   assert.equal(hasPermission(inventoryManager, DASHBOARD_API_PERMS), false)
   assert.equal(hasPermission(inventoryManager, PERMISSIONS.SHOP_STOCK_VIEW), true)
 })

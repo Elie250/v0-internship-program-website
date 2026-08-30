@@ -28,6 +28,7 @@
     "test:shop-security": "node --test scripts/shop-security-hardening-selfcheck.mjs",
     "test:shop-staff": "node --test scripts/shop-staff-selfcheck.mjs",
     "test:shop-staff-ui": "node --test scripts/shop-staff-ui-selfcheck.mjs",
+    "test:shop-inventory-rbac": "node --test scripts/shop-inventory-rbac-selfcheck.mjs",
     "test:shop-i18n": "node --test scripts/shop-i18n-selfcheck.mjs",
     "test:shop-storefront": "node --test scripts/shop-storefront-selfcheck.mjs",
     "test:shop-numbering": "node --test scripts/shop-commerce-numbering-selfcheck.mjs",

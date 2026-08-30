@@ -194,6 +194,15 @@ export default function CustomerHome() {
             </View>
           </ShopSection>
         ) : null}
+
+        <ShopSection>
+          <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.2}>
+            {t('home.contact')}
+          </Text>
+          <Text style={styles.contactLine}>{t('home.contactEmail')}</Text>
+          <Text style={styles.contactLine}>{t('home.contactPhone1')}</Text>
+          <Text style={styles.contactLine}>{t('home.contactPhone2')}</Text>
+        </ShopSection>
       </ScreenState>
     </ShopScreen>
   )
@@ -256,4 +265,10 @@ const styles = StyleSheet.create({
   },
   gridItem: { width: '48%', flexGrow: 1, maxWidth: '48%' },
   trendCard: { width: 132 },
+  contactLine: {
+    fontFamily: font.regular,
+    fontSize: 14,
+    color: shopColor.text,
+    marginTop: 4,
+  },
 })

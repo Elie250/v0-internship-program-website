@@ -79,6 +79,9 @@ export default function ContactPage() {
                 <a href={`tel:${COMPANY.phone}`} className="text-lg font-semibold text-primary hover:underline">
                   {COMPANY.phoneDisplay}
                 </a>
+                <a href={`tel:${COMPANY.phoneAlt}`} className="block text-lg font-semibold text-primary hover:underline">
+                  {COMPANY.phoneAltDisplay}
+                </a>
                 <p className="text-sm text-muted-foreground">
                   {COMPANY.timezone} · Mon–Fri 8:00–17:00
                 </p>

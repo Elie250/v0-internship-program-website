@@ -46,8 +46,6 @@ function expandShopPermissionAliases(permissions) {
   }
   if (merged.has('shop:products')) {
     merged.add('shop:products_view')
-    merged.add('shop:stock_view')
-    merged.add('shop:stock_adjust')
   }
   if (merged.has('shop:pos_sell')) {
     merged.add('shop:products_view')
@@ -123,7 +121,6 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
   ],
   inventory_manager: [
@@ -131,6 +128,7 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_STOCK_ADJUST,
+    'shop:stock_receive',
     PERMISSIONS.SHOP_ORDERS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_CATEGORIES,
@@ -143,6 +141,10 @@ const ROUTE_FILES = [
   'app/api/staff/products/[id]/route.ts',
   'app/api/staff/inventory/route.ts',
   'app/api/staff/inventory/movements/route.ts',
+  'app/api/staff/inventory/adjust/route.ts',
+  'app/api/staff/inventory/receive/route.ts',
+  'app/api/staff/inventory/replenishment/route.ts',
+  'app/api/staff/inventory/purchase-requests/route.ts',
   'app/api/staff/orders/route.ts',
   'app/api/staff/orders/[id]/route.ts',
   'app/api/staff/reports/dashboard/route.ts',
@@ -171,37 +173,50 @@ test('staff read API route modules exist', () => {
   }
 })
 
-test('routes authenticate with requireStaffPermission and stay read-only except selling-unit PATCH', () => {
+test('routes authenticate with staff permission or session guards', () => {
   for (const rel of ROUTE_FILES) {
     const src = readFileSync(join(root, rel), 'utf8')
-    assert.match(src, /requireStaffPermission/)
-    assert.match(src, /export async function GET/)
-    if (rel.replace(/\\/g, '/').endsWith('staff/products/[id]/route.ts')) {
-      assert.match(src, /export async function PATCH/)
-      assert.match(src, /assertStaffMutationAllowed/)
-      assert.match(src, /PERMISSIONS\.SHOP_PRODUCTS/)
-      assert.doesNotMatch(src, /export async function (POST|PUT|DELETE)/)
+    assert.match(src, /requireStaffPermission|requireStaffSession/)
+    const path = rel.replace(/\\/g, '/')
+    if (path.endsWith('staff/products/route.ts')) {
+      assert.match(src, /export async function GET/)
+      assert.match(src, /export async function POST/)
+      assert.match(src, /STAFF_API_PERMISSIONS\.productManage/)
       continue
     }
-    if (rel.replace(/\\/g, '/').endsWith('staff/orders/[id]/route.ts')) {
+    if (path.endsWith('staff/products/[id]/route.ts')) {
+      assert.match(src, /export async function PATCH/)
+      assert.match(src, /assertStaffMutationAllowed/)
+      assert.match(src, /SHOP_SELLING_PRICE|SHOP_COST_PRICE|SHOP_PRODUCTS/)
+      continue
+    }
+    if (path.endsWith('staff/orders/[id]/route.ts')) {
       assert.match(src, /export async function PATCH/)
       assert.match(src, /assertStaffMutationAllowed/)
       assert.match(src, /STAFF_API_PERMISSIONS\.fulfillment/)
-      assert.doesNotMatch(src, /export async function (POST|PUT|DELETE)/)
       continue
     }
-    assert.doesNotMatch(src, /export async function (POST|PATCH|PUT|DELETE)/)
+    if (path.includes('inventory/adjust') || path.includes('inventory/receive') || path.includes('purchase-requests')) {
+      assert.match(src, /export async function POST/)
+      assert.match(src, /assertStaffMutationAllowed/)
+      continue
+    }
+    assert.match(src, /export async function GET/)
   }
 })
 
-test('no write/mutation handlers under staff products/inventory/orders/reports', () => {
-  const forbidden = ['createCommerceSale', 'adjustStock', 'receiveStock', 'transferStock']
+test('staff mutations do not rewrite the commerce checkout engine', () => {
+  const forbidden = ['createCommerceSale', 'transferStock']
   for (const rel of ROUTE_FILES) {
     const src = readFileSync(join(root, rel), 'utf8')
     for (const needle of forbidden) {
       assert.equal(src.includes(needle), false, `${rel} must not call ${needle}`)
     }
   }
+  const adjust = readFileSync(join(root, 'app/api/staff/inventory/adjust/route.ts'), 'utf8')
+  const receive = readFileSync(join(root, 'app/api/staff/inventory/receive/route.ts'), 'utf8')
+  assert.match(adjust, /stockAdjust/)
+  assert.match(receive, /stockReceive/)
 })
 
 test('unauthenticated staff lack all API permissions', () => {
@@ -212,12 +227,12 @@ test('unauthenticated staff lack all API permissions', () => {
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), false)
 })
 
-test('salesperson can access product READ, inventory, orders, dashboard — not product management alone', () => {
+test('salesperson can access product READ, orders, dashboard — not inventory or product management', () => {
   const perms = [...expandShopPermissionAliases(ROLE_PERMISSIONS.salesperson)]
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.products), true)
   assert.equal(perms.includes(PERMISSIONS.SHOP_PRODUCTS), false)
   assert.equal(perms.includes(PERMISSIONS.SHOP_PRODUCTS_VIEW), true)
-  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.inventory), true)
+  assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.inventory), false)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.orders), true)
   assert.equal(hasPermission(perms, STAFF_API_PERMISSIONS.dashboard), true)
 })

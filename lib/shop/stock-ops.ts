@@ -443,3 +443,45 @@ export async function adjustStockAbsolute(input: {
 
   return { quantityBefore, quantityAfter }
 }
+
+export async function adjustStockDelta(input: {
+  productId: string
+  quantityDelta: number
+  movementType: StockMovementType
+  actorUserId?: string | null
+  reason?: string | null
+}): Promise<{ error?: string; quantityBefore?: number; quantityAfter?: number }> {
+  if (!supabaseAdmin) return { error: 'Database not configured' }
+  if (!Number.isFinite(input.quantityDelta) || input.quantityDelta === 0) {
+    return { error: 'Quantity change is required' }
+  }
+
+  const { data, error } = await supabaseAdmin.rpc('shop_add_stock', {
+    p_product_id: input.productId,
+    p_delta: Math.trunc(input.quantityDelta),
+  })
+
+  if (error) {
+    if (isInsufficientStockError(error.message)) {
+      return { error: 'Insufficient stock' }
+    }
+    return { error: error.message }
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const quantityBefore = Number(row?.quantity_before ?? 0)
+  const quantityAfter = Number(row?.quantity_after ?? quantityBefore + input.quantityDelta)
+
+  const movement = await recordMovement({
+    productId: input.productId,
+    movementType: input.movementType,
+    quantityDelta: quantityAfter - quantityBefore,
+    quantityBefore,
+    quantityAfter,
+    reason: input.reason ?? 'Stock change',
+    actorUserId: input.actorUserId,
+  })
+  if (movement.error) return { error: movement.error }
+
+  return { quantityBefore, quantityAfter }
+}

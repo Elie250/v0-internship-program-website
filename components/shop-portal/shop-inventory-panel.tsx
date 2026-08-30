@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useEffectEvent, useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatShopInteger, formatShopRwf } from '@/lib/shop/format'
@@ -21,6 +22,9 @@ type InventoryRow = {
   price: number
   updatedAt: string | null
   stockModel: string
+  targetStock?: number | null
+  onOrder?: number
+  suggestedPurchase?: number
 }
 
 type MovementRow = {
@@ -36,9 +40,19 @@ type MovementRow = {
   createdAt: string
 }
 
-type Tab = 'levels' | 'movements'
+type Tab = 'levels' | 'movements' | 'replenishment'
 
-export function ShopInventoryPanel() {
+export function ShopInventoryPanel({
+  canAdjust = false,
+  canReceive = false,
+  canReplenish = false,
+  canPurchaseRequest = false,
+}: {
+  canAdjust?: boolean
+  canReceive?: boolean
+  canReplenish?: boolean
+  canPurchaseRequest?: boolean
+}) {
   const t = useShopT()
   const [tab, setTab] = useState<Tab>('levels')
   const [query, setQuery] = useState('')
@@ -50,6 +64,10 @@ export function ShopInventoryPanel() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [movementType, setMovementType] = useState('')
+  const [selectedId, setSelectedId] = useState('')
+  const [qty, setQty] = useState('')
+  const [reason, setReason] = useState('')
+  const [actionBusy, setActionBusy] = useState(false)
   const [, startTransition] = useTransition()
 
   const loadLevels = useEffectEvent(async (q: string, pg: number) => {
@@ -92,11 +110,32 @@ export function ShopInventoryPanel() {
     setLoading(false)
   })
 
+  const loadReplenishment = useEffectEvent(async (q: string, pg: number) => {
+    setLoading(true)
+    setError('')
+    const params = new URLSearchParams({ page: String(pg), limit: String(limit) })
+    if (q.trim()) params.set('q', q.trim())
+    const result = await fetchStaffApi<StaffListResponse<InventoryRow>>(
+      `/api/staff/inventory/replenishment?${params.toString()}`
+    )
+    if (!result.ok) {
+      setItems([])
+      setTotal(0)
+      setError(result.error)
+      setLoading(false)
+      return
+    }
+    setItems(result.data.items ?? [])
+    setTotal(result.data.total ?? 0)
+    setLoading(false)
+  })
+
   useEffect(() => {
     const handle = window.setTimeout(() => {
       startTransition(() => {
-        if (tab === 'levels') void loadLevels(query, page)
-        else void loadMovements(page, movementType)
+        if (tab === 'movements') void loadMovements(page, movementType)
+        else if (tab === 'replenishment') void loadReplenishment(query, page)
+        else void loadLevels(query, page)
       })
     }, 220)
     return () => window.clearTimeout(handle)
@@ -135,23 +174,148 @@ export function ShopInventoryPanel() {
         >
           {t('inventory.tab.movements')}
         </button>
+        {canReplenish ? (
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              tab === 'replenishment'
+                ? 'bg-[var(--brand-navy,#1e3a5f)] text-white'
+                : 'bg-white border border-slate-200 text-slate-700'
+            }`}
+            onClick={() => {
+              setPage(1)
+              setTab('replenishment')
+            }}
+          >
+            {t('inventory.tab.replenishment')}
+          </button>
+        ) : null}
       </div>
 
-      {tab === 'levels' ? (
-        <div>
-          <Label htmlFor="inv-q" className="sr-only">
-            {t('inventory.searchLabel')}
-          </Label>
-          <Input
-            id="inv-q"
-            value={query}
-            onChange={(e) => {
-              setPage(1)
-              setQuery(e.target.value)
-            }}
-            placeholder={t('inventory.searchPlaceholder')}
-            className="bg-white max-w-md"
-          />
+      {tab !== 'movements' ? (
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="inv-q" className="sr-only">
+              {t('inventory.searchLabel')}
+            </Label>
+            <Input
+              id="inv-q"
+              value={query}
+              onChange={(e) => {
+                setPage(1)
+                setQuery(e.target.value)
+              }}
+              placeholder={t('inventory.searchPlaceholder')}
+              className="bg-white max-w-md"
+            />
+          </div>
+          {(canAdjust || canReceive || canPurchaseRequest) && selectedId ? (
+            <form
+              className="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3"
+              onSubmit={async (event) => {
+                event.preventDefault()
+              }}
+            >
+              <div>
+                <Label htmlFor="inv-qty">{t('inventory.field.qty')}</Label>
+                <Input
+                  id="inv-qty"
+                  className="mt-1 w-24 bg-white"
+                  type="number"
+                  value={qty}
+                  onChange={(e) => setQty(e.target.value)}
+                />
+              </div>
+              <div className="min-w-[180px] flex-1">
+                <Label htmlFor="inv-reason">{t('inventory.field.reason')}</Label>
+                <Input
+                  id="inv-reason"
+                  className="mt-1 bg-white"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </div>
+              {canAdjust ? (
+                <Button
+                  type="button"
+                  disabled={actionBusy}
+                  onClick={async () => {
+                    setActionBusy(true)
+                    const result = await fetchStaffApi('/api/staff/inventory/adjust', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        productId: selectedId,
+                        quantityDelta: Number(qty),
+                        reason,
+                      }),
+                    })
+                    setActionBusy(false)
+                    if (!result.ok) {
+                      setError(result.error)
+                      return
+                    }
+                    void loadLevels(query, page)
+                  }}
+                >
+                  {t('inventory.action.adjust')}
+                </Button>
+              ) : null}
+              {canReceive ? (
+                <Button
+                  type="button"
+                  disabled={actionBusy}
+                  onClick={async () => {
+                    setActionBusy(true)
+                    const result = await fetchStaffApi('/api/staff/inventory/receive', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        productId: selectedId,
+                        quantity: Number(qty),
+                        reason,
+                      }),
+                    })
+                    setActionBusy(false)
+                    if (!result.ok) {
+                      setError(result.error)
+                      return
+                    }
+                    void loadLevels(query, page)
+                  }}
+                >
+                  {t('inventory.action.receive')}
+                </Button>
+              ) : null}
+              {canPurchaseRequest ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={actionBusy}
+                  onClick={async () => {
+                    setActionBusy(true)
+                    const result = await fetchStaffApi('/api/staff/inventory/purchase-requests', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        productId: selectedId,
+                        quantity: Number(qty),
+                        notes: reason,
+                      }),
+                    })
+                    setActionBusy(false)
+                    if (!result.ok) {
+                      setError(result.error)
+                      return
+                    }
+                    if (tab === 'replenishment') void loadReplenishment(query, page)
+                  }}
+                >
+                  {t('inventory.action.request')}
+                </Button>
+              ) : null}
+            </form>
+          ) : null}
         </div>
       ) : (
         <div>
@@ -185,7 +349,7 @@ export function ShopInventoryPanel() {
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          {tab === 'levels' ? (
+          {tab !== 'movements' ? (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
                 <tr>
@@ -194,11 +358,24 @@ export function ShopInventoryPanel() {
                   <th className="px-3 py-2 font-medium">{t('inventory.col.threshold')}</th>
                   <th className="px-3 py-2 font-medium">{t('inventory.col.listPrice')}</th>
                   <th className="px-3 py-2 font-medium">{t('inventory.col.flag')}</th>
+                  {tab === 'replenishment' ? (
+                    <>
+                      <th className="px-3 py-2 font-medium">{t('inventory.col.target')}</th>
+                      <th className="px-3 py-2 font-medium">{t('inventory.col.onOrder')}</th>
+                      <th className="px-3 py-2 font-medium">{t('inventory.col.suggested')}</th>
+                    </>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
                 {items.map((row) => (
-                  <tr key={row.productId} className="border-t border-slate-100">
+                  <tr
+                    key={row.productId}
+                    className={`border-t border-slate-100 cursor-pointer ${
+                      selectedId === row.productId ? 'bg-slate-50' : 'hover:bg-slate-50/80'
+                    }`}
+                    onClick={() => setSelectedId(row.productId)}
+                  >
                     <td className="px-3 py-2.5">
                       <p className="font-medium text-slate-900">{row.name}</p>
                       <p className="text-xs text-slate-500">
@@ -227,6 +404,19 @@ export function ShopInventoryPanel() {
                         <span className="text-xs text-slate-400">{t('inventory.flag.ok')}</span>
                       )}
                     </td>
+                    {tab === 'replenishment' ? (
+                      <>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {row.targetStock != null ? formatShopInteger(row.targetStock) : t('common.emDash')}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums">
+                          {formatShopInteger(row.onOrder ?? 0)}
+                        </td>
+                        <td className="px-3 py-2.5 tabular-nums font-medium">
+                          {formatShopInteger(row.suggestedPurchase ?? 0)}
+                        </td>
+                      </>
+                    ) : null}
                   </tr>
                 ))}
                 {!loading && items.length === 0 ? (

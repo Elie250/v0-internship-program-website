@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createStaffSession, revokeStaffSession } from '@/lib/staff/auth'
 import { requireStaffSession } from '@/lib/staff/context'
-import { assertStaffMutationAllowed, extractStaffToken } from '@/lib/staff/request-auth'
+import {
+  assertStaffMutationAllowed,
+  extractStaffToken,
+  isShopBrowserOrigin,
+} from '@/lib/staff/request-auth'
 import {
   checkStaffLoginRateLimit,
   getClientIpFromRequest,
@@ -18,13 +22,14 @@ import {
  * - Returns Bearer token in JSON for mobile clients.
  * - Also sets httpOnly staff_session cookie for the Shop web portal.
  *
- * CSRF: enforced when a staff cookie already exists. Initial login (no cookie)
- * must remain reachable for Android / API clients without a browser Origin.
+ * CSRF: enforced for Shop-host browser logins when a staff cookie already exists.
+ * Android / Expo may still have a leftover Set-Cookie from a prior attempt and
+ * must remain able to POST email + password without a shop Origin.
  */
 export async function POST(request: Request) {
   try {
     const existingCookie = readStaffSessionCookieFromRequest(request)
-    if (existingCookie) {
+    if (existingCookie && isShopBrowserOrigin(request)) {
       const csrf = assertStaffMutationAllowed(request)
       if (!csrf.ok) {
         return NextResponse.json({ error: csrf.error }, { status: 403 })

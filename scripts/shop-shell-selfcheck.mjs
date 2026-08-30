@@ -54,7 +54,6 @@ test('salesperson sees POS, catalog read, sales — not Staff management', () =>
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
   ]
   const hrefs = filterNav(perms, 'salesperson').map((i) => i.href)
@@ -62,7 +61,7 @@ test('salesperson sees POS, catalog read, sales — not Staff management', () =>
   assert.ok(hrefs.includes('/orders'))
   assert.ok(hrefs.includes('/pos'))
   assert.ok(hrefs.includes('/products'))
-  assert.ok(hrefs.includes('/inventory'))
+  assert.equal(hrefs.includes('/inventory'), false)
   assert.ok(hrefs.includes('/sales'))
   assert.ok(hrefs.includes('/settings'))
   assert.equal(hrefs.includes('/users'), false)

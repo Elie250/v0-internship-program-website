@@ -8,7 +8,7 @@ import {
 
 /**
  * Admin-only Shop staff list + create.
- * Permissions are always derived from role — client permissions arrays are ignored.
+ * Custom shop extras are persisted to users.permissions after server-side filtering.
  */
 export async function GET(request: Request) {
   try {

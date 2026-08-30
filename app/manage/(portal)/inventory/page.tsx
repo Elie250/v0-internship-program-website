@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
 import { requireShopPortalAccess } from '@/lib/shop/portal-session'
 import { ShopForbiddenPanel } from '@/components/shop-portal/shop-page-chrome'
 import { ShopLocalizedPageHeader } from '@/components/shop-portal/shop-localized-page-header'
@@ -30,7 +30,12 @@ export default async function ShopInventoryPage() {
         titleKey="inventory.title"
         descriptionKey="inventory.description"
       />
-      <ShopInventoryPanel />
+      <ShopInventoryPanel
+        canAdjust={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_ADJUST)}
+        canReceive={hasPermission(session.user.permissions, PERMISSIONS.SHOP_STOCK_RECEIVE)}
+        canReplenish={hasPermission(session.user.permissions, PERMISSIONS.SHOP_REPLENISHMENT_VIEW)}
+        canPurchaseRequest={hasPermission(session.user.permissions, PERMISSIONS.SHOP_PURCHASE_REQUEST)}
+      />
     </div>
   )
 }

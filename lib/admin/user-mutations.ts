@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { resolvePermissions } from '@/lib/admin/permissions'
+import { extrasToPreserveOnRoleChange, resolvePermissions } from '@/lib/admin/permissions'
 import type { AdminUserRole } from '@/lib/admin/user-roles'
 
 export async function approveStaffAccountMutation(
@@ -146,7 +146,13 @@ export async function updateUserMutation(input: {
 }): Promise<{ success: boolean; error?: string }> {
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }
 
-  const permissions = resolvePermissions(input.role, [])
+  const { data: storedRow } = await supabaseAdmin
+    .from('users')
+    .select('permissions')
+    .eq('id', input.id)
+    .maybeSingle()
+
+  const permissions = extrasToPreserveOnRoleChange(storedRow?.permissions, input.role)
 
   const { error } = await supabaseAdmin
     .from('users')

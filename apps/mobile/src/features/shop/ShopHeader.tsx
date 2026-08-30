@@ -39,6 +39,16 @@ export function ShopHeader({
       <Text style={styles.title} numberOfLines={1} maxFontSizeMultiplier={1.2}>
         {title ?? t('brand.name')}
       </Text>
+      <Pressable
+        onPress={() => router.push('/customer/track' as never)}
+        accessibilityRole="button"
+        accessibilityLabel={t('nav.signIn')}
+        style={styles.signInBtn}
+      >
+        <Text style={styles.signIn} maxFontSizeMultiplier={1.1}>
+          {t('nav.signIn')}
+        </Text>
+      </Pressable>
       {showSearch ? (
         <Pressable
           onPress={() => router.push('/customer/search' as never)}
@@ -83,6 +93,16 @@ const styles = StyleSheet.create({
     fontFamily: font.bold,
     fontSize: 16,
     color: shopColor.text,
+  },
+  signInBtn: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  signIn: {
+    fontFamily: font.semibold,
+    fontSize: 13,
+    color: shopColor.green,
   },
   iconBtn: {
     width: 40,

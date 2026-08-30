@@ -41,7 +41,17 @@ type ProductDetail = ProductRow & {
   updatedAt: string | null
 }
 
-export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
+export function ShopProductsPanel({
+  canSeeCost,
+  canManage = false,
+  canEditSelling = false,
+  canEditCost = false,
+}: {
+  canSeeCost: boolean
+  canManage?: boolean
+  canEditSelling?: boolean
+  canEditCost?: boolean
+}) {
   const t = useShopT()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('published')
@@ -59,6 +69,12 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
   const [featured, setFeatured] = useState(false)
   const [sellingSaving, setSellingSaving] = useState(false)
   const [sellingMessage, setSellingMessage] = useState('')
+  const [nameDraft, setNameDraft] = useState('')
+  const [priceDraft, setPriceDraft] = useState('')
+  const [costDraft, setCostDraft] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createPrice, setCreatePrice] = useState('')
   const [, startTransition] = useTransition()
 
   const loadList = useEffectEvent(async (q: string, st: string, pg: number) => {
@@ -102,6 +118,9 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
         : 'PCS'
     )
     setFeatured(Boolean(result.data.item.isFeatured))
+    setNameDraft(result.data.item.name)
+    setPriceDraft(String(result.data.item.price ?? ''))
+    setCostDraft(result.data.item.costPrice != null ? String(result.data.item.costPrice) : '')
     setSellingMessage('')
   })
 
@@ -125,8 +144,65 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
   return (
     <div className="space-y-4">
       <p className="text-xs text-slate-500">
-        {canSeeCost ? t('products.manageNote') : t('products.readOnlyNote')}
+        {canManage ? t('products.manageNote') : t('products.readOnlyNote')}
       </p>
+
+      {canManage ? (
+        <div className="flex justify-end">
+          <Button type="button" onClick={() => setCreateOpen((open) => !open)}>
+            {createOpen ? t('action.close') : t('products.create')}
+          </Button>
+        </div>
+      ) : null}
+      {createOpen && canManage ? (
+        <form
+          className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-3"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            const result = await fetchStaffApi<{ item: ProductRow }>('/api/staff/products', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: createName,
+                price: createPrice ? Number(createPrice) : undefined,
+              }),
+            })
+            if (!result.ok) {
+              setError(result.error)
+              return
+            }
+            setCreateOpen(false)
+            setCreateName('')
+            setCreatePrice('')
+            void loadList(query, status, 1)
+          }}
+        >
+          <div className="min-w-[180px] flex-1">
+            <Label htmlFor="create-product-name">{t('products.field.name')}</Label>
+            <Input
+              id="create-product-name"
+              className="mt-1 bg-white"
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              required
+            />
+          </div>
+          {canEditSelling ? (
+            <div className="w-36">
+              <Label htmlFor="create-product-price">{t('products.field.listPrice')}</Label>
+              <Input
+                id="create-product-price"
+                className="mt-1 bg-white"
+                type="number"
+                min="0"
+                value={createPrice}
+                onChange={(e) => setCreatePrice(e.target.value)}
+              />
+            </div>
+          ) : null}
+          <Button type="submit">{t('products.create')}</Button>
+        </form>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         <div className="min-w-[200px] flex-1">
@@ -312,29 +388,34 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                   </dd>
                 </div>
               </dl>
-              {canSeeCost ? (
+              {canManage || canEditSelling || canEditCost ? (
                 <form
                   className="space-y-3 border-t border-slate-100 pt-3"
                   onSubmit={async (event) => {
                     event.preventDefault()
                     setSellingMessage('')
-                    const qty = parseSellingQuantity(sellingQuantity)
-                    const unit = parseSellingUnit(sellingUnit)
-                    if (!qty.ok || !unit.ok) {
-                      setSellingMessage(t('products.sellingInvalid'))
-                      return
+                    const payload: Record<string, unknown> = {}
+                    if (canManage) {
+                      const qty = parseSellingQuantity(sellingQuantity)
+                      const unit = parseSellingUnit(sellingUnit)
+                      if (!qty.ok || !unit.ok) {
+                        setSellingMessage(t('products.sellingInvalid'))
+                        return
+                      }
+                      payload.sellingQuantity = qty.value
+                      payload.sellingUnit = unit.value
+                      payload.isFeatured = featured
+                      payload.name = nameDraft
                     }
+                    if (canEditSelling && priceDraft !== '') payload.price = Number(priceDraft)
+                    if (canEditCost && costDraft !== '') payload.costPrice = Number(costDraft)
                     setSellingSaving(true)
                     const result = await fetchStaffApi<{ item: ProductDetail }>(
                       `/api/staff/products/${detail.id}`,
                       {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          sellingQuantity: qty.value,
-                          sellingUnit: unit.value,
-                          isFeatured: featured,
-                        }),
+                        body: JSON.stringify(payload),
                       }
                     )
                     setSellingSaving(false)
@@ -343,84 +424,140 @@ export function ShopProductsPanel({ canSeeCost }: { canSeeCost: boolean }) {
                       return
                     }
                     setDetail(result.data.item)
-                    setSellingQuantity(String(result.data.item.sellingQuantity ?? qty.value))
-                    setSellingUnit(result.data.item.sellingUnit || unit.value)
-                    setFeatured(Boolean(result.data.item.isFeatured))
-                    setItems((current) =>
-                      current.map((row) =>
-                        row.id === result.data.item.id
-                          ? {
-                              ...row,
-                              sellingQuantity: result.data.item.sellingQuantity,
-                              sellingUnit: result.data.item.sellingUnit,
-                              sellingUnitLabel: result.data.item.sellingUnitLabel,
-                              isFeatured: result.data.item.isFeatured,
-                            }
-                          : row
-                      )
-                    )
                     setSellingMessage(t('products.sellingSaved'))
                   }}
                 >
-                  <p className="text-xs text-slate-500">{t('products.sellingHint')}</p>
-                  <div>
-                    <Label htmlFor="shop-selling-qty">{t('products.field.sellingQuantity')}</Label>
-                    <Input
-                      id="shop-selling-qty"
-                      className="mt-1 bg-white"
-                      type="number"
-                      min="0.001"
-                      step="0.001"
-                      value={sellingQuantity}
-                      onChange={(e) => setSellingQuantity(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="shop-selling-unit">{t('products.field.sellingUnit')}</Label>
-                    <select
-                      id="shop-selling-unit"
-                      className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
-                      value={sellingUnit}
-                      onChange={(e) => setSellingUnit(e.target.value)}
-                    >
-                      {SELLING_UNITS.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <label
-                    htmlFor="shop-featured"
-                    className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-                  >
-                    <input
-                      id="shop-featured"
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 accent-[var(--brand-navy,#1e3a5f)]"
-                      checked={featured}
-                      onChange={(e) => setFeatured(e.target.checked)}
-                    />
-                    <span>
-                      <span className="font-medium text-slate-900">
-                        {t('products.field.featured')}
-                      </span>
-                      <span className="mt-0.5 block text-xs text-slate-600">
-                        {t('products.featuredHint')}
-                      </span>
-                    </span>
-                  </label>
+                  {canManage ? (
+                    <div>
+                      <Label htmlFor="shop-product-name">{t('products.field.name')}</Label>
+                      <Input
+                        id="shop-product-name"
+                        className="mt-1 bg-white"
+                        value={nameDraft}
+                        onChange={(e) => setNameDraft(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  {canEditSelling ? (
+                    <div>
+                      <Label htmlFor="shop-product-price">{t('products.field.listPrice')}</Label>
+                      <Input
+                        id="shop-product-price"
+                        className="mt-1 bg-white"
+                        type="number"
+                        min="0"
+                        value={priceDraft}
+                        onChange={(e) => setPriceDraft(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  {canEditCost ? (
+                    <div>
+                      <Label htmlFor="shop-product-cost">{t('products.field.cost')}</Label>
+                      <Input
+                        id="shop-product-cost"
+                        className="mt-1 bg-white"
+                        type="number"
+                        min="0"
+                        value={costDraft}
+                        onChange={(e) => setCostDraft(e.target.value)}
+                      />
+                    </div>
+                  ) : null}
+                  {canManage ? (
+                    <>
+                      <p className="text-xs text-slate-500">{t('products.sellingHint')}</p>
+                      <div>
+                        <Label htmlFor="shop-selling-qty">{t('products.field.sellingQuantity')}</Label>
+                        <Input
+                          id="shop-selling-qty"
+                          className="mt-1 bg-white"
+                          type="number"
+                          min="0.001"
+                          step="0.001"
+                          value={sellingQuantity}
+                          onChange={(e) => setSellingQuantity(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shop-selling-unit">{t('products.field.sellingUnit')}</Label>
+                        <select
+                          id="shop-selling-unit"
+                          className="mt-1 h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+                          value={sellingUnit}
+                          onChange={(e) => setSellingUnit(e.target.value)}
+                        >
+                          {SELLING_UNITS.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <label
+                        htmlFor="shop-featured"
+                        className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                      >
+                        <input
+                          id="shop-featured"
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 accent-[var(--brand-navy,#1e3a5f)]"
+                          checked={featured}
+                          onChange={(e) => setFeatured(e.target.checked)}
+                        />
+                        <span>
+                          <span className="font-medium text-slate-900">
+                            {t('products.field.featured')}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-slate-600">
+                            {t('products.featuredHint')}
+                          </span>
+                        </span>
+                      </label>
+                    </>
+                  ) : null}
                   {sellingMessage ? (
                     <p className="text-xs text-slate-600">{sellingMessage}</p>
                   ) : null}
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
-                    disabled={sellingSaving}
-                  >
-                    {sellingSaving ? t('action.saving') : t('action.saveChanges')}
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="bg-[var(--brand-navy,#1e3a5f)] text-white hover:bg-[var(--brand-navy,#1e3a5f)]/90"
+                      disabled={sellingSaving}
+                    >
+                      {sellingSaving ? t('action.saving') : t('action.saveChanges')}
+                    </Button>
+                    {canManage && detail.status !== 'archived' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={sellingSaving}
+                        onClick={async () => {
+                          setSellingSaving(true)
+                          const result = await fetchStaffApi<{ item: ProductDetail }>(
+                            `/api/staff/products/${detail.id}`,
+                            {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ status: 'archived' }),
+                            }
+                          )
+                          setSellingSaving(false)
+                          if (!result.ok) {
+                            setSellingMessage(result.error)
+                            return
+                          }
+                          setDetail(result.data.item)
+                          setSellingMessage(t('products.archived'))
+                          void loadList(query, status, page)
+                        }}
+                      >
+                        {t('products.archive')}
+                      </Button>
+                    ) : null}
+                  </div>
                 </form>
               ) : null}
             </div>

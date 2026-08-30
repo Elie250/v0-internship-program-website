@@ -26,6 +26,16 @@ export const PERMISSIONS = {
   SHOP_STOCK_VIEW: 'shop:stock_view',
   /** Adjust inventory and record movements. */
   SHOP_STOCK_ADJUST: 'shop:stock_adjust',
+  /** Receive incoming stock (not a full inventory-manager role). */
+  SHOP_STOCK_RECEIVE: 'shop:stock_receive',
+  /** View and edit product cost price. */
+  SHOP_COST_PRICE: 'shop:cost_price',
+  /** View and edit selling price. */
+  SHOP_SELLING_PRICE: 'shop:selling_price',
+  /** View low-stock / replenishment suggestions. */
+  SHOP_REPLENISHMENT_VIEW: 'shop:replenishment_view',
+  /** Create a purchase request from replenishment. */
+  SHOP_PURCHASE_REQUEST: 'shop:purchase_request',
   /** View online and POS orders. */
   SHOP_ORDERS_VIEW: 'shop:orders_view',
   /** Update order fulfillment status. */
@@ -111,7 +121,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
     id: 'shop',
     label: 'Shop & POS',
     permissions: [
-      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products', description: 'Manage catalog (create/edit products)' },
+      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Manage products', description: 'Create, edit, and archive catalog products' },
       {
         key: PERMISSIONS.SHOP_PRODUCTS_VIEW,
         label: 'View products',
@@ -122,7 +132,12 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: PERMISSIONS.SHOP_POS_SELL, label: 'POS sell', description: 'Create in-store POS sales' },
       { key: PERMISSIONS.SHOP_SALES_VIEW, label: 'Sales history', description: 'View POS and shop sales' },
       { key: PERMISSIONS.SHOP_STOCK_VIEW, label: 'View stock', description: 'See inventory levels' },
-      { key: PERMISSIONS.SHOP_STOCK_ADJUST, label: 'Adjust stock', description: 'Change inventory and record movements' },
+      { key: PERMISSIONS.SHOP_STOCK_ADJUST, label: 'Adjust stock', description: 'Manually change inventory and record movements' },
+      { key: PERMISSIONS.SHOP_STOCK_RECEIVE, label: 'Receive stock', description: 'Record incoming stock without full product-management authority' },
+      { key: PERMISSIONS.SHOP_COST_PRICE, label: 'Edit cost price', description: 'View and change product cost price' },
+      { key: PERMISSIONS.SHOP_SELLING_PRICE, label: 'Edit selling price', description: 'Change the customer selling price' },
+      { key: PERMISSIONS.SHOP_REPLENISHMENT_VIEW, label: 'View replenishment', description: 'See low-stock items and suggested purchase quantities' },
+      { key: PERMISSIONS.SHOP_PURCHASE_REQUEST, label: 'Create purchase request', description: 'Create a purchase request from replenishment' },
       { key: PERMISSIONS.SHOP_ORDERS_VIEW, label: 'View orders', description: 'View online and POS orders' },
       { key: PERMISSIONS.SHOP_ORDERS_MANAGE, label: 'Manage orders', description: 'Update fulfillment status' },
       {
@@ -227,7 +242,7 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
     slug: 'salesperson',
     label: 'Salesperson',
-    description: 'In-store POS sales and order visibility — no admin console or inventory edits.',
+    description: 'POS-focused sales and catalog view — no inventory or price edits unless granted.',
     canAccessAdmin: false,
     isSystem: true,
   },
@@ -274,7 +289,6 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
     PERMISSIONS.SHOP_REFUNDS_REQUEST,
   ],
@@ -283,7 +297,13 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_STOCK_ADJUST,
+    PERMISSIONS.SHOP_STOCK_RECEIVE,
+    PERMISSIONS.SHOP_COST_PRICE,
+    PERMISSIONS.SHOP_SELLING_PRICE,
+    PERMISSIONS.SHOP_REPLENISHMENT_VIEW,
+    PERMISSIONS.SHOP_PURCHASE_REQUEST,
     PERMISSIONS.SHOP_ORDERS_VIEW,
+    PERMISSIONS.SHOP_ORDERS_MANAGE,
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_CATEGORIES,
     PERMISSIONS.SHOP_REFUNDS_REQUEST,
@@ -301,8 +321,6 @@ export function expandShopPermissionAliases(permissions: Iterable<string>): Set<
   }
   if (merged.has(PERMISSIONS.SHOP_PRODUCTS)) {
     merged.add(PERMISSIONS.SHOP_PRODUCTS_VIEW)
-    merged.add(PERMISSIONS.SHOP_STOCK_VIEW)
-    merged.add(PERMISSIONS.SHOP_STOCK_ADJUST)
   }
   /** POS sellers need catalog READ for lookup — not product management. */
   if (merged.has(PERMISSIONS.SHOP_POS_SELL)) {
@@ -395,6 +413,14 @@ export function extrasToPreserveOnRoleChange(stored: unknown, nextRole: string):
     if (!permission.startsWith('shop:')) return false
     return true
   })
+}
+
+/** Persist only shop extras beyond the role default set. */
+export function shopStaffStoredExtras(role: string, requested: unknown): Permission[] {
+  const roleDefaults = new Set<string>(getPermissionsForRole(role))
+  return filterAssignableCustomPermissions(role, parseStoredPermissions(requested)).filter(
+    (permission) => !roleDefaults.has(permission)
+  )
 }
 
 export function permissionLabel(key: string): string {

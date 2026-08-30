@@ -9,6 +9,11 @@ export const PERMISSIONS = {
   SHOP_PRODUCTS: 'shop:products',
   SHOP_STOCK_VIEW: 'shop:stock_view',
   SHOP_STOCK_ADJUST: 'shop:stock_adjust',
+  SHOP_STOCK_RECEIVE: 'shop:stock_receive',
+  SHOP_COST_PRICE: 'shop:cost_price',
+  SHOP_SELLING_PRICE: 'shop:selling_price',
+  SHOP_REPLENISHMENT_VIEW: 'shop:replenishment_view',
+  SHOP_PURCHASE_REQUEST: 'shop:purchase_request',
   SHOP_SALES_VIEW: 'shop:sales_view',
   SHOP_REFUNDS_REQUEST: 'shop:refunds_request',
   SHOP_REFUNDS_APPROVE: 'shop:refunds_approve',
@@ -92,7 +97,31 @@ export function canManageFulfillment(permissions: string[] | undefined): boolean
 }
 
 export function canViewProductCost(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_COST_PRICE)
+}
+
+export function canManageProducts(permissions: string[] | undefined): boolean {
   return hasPermission(permissions, PERMISSIONS.SHOP_PRODUCTS)
+}
+
+export function canAdjustStock(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_STOCK_ADJUST)
+}
+
+export function canReceiveStock(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_STOCK_RECEIVE)
+}
+
+export function canEditSellingPrice(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_SELLING_PRICE)
+}
+
+export function canViewReplenishment(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_REPLENISHMENT_VIEW)
+}
+
+export function canCreatePurchaseRequest(permissions: string[] | undefined): boolean {
+  return hasPermission(permissions, PERMISSIONS.SHOP_PURCHASE_REQUEST)
 }
 
 export function canRequestShopRefund(permissions: string[] | undefined): boolean {

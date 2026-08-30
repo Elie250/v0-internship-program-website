@@ -15,6 +15,17 @@ export function extractStaffToken(request: Request): string | null {
  * Bearer (mobile) requests are allowed without Origin checks.
  * Cookie sessions must be same-site / trusted shop origin.
  */
+/** True when the caller is the Shop web portal (not Android / Expo). */
+export function isShopBrowserOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin')
+  if (!origin) return false
+  try {
+    return isShopHost(normalizeHostname(new URL(origin).host))
+  } catch {
+    return false
+  }
+}
+
 export function assertStaffMutationAllowed(request: Request): { ok: true } | { ok: false; error: string } {
   if (extractBearerToken(request)) {
     return { ok: true }

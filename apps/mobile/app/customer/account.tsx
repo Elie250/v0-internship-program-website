@@ -25,6 +25,19 @@ export default function CustomerAccount() {
       <ShopHeader title={t('account.title')} showSearch={false} />
       <Text style={styles.hint}>{t('account.guestHint')}</Text>
       <Pressable
+        onPress={() => router.push('/customer/track' as never)}
+        accessibilityRole="button"
+        accessibilityLabel={t('account.signIn')}
+        style={styles.row}
+      >
+        <Ionicons name="person-outline" size={20} color={shopColor.text} />
+        <View style={styles.rowCopy}>
+          <Text style={styles.rowTitle}>{t('account.signIn')}</Text>
+          <Text style={styles.rowMeta}>{t('account.signInHint')}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={shopColor.muted} />
+      </Pressable>
+      <Pressable
         onPress={() => router.push('/customer/language' as never)}
         accessibilityRole="button"
         accessibilityLabel={t('account.language')}
@@ -57,6 +70,10 @@ export default function CustomerAccount() {
         <Text style={[styles.rowTitle, styles.grow]}>{t('nav.staff')}</Text>
         <Ionicons name="chevron-forward" size={18} color={shopColor.muted} />
       </Pressable>
+      <Text style={styles.section}>{t('account.help')}</Text>
+      <Text style={styles.hint}>{t('account.email')}</Text>
+      <Text style={styles.hint}>{t('account.phone1')}</Text>
+      <Text style={styles.hint}>{t('account.phone2')}</Text>
       <Text style={styles.section}>{t('account.saved')}</Text>
       {saved.length === 0 ? (
         <Text style={styles.empty}>{t('favourite.empty')}</Text>

@@ -25,10 +25,13 @@ test('staff logout returns to the customer shop', () => {
   const index = readMobile('app/index.tsx')
   const login = readMobile('app/login.tsx')
   assert.match(settings, /router\.replace\('\/customer'/)
-  assert.match(index, /token && user/)
-  assert.match(index, /\/staff/)
+  assert.match(index, /\/customer/)
+  assert.doesNotMatch(index, /token && user/)
   assert.match(login, /Back to shop/)
   assert.match(login, /\/customer/)
+  const header = readMobile('src/features/shop/ShopHeader.tsx')
+  assert.match(header, /nav.signIn/)
+  assert.match(header, /\/customer\/track/)
 })
 
 test('pending shop payment review is not limited to channel=online', () => {

@@ -8,6 +8,7 @@ import {
   extrasToPreserveOnRoleChange,
   getPermissionsForRole,
   resolvePermissions,
+  shopStaffStoredExtras,
   type Permission,
 } from '@/lib/admin/permissions'
 import { isBcryptPasswordHash, revokeAllStaffSessionsForUser } from '@/lib/staff/auth'
@@ -27,8 +28,10 @@ export type ShopStaffUserDto = {
   lastName: string
   role: string
   status: string
-  /** Effective permissions from role — never client-supplied. */
+  /** Effective permissions (role defaults + stored extras). */
   permissions: Permission[]
+  /** Stored extras only — used by the Shop staff permission matrix. */
+  customPermissions: Permission[]
   createdAt: string | null
   lastStaffSessionAt: string | null
   activeStaffSessionCount: number
@@ -56,6 +59,9 @@ export function validateStaffPassword(password: string): string | null {
   return null
 }
 
+const STAFF_USER_SELECT =
+  'id, email, first_name, last_name, role, status, created_at, permissions'
+
 function mapStaffRow(
   row: {
     id: string
@@ -65,6 +71,7 @@ function mapStaffRow(
     role: string
     status?: string | null
     created_at?: string | null
+    permissions?: unknown
   },
   sessionMeta?: { lastStaffSessionAt: string | null; activeStaffSessionCount: number }
 ): ShopStaffUserDto {
@@ -75,7 +82,8 @@ function mapStaffRow(
     lastName: row.last_name ?? '',
     role: row.role,
     status: row.status ?? 'active',
-    permissions: resolvePermissions(row.role, []),
+    permissions: resolvePermissions(row.role, row.permissions),
+    customPermissions: shopStaffStoredExtras(row.role, row.permissions),
     createdAt: row.created_at ?? null,
     lastStaffSessionAt: sessionMeta?.lastStaffSessionAt ?? null,
     activeStaffSessionCount: sessionMeta?.activeStaffSessionCount ?? 0,
@@ -162,7 +170,7 @@ export async function listShopStaffUsers(filters?: {
 
   let query = supabaseAdmin
     .from('users')
-    .select('id, email, first_name, last_name, role, status, created_at')
+    .select(STAFF_USER_SELECT)
     .in('role', [...SHOP_STAFF_LIST_ROLES])
     .order('created_at', { ascending: false })
 
@@ -207,7 +215,7 @@ export async function getShopStaffUser(
 
   const { data, error } = await supabaseAdmin
     .from('users')
-    .select('id, email, first_name, last_name, role, status, created_at')
+    .select(STAFF_USER_SELECT)
     .eq('id', id)
     .maybeSingle()
 
@@ -229,7 +237,7 @@ export async function createShopStaffUser(input: {
   lastName: string
   password: string
   role: unknown
-  /** Ignored — permissions always come from role. */
+  /** Shop extras beyond the role default. Filtered server-side. */
   permissions?: unknown
 }): Promise<{ user?: ShopStaffUserDto; error?: string; httpStatus: number }> {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 }
@@ -259,7 +267,8 @@ export async function createShopStaffUser(input: {
     return { error: 'Unable to create staff account', httpStatus: 500 }
   }
 
-  const permissions = getPermissionsForRole(input.role)
+  const permissions = shopStaffStoredExtras(input.role, input.permissions)
+  void getPermissionsForRole(input.role)
 
   const { data, error } = await supabaseAdmin
     .from('users')
@@ -274,7 +283,7 @@ export async function createShopStaffUser(input: {
         permissions,
       },
     ])
-    .select('id, email, first_name, last_name, role, status, created_at')
+    .select(STAFF_USER_SELECT)
     .single()
 
   if (error || !data) {
@@ -295,7 +304,7 @@ export async function updateShopStaffUser(input: {
   lastName?: string
   role?: unknown
   status?: 'active' | 'inactive' | 'suspended'
-  /** Ignored. */
+  /** When provided, replaces stored extras. Omitted updates leave extras intact. */
   permissions?: unknown
 }): Promise<{ user?: ShopStaffUserDto; error?: string; httpStatus: number }> {
   if (!supabaseAdmin) return { error: 'Database not configured', httpStatus: 500 }
@@ -339,12 +348,18 @@ export async function updateShopStaffUser(input: {
     }
     nextRole = input.role
     updates.role = input.role
-    const { data: storedRow } = await supabaseAdmin
-      .from('users')
-      .select('permissions')
-      .eq('id', input.id)
-      .maybeSingle()
-    updates.permissions = extrasToPreserveOnRoleChange(storedRow?.permissions, nextRole)
+    if (input.permissions === undefined) {
+      const { data: storedRow } = await supabaseAdmin
+        .from('users')
+        .select('permissions')
+        .eq('id', input.id)
+        .maybeSingle()
+      updates.permissions = extrasToPreserveOnRoleChange(storedRow?.permissions, nextRole)
+    }
+  }
+
+  if (input.permissions !== undefined) {
+    updates.permissions = shopStaffStoredExtras(nextRole, input.permissions)
   }
 
   if (input.status !== undefined) {
@@ -374,7 +389,7 @@ export async function updateShopStaffUser(input: {
     .from('users')
     .update(updates)
     .eq('id', input.id)
-    .select('id, email, first_name, last_name, role, status, created_at')
+    .select(STAFF_USER_SELECT)
     .single()
 
   if (error || !data) {
@@ -460,17 +475,17 @@ export function shopStaffIgnoresClientPermissions(
   clientPermissions: unknown,
   role: ShopStaffRole
 ): Permission[] {
-  void clientPermissions
-  return getPermissionsForRole(role)
+  return shopStaffStoredExtras(role, clientPermissions)
 }
 
-/** Name/status updates must not rewrite users.permissions. Role changes keep shop extras. */
+/** Name/status updates must not rewrite users.permissions. Role or extras writes do. */
 export function shopStaffUpdateTouchesPermissions(fields: {
   email?: unknown
   firstName?: unknown
   lastName?: unknown
   role?: unknown
   status?: unknown
+  permissions?: unknown
 }): boolean {
-  return fields.role !== undefined
+  return fields.role !== undefined || fields.permissions !== undefined
 }

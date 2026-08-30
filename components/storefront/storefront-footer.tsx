@@ -20,6 +20,7 @@ export function StorefrontFooter() {
         <div className="text-sm text-white/80">
           <p className="font-semibold text-white">{shop.name}</p>
           <p className="mt-2">{COMPANY.phoneDisplay}</p>
+          <p>{COMPANY.phoneAltDisplay}</p>
           <p>{COMPANY.email}</p>
           <Link href="/track" className="mt-3 inline-block text-white/80 hover:text-white">
             {t('storefront.nav.track')}

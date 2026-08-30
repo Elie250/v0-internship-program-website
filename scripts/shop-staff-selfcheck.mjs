@@ -29,7 +29,6 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_POS_SELL,
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_SALES_VIEW,
-    PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_ORDERS_VIEW,
     'shop:refunds_request',
   ],
@@ -38,7 +37,13 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.SHOP_PRODUCTS_VIEW,
     PERMISSIONS.SHOP_STOCK_VIEW,
     PERMISSIONS.SHOP_STOCK_ADJUST,
+    'shop:stock_receive',
+    'shop:cost_price',
+    'shop:selling_price',
+    'shop:replenishment_view',
+    'shop:purchase_request',
     PERMISSIONS.SHOP_ORDERS_VIEW,
+    'shop:orders_manage',
     PERMISSIONS.SHOP_SALES_VIEW,
     PERMISSIONS.SHOP_CATEGORIES,
     'shop:refunds_request',
@@ -56,8 +61,14 @@ function shopStaffCreateRejectsAdminRole(role) {
 }
 
 function shopStaffIgnoresClientPermissions(clientPermissions, role) {
-  void clientPermissions
-  return ROLE_PERMISSIONS[role] ?? []
+  const roleDefaults = new Set(ROLE_PERMISSIONS[role] ?? [])
+  return (Array.isArray(clientPermissions) ? clientPermissions : []).filter(
+    (permission) =>
+      typeof permission === 'string' &&
+      permission.startsWith('shop:') &&
+      permission !== 'admin:access' &&
+      !roleDefaults.has(permission)
+  )
 }
 
 function isBcryptPasswordHash(stored) {
@@ -107,13 +118,14 @@ test('client cannot inject admin permissions — server uses getPermissionsForRo
   assert.match(src, /permissions\?: unknown/)
   assert.doesNotMatch(src, /body\.permissions\s*=/)
   const injected = shopStaffIgnoresClientPermissions(
-    ['admin:access', 'users:create', 'shop:products'],
+    ['admin:access', 'users:create', 'shop:products', 'shop:stock_view'],
     'salesperson'
   )
   assert.ok(!injected.includes('admin:access'))
   assert.ok(!injected.includes('users:create'))
-  assert.ok(!injected.includes('shop:products'))
-  assert.ok(injected.includes('shop:products_view'))
+  assert.ok(injected.includes('shop:products'))
+  assert.ok(injected.includes('shop:stock_view'))
+  assert.ok(!injected.includes('shop:products_view'))
 })
 
 test('password is bcrypt hashed and hash never returned in DTOs', () => {
@@ -124,7 +136,7 @@ test('password is bcrypt hashed and hash never returned in DTOs', () => {
   const dtoBlock = src.split('export type ShopStaffUserDto')[1].slice(0, 450)
   assert.doesNotMatch(dtoBlock, /password/i)
   // Selects never pull password_hash into API payloads
-  assert.match(src, /\.select\('id, email, first_name, last_name, role, status, created_at'\)/)
+  assert.match(src, /STAFF_USER_SELECT|permissions/)
   assert.equal(isBcryptPasswordHash('$2a$10$abcdefghijklmnopqrstuu'), true)
   assert.equal(isBcryptPasswordHash('plaintext'), false)
 })
@@ -181,6 +193,7 @@ test('salesperson role permissions match Phase 1D expectations', () => {
   assert.ok(perms.includes('shop:pos_sell'))
   assert.ok(perms.includes('shop:products_view'))
   assert.ok(!perms.includes('shop:products'))
+  assert.ok(!perms.includes('shop:stock_view'))
   assert.ok(!perms.includes('shop:stock_adjust'))
   assert.ok(!perms.includes('admin:access'))
   assert.ok(!perms.includes('shop:payments_review'))
@@ -195,6 +208,8 @@ test('inventory_manager role permissions match Phase 1D expectations', () => {
   const perms = ROLE_PERMISSIONS.inventory_manager
   assert.ok(perms.includes('shop:products'))
   assert.ok(perms.includes('shop:stock_adjust'))
+  assert.ok(perms.includes('shop:stock_receive'))
+  assert.ok(perms.includes('shop:cost_price'))
   assert.ok(!perms.includes('admin:access'))
   assert.ok(!perms.includes('shop:payments_review'))
   assert.ok(!perms.includes('shop:refunds_approve'))

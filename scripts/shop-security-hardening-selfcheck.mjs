@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function canViewStaffProductCost(permissions) {
-  return Array.isArray(permissions) && permissions.includes('shop:products')
+  return Array.isArray(permissions) && permissions.includes('shop:cost_price')
 }
 
 function stripProductCostFields(item) {
@@ -120,7 +120,8 @@ function resetStaffLoginRateLimitForTests() {
 
 test('cost policy: products_view alone cannot see cost', () => {
   assert.equal(canViewStaffProductCost(['shop:products_view', 'shop:pos_sell']), false)
-  assert.equal(canViewStaffProductCost(['shop:products']), true)
+  assert.equal(canViewStaffProductCost(['shop:products']), false)
+  assert.equal(canViewStaffProductCost(['shop:cost_price']), true)
 })
 
 test('cost stripping removes costPrice / unitCost from payloads', () => {
@@ -162,28 +163,35 @@ test('query-parameter tricks cannot force cost into product list route', () => {
   assert.doesNotMatch(list, /includeCost.*searchParams|searchParams.*includeCost|body\.includeCost/)
 })
 
-test('staff selling-unit PATCH is CSRF-gated, manager-only, and cannot write cost', () => {
+test('staff product PATCH is CSRF-gated and splits product, cost, and selling-price writes', () => {
   const route = readFileSync(join(root, 'app/api/staff/products/[id]/route.ts'), 'utf8')
   assert.match(route, /export async function PATCH/)
   assert.match(route, /assertStaffMutationAllowed/)
   assert.match(route, /PERMISSIONS\.SHOP_PRODUCTS/)
+  assert.match(route, /PERMISSIONS\.SHOP_COST_PRICE/)
+  assert.match(route, /PERMISSIONS\.SHOP_SELLING_PRICE/)
   assert.match(route, /parseSellingUnitPatch/)
   assert.match(route, /parseStorefrontFeaturedFlag/)
-  assert.match(route, /updateStaffProductSellingUnit/)
-  assert.doesNotMatch(route, /cost_price|costPrice/)
+  assert.match(route, /updateStaffProduct/)
   const svc = readFileSync(join(root, 'lib/shop/staff-api/products.ts'), 'utf8')
-  const updateStart = svc.indexOf('export async function updateStaffProductSellingUnit')
-  const updateFn = svc.slice(updateStart, updateStart + 1400)
-  assert.match(updateFn, /selling_quantity: input\.sellingQuantity/)
-  assert.match(updateFn, /selling_unit: input\.sellingUnit/)
-  assert.match(updateFn, /patch\.is_featured = input\.isFeatured/)
-  assert.doesNotMatch(updateFn, /cost_price|price:|stock:/)
+  const updateStart = svc.indexOf('export async function updateStaffProduct(')
+  const updateFn = svc.slice(updateStart, svc.indexOf('export async function archiveStaffProduct'))
+  assert.match(updateFn, /canManageProduct/)
+  assert.match(updateFn, /canSetCost/)
+  assert.match(updateFn, /canSetSelling/)
+  assert.match(updateFn, /if \(!options\.canSetCost\) return \{ error: 'Forbidden'/)
+  assert.match(updateFn, /if \(!options\.canSetSelling\) return \{ error: 'Forbidden'/)
+  assert.doesNotMatch(updateFn, /stock:/)
   const adminPost = readFileSync(join(root, 'app/api/products/route.ts'), 'utf8')
   assert.match(adminPost, /applySellingUnitToProductPayload/)
   assert.match(adminPost, /applyStorefrontFeaturedToProductPayload/)
+  assert.match(adminPost, /applyBarcodeToProductPayload/)
+  assert.match(adminPost, /DUPLICATE_BARCODE_MESSAGE/)
   const adminPatch = readFileSync(join(root, 'app/api/products/[id]/route.ts'), 'utf8')
   assert.match(adminPatch, /applySellingUnitToProductPayload/)
   assert.match(adminPatch, /applyStorefrontFeaturedToProductPayload/)
+  assert.match(adminPatch, /applyBarcodeToProductPayload/)
+  assert.match(adminPatch, /DUPLICATE_BARCODE_MESSAGE/)
   const helper = readFileSync(join(root, 'lib/shop/selling-unit.ts'), 'utf8')
   assert.match(helper, /Invalid selling quantity or unit/)
 })

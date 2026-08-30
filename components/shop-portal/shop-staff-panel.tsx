@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { fetchStaffApi } from '@/lib/shop/staff-client'
+import { ShopStaffPermissionMatrix } from '@/components/shop-portal/shop-staff-permission-matrix'
 import { roleDisplayLabel, roleDisplayLabelKey } from '@/lib/shop/portal-nav'
 import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import type { ShopMessageKey } from '@/lib/shop/i18n/messages/en'
@@ -48,6 +49,8 @@ export type ShopStaffListItem = {
   createdAt: string | null
   lastStaffSessionAt: string | null
   activeStaffSessionCount: number
+  customPermissions?: string[]
+  permissions?: string[]
 }
 
 type StaffListResponse = { users: ShopStaffListItem[] }
@@ -510,6 +513,7 @@ function CreateStaffDialog({
     email: string
     role: ShopStaffRole
     password: string
+    permissions: string[]
   }) => Promise<boolean>
 }) {
   const t = useShopT()
@@ -519,6 +523,7 @@ function CreateStaffDialog({
   const [role, setRole] = useState<ShopStaffRole>('salesperson')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [extras, setExtras] = useState<string[]>([])
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
@@ -529,6 +534,7 @@ function CreateStaffDialog({
       setRole('salesperson')
       setPassword('')
       setConfirm('')
+      setExtras([])
       setLocalError('')
     }
   }, [open])
@@ -562,6 +568,7 @@ function CreateStaffDialog({
       email: email.trim(),
       role,
       password,
+      permissions: extras,
     })
     if (ok) {
       setPassword('')
@@ -571,7 +578,7 @@ function CreateStaffDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('staff.create.title')}</DialogTitle>
           <DialogDescription>{t('staff.create.desc')}</DialogDescription>
@@ -627,6 +634,7 @@ function CreateStaffDialog({
               ))}
             </select>
           </div>
+          <ShopStaffPermissionMatrix role={role} extras={extras} onChange={setExtras} disabled={busy} />
           <div className="space-y-2">
             <Label htmlFor="create-password">{t('staff.field.password')}</Label>
             <Input
@@ -687,6 +695,7 @@ function EditStaffDialog({
       email: string
       role?: ShopStaffRole
       status: 'active' | 'inactive'
+      permissions: string[]
     }
   ) => Promise<boolean>
 }) {
@@ -696,6 +705,7 @@ function EditStaffDialog({
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<ShopStaffRole>('salesperson')
   const [status, setStatus] = useState<'active' | 'inactive'>('active')
+  const [extras, setExtras] = useState<string[]>([])
   const [localError, setLocalError] = useState('')
 
   const isAdminTarget = user?.role === 'admin'
@@ -709,6 +719,7 @@ function EditStaffDialog({
         user.role === 'inventory_manager' ? 'inventory_manager' : 'salesperson'
       )
       setStatus(user.status === 'inactive' ? 'inactive' : 'active')
+      setExtras(user.customPermissions ?? [])
       setLocalError('')
     }
   }, [user])
@@ -727,11 +738,13 @@ function EditStaffDialog({
       email: string
       role?: ShopStaffRole
       status: 'active' | 'inactive'
+      permissions: string[]
     } = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
       status,
+      permissions: extras,
     }
     if (!isAdminTarget) {
       if (!ALLOWED_CREATE_ROLES.includes(role)) {
@@ -752,7 +765,7 @@ function EditStaffDialog({
 
   return (
     <Dialog open={Boolean(user)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('staff.edit.title')}</DialogTitle>
           <DialogDescription>{t('staff.edit.desc')}</DialogDescription>
@@ -812,6 +825,9 @@ function EditStaffDialog({
                 {t('staff.edit.roleReadonly', { roleLabel: adminRoleLabel })}
               </p>
             )}
+            {!isAdminTarget ? (
+              <ShopStaffPermissionMatrix role={role} extras={extras} onChange={setExtras} disabled={busy} />
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="edit-status">{t('staff.field.status')}</Label>
               <select

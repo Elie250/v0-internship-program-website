@@ -25,7 +25,10 @@ export default async function ShopProductsPage() {
     )
   }
 
-  const canSeeCost = hasPermission(session.user.permissions, PERMISSIONS.SHOP_PRODUCTS)
+  const canSeeCost = hasPermission(session.user.permissions, PERMISSIONS.SHOP_COST_PRICE)
+  const canManage = hasPermission(session.user.permissions, PERMISSIONS.SHOP_PRODUCTS)
+  const canEditSelling = hasPermission(session.user.permissions, PERMISSIONS.SHOP_SELLING_PRICE)
+  const canEditCost = hasPermission(session.user.permissions, PERMISSIONS.SHOP_COST_PRICE)
 
   return (
     <div>
@@ -33,7 +36,12 @@ export default async function ShopProductsPage() {
         titleKey="products.title"
         descriptionKey="products.description"
       />
-      <ShopProductsPanel canSeeCost={canSeeCost} />
+      <ShopProductsPanel
+        canSeeCost={canSeeCost}
+        canManage={canManage}
+        canEditSelling={canEditSelling}
+        canEditCost={canEditCost}
+      />
     </div>
   )
 }
