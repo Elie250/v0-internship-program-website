@@ -372,7 +372,7 @@ test('EAS Android package is prepared but not published', () => {
   assert.equal(app.expo.android.package, 'com.energyandlogics.staffpos')
   assert.ok(eas.build.preview)
   assert.ok(eas.build.production)
-  assert.equal(app.expo.extra?.eas?.projectId, undefined)
+  assert.equal(app.expo.extra?.eas?.projectId, 'ed5c9cce-efb5-41ff-8720-0d34eab957dd')
 })
 
 test('production API host is the shop domain and is overridable', () => {

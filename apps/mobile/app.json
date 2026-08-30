@@ -43,7 +43,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "https://shop.energyandlogics.com"
+      "apiBaseUrl": "https://shop.energyandlogics.com",
+      "eas": {
+        "projectId": "ed5c9cce-efb5-41ff-8720-0d34eab957dd"
+      }
     }
   }
 }
