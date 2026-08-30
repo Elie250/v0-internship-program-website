@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Package } from 'lucide-react'
 import { StorefrontAddToCart } from '@/components/storefront/storefront-add-to-cart'
+import { useShopT } from '@/components/shop-portal/shop-i18n-provider'
 import { formatShopRwf } from '@/lib/shop/format'
 import {
   publicDiscountPercent,
@@ -20,6 +21,7 @@ export function StorefrontProductCard({
   compact?: boolean
   stretch?: boolean
 }) {
+  const t = useShopT()
   const href = `/product/${encodeURIComponent(product.slug)}`
   const percent = publicDiscountPercent(product.listPrice, product.price)
 
@@ -71,6 +73,12 @@ export function StorefrontProductCard({
           </p>
           <StorefrontAddToCart product={product} variant="icon" />
         </div>
+        <Link
+          href={href}
+          className="mt-1.5 inline-flex min-h-9 items-center justify-center rounded-[var(--shop-radius-md)] bg-[var(--shop-green)] px-3 text-[13px] font-semibold text-white"
+        >
+          {t('storefront.hero.shopNow')}
+        </Link>
       </div>
     </article>
   )

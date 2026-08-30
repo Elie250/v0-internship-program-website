@@ -99,6 +99,16 @@ export function ShopProductCard({
           <Ionicons name="add" size={18} color={shopColor.white} />
         </Pressable>
       </View>
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${t('home.shopNow')}, ${product.name}`}
+        style={({ pressed }) => [styles.shopNow, pressed && styles.shopNowPressed]}
+      >
+        <Text style={styles.shopNowLabel} maxFontSizeMultiplier={1.2} numberOfLines={1}>
+          {t('home.shopNow')}
+        </Text>
+      </Pressable>
     </Pressable>
   )
 }
@@ -167,4 +177,18 @@ const styles = StyleSheet.create({
   },
   addOff: { backgroundColor: '#D1D5DB' },
   addPressed: { backgroundColor: shopColor.greenPressed },
+  shopNow: {
+    minHeight: 36,
+    borderRadius: shopRadius.md,
+    backgroundColor: shopColor.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: shopSpace.sm,
+  },
+  shopNowPressed: { backgroundColor: shopColor.greenPressed },
+  shopNowLabel: {
+    fontFamily: font.semibold,
+    fontSize: 13,
+    color: shopColor.white,
+  },
 })

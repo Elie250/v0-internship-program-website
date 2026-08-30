@@ -394,7 +394,7 @@ export function ShopInventoryPanel({
                 ) : null}
               </div>
             </form>
-          ) : tab !== 'movements' && (canAdjust || canReceive) ? (
+          ) : canAdjust || canReceive ? (
             <p className="text-sm text-slate-600">{t('inventory.selectHint')}</p>
           ) : null}
         </div>
