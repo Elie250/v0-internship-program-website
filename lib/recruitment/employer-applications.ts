@@ -17,6 +17,7 @@ import {
 import { notifyApplicationStatusChanged } from '@/lib/recruitment/recruitment-notifications'
 import { getOrganizationById } from '@/lib/recruitment/organizations'
 import { createEventId, enqueueWebhookEvent } from '@/lib/recruitment/api-webhooks'
+import { fillSnapshotIdentity, loadUsersByIds } from '@/lib/recruitment/candidate-identity'
 
 const EMPLOYER_APPLICATION_SELECT = `
   id, job_id, candidate_user_id, status, cv_document_id, profile_snapshot, submitted_at, created_at, updated_at,
@@ -95,9 +96,12 @@ export async function listOrganizationApplications(input: {
     )
   }
 
+  const users = await loadUsersByIds(applications.map((row) => row.candidate_user_id))
+
   return {
     applications: applications.map((row) => ({
       ...row,
+      profile_snapshot: fillSnapshotIdentity(row.profile_snapshot, users.get(row.candidate_user_id)),
       latestIntegrityBand: latestBandByApp.get(row.id) ?? null,
     })),
   }
@@ -121,7 +125,13 @@ export async function getOrganizationApplication(
   if (!row || job?.organization_id !== organizationId) {
     return { application: null }
   }
-  return { application: row }
+  const users = await loadUsersByIds([row.candidate_user_id])
+  return {
+    application: {
+      ...row,
+      profile_snapshot: fillSnapshotIdentity(row.profile_snapshot, users.get(row.candidate_user_id)),
+    },
+  }
 }
 
 export async function deleteOrganizationApplication(input: {

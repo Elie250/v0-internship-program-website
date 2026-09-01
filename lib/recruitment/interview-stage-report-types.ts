@@ -10,21 +10,21 @@ export type EmployerReportOrganization = {
 export type InterviewStageReportCandidate = {
   applicationId: string
   name: string
-  email: string
-  phone: string | null
-  location: string | null
-  headline: string | null
-  summary: string | null
-  description: string
-  skills: string[]
   jobTitle: string
-  submittedAt: string
-  technicalScore: number | null
-  passed: boolean | null
   screeningLabel: string
-  integrityBand: string | null
-  integrityNote: string
-  interviewMarksLabel: string
+  integrityLabel: string
+}
+
+export type InterviewPlacementRow = {
+  interviewId: string
+  applicationId: string
+  when: string
+  name: string
+  jobTitle: string
+  interviewType: string
+  place: string
+  status: string
+  duration: string
 }
 
 export type InterviewStageReport = {
@@ -64,4 +64,11 @@ export type InterviewResultsReport = {
   criteria: string[]
   rowCount: number
   rows: InterviewResultsRow[]
+}
+
+export type InterviewPlacementReport = {
+  organization: EmployerReportOrganization
+  generatedAt: string
+  rowCount: number
+  rows: InterviewPlacementRow[]
 }

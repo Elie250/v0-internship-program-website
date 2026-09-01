@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
 import { formatApplicationStatus } from '@/lib/recruitment/types'
-import { downloadOrgReport } from '@/lib/recruitment/interview-stage-report-pdf'
+import { downloadOrgReport, type OrgReportKind } from '@/lib/recruitment/interview-stage-report-pdf'
 
 type AppRow = {
   id: string
@@ -31,12 +31,12 @@ export default function EmployerApplicationsPage() {
   const { orgId } = useEmployerOrg()
   const [apps, setApps] = useState<AppRow[]>([])
   const [status, setStatus] = useState('')
-  const [reportBusy, setReportBusy] = useState<'stage' | 'results' | ''>('')
+  const [reportBusy, setReportBusy] = useState<OrgReportKind | ''>('')
   const [reportError, setReportError] = useState('')
 
-  const downloadReport = async (kind: 'interview-stage' | 'interview-results') => {
+  const downloadReport = async (kind: OrgReportKind) => {
     if (!orgId) return
-    setReportBusy(kind === 'interview-results' ? 'results' : 'stage')
+    setReportBusy(kind)
     setReportError('')
     try {
       await downloadOrgReport(orgId, kind)
@@ -68,9 +68,17 @@ export default function EmployerApplicationsPage() {
           variant="outline"
           className="rounded-xl"
           disabled={!orgId || Boolean(reportBusy)}
+          onClick={() => void downloadReport('interview-placement')}
+        >
+          {reportBusy === 'interview-placement' ? 'Preparing PDF…' : 'Placement PDF'}
+        </Button>
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          disabled={!orgId || Boolean(reportBusy)}
           onClick={() => void downloadReport('interview-stage')}
         >
-          {reportBusy === 'stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
+          {reportBusy === 'interview-stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
         </Button>
         <Button
           variant="outline"
@@ -78,7 +86,7 @@ export default function EmployerApplicationsPage() {
           disabled={!orgId || Boolean(reportBusy)}
           onClick={() => void downloadReport('interview-results')}
         >
-          {reportBusy === 'results' ? 'Preparing PDF…' : 'Interview results PDF'}
+          {reportBusy === 'interview-results' ? 'Preparing PDF…' : 'Interview results PDF'}
         </Button>
         <select
           value={status}
@@ -99,8 +107,8 @@ export default function EmployerApplicationsPage() {
       {reportError ? <p className="text-sm text-red-600">{reportError}</p> : null}
       <p className="text-xs text-slate-500">
         Integrity bands are advisory review signals. They never reject a candidate automatically.
-        Interview-stage PDF covers description, screening, integrity, and interview marks.
-        Results PDF lists scorecard marks (1–5) for each candidate. Both are internal and advisory.
+        Placement PDF is the interview board in time order. Interview-stage PDF is name, role,
+        screening %, and integrity band. Results PDF is scorecard marks. All are internal.
       </p>
       <div className="space-y-3">
         {apps.length === 0 ? (

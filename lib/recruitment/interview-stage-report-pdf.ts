@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { COMPANY } from '@/lib/company/constants'
 import type {
   EmployerReportOrganization,
+  InterviewPlacementReport,
   InterviewResultsReport,
   InterviewStageReport,
 } from '@/lib/recruitment/interview-stage-report-types'
@@ -103,49 +104,39 @@ function writeIntro(doc: jsPDF, startY: number, text: string): number {
 }
 
 export async function downloadInterviewStageReportPdf(report: InterviewStageReport): Promise<void> {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   const startY = drawOrgHeader(doc, report.organization, {
-    eyebrow: 'Internal interview-stage report · Confidential',
-    title: 'Interview pipeline',
+    eyebrow: 'Internal · Confidential',
+    title: 'Interview stage',
     generatedAt: report.generatedAt,
   })
   const tableStart = writeIntro(
     doc,
     startY,
-    [
-      `${report.organization.name} — candidates currently in the interview stage.`,
-      report.organization.description?.trim() || null,
-      `${report.candidateCount} candidate${report.candidateCount === 1 ? '' : 's'}. Screening, integrity, and interview marks are advisory and do not hire or reject anyone.`,
-    ]
-      .filter(Boolean)
-      .join(' ')
+    `${report.candidateCount} candidate${report.candidateCount === 1 ? '' : 's'} in interview. Screening % and integrity band only.`
   )
 
   autoTable(doc, {
     startY: tableStart,
     margin: { left: 14, right: 14, bottom: 16 },
-    head: [['Name', 'Role', 'Description', 'Screening', 'Integrity', 'Interview marks']],
+    head: [['Name', 'Role', 'Screening', 'Integrity']],
     body:
       report.candidates.length > 0
         ? report.candidates.map((row) => [
-            [row.name, row.email, row.location].filter(Boolean).join('\n'),
+            row.name,
             row.jobTitle,
-            row.description,
             row.screeningLabel,
-            [row.integrityBand, row.integrityNote].filter(Boolean).join('\n'),
-            row.interviewMarksLabel,
+            row.integrityLabel,
           ])
-        : [['—', '—', 'No candidates are currently in the interview stage.', '—', '—', '—']],
+        : [['—', 'No one is in the interview stage.', '—', '—']],
     theme: 'striped',
-    styles: { fontSize: 7.5, cellPadding: 2.2, valign: 'top', overflow: 'linebreak' },
+    styles: { fontSize: 10, cellPadding: 3, valign: 'middle', overflow: 'linebreak' },
     headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
     columnStyles: {
-      0: { cellWidth: 36 },
-      1: { cellWidth: 32 },
-      2: { cellWidth: 64 },
-      3: { cellWidth: 38 },
-      4: { cellWidth: 44 },
-      5: { cellWidth: 52 },
+      0: { cellWidth: 52 },
+      1: { cellWidth: 62 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 40 },
     },
   })
 
@@ -154,6 +145,59 @@ export async function downloadInterviewStageReportPdf(report: InterviewStageRepo
   triggerBrowserDownload(
     doc.output('blob'),
     `${slug}-interview-stage-${reportFileDate(report.generatedAt)}.pdf`
+  )
+}
+
+export async function downloadInterviewPlacementReportPdf(
+  report: InterviewPlacementReport
+): Promise<void> {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+  const startY = drawOrgHeader(doc, report.organization, {
+    eyebrow: 'Internal schedule · Confidential',
+    title: 'Interview placement',
+    generatedAt: report.generatedAt,
+  })
+  const tableStart = writeIntro(
+    doc,
+    startY,
+    `Who is booked, in time order. ${report.rowCount} interview${report.rowCount === 1 ? '' : 's'}. Meeting links and contact details are not printed.`
+  )
+
+  autoTable(doc, {
+    startY: tableStart,
+    margin: { left: 14, right: 14, bottom: 16 },
+    head: [['When', 'Name', 'Role', 'Format', 'Place', 'Length', 'Status']],
+    body:
+      report.rows.length > 0
+        ? report.rows.map((row) => [
+            row.when,
+            row.name,
+            row.jobTitle,
+            row.interviewType,
+            row.place,
+            row.duration,
+            row.status,
+          ])
+        : [['—', 'No interviews on the board.', '—', '—', '—', '—', '—']],
+    theme: 'striped',
+    styles: { fontSize: 8.5, cellPadding: 2.4, valign: 'middle', overflow: 'linebreak' },
+    headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 46 },
+      1: { cellWidth: 42 },
+      2: { cellWidth: 48 },
+      3: { cellWidth: 24 },
+      4: { cellWidth: 48 },
+      5: { cellWidth: 24 },
+      6: { cellWidth: 28 },
+    },
+  })
+
+  drawConfidentialFooter(doc, report.organization.name)
+  const slug = report.organization.slug || 'organization'
+  triggerBrowserDownload(
+    doc.output('blob'),
+    `${slug}-interview-placement-${reportFileDate(report.generatedAt)}.pdf`
   )
 }
 
@@ -194,7 +238,7 @@ export async function downloadInterviewResultsReportPdf(
         ? report.rows.map((row) => {
             const markMap = new Map(row.criteriaMarks.map((mark) => [mark.criterion, mark.score]))
             return [
-              [row.name, row.email].filter(Boolean).join('\n'),
+              row.name,
               [row.jobTitle, `${row.scheduledAt} · ${row.interviewType}`, row.interviewStatus]
                 .filter(Boolean)
                 .join('\n'),
@@ -228,15 +272,21 @@ export async function downloadInterviewResultsReportPdf(
   )
 }
 
+export type OrgReportKind = 'interview-stage' | 'interview-results' | 'interview-placement'
+
 export async function downloadOrgReport(
   organizationId: string,
-  kind: 'interview-stage' | 'interview-results'
+  kind: OrgReportKind
 ): Promise<void> {
   const res = await fetch(`/api/recruitment/organizations/${organizationId}/reports/${kind}`, {
     credentials: 'same-origin',
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Could not build report')
+  if (kind === 'interview-placement') {
+    await downloadInterviewPlacementReportPdf(data.report)
+    return
+  }
   if (kind === 'interview-results') {
     await downloadInterviewResultsReportPdf(data.report)
     return
