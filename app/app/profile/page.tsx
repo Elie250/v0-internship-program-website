@@ -26,6 +26,8 @@ export default function CandidateProfilePage() {
   const [message, setMessage] = useState('')
   const [documents, setDocuments] = useState<Document[]>([])
   const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
     headline: '',
     phone: '',
     location: '',
@@ -44,18 +46,18 @@ export default function CandidateProfilePage() {
     }
     const me = await meRes.json()
     const profile = me.candidateProfile
-    if (profile) {
-      setForm({
-        headline: profile.headline ?? '',
-        phone: profile.phone ?? '',
-        location: profile.location ?? '',
-        linkedinUrl: profile.linkedin_url ?? '',
-        portfolioUrl: profile.portfolio_url ?? '',
-        githubUrl: profile.github_url ?? '',
-        summary: profile.summary ?? '',
-        skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : '',
-      })
-    }
+    setForm({
+      firstName: String(me.user?.firstName ?? ''),
+      lastName: String(me.user?.lastName ?? ''),
+      headline: profile?.headline ?? '',
+      phone: profile?.phone ?? '',
+      location: profile?.location ?? '',
+      linkedinUrl: profile?.linkedin_url ?? '',
+      portfolioUrl: profile?.portfolio_url ?? '',
+      githubUrl: profile?.github_url ?? '',
+      summary: profile?.summary ?? '',
+      skills: Array.isArray(profile?.skills) ? profile.skills.join(', ') : '',
+    })
 
     const docsRes = await fetch('/api/recruitment/candidate/documents', { credentials: 'same-origin' })
     const docsData = await docsRes.json()
@@ -96,6 +98,18 @@ export default function CandidateProfilePage() {
     setUploading(true)
     setError('')
     try {
+      if (form.firstName.trim() || form.lastName.trim()) {
+        await fetch('/api/recruitment/candidate/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            firstName: form.firstName,
+            lastName: form.lastName,
+            consentPrivacy: true,
+          }),
+        })
+      }
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/recruitment/candidate/documents', {
@@ -256,8 +270,33 @@ export default function CandidateProfilePage() {
           className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-[0_1px_0_rgba(15,23,42,0.04)] scroll-mt-28"
         >
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">CV documents</h2>
-            <p className="text-sm text-slate-600 mt-1">PDF or Word · private storage</p>
+            <h2 className="text-lg font-semibold text-slate-900">Your name and CV</h2>
+            <p className="text-sm text-slate-600 mt-1">
+              Add your name so employers and interview emails can address you. PDF or Word · private
+              storage.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first-name">First name</Label>
+              <Input
+                id="first-name"
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                autoComplete="given-name"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="last-name">Last name</Label>
+              <Input
+                id="last-name"
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                autoComplete="family-name"
+                className="h-11 rounded-xl"
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="cv-upload">Upload CV</Label>

@@ -105,6 +105,8 @@ export async function POST(
         eventType: 'interview_invitation',
         scheduledAt: interview.scheduled_at,
         interviewType: interview.interview_type,
+        durationMinutes: interview.duration_minutes,
+        timezone: interview.timezone,
         location: interview.location,
         meetingUrl: interview.meeting_url,
         candidateInstructions: interview.candidate_instructions,

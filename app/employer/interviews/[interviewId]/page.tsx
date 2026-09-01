@@ -8,6 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
 import { DEFAULT_INTERVIEW_CRITERIA } from '@/lib/recruitment/interview-constants'
+import {
+  formatInterviewDuration,
+  formatInterviewTypeLabel,
+  formatInterviewWhen,
+} from '@/lib/recruitment/interview-format'
+import { downloadOrgReport } from '@/lib/recruitment/interview-stage-report-pdf'
 
 export default function EmployerInterviewDetailPage() {
   const params = useParams<{ interviewId: string }>()
@@ -18,6 +24,8 @@ export default function EmployerInterviewDetailPage() {
     interview_type: string
     status: string
     scheduled_at: string
+    duration_minutes?: number | null
+    timezone?: string | null
     location: string | null
     meeting_url: string | null
     candidate_instructions: string | null
@@ -41,6 +49,7 @@ export default function EmployerInterviewDetailPage() {
   const [privateNotes, setPrivateNotes] = useState('')
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [reportBusy, setReportBusy] = useState(false)
 
   const load = async () => {
     if (!orgId) return
@@ -133,13 +142,19 @@ export default function EmployerInterviewDetailPage() {
       {interview ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
           <p className="text-sm">
-            <strong>{new Date(interview.scheduled_at).toLocaleString()}</strong> ·{' '}
-            {interview.interview_type.replace('_', ' ')} · {interview.status}
+            <strong>{formatInterviewWhen(interview.scheduled_at, interview.timezone)}</strong> ·{' '}
+            {formatInterviewTypeLabel(interview.interview_type)} · {interview.status}
+            {formatInterviewDuration(interview.duration_minutes)
+              ? ` · ${formatInterviewDuration(interview.duration_minutes)}`
+              : ''}
           </p>
           {interview.location ? <p className="text-sm">Location: {interview.location}</p> : null}
           {interview.meeting_url ? <p className="text-sm">Meeting: {interview.meeting_url}</p> : null}
           {interview.candidate_instructions ? (
-            <p className="text-sm text-slate-700">{interview.candidate_instructions}</p>
+            <div className="text-sm">
+              <p className="text-slate-500">What to bring / notes for the candidate</p>
+              <p className="text-slate-700 whitespace-pre-wrap">{interview.candidate_instructions}</p>
+            </div>
           ) : null}
           {interview.internal_notes ? (
             <p className="text-sm text-slate-500">Internal: {interview.internal_notes}</p>
@@ -153,6 +168,21 @@ export default function EmployerInterviewDetailPage() {
             </Button>
             <Button variant="outline" onClick={() => void cancelInterview()}>
               Cancel interview
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!orgId || reportBusy}
+              onClick={() => {
+                if (!orgId) return
+                setReportBusy(true)
+                void downloadOrgReport(orgId, 'interview-results')
+                  .catch((err) =>
+                    setError(err instanceof Error ? err.message : 'Could not download report')
+                  )
+                  .finally(() => setReportBusy(false))
+              }}
+            >
+              {reportBusy ? 'Preparing PDF…' : 'Interview results PDF'}
             </Button>
           </div>
         </section>
@@ -224,8 +254,15 @@ export default function EmployerInterviewDetailPage() {
           <div key={ev.id} className="rounded-xl bg-slate-50 p-3 text-sm">
             <p>
               {ev.status} · {ev.recommendation ?? '—'}
-              {ev.overall_rating != null ? ` · overall ${ev.overall_rating}` : ''}
+              {ev.overall_rating != null ? ` · overall ${ev.overall_rating}/5` : ''}
             </p>
+            {ev.criteria_scores && Object.keys(ev.criteria_scores).length > 0 ? (
+              <p className="text-slate-600 mt-1">
+                {Object.entries(ev.criteria_scores)
+                  .map(([key, value]) => `${key} ${value}/5`)
+                  .join(' · ')}
+              </p>
+            ) : null}
             {ev.feedback ? <p className="mt-1 text-slate-700">{ev.feedback}</p> : null}
           </div>
         ))}

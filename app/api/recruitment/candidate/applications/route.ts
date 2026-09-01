@@ -6,7 +6,7 @@ import {
   submitApplication,
   withdrawApplication,
 } from '@/lib/recruitment/applications'
-import { ensureCandidateProfile } from '@/lib/recruitment/candidate-profile'
+import { ensureCandidateProfile, getCandidateAccountName } from '@/lib/recruitment/candidate-profile'
 import { sendApplicationSubmittedEmail } from '@/lib/recruitment/email-notifications'
 
 export async function GET() {
@@ -39,11 +39,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: profileError ?? 'Profile required' }, { status: 400 })
     }
 
+    const accountName = await getCandidateAccountName(user.id)
     const profileSnapshot = buildProfileSnapshot({
       profile,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: accountName.firstName || user.firstName,
+      lastName: accountName.lastName || user.lastName,
     })
 
     const result = await submitApplication({

@@ -12,6 +12,12 @@ import { sendEmail, escapeHtml, emailLayout } from '@/lib/email/core'
 import { COMPANY } from '@/lib/company/constants'
 import { getRecruitmentPublicUrl } from '@/lib/recruitment/passwordless-auth'
 import type { RecruitmentApplicationStatus } from '@/lib/recruitment/types'
+import {
+  formatInterviewDuration,
+  formatInterviewTypeLabel,
+  formatInterviewWhen,
+  interviewCandidateGreeting,
+} from '@/lib/recruitment/interview-format'
 
 async function recordNotificationEvent(input: {
   organizationId?: string | null
@@ -108,6 +114,57 @@ export async function notifyApplicationStatusChanged(input: {
   }
 }
 
+function interviewDetailRow(label: string, valueHtml: string | null | undefined) {
+  if (!valueHtml) return ''
+  return `<tr>
+    <td style="padding:6px 12px 6px 0;color:#64748b;vertical-align:top;white-space:nowrap">${escapeHtml(label)}</td>
+    <td style="padding:6px 0;color:#0f172a">${valueHtml}</td>
+  </tr>`
+}
+
+function interviewMeetingLinkHtml(meetingUrl?: string | null) {
+  const url = meetingUrl?.trim()
+  if (!url) return null
+  const safe = escapeHtml(url)
+  if (/^https?:\/\//i.test(url)) {
+    return `<a href="${safe}">${safe}</a>`
+  }
+  return safe
+}
+
+function interviewWhereToJoinHtml(location?: string | null, meetingUrl?: string | null) {
+  const link = interviewMeetingLinkHtml(meetingUrl)
+  const place = location?.trim() ? escapeHtml(location.trim()) : null
+  const parts = [link, place].filter(Boolean)
+  return parts.length ? parts.join('<br>') : null
+}
+
+function interviewBringHtml(candidateInstructions?: string | null) {
+  const notes = candidateInstructions?.trim()
+  if (!notes) return ''
+  return `
+    <p style="margin:20px 0 8px"><strong>Please bring / have ready</strong></p>
+    <p style="white-space:pre-wrap;margin:0">${escapeHtml(notes)}</p>
+  `
+}
+
+function interviewDetailsTableHtml(input: {
+  scheduledAt: string
+  timezone?: string | null
+  durationMinutes?: number | null
+  interviewType: string
+  location?: string | null
+  meetingUrl?: string | null
+}) {
+  const duration = formatInterviewDuration(input.durationMinutes)
+  return `<table style="width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:14px">
+    ${interviewDetailRow('Date and time', escapeHtml(formatInterviewWhen(input.scheduledAt, input.timezone)))}
+    ${interviewDetailRow('Duration', duration ? escapeHtml(duration) : null)}
+    ${interviewDetailRow('Format', escapeHtml(formatInterviewTypeLabel(input.interviewType)))}
+    ${interviewDetailRow('Where to join', interviewWhereToJoinHtml(input.location, input.meetingUrl))}
+  </table>`
+}
+
 export async function notifyInterviewEvent(input: {
   organizationId: string
   applicationId: string
@@ -120,13 +177,56 @@ export async function notifyInterviewEvent(input: {
   eventType: 'interview_invitation' | 'interview_rescheduled' | 'interview_cancelled'
   scheduledAt: string
   interviewType: string
+  durationMinutes?: number | null
+  timezone?: string | null
   location?: string | null
   meetingUrl?: string | null
   candidateInstructions?: string | null
 }) {
-  const name = input.candidateName?.trim() || 'there'
+  const greeting = escapeHtml(interviewCandidateGreeting(input.candidateName))
   const dashboardUrl = `${getRecruitmentPublicUrl()}/app`
-  const when = new Date(input.scheduledAt).toLocaleString()
+  const job = escapeHtml(input.jobTitle)
+  const org = escapeHtml(input.organizationName)
+  const when = escapeHtml(formatInterviewWhen(input.scheduledAt, input.timezone))
+  const details = interviewDetailsTableHtml(input)
+  const bring = interviewBringHtml(input.candidateInstructions)
+  const signOff = `
+    <p>Kind regards,<br>
+    <strong>${org} hiring team</strong><br>
+    via ${escapeHtml(COMPANY.brandName)} Talent</p>
+  `
+  const cta = `<p style="margin:28px 0 12px"><a href="${dashboardUrl}" style="display:inline-block;background:#1e3a5f;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">View your applications</a></p>`
+
+  const bodies = {
+    interview_invitation: `
+      <p>${greeting}</p>
+      <p>Thank you for applying for <strong>${job}</strong> at <strong>${org}</strong>. We would like to invite you to an interview.</p>
+      <p style="margin:20px 0 8px"><strong>Interview details</strong></p>
+      ${details}
+      ${bring}
+      <p>If this time does not work, reply to this email and we will try to reschedule.</p>
+      ${cta}
+      <p>We look forward to speaking with you.</p>
+      ${signOff}
+    `,
+    interview_rescheduled: `
+      <p>${greeting}</p>
+      <p>Your interview for <strong>${job}</strong> at <strong>${org}</strong> has been rescheduled. Please see the updated details below.</p>
+      <p style="margin:20px 0 8px"><strong>Updated interview details</strong></p>
+      ${details}
+      ${bring}
+      <p>If this time does not work, reply to this email and we will try to reschedule.</p>
+      ${cta}
+      ${signOff}
+    `,
+    interview_cancelled: `
+      <p>${greeting}</p>
+      <p>Your interview for <strong>${job}</strong> at <strong>${org}</strong>, scheduled for <strong>${when}</strong>, has been cancelled.</p>
+      <p>If you have questions, reply to this email.</p>
+      ${cta}
+      ${signOff}
+    `,
+  }
   const titles = {
     interview_invitation: 'You are invited to an interview',
     interview_rescheduled: 'Your interview has been rescheduled',
@@ -134,8 +234,8 @@ export async function notifyInterviewEvent(input: {
   }
   const subjects = {
     interview_invitation: `Interview invitation — ${input.jobTitle} at ${input.organizationName}`,
-    interview_rescheduled: `Interview rescheduled — ${input.jobTitle}`,
-    interview_cancelled: `Interview cancelled — ${input.jobTitle}`,
+    interview_rescheduled: `Interview rescheduled — ${input.jobTitle} at ${input.organizationName}`,
+    interview_cancelled: `Interview cancelled — ${input.jobTitle} at ${input.organizationName}`,
   }
 
   try {
@@ -146,23 +246,7 @@ export async function notifyInterviewEvent(input: {
         title: titles[input.eventType],
         subtitle: `${COMPANY.brandName} Talent · ${escapeHtml(input.organizationName)}`,
         headerTone: input.eventType === 'interview_cancelled' ? 'warning' : 'primary',
-        bodyHtml: `
-          <p>Dear ${escapeHtml(name)},</p>
-          <p>Regarding your application for <strong>${escapeHtml(input.jobTitle)}</strong> at <strong>${escapeHtml(input.organizationName)}</strong>.</p>
-          <p><strong>When:</strong> ${escapeHtml(when)}</p>
-          <p><strong>Format:</strong> ${escapeHtml(input.interviewType.replace('_', ' '))}</p>
-          ${input.location ? `<p><strong>Location:</strong> ${escapeHtml(input.location)}</p>` : ''}
-          ${input.meetingUrl ? `<p><strong>Meeting link:</strong> <a href="${escapeHtml(input.meetingUrl)}">${escapeHtml(input.meetingUrl)}</a></p>` : ''}
-          ${
-            input.candidateInstructions
-              ? `<p><strong>Notes from the hiring team:</strong> ${escapeHtml(input.candidateInstructions)}</p>`
-              : ''
-          }
-          <p style="margin:28px 0 12px"><a href="${dashboardUrl}" style="display:inline-block;background:#1e3a5f;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600">View your applications</a></p>
-          <p style="font-size:12px;color:#94a3b8;margin-top:24px">
-            This message was sent by ${escapeHtml(COMPANY.brandName)} Talent on behalf of ${escapeHtml(input.organizationName)}.
-          </p>
-        `,
+        bodyHtml: bodies[input.eventType],
       }),
     })
     await recordNotificationEvent({
@@ -173,7 +257,12 @@ export async function notifyInterviewEvent(input: {
       recipientEmail: input.candidateEmail,
       eventType: input.eventType,
       status: 'sent',
-      payload: { scheduledAt: input.scheduledAt, interviewType: input.interviewType },
+      payload: {
+        scheduledAt: input.scheduledAt,
+        interviewType: input.interviewType,
+        durationMinutes: input.durationMinutes ?? null,
+        timezone: input.timezone ?? null,
+      },
     })
   } catch (error) {
     await recordNotificationEvent({

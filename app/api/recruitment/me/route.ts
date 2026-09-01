@@ -8,6 +8,7 @@ import { listCandidateApplications } from '@/lib/recruitment/applications'
 import {
   calculateProfileCompletion,
   ensureCandidateProfile,
+  getCandidateAccountName,
 } from '@/lib/recruitment/candidate-profile'
 import { listCandidateDocuments } from '@/lib/recruitment/documents'
 import { capabilitiesFromState } from '@/lib/recruitment/post-auth'
@@ -54,14 +55,15 @@ export async function GET() {
       hasActiveEmployerMembership: memberships.length > 0,
       isPlatformAdmin,
     })
+    const accountName = await getCandidateAccountName(user.id)
 
     return NextResponse.json({
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: accountName.firstName || user.firstName || '',
+        lastName: accountName.lastName || user.lastName || '',
       },
       candidateProfile: profile ?? null,
       profileCompletion: completion,

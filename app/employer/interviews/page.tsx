@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
+import { downloadOrgReport } from '@/lib/recruitment/interview-stage-report-pdf'
+import { formatInterviewTypeLabel } from '@/lib/recruitment/interview-format'
 
 type InterviewRow = {
   id: string
@@ -22,6 +24,20 @@ export default function EmployerInterviewsPage() {
   const [interviews, setInterviews] = useState<InterviewRow[]>([])
   const [upcomingOnly, setUpcomingOnly] = useState(true)
   const [error, setError] = useState('')
+  const [reportBusy, setReportBusy] = useState<'stage' | 'results' | ''>('')
+
+  const downloadReport = async (kind: 'interview-stage' | 'interview-results') => {
+    if (!orgId) return
+    setError('')
+    setReportBusy(kind === 'interview-results' ? 'results' : 'stage')
+    try {
+      await downloadOrgReport(orgId, kind)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not download report')
+    } finally {
+      setReportBusy('')
+    }
+  }
 
   useEffect(() => {
     if (!orgId) return
@@ -43,14 +59,30 @@ export default function EmployerInterviewsPage() {
           <h1 className="text-2xl font-semibold">Interviews</h1>
           <p className="text-sm text-slate-600">Schedule and evaluate candidates. Scores do not auto-hire.</p>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={upcomingOnly}
-            onChange={(e) => setUpcomingOnly(e.target.checked)}
-          />
-          Upcoming only
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            disabled={!orgId || Boolean(reportBusy)}
+            onClick={() => void downloadReport('interview-stage')}
+          >
+            {reportBusy === 'stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!orgId || Boolean(reportBusy)}
+            onClick={() => void downloadReport('interview-results')}
+          >
+            {reportBusy === 'results' ? 'Preparing PDF…' : 'Interview results PDF'}
+          </Button>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={upcomingOnly}
+              onChange={(e) => setUpcomingOnly(e.target.checked)}
+            />
+            Upcoming only
+          </label>
+        </div>
       </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       <div className="space-y-3">
@@ -66,7 +98,8 @@ export default function EmployerInterviewsPage() {
             >
               <div>
                 <p className="font-medium text-slate-900">
-                  {new Date(row.scheduled_at).toLocaleString()} · {row.interview_type.replace('_', ' ')}
+                  {new Date(row.scheduled_at).toLocaleString()} ·{' '}
+                  {formatInterviewTypeLabel(row.interview_type)}
                 </p>
                 <p className="text-sm text-slate-600 mt-1">
                   Status: {row.status}

@@ -115,6 +115,8 @@ export async function PATCH(
           eventType: result.rescheduled ? 'interview_rescheduled' : 'interview_cancelled',
           scheduledAt: interview.scheduled_at,
           interviewType: interview.interview_type,
+          durationMinutes: interview.duration_minutes,
+          timezone: interview.timezone,
           location: interview.location,
           meetingUrl: interview.meeting_url,
           candidateInstructions: interview.candidate_instructions,
