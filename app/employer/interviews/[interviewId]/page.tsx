@@ -30,6 +30,9 @@ export default function EmployerInterviewDetailPage() {
     meeting_url: string | null
     candidate_instructions: string | null
     internal_notes: string | null
+    candidate_name?: string
+    candidate_email?: string
+    job_title?: string
   } | null>(null)
   const [evaluations, setEvaluations] = useState<
     Array<{
@@ -135,12 +138,20 @@ export default function EmployerInterviewDetailPage() {
 
   return (
     <EmployerShell>
-      <h1 className="text-2xl font-semibold">Interview</h1>
+      <h1 className="text-2xl font-semibold">
+        {interview?.candidate_name ? `Interview · ${interview.candidate_name}` : 'Interview'}
+      </h1>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {message ? <StatusBanner tone="success">{message}</StatusBanner> : null}
 
       {interview ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3">
+          <div>
+            <p className="font-medium text-slate-900">{interview.candidate_name || 'Candidate'}</p>
+            <p className="text-sm text-slate-600">
+              {[interview.candidate_email, interview.job_title].filter(Boolean).join(' · ')}
+            </p>
+          </div>
           <p className="text-sm">
             <strong>{formatInterviewWhen(interview.scheduled_at, interview.timezone)}</strong> ·{' '}
             {formatInterviewTypeLabel(interview.interview_type)} · {interview.status}

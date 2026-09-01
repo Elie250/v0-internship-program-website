@@ -6,11 +6,22 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { writeRecruitmentAudit } from '@/lib/recruitment/audit'
 import { getOrganizationApplication } from '@/lib/recruitment/employer-applications'
 import { DEFAULT_INTERVIEW_CRITERIA } from '@/lib/recruitment/interview-constants'
+import {
+  identityFromSnapshotAndUser,
+  loadUsersByIds,
+} from '@/lib/recruitment/candidate-identity'
+import { parseInterviewDateTime } from '@/lib/recruitment/interview-format'
 
 export { DEFAULT_INTERVIEW_CRITERIA } from '@/lib/recruitment/interview-constants'
 
 export type InterviewType = 'in_person' | 'online' | 'phone'
 export type InterviewStatus = 'scheduled' | 'rescheduled' | 'completed' | 'cancelled' | 'no_show'
+
+export type InterviewCandidateFields = {
+  candidate_name: string
+  candidate_email: string
+  job_title: string
+}
 
 const INTERVIEW_SELECT =
   'id, organization_id, job_id, application_id, candidate_user_id, interview_type, status, scheduled_at, duration_minutes, timezone, location, meeting_url, candidate_instructions, internal_notes, created_by, cancelled_at, completed_at, created_at, updated_at'
@@ -57,7 +68,50 @@ export async function listOrganizationInterviews(input: {
 
   const { data, error } = await query
   if (error) return { interviews: [], error: error.message }
-  return { interviews: data ?? [] }
+  return { interviews: await attachInterviewPeople(data ?? []) }
+}
+
+async function attachInterviewPeople<T extends { application_id?: string; candidate_user_id?: string }>(
+  interviews: T[]
+): Promise<Array<T & InterviewCandidateFields>> {
+  if (interviews.length === 0) return []
+
+  const applicationIds = Array.from(
+    new Set(interviews.map((row) => String(row.application_id || '').trim()).filter(Boolean))
+  )
+  const snapshotByApp = new Map<string, Record<string, unknown>>()
+  const jobTitleByApp = new Map<string, string>()
+  const userIdByApp = new Map<string, string>()
+
+  if (supabaseAdmin && applicationIds.length > 0) {
+    const { data: applications } = await supabaseAdmin
+      .from('recruitment_applications')
+      .select('id, candidate_user_id, profile_snapshot, job:recruitment_jobs(title)')
+      .in('id', applicationIds)
+    for (const row of applications ?? []) {
+      snapshotByApp.set(String(row.id), (row.profile_snapshot ?? {}) as Record<string, unknown>)
+      userIdByApp.set(String(row.id), String(row.candidate_user_id || ''))
+      const job = Array.isArray(row.job) ? row.job[0] : row.job
+      jobTitleByApp.set(String(row.id), String(job?.title || 'Role'))
+    }
+  }
+
+  const userIds = interviews
+    .map((row) => userIdByApp.get(String(row.application_id)) || String(row.candidate_user_id || ''))
+    .filter(Boolean)
+  const users = await loadUsersByIds(userIds)
+
+  return interviews.map((row) => {
+    const applicationId = String(row.application_id || '')
+    const userId = userIdByApp.get(applicationId) || String(row.candidate_user_id || '')
+    const identity = identityFromSnapshotAndUser(snapshotByApp.get(applicationId), users.get(userId))
+    return {
+      ...row,
+      candidate_name: identity.name,
+      candidate_email: identity.email,
+      job_title: jobTitleByApp.get(applicationId) || 'Role',
+    }
+  })
 }
 
 export async function getOrganizationInterview(organizationId: string, interviewId: string) {
@@ -69,7 +123,9 @@ export async function getOrganizationInterview(organizationId: string, interview
     .eq('organization_id', organizationId)
     .maybeSingle()
   if (error) return { interview: null, error: error.message }
-  return { interview: data }
+  if (!data) return { interview: null }
+  const [interview] = await attachInterviewPeople([data])
+  return { interview }
 }
 
 export async function createInterview(input: {
@@ -87,7 +143,7 @@ export async function createInterview(input: {
 }) {
   if (!supabaseAdmin) return { error: 'Database not configured' }
   if (!isInterviewType(input.interviewType)) return { error: 'Invalid interview type' }
-  const scheduled = new Date(input.scheduledAt)
+  const scheduled = parseInterviewDateTime(input.scheduledAt, input.timezone)
   if (Number.isNaN(scheduled.getTime())) return { error: 'Invalid interview date/time' }
 
   const { application, error } = await getOrganizationApplication(
@@ -174,7 +230,9 @@ export async function updateInterview(input: {
     updates.interview_type = input.interviewType
   }
   if (input.scheduledAt != null) {
-    const scheduled = new Date(input.scheduledAt)
+    const timezone =
+      input.timezone !== undefined ? input.timezone : current.interview.timezone
+    const scheduled = parseInterviewDateTime(input.scheduledAt, timezone)
     if (Number.isNaN(scheduled.getTime())) return { error: 'Invalid interview date/time' }
     updates.scheduled_at = scheduled.toISOString()
     if (scheduled.toISOString() !== current.interview.scheduled_at) {
