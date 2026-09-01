@@ -5,8 +5,11 @@ import { useEffect, useState } from 'react'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
 import { Button } from '@/components/ui/button'
 import { StatusBanner } from '@/components/recruitment/talent-ui'
-import { downloadOrgReport } from '@/lib/recruitment/interview-stage-report-pdf'
-import { formatInterviewTypeLabel } from '@/lib/recruitment/interview-format'
+import { downloadOrgReport, type OrgReportKind } from '@/lib/recruitment/interview-stage-report-pdf'
+import {
+  formatInterviewTypeLabel,
+  formatInterviewWhenShort,
+} from '@/lib/recruitment/interview-format'
 
 type InterviewRow = {
   id: string
@@ -15,8 +18,12 @@ type InterviewRow = {
   interview_type: string
   status: string
   scheduled_at: string
+  timezone?: string | null
   location: string | null
   meeting_url: string | null
+  candidate_name?: string
+  candidate_email?: string
+  job_title?: string
 }
 
 export default function EmployerInterviewsPage() {
@@ -24,12 +31,12 @@ export default function EmployerInterviewsPage() {
   const [interviews, setInterviews] = useState<InterviewRow[]>([])
   const [upcomingOnly, setUpcomingOnly] = useState(true)
   const [error, setError] = useState('')
-  const [reportBusy, setReportBusy] = useState<'stage' | 'results' | ''>('')
+  const [reportBusy, setReportBusy] = useState<OrgReportKind | ''>('')
 
-  const downloadReport = async (kind: 'interview-stage' | 'interview-results') => {
+  const downloadReport = async (kind: OrgReportKind) => {
     if (!orgId) return
     setError('')
-    setReportBusy(kind === 'interview-results' ? 'results' : 'stage')
+    setReportBusy(kind)
     try {
       await downloadOrgReport(orgId, kind)
     } catch (err) {
@@ -63,16 +70,23 @@ export default function EmployerInterviewsPage() {
           <Button
             variant="outline"
             disabled={!orgId || Boolean(reportBusy)}
+            onClick={() => void downloadReport('interview-placement')}
+          >
+            {reportBusy === 'interview-placement' ? 'Preparing PDF…' : 'Placement PDF'}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={!orgId || Boolean(reportBusy)}
             onClick={() => void downloadReport('interview-stage')}
           >
-            {reportBusy === 'stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
+            {reportBusy === 'interview-stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
           </Button>
           <Button
             variant="outline"
             disabled={!orgId || Boolean(reportBusy)}
             onClick={() => void downloadReport('interview-results')}
           >
-            {reportBusy === 'results' ? 'Preparing PDF…' : 'Interview results PDF'}
+            {reportBusy === 'interview-results' ? 'Preparing PDF…' : 'Interview results PDF'}
           </Button>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -98,11 +112,17 @@ export default function EmployerInterviewsPage() {
             >
               <div>
                 <p className="font-medium text-slate-900">
-                  {new Date(row.scheduled_at).toLocaleString()} ·{' '}
-                  {formatInterviewTypeLabel(row.interview_type)}
+                  {row.candidate_name || 'Candidate'}
+                  {row.candidate_email ? (
+                    <span className="font-normal text-slate-600"> · {row.candidate_email}</span>
+                  ) : null}
                 </p>
                 <p className="text-sm text-slate-600 mt-1">
-                  Status: {row.status}
+                  {row.job_title || 'Role'} · {formatInterviewWhenShort(row.scheduled_at, row.timezone)} ·{' '}
+                  {formatInterviewTypeLabel(row.interview_type)}
+                </p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {row.status}
                   {row.location ? ` · ${row.location}` : ''}
                 </p>
               </div>

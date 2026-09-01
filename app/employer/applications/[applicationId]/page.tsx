@@ -11,6 +11,10 @@ import { StatusBanner } from '@/components/recruitment/talent-ui'
 import { EMPLOYER_PIPELINE_STATUSES } from '@/lib/recruitment/types'
 import { formatPipelineLabel } from '@/lib/recruitment/pipeline'
 import { INTEGRITY_DECISION_LABELS, TALENT_INTEGRITY_REVIEW_OUTCOMES } from '@/lib/recruitment/screening-integrity-types'
+import {
+  formatInterviewTypeLabel,
+  formatInterviewWhenShort,
+} from '@/lib/recruitment/interview-format'
 
 type ScreeningSessionSummary = {
   id: string
@@ -1092,8 +1096,8 @@ export default function EmployerApplicationDetailPage() {
               >
                 <div>
                   <p className="font-medium">
-                    {new Date(row.scheduled_at).toLocaleString()} ·{' '}
-                    {row.interview_type.replace('_', ' ')}
+                    {formatInterviewWhenShort(row.scheduled_at, row.timezone)} ·{' '}
+                    {formatInterviewTypeLabel(row.interview_type)}
                   </p>
                   <p className="text-slate-600">{row.status}</p>
                 </div>

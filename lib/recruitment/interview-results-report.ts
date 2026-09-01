@@ -10,6 +10,7 @@ import { loadEmployerLogoDataUrl } from '@/lib/recruitment/employer-report-brand
 import { summarizeSubmittedScorecards } from '@/lib/recruitment/interview-scorecard-summary'
 import { formatInterviewTypeLabel, formatInterviewWhen } from '@/lib/recruitment/interview-format'
 import { DEFAULT_INTERVIEW_CRITERIA } from '@/lib/recruitment/interview-constants'
+import { identityFromSnapshotAndUser, loadUsersByIds } from '@/lib/recruitment/candidate-identity'
 import type { InterviewResultsReport, InterviewResultsRow } from '@/lib/recruitment/interview-stage-report-types'
 
 export async function getInterviewResultsReport(input: {
@@ -34,17 +35,20 @@ export async function getInterviewResultsReport(input: {
 
   const snapshotByApp = new Map<string, Record<string, unknown>>()
   const jobTitleByApp = new Map<string, string>()
+  const userIdByApp = new Map<string, string>()
   if (applicationIds.length > 0) {
     const { data: applications } = await supabaseAdmin
       .from('recruitment_applications')
-      .select('id, profile_snapshot, job:recruitment_jobs(title)')
+      .select('id, candidate_user_id, profile_snapshot, job:recruitment_jobs(title)')
       .in('id', applicationIds)
     for (const row of applications ?? []) {
       snapshotByApp.set(String(row.id), (row.profile_snapshot ?? {}) as Record<string, unknown>)
+      userIdByApp.set(String(row.id), String(row.candidate_user_id || ''))
       const job = Array.isArray(row.job) ? row.job[0] : row.job
       jobTitleByApp.set(String(row.id), String(job?.title || 'Role'))
     }
   }
+  const users = await loadUsersByIds(Array.from(userIdByApp.values()))
 
   const evaluationsByInterview = new Map<string, Array<Record<string, unknown>>>()
   if (interviewIds.length > 0) {
@@ -65,16 +69,16 @@ export async function getInterviewResultsReport(input: {
   const criteria = new Set<string>(DEFAULT_INTERVIEW_CRITERIA)
   const rows: InterviewResultsRow[] = active.map((interview) => {
     const snapshot = snapshotByApp.get(interview.application_id) ?? {}
+    const user = users.get(userIdByApp.get(interview.application_id) || '')
+    const identity = identityFromSnapshotAndUser(snapshot, user)
     const summary = summarizeSubmittedScorecards(evaluationsByInterview.get(interview.id) ?? [])
     for (const mark of summary.criteriaMarks) criteria.add(mark.criterion)
-    const name = String(snapshot.full_name || '').trim() || 'Candidate'
-    const email = String(snapshot.email || '').trim()
 
     return {
       interviewId: interview.id,
       applicationId: interview.application_id,
-      name,
-      email,
+      name: identity.name,
+      email: identity.email,
       jobTitle: jobTitleByApp.get(interview.application_id) || 'Role',
       interviewType: formatInterviewTypeLabel(interview.interview_type),
       interviewStatus: String(interview.status || '').replace(/_/g, ' '),
