@@ -3,7 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { EmployerShell, useEmployerOrg } from '@/components/recruitment/employer-shell'
+import { Button } from '@/components/ui/button'
 import { formatApplicationStatus } from '@/lib/recruitment/types'
+import { downloadOrgReport } from '@/lib/recruitment/interview-stage-report-pdf'
 
 type AppRow = {
   id: string
@@ -29,6 +31,21 @@ export default function EmployerApplicationsPage() {
   const { orgId } = useEmployerOrg()
   const [apps, setApps] = useState<AppRow[]>([])
   const [status, setStatus] = useState('')
+  const [reportBusy, setReportBusy] = useState<'stage' | 'results' | ''>('')
+  const [reportError, setReportError] = useState('')
+
+  const downloadReport = async (kind: 'interview-stage' | 'interview-results') => {
+    if (!orgId) return
+    setReportBusy(kind === 'interview-results' ? 'results' : 'stage')
+    setReportError('')
+    try {
+      await downloadOrgReport(orgId, kind)
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : 'Could not download report')
+    } finally {
+      setReportBusy('')
+    }
+  }
 
   useEffect(() => {
     if (!orgId) return
@@ -46,6 +63,23 @@ export default function EmployerApplicationsPage() {
     <EmployerShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Applicants</h1>
+        <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          disabled={!orgId || Boolean(reportBusy)}
+          onClick={() => void downloadReport('interview-stage')}
+        >
+          {reportBusy === 'stage' ? 'Preparing PDF…' : 'Interview-stage PDF'}
+        </Button>
+        <Button
+          variant="outline"
+          className="rounded-xl"
+          disabled={!orgId || Boolean(reportBusy)}
+          onClick={() => void downloadReport('interview-results')}
+        >
+          {reportBusy === 'results' ? 'Preparing PDF…' : 'Interview results PDF'}
+        </Button>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -60,9 +94,13 @@ export default function EmployerApplicationsPage() {
             )
           )}
         </select>
+        </div>
       </div>
+      {reportError ? <p className="text-sm text-red-600">{reportError}</p> : null}
       <p className="text-xs text-slate-500">
         Integrity bands are advisory review signals. They never reject a candidate automatically.
+        Interview-stage PDF covers description, screening, integrity, and interview marks.
+        Results PDF lists scorecard marks (1–5) for each candidate. Both are internal and advisory.
       </p>
       <div className="space-y-3">
         {apps.length === 0 ? (

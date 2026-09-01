@@ -56,12 +56,17 @@ export default function EmployerApplicationDetailPage() {
       interview_type: string
       status: string
       scheduled_at: string
+      duration_minutes?: number | null
+      timezone?: string | null
       location: string | null
       meeting_url: string | null
+      candidate_instructions?: string | null
     }>
   >([])
   const [inviteAt, setInviteAt] = useState('')
   const [inviteType, setInviteType] = useState('online')
+  const [inviteDuration, setInviteDuration] = useState('60')
+  const [inviteTimezone, setInviteTimezone] = useState('')
   const [inviteLocation, setInviteLocation] = useState('')
   const [inviteMeeting, setInviteMeeting] = useState('')
   const [inviteInstructions, setInviteInstructions] = useState('')
@@ -217,6 +222,8 @@ export default function EmployerApplicationDetailPage() {
         applicationId: params.applicationId,
         interviewType: inviteType,
         scheduledAt: inviteAt,
+        durationMinutes: Number(inviteDuration) || 60,
+        timezone: inviteTimezone.trim() || null,
         location: inviteLocation || null,
         meetingUrl: inviteMeeting || null,
         candidateInstructions: inviteInstructions || null,
@@ -231,6 +238,14 @@ export default function EmployerApplicationDetailPage() {
       await load()
     }
   }
+
+  useEffect(() => {
+    try {
+      setInviteTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || '')
+    } catch {
+      setInviteTimezone('')
+    }
+  }, [])
 
   useEffect(() => {
     setIntegrity(null)
@@ -1117,32 +1132,63 @@ export default function EmployerApplicationDetailPage() {
                 </select>
               </label>
               <label className="text-sm space-y-1">
-                <span>Location</span>
+                <span>Duration (minutes)</span>
                 <input
-                  value={inviteLocation}
-                  onChange={(e) => setInviteLocation(e.target.value)}
+                  type="number"
+                  min={15}
+                  step={15}
+                  value={inviteDuration}
+                  onChange={(e) => setInviteDuration(e.target.value)}
                   className="h-10 w-full rounded-xl border px-3"
                 />
               </label>
               <label className="text-sm space-y-1">
-                <span>Meeting URL</span>
+                <span>Timezone</span>
+                <input
+                  value={inviteTimezone}
+                  onChange={(e) => setInviteTimezone(e.target.value)}
+                  placeholder="Africa/Kigali"
+                  className="h-10 w-full rounded-xl border px-3"
+                />
+              </label>
+              <label className="text-sm space-y-1">
+                <span>{inviteType === 'online' ? 'Location (optional)' : 'Location / address'}</span>
+                <input
+                  value={inviteLocation}
+                  onChange={(e) => setInviteLocation(e.target.value)}
+                  placeholder={
+                    inviteType === 'in_person'
+                      ? 'Office address or venue'
+                      : inviteType === 'phone'
+                        ? 'Phone number to call'
+                        : 'Optional venue'
+                  }
+                  className="h-10 w-full rounded-xl border px-3"
+                />
+              </label>
+              <label className="text-sm space-y-1">
+                <span>{inviteType === 'online' ? 'Meeting URL' : 'Meeting URL (optional)'}</span>
                 <input
                   value={inviteMeeting}
                   onChange={(e) => setInviteMeeting(e.target.value)}
+                  placeholder="https://"
                   className="h-10 w-full rounded-xl border px-3"
                 />
               </label>
             </div>
-            <Textarea
-              value={inviteInstructions}
-              onChange={(e) => setInviteInstructions(e.target.value)}
-              placeholder="Instructions visible to the candidate"
-              className="rounded-xl min-h-20"
-            />
+            <label className="text-sm space-y-1 block">
+              <span>What to bring / notes for the candidate</span>
+              <Textarea
+                value={inviteInstructions}
+                onChange={(e) => setInviteInstructions(e.target.value)}
+                placeholder="Included in the invitation email. Example: photo ID, portfolio, or a quiet space if this is online."
+                className="rounded-xl min-h-20"
+              />
+            </label>
             <Textarea
               value={inviteNotes}
               onChange={(e) => setInviteNotes(e.target.value)}
-              placeholder="Internal notes (HR only)"
+              placeholder="Internal notes (HR only — not emailed)"
               className="rounded-xl min-h-16"
             />
             <Button

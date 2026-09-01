@@ -302,4 +302,63 @@ export async function updateCandidateProfile(input: {
 
 }
 
+function sanitizePersonName(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+}
+
+export async function getCandidateAccountName(
+  userId: string
+): Promise<{ firstName: string; lastName: string }> {
+  if (!supabaseAdmin) return { firstName: '', lastName: '' }
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('first_name, last_name')
+    .eq('id', userId)
+    .maybeSingle()
+  return {
+    firstName: sanitizePersonName(data?.first_name),
+    lastName: sanitizePersonName(data?.last_name),
+  }
+}
+
+export async function updateCandidateAccountName(input: {
+  userId: string
+  firstName?: string | null
+  lastName?: string | null
+}): Promise<{ firstName: string; lastName: string; error?: string }> {
+  if (!supabaseAdmin) return { firstName: '', lastName: '', error: 'Database not configured' }
+
+  const updates: Record<string, string> = {}
+  if (input.firstName !== undefined) updates.first_name = sanitizePersonName(input.firstName)
+  if (input.lastName !== undefined) updates.last_name = sanitizePersonName(input.lastName)
+  if (Object.keys(updates).length === 0) {
+    return getCandidateAccountName(input.userId)
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update(updates)
+    .eq('id', input.userId)
+    .select('first_name, last_name')
+    .maybeSingle()
+
+  if (error) return { firstName: '', lastName: '', error: error.message }
+  if (!data) return { firstName: '', lastName: '', error: 'Account not found' }
+
+  await writeRecruitmentAudit({
+    actorUserId: input.userId,
+    action: 'candidate_name_updated',
+    entityType: 'users',
+    entityId: input.userId,
+  })
+
+  return {
+    firstName: sanitizePersonName(data.first_name),
+    lastName: sanitizePersonName(data.last_name),
+  }
+}
+
 

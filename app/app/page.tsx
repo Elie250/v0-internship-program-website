@@ -16,6 +16,11 @@ import {
   formatCandidateApplicationStatus,
   type RecruitmentApplicationStatus,
 } from '@/lib/recruitment/types'
+import {
+  formatInterviewDuration,
+  formatInterviewTypeLabel,
+  formatInterviewWhen,
+} from '@/lib/recruitment/interview-format'
 
 type Application = {
   id: string
@@ -34,6 +39,8 @@ type Interview = {
   interviewType: string
   status: string
   scheduledAt: string
+  durationMinutes?: number | null
+  timezone?: string | null
   location: string | null
   meetingUrl: string | null
   candidateInstructions: string | null
@@ -165,12 +172,23 @@ export default function CandidateDashboardPage() {
   return (
     <TalentShell
       title="My applications"
-      subtitle={me?.user.email ? `Signed in as ${me.user.email}` : undefined}
+      subtitle={
+        me?.user.email
+          ? `Signed in as ${[me.user.firstName, me.user.lastName].filter(Boolean).join(' ') || me.user.email}`
+          : undefined
+      }
     >
       <div className="mb-6 rounded-2xl border border-slate-200 bg-white px-5 py-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-slate-900">Your account</p>
+          <p className="text-sm font-medium text-slate-900">
+            {[me?.user.firstName, me?.user.lastName].filter(Boolean).join(' ') || 'Your account'}
+          </p>
           <p className="text-sm text-slate-600 truncate">{me?.user.email}</p>
+          {!me?.user.firstName ? (
+            <p className="text-xs text-slate-500 mt-1">
+              Add your name when you upload your CV so employers can address you.
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/app/profile">
@@ -250,20 +268,27 @@ export default function CandidateDashboardPage() {
               <p className="text-sm text-slate-600">No interviews scheduled.</p>
             ) : (
               <div className="space-y-3">
-                {interviews.map((row) => (
+                {interviews.map((row) => {
+                  const duration = formatInterviewDuration(row.durationMinutes)
+                  return (
                   <div key={row.id} className="rounded-xl border border-slate-200 p-3 text-sm space-y-1">
                     <p className="font-medium text-slate-900">
-                      {new Date(row.scheduledAt).toLocaleString()} ·{' '}
-                      {row.interviewType.replace('_', ' ')}
+                      {formatInterviewWhen(row.scheduledAt, row.timezone)} ·{' '}
+                      {formatInterviewTypeLabel(row.interviewType)}
                     </p>
                     <p className="text-slate-600">Status: {row.status}</p>
+                    {duration ? <p>Duration: {duration}</p> : null}
                     {row.location ? <p>Location: {row.location}</p> : null}
                     {row.meetingUrl ? <p>Meeting: {row.meetingUrl}</p> : null}
                     {row.candidateInstructions ? (
-                      <p className="text-slate-700 whitespace-pre-wrap">{row.candidateInstructions}</p>
+                      <div>
+                        <p className="text-slate-500">Please bring / have ready</p>
+                        <p className="text-slate-700 whitespace-pre-wrap">{row.candidateInstructions}</p>
+                      </div>
                     ) : null}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </section>

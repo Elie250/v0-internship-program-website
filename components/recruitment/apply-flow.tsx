@@ -42,6 +42,8 @@ export function ApplyFlow({
   const [documents, setDocuments] = useState<Document[]>([])
   const [selectedCvId, setSelectedCvId] = useState('')
   const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
     headline: '',
     phone: '',
     location: '',
@@ -63,18 +65,18 @@ export function ApplyFlow({
       }
       const me = await meRes.json()
       const profile = me.candidateProfile
-      if (profile) {
-        setProfileForm({
-          headline: profile.headline ?? '',
-          phone: profile.phone ?? '',
-          location: profile.location ?? '',
-          linkedinUrl: profile.linkedin_url ?? '',
-          portfolioUrl: profile.portfolio_url ?? '',
-          githubUrl: profile.github_url ?? '',
-          summary: profile.summary ?? '',
-          skills: Array.isArray(profile.skills) ? profile.skills.join(', ') : '',
-        })
-      }
+      setProfileForm({
+        firstName: String(me.user?.firstName ?? ''),
+        lastName: String(me.user?.lastName ?? ''),
+        headline: profile?.headline ?? '',
+        phone: profile?.phone ?? '',
+        location: profile?.location ?? '',
+        linkedinUrl: profile?.linkedin_url ?? '',
+        portfolioUrl: profile?.portfolio_url ?? '',
+        githubUrl: profile?.github_url ?? '',
+        summary: profile?.summary ?? '',
+        skills: Array.isArray(profile?.skills) ? profile.skills.join(', ') : '',
+      })
 
       const docsRes = await fetch('/api/recruitment/candidate/documents', { credentials: 'same-origin' })
       const docsData = await docsRes.json()
@@ -132,10 +134,49 @@ export function ApplyFlow({
     }
   }
 
+  const saveNames = async () => {
+    const res = await fetch('/api/recruitment/candidate/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        firstName: profileForm.firstName,
+        lastName: profileForm.lastName,
+        consentPrivacy: true,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Could not save your name')
+  }
+
+  const continueToReview = async () => {
+    if (!selectedCvId) {
+      setError('Select or upload a CV before continuing.')
+      return
+    }
+    if (!profileForm.firstName.trim()) {
+      setError('Add your first name so employers and interview emails can address you.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      await saveNames()
+      setStep(3)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save your name')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const uploadCv = async (file: File) => {
     setBusy(true)
     setError('')
     try {
+      if (profileForm.firstName.trim() || profileForm.lastName.trim()) {
+        await saveNames()
+      }
       const formData = new FormData()
       formData.append('file', file)
       const res = await fetch('/api/recruitment/candidate/documents', {
@@ -299,8 +340,32 @@ export function ApplyFlow({
         {step === 2 ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-6 space-y-4 shadow-[0_1px_0_rgba(15,23,42,0.04)]">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Your CV</h2>
-              <p className="text-sm text-slate-600 mt-1">PDF or Word · max 10 MB</p>
+              <h2 className="text-lg font-semibold text-slate-900">Your name and CV</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Add your name, then upload a PDF or Word file (max 10 MB).
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="apply-first-name">First name</Label>
+                <Input
+                  id="apply-first-name"
+                  value={profileForm.firstName}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, firstName: e.target.value }))}
+                  autoComplete="given-name"
+                  className="h-11 rounded-xl"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="apply-last-name">Last name</Label>
+                <Input
+                  id="apply-last-name"
+                  value={profileForm.lastName}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, lastName: e.target.value }))}
+                  autoComplete="family-name"
+                  className="h-11 rounded-xl"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="cv">Upload CV</Label>
@@ -348,11 +413,11 @@ export function ApplyFlow({
                 Back
               </Button>
               <Button
-                onClick={() => setStep(3)}
-                disabled={!selectedCvId}
+                onClick={() => void continueToReview()}
+                disabled={!selectedCvId || busy}
                 className="rounded-xl bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy-deep)]"
               >
-                Review application
+                {busy ? 'Saving…' : 'Review application'}
               </Button>
             </div>
           </section>
@@ -369,6 +434,12 @@ export function ApplyFlow({
                 <dt className="text-xs uppercase tracking-wider text-slate-500">Role</dt>
                 <dd className="font-medium text-slate-900">
                   {jobTitle} · {organizationName}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5 rounded-xl bg-slate-50 px-4 py-3">
+                <dt className="text-xs uppercase tracking-wider text-slate-500">Name</dt>
+                <dd className="text-slate-800">
+                  {[profileForm.firstName, profileForm.lastName].filter(Boolean).join(' ') || '—'}
                 </dd>
               </div>
               <div className="flex flex-col gap-0.5 rounded-xl bg-slate-50 px-4 py-3">
