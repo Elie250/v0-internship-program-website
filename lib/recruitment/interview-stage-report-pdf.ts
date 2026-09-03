@@ -113,7 +113,7 @@ export async function downloadInterviewStageReportPdf(report: InterviewStageRepo
   const tableStart = writeIntro(
     doc,
     startY,
-    `${report.candidateCount} candidate${report.candidateCount === 1 ? '' : 's'} in interview. Screening % and integrity band only.`
+    `${report.candidateCount} candidate${report.candidateCount === 1 ? '' : 's'} in interview. Email is under the name when a name is missing.`
   )
 
   autoTable(doc, {
@@ -123,18 +123,18 @@ export async function downloadInterviewStageReportPdf(report: InterviewStageRepo
     body:
       report.candidates.length > 0
         ? report.candidates.map((row) => [
-            row.name,
+            [row.name, row.email].filter(Boolean).join('\n'),
             row.jobTitle,
             row.screeningLabel,
             row.integrityLabel,
           ])
         : [['—', 'No one is in the interview stage.', '—', '—']],
     theme: 'striped',
-    styles: { fontSize: 10, cellPadding: 3, valign: 'middle', overflow: 'linebreak' },
+    styles: { fontSize: 9.5, cellPadding: 3, valign: 'top', overflow: 'linebreak' },
     headStyles: { fillColor: NAVY, textColor: 255, fontStyle: 'bold' },
     columnStyles: {
-      0: { cellWidth: 52 },
-      1: { cellWidth: 62 },
+      0: { cellWidth: 58 },
+      1: { cellWidth: 56 },
       2: { cellWidth: 28 },
       3: { cellWidth: 40 },
     },
