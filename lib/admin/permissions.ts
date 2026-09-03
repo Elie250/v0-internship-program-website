@@ -14,8 +14,38 @@ export const PERMISSIONS = {
   PAYMENTS_VIEW: 'payments:view',
   PAYMENTS_APPROVE: 'payments:approve',
   SHOP_PRODUCTS: 'shop:products',
+  /** Read product catalog (POS lookup / staff product list). Not create/edit. */
+  SHOP_PRODUCTS_VIEW: 'shop:products_view',
   SHOP_ORDERS: 'shop:orders',
   SHOP_CATEGORIES: 'shop:categories',
+  /** Create POS sales (cash / MoMo). */
+  SHOP_POS_SELL: 'shop:pos_sell',
+  /** View POS / shop sales history. */
+  SHOP_SALES_VIEW: 'shop:sales_view',
+  /** View inventory levels. */
+  SHOP_STOCK_VIEW: 'shop:stock_view',
+  /** Adjust inventory and record movements. */
+  SHOP_STOCK_ADJUST: 'shop:stock_adjust',
+  /** Receive incoming stock (not a full inventory-manager role). */
+  SHOP_STOCK_RECEIVE: 'shop:stock_receive',
+  /** View and edit product cost price. */
+  SHOP_COST_PRICE: 'shop:cost_price',
+  /** View and edit selling price. */
+  SHOP_SELLING_PRICE: 'shop:selling_price',
+  /** View low-stock / replenishment suggestions. */
+  SHOP_REPLENISHMENT_VIEW: 'shop:replenishment_view',
+  /** Create a purchase request from replenishment. */
+  SHOP_PURCHASE_REQUEST: 'shop:purchase_request',
+  /** View online and POS orders. */
+  SHOP_ORDERS_VIEW: 'shop:orders_view',
+  /** Update order fulfillment status. */
+  SHOP_ORDERS_MANAGE: 'shop:orders_manage',
+  /** Review MoMo proofs for shop/commerce orders only. Not granted by role default. */
+  SHOP_PAYMENTS_REVIEW: 'shop:payments_review',
+  /** Request a refund against a completed POS sale. Does not approve money/stock. */
+  SHOP_REFUNDS_REQUEST: 'shop:refunds_request',
+  /** Approve or reject shop POS refunds and restore stock. Not payments:approve. */
+  SHOP_REFUNDS_APPROVE: 'shop:refunds_approve',
   LEARNING_PROGRAMS: 'learning:programs',
   LEARNING_STUDENTS: 'learning:students',
   CONTENT_ANNOUNCEMENTS: 'content:announcements',
@@ -89,11 +119,42 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   },
   {
     id: 'shop',
-    label: 'Products',
+    label: 'Shop & POS',
     permissions: [
-      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Products & stock', description: 'Manage catalog and inventory' },
-      { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders', description: 'View and fulfil customer orders' },
+      { key: PERMISSIONS.SHOP_PRODUCTS, label: 'Manage products', description: 'Create, edit, and archive catalog products' },
+      {
+        key: PERMISSIONS.SHOP_PRODUCTS_VIEW,
+        label: 'View products',
+        description: 'Read product catalog for POS and staff lookups (no create/edit)',
+      },
+      { key: PERMISSIONS.SHOP_ORDERS, label: 'Orders (legacy)', description: 'Legacy full orders access — prefer granular shop permissions' },
       { key: PERMISSIONS.SHOP_CATEGORIES, label: 'Categories', description: 'Organise shop categories' },
+      { key: PERMISSIONS.SHOP_POS_SELL, label: 'POS sell', description: 'Create in-store POS sales' },
+      { key: PERMISSIONS.SHOP_SALES_VIEW, label: 'Sales history', description: 'View POS and shop sales' },
+      { key: PERMISSIONS.SHOP_STOCK_VIEW, label: 'View stock', description: 'See inventory levels' },
+      { key: PERMISSIONS.SHOP_STOCK_ADJUST, label: 'Adjust stock', description: 'Manually change inventory and record movements' },
+      { key: PERMISSIONS.SHOP_STOCK_RECEIVE, label: 'Receive stock', description: 'Record incoming stock without full product-management authority' },
+      { key: PERMISSIONS.SHOP_COST_PRICE, label: 'Edit cost price', description: 'View and change product cost price' },
+      { key: PERMISSIONS.SHOP_SELLING_PRICE, label: 'Edit selling price', description: 'Change the customer selling price' },
+      { key: PERMISSIONS.SHOP_REPLENISHMENT_VIEW, label: 'View replenishment', description: 'See low-stock items and suggested purchase quantities' },
+      { key: PERMISSIONS.SHOP_PURCHASE_REQUEST, label: 'Create purchase request', description: 'Create a purchase request from replenishment' },
+      { key: PERMISSIONS.SHOP_ORDERS_VIEW, label: 'View orders', description: 'View online and POS orders' },
+      { key: PERMISSIONS.SHOP_ORDERS_MANAGE, label: 'Manage orders', description: 'Update fulfillment status' },
+      {
+        key: PERMISSIONS.SHOP_PAYMENTS_REVIEW,
+        label: 'Review Shop MoMo Payments',
+        description: 'Approve or reject Nyanza Shop customer MoMo proofs (shop orders only)',
+      },
+      {
+        key: PERMISSIONS.SHOP_REFUNDS_REQUEST,
+        label: 'Request POS refunds',
+        description: 'Request a refund of a completed POS sale (does not return money or stock)',
+      },
+      {
+        key: PERMISSIONS.SHOP_REFUNDS_APPROVE,
+        label: 'Approve POS refunds',
+        description: 'Approve or reject POS refunds and restore stock. Not Academy payment approval.',
+      },
     ],
   },
   {
@@ -178,6 +239,20 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
     canAccessAdmin: false,
     isSystem: true,
   },
+  {
+    slug: 'salesperson',
+    label: 'Salesperson',
+    description: 'POS-focused sales and catalog view — no inventory or price edits unless granted.',
+    canAccessAdmin: false,
+    isSystem: true,
+  },
+  {
+    slug: 'inventory_manager',
+    label: 'Inventory Manager',
+    description: 'Catalog and stock adjustments — no admin console by default.',
+    canAccessAdmin: false,
+    isSystem: true,
+  },
 ]
 
 /** Default permission sets per role (merged with users.permissions JSONB). */
@@ -210,6 +285,48 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   mentor: [],
   student: [],
   registered: [],
+  salesperson: [
+    PERMISSIONS.SHOP_POS_SELL,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
+    PERMISSIONS.SHOP_SALES_VIEW,
+    PERMISSIONS.SHOP_ORDERS_VIEW,
+    PERMISSIONS.SHOP_REFUNDS_REQUEST,
+  ],
+  inventory_manager: [
+    PERMISSIONS.SHOP_PRODUCTS,
+    PERMISSIONS.SHOP_PRODUCTS_VIEW,
+    PERMISSIONS.SHOP_STOCK_VIEW,
+    PERMISSIONS.SHOP_STOCK_ADJUST,
+    PERMISSIONS.SHOP_STOCK_RECEIVE,
+    PERMISSIONS.SHOP_COST_PRICE,
+    PERMISSIONS.SHOP_SELLING_PRICE,
+    PERMISSIONS.SHOP_REPLENISHMENT_VIEW,
+    PERMISSIONS.SHOP_PURCHASE_REQUEST,
+    PERMISSIONS.SHOP_ORDERS_VIEW,
+    PERMISSIONS.SHOP_ORDERS_MANAGE,
+    PERMISSIONS.SHOP_SALES_VIEW,
+    PERMISSIONS.SHOP_CATEGORIES,
+    PERMISSIONS.SHOP_REFUNDS_REQUEST,
+  ],
+}
+
+/** Expand legacy shop permissions into granular POS/inventory keys. */
+export function expandShopPermissionAliases(permissions: Iterable<string>): Set<string> {
+  const merged = new Set<string>(permissions)
+  if (merged.has(PERMISSIONS.SHOP_ORDERS)) {
+    merged.add(PERMISSIONS.SHOP_POS_SELL)
+    merged.add(PERMISSIONS.SHOP_SALES_VIEW)
+    merged.add(PERMISSIONS.SHOP_ORDERS_VIEW)
+    merged.add(PERMISSIONS.SHOP_ORDERS_MANAGE)
+  }
+  if (merged.has(PERMISSIONS.SHOP_PRODUCTS)) {
+    merged.add(PERMISSIONS.SHOP_PRODUCTS_VIEW)
+  }
+  /** POS sellers need catalog READ for lookup — not product management. */
+  if (merged.has(PERMISSIONS.SHOP_POS_SELL)) {
+    merged.add(PERMISSIONS.SHOP_PRODUCTS_VIEW)
+  }
+  return merged
 }
 
 export function getRoleDefinition(slug: string): RoleDefinition | undefined {
@@ -239,11 +356,7 @@ export function resolvePermissions(role: string, stored: unknown): Permission[] 
 
   const rolePerms = getPermissionsForRole(role)
   const custom = parseStoredPermissions(stored)
-
-  const merged = new Set<string>([...rolePerms, ...custom])
-  if (merged.has(PERMISSIONS.ADMIN_ACCESS) || rolePerms.length > 0) {
-    merged.add(PERMISSIONS.ADMIN_ACCESS)
-  }
+  const merged = expandShopPermissionAliases([...rolePerms, ...custom])
 
   return ALL_PERMISSIONS.filter((permission) => merged.has(permission)) as Permission[]
 }
@@ -262,6 +375,52 @@ export function canAccessAdminPanel(role: string, permissions?: string[]): boole
   if (role === 'admin') return true
   if (role === 'lecturer' || role === 'instructor' || role === 'mentor') return false
   return hasPermission(permissions, PERMISSIONS.ADMIN_ACCESS)
+}
+
+/** Roles the main Administrator may select in the permission-override editor. */
+export function isPermissionOverrideEligibleRole(role: string): boolean {
+  if (role === 'salesperson' || role === 'inventory_manager') return true
+  return getRoleDefinition(role)?.canAccessAdmin === true
+}
+
+/**
+ * Shop staff may receive extra shop:* grants without Admin Console access.
+ * Admin-console roles may receive any valid permission key.
+ */
+export function filterAssignableCustomPermissions(
+  role: string,
+  permissions: string[]
+): Permission[] {
+  const valid = permissions.filter((permission): permission is Permission =>
+    (ALL_PERMISSIONS as string[]).includes(permission)
+  )
+  if (getRoleDefinition(role)?.canAccessAdmin) return valid
+  return valid.filter(
+    (permission) => permission.startsWith('shop:') && permission !== PERMISSIONS.ADMIN_ACCESS
+  )
+}
+
+/**
+ * Keep explicitly assigned shop extras when a staff role/status is updated.
+ * Never persist admin:access onto shop staff from this merge.
+ */
+export function extrasToPreserveOnRoleChange(stored: unknown, nextRole: string): Permission[] {
+  const nextDefaults = new Set<string>(getPermissionsForRole(nextRole))
+  return parseStoredPermissions(stored).filter((permission): permission is Permission => {
+    if (!(ALL_PERMISSIONS as string[]).includes(permission)) return false
+    if (permission === PERMISSIONS.ADMIN_ACCESS) return false
+    if (nextDefaults.has(permission)) return false
+    if (!permission.startsWith('shop:')) return false
+    return true
+  })
+}
+
+/** Persist only shop extras beyond the role default set. */
+export function shopStaffStoredExtras(role: string, requested: unknown): Permission[] {
+  const roleDefaults = new Set<string>(getPermissionsForRole(role))
+  return filterAssignableCustomPermissions(role, parseStoredPermissions(requested)).filter(
+    (permission) => !roleDefaults.has(permission)
+  )
 }
 
 export function permissionLabel(key: string): string {

@@ -11,9 +11,17 @@ type Props = {
   value: string
   onChange: (url: string) => void
   folder: 'products' | 'services' | 'announcements' | 'courses' | 'brand' | 'engineering' | 'energy-library' | 'brain-games'
+  /** Admin cookie upload by default. Shop staff use /api/staff/upload. */
+  uploadPath?: '/api/admin/upload' | '/api/staff/upload'
 }
 
-export function ImageUploadField({ label = 'Image', value, onChange, folder }: Props) {
+export function ImageUploadField({
+  label = 'Image',
+  value,
+  onChange,
+  folder,
+  uploadPath = '/api/admin/upload',
+}: Props) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -26,7 +34,7 @@ export function ImageUploadField({ label = 'Image', value, onChange, folder }: P
       body.append('file', file)
       body.append('folder', folder)
 
-      const res = await fetch('/api/admin/upload', { method: 'POST', body })
+      const res = await fetch(uploadPath, { method: 'POST', body, credentials: 'same-origin' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.hint ? `${data.error} — ${data.hint}` : data.error)
 

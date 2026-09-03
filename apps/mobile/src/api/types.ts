@@ -1,0 +1,163 @@
+export type StaffUser = {
+  id: string
+  email: string
+  role: string
+  firstName: string
+  lastName: string
+  permissions: string[]
+  canAccessAdmin: boolean
+}
+
+export type Paginated<T> = {
+  items: T[]
+  page: number
+  limit: number
+  total: number
+}
+
+export type StaffDashboard = {
+  timezone: string
+  businessDate: string
+  todaySales: number
+  todayRefunds?: number
+  todayNetSales?: number
+  todayOrders: number
+  todayPosOrders: number
+  todayOnlineOrders: number
+  pendingOrders: number
+  catalogItems: number
+  inStockItems: number
+  lowStockItems: number
+  outOfStockItems: number
+  stockModel: 'global_products_stock'
+  profit: null
+}
+
+export type StaffPayment = {
+  amount: number
+  status: string
+  paymentMethod: string | null
+  proofUrl: string | null
+  referenceNumber: string | null
+  notes: string | null
+  submittedAt: string | null
+  createdAt?: string | null
+  reviewedAt: string | null
+  reviewedBy: string | null
+  paidAt: string | null
+}
+
+export type StaffOrderSummary = {
+  id: string
+  orderNumber: string | null
+  channel: string | null
+  status: string | null
+  paymentStatus: string | null
+  paymentMethod: string | null
+  totalAmount: number
+  customerName: string | null
+  customerPhone: string | null
+  customerEmail: string | null
+  orderDate: string | null
+  createdAt: string | null
+  payment: StaffPayment | null
+  refundStatus?: string | null
+  refundedAmount?: number
+}
+
+export type StaffRefund = {
+  id: string
+  status: string
+  reason: string
+  notes: string | null
+  paymentMethod: string
+  amount: number
+  requestedAt: string | null
+  decidedAt: string | null
+  items: Array<{
+    orderItemId: string
+    productName: string
+    quantity: number
+    unitPrice: number
+    lineTotal: number
+  }>
+}
+
+export type StaffOrderDetail = StaffOrderSummary & {
+  notes: string | null
+  deliveryAddress: string | null
+  stockState?: string | null
+  refunds?: StaffRefund[]
+  items: Array<{
+    id: string
+    productName: string
+    quantity: number
+    refundableQuantity?: number
+    sellingUnit: string | null
+    unitPrice: number
+    lineTotal: number
+    unitCost?: number
+  }>
+}
+
+export type StaffProduct = {
+  id: string
+  name: string
+  description?: string | null
+  sku: string | null
+  barcode: string | null
+  price: number
+  discount: number
+  costPrice?: number
+  stock: number
+  status: string | null
+  sellingQuantity: number
+  sellingUnit: string
+  sellingUnitLabel: string
+  categoryId?: string | null
+  category?: { id: string; name: string; slug: string | null; type: string | null } | null
+  images?: unknown
+  lowStockThreshold?: number | null
+  targetStock?: number | null
+  isFeatured?: boolean
+}
+
+export type ShopCategory = {
+  id: string
+  name: string
+  slug?: string
+  type?: string
+}
+
+export type StaffInventoryRow = {
+  productId: string
+  name: string
+  sku: string | null
+  barcode?: string | null
+  currentStock: number
+  lowStockThreshold: number
+  isLowStock: boolean
+  status: string | null
+  price: number
+  targetStock?: number | null
+  onOrder?: number
+  suggestedPurchase?: number
+}
+
+export type StaffStockMutation = {
+  productId: string
+  operation: 'adjust' | 'receive'
+  quantityDelta: number
+  quantityBefore: number | null
+  quantityAfter: number
+  reason: string
+}
+
+export type PosSaleResult = {
+  success: boolean
+  orderNumber?: string
+  totalAmount?: number
+  paymentStatus?: string
+  message?: string
+  error?: string
+}

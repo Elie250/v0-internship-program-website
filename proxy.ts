@@ -3,7 +3,25 @@ import {
   getMainSiteOrigin,
   isAcademyPath,
   isRecruitmentHost,
+  isRecruitmentPath,
 } from '@/lib/recruitment/hosts'
+import {
+  getShopPublicOrigin,
+  isPublicStorefrontPath,
+  isShopHost,
+  isShopHostStorefrontPath,
+  isShopPortalPath,
+  isShopStaffApiPath,
+  rewriteShopStorefrontPath,
+} from '@/lib/shop/hosts'
+import { STAFF_SESSION_COOKIE } from '@/lib/staff/session-cookie'
+import { sanitizeShopReturnPath } from '@/lib/shop/safe-return-path'
+
+function getTalentOrigin(): string {
+  const url =
+    process.env.RECRUITMENT_PUBLIC_BASE_URL?.trim() || 'https://jobs.energyandlogics.com'
+  return url.replace(/\/$/, '')
+}
 
 function getUserSession(request: NextRequest) {
   const session = request.cookies.get('user_session')
@@ -28,25 +46,160 @@ function isAdminUser(
   return user.permissions?.includes('admin:access') ?? false
 }
 
+function hasStaffSessionCookie(request: NextRequest): boolean {
+  const value = request.cookies.get(STAFF_SESSION_COOKIE)?.value?.trim()
+  return Boolean(value)
+}
+
+function isShopLoginPath(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/login/')
+}
+
+function isShopPublicPortalPath(pathname: string): boolean {
+  return (
+    isShopLoginPath(pathname) ||
+    pathname === '/manage/login' ||
+    pathname.startsWith('/manage/login/')
+  )
+}
+
+/** Map public shop-host paths to internal /manage/* App Router pages. */
+function rewriteShopModulePath(pathname: string): string | null {
+  const modules = ['pos', 'products', 'inventory', 'orders', 'sales', 'settings', 'users'] as const
+  for (const name of modules) {
+    if (pathname === `/${name}`) return `/manage/${name}`
+    if (pathname.startsWith(`/${name}/`)) {
+      return `/manage/${name}${pathname.slice(name.length + 1)}`
+    }
+  }
+  return null
+}
+
 export function proxy(request: NextRequest) {
   const hostname = request.headers.get('host')
   const pathname = request.nextUrl.pathname
+  const search = request.nextUrl.search
+  const onShopHost = isShopHost(hostname)
+  const onTalentHost = isRecruitmentHost(hostname)
 
   // jobs.energyandlogics.com → Talent at /jobs; Academy paths on main domain
-  if (isRecruitmentHost(hostname)) {
+  if (onTalentHost) {
     if (pathname === '/') {
       return NextResponse.redirect(new URL('/jobs', request.url))
     }
+    if (
+      isShopPortalPath(pathname) ||
+      isShopStaffApiPath(pathname) ||
+      isShopHostStorefrontPath(pathname)
+    ) {
+      const target = new URL(pathname + search, getShopPublicOrigin())
+      return NextResponse.redirect(target)
+    }
     if (isAcademyPath(pathname) && !pathname.startsWith('/auth/logout')) {
-      const target = new URL(pathname + request.nextUrl.search, getMainSiteOrigin())
+      const target = new URL(pathname + search, getMainSiteOrigin())
       return NextResponse.redirect(target)
     }
   }
 
+  // shop.energyandlogics.com → public customer storefront; staff under /manage
+  if (onShopHost) {
+    const staffCookie = hasStaffSessionCookie(request)
+
+    if (isPublicStorefrontPath(pathname)) {
+      const target = new URL(pathname + search, getMainSiteOrigin())
+      return NextResponse.redirect(target)
+    }
+
+    const storefrontRewrite = rewriteShopStorefrontPath(pathname)
+    if (storefrontRewrite) {
+      const url = request.nextUrl.clone()
+      url.pathname = storefrontRewrite
+      return NextResponse.rewrite(url)
+    }
+
+    // Canonical public URLs → internal /manage/* pages (avoid colliding with Academy /login,/dashboard)
+    if (isShopLoginPath(pathname)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/manage/login'
+      return NextResponse.rewrite(url)
+    }
+
+    if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = pathname.replace(/^\/dashboard/, '/manage/dashboard') || '/manage/dashboard'
+      return NextResponse.rewrite(url)
+    }
+
+    const shopModuleRewrite = rewriteShopModulePath(pathname)
+    if (shopModuleRewrite) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+      const url = request.nextUrl.clone()
+      url.pathname = shopModuleRewrite
+      return NextResponse.rewrite(url)
+    }
+
+    if (
+      isShopPortalPath(pathname) &&
+      !isShopPublicPortalPath(pathname) &&
+      pathname !== '/manage' &&
+      !pathname.startsWith('/manage/')
+    ) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', sanitizeShopReturnPath(pathname + search))
+        return NextResponse.redirect(login)
+      }
+    }
+
+    if (pathname === '/manage' || pathname === '/manage/') {
+      return NextResponse.redirect(new URL(staffCookie ? '/dashboard' : '/login', request.url))
+    }
+
+    if (pathname.startsWith('/manage/dashboard')) {
+      if (!staffCookie) {
+        const login = new URL('/login', request.url)
+        login.searchParams.set('returnTo', '/dashboard')
+        return NextResponse.redirect(login)
+      }
+    }
+
+    if (
+      isShopPortalPath(pathname) ||
+      isShopStaffApiPath(pathname) ||
+      isShopHostStorefrontPath(pathname) ||
+      pathname.startsWith('/manage')
+    ) {
+      // stay on shop host
+    } else if (isRecruitmentPath(pathname)) {
+      const target = new URL(pathname + search, getTalentOrigin())
+      return NextResponse.redirect(target)
+    } else if (isAcademyPath(pathname) && !pathname.startsWith('/auth/logout')) {
+      const target = new URL(pathname + search, getMainSiteOrigin())
+      return NextResponse.redirect(target)
+    }
+  }
+
+  const skipAcademyAuthGates =
+    onShopHost &&
+    (isShopPortalPath(pathname) ||
+      isShopStaffApiPath(pathname) ||
+      isShopHostStorefrontPath(pathname) ||
+      pathname === '/' ||
+      pathname.startsWith('/manage'))
+
   const user = getUserSession(request)
   const adminSession = request.cookies.get('admin_session')
 
-  if (pathname.startsWith('/dashboard') && !user) {
+  if (!skipAcademyAuthGates && pathname.startsWith('/dashboard') && !user) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
@@ -111,7 +264,40 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/manage',
+    '/manage/:path*',
+    '/login',
+    '/login/:path*',
+    '/pos',
+    '/pos/:path*',
+    '/products',
+    '/products/:path*',
+    '/inventory',
+    '/inventory/:path*',
+    '/orders',
+    '/orders/:path*',
+    '/sales',
+    '/sales/:path*',
+    '/settings',
+    '/settings/:path*',
+    '/users',
+    '/users/:path*',
+    '/cart',
+    '/cart/:path*',
+    '/checkout',
+    '/checkout/:path*',
+    '/track',
+    '/track/:path*',
+    '/product',
+    '/product/:path*',
+    '/order',
+    '/order/:path*',
+    '/storefront',
+    '/storefront/:path*',
+    '/shop',
+    '/shop/:path*',
     '/admin/:path*',
+    '/dashboard',
     '/dashboard/:path*',
     '/student/:path*',
     '/engineer/:path*',
@@ -124,5 +310,7 @@ export const config = {
     '/employer',
     '/employer/:path*',
     '/o/:path*',
+    '/api/staff',
+    '/api/staff/:path*',
   ],
 }

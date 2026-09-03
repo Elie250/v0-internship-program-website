@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { applySellingUnitToProductPayload } from '@/lib/shop/selling-unit'
+import { applyStorefrontFeaturedToProductPayload } from '@/lib/shop/storefront-featured'
+import {
+  applyBarcodeToProductPayload,
+  DUPLICATE_BARCODE_MESSAGE,
+  isDuplicateBarcodeError,
+} from '@/lib/shop/product-barcode'
 
 export async function PATCH(
   request: Request,
@@ -14,15 +21,32 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json()
+    const body = (await request.json()) as Record<string, unknown>
+    const overlay = applySellingUnitToProductPayload(body, 'update')
+    if (!overlay.ok) {
+      return NextResponse.json({ error: overlay.error }, { status: 400 })
+    }
+    const featured = applyStorefrontFeaturedToProductPayload(overlay.payload, 'update')
+    if (!featured.ok) {
+      return NextResponse.json({ error: featured.error }, { status: 400 })
+    }
+    const barcode = applyBarcodeToProductPayload(featured.payload, 'update')
+    if (!barcode.ok) {
+      return NextResponse.json({ error: barcode.error }, { status: 400 })
+    }
     const { data, error } = await supabaseAdmin
       .from('products')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...barcode.payload, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('*, category:categories(*)')
       .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      if (isDuplicateBarcodeError(error.message)) {
+        return NextResponse.json({ error: DUPLICATE_BARCODE_MESSAGE }, { status: 409 })
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json(data)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update product'
@@ -42,57 +66,20 @@ export async function DELETE(
 
     const { id } = await params
 
-    const { count, error: countError } = await supabaseAdmin
-      .from('order_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('product_id', id)
+    const { error: archiveError } = await supabaseAdmin
+      .from('products')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', id)
 
-    if (countError && !countError.message.includes('does not exist')) {
-      return NextResponse.json({ error: countError.message }, { status: 500 })
+    if (archiveError) {
+      return NextResponse.json({ error: archiveError.message }, { status: 500 })
     }
 
-    if ((count ?? 0) > 0) {
-      const { error: archiveError } = await supabaseAdmin
-        .from('products')
-        .update({ status: 'archived', updated_at: new Date().toISOString() })
-        .eq('id', id)
-
-      if (archiveError) {
-        return NextResponse.json({ error: archiveError.message }, { status: 500 })
-      }
-
-      return NextResponse.json({
-        success: true,
-        archived: true,
-        message:
-          'Product has order history and was archived instead of deleted. It no longer appears in the shop.',
-      })
-    }
-
-    const { error } = await supabaseAdmin.from('products').delete().eq('id', id)
-    if (error) {
-      if (error.message.includes('violates foreign key') || error.code === '23503') {
-        const { error: archiveError } = await supabaseAdmin
-          .from('products')
-          .update({ status: 'archived', updated_at: new Date().toISOString() })
-          .eq('id', id)
-
-        if (archiveError) {
-          return NextResponse.json({ error: archiveError.message }, { status: 500 })
-        }
-
-        return NextResponse.json({
-          success: true,
-          archived: true,
-          message:
-            'Product is linked to past orders and was archived instead of deleted. It no longer appears in the shop.',
-        })
-      }
-
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: true, archived: false })
+    return NextResponse.json({
+      success: true,
+      archived: true,
+      message: 'Product was archived so historical orders and stock movements stay intact.',
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete product'
     return NextResponse.json({ error: message }, { status: 403 })

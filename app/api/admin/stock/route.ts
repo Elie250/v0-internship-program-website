@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { requireAdminPermission } from '@/app/actions/admin-context'
-import { PERMISSIONS } from '@/lib/admin/permissions'
+import { getAdminSession } from '@/app/actions/admin-context'
+import { hasPermission, PERMISSIONS } from '@/lib/admin/permissions'
+import { adjustStockAbsolute } from '@/lib/shop/stock-ops'
 
 export async function GET() {
   try {
-    await requireAdminPermission(PERMISSIONS.SHOP_PRODUCTS)
+    const session = await getAdminSession()
+    if (
+      !session ||
+      !hasPermission(session.user.permissions, [
+        PERMISSIONS.SHOP_PRODUCTS,
+        PERMISSIONS.SHOP_STOCK_VIEW,
+      ])
+    ) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
@@ -25,7 +35,16 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    await requireAdminPermission(PERMISSIONS.SHOP_PRODUCTS)
+    const session = await getAdminSession()
+    if (
+      !session ||
+      !hasPermission(session.user.permissions, [
+        PERMISSIONS.SHOP_PRODUCTS,
+        PERMISSIONS.SHOP_STOCK_ADJUST,
+      ])
+    ) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
     if (!supabaseAdmin) {
       return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
     }
@@ -43,17 +62,26 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: 'Invalid stock update' }, { status: 400 })
       }
 
-      const payload: Record<string, unknown> = {
-        stock,
-        in_stock: stock > 0,
-        updated_at: new Date().toISOString(),
-      }
-      if (entry.low_stock_threshold != null) {
-        payload.low_stock_threshold = Number(entry.low_stock_threshold)
+      const result = await adjustStockAbsolute({
+        productId: entry.id,
+        newStock: stock,
+        actorUserId: session.user.id,
+        reason: 'Admin stock adjustment',
+      })
+      if (result.error) {
+        return NextResponse.json({ error: result.error }, { status: 500 })
       }
 
-      const { error } = await supabaseAdmin.from('products').update(payload).eq('id', entry.id)
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      if (entry.low_stock_threshold != null) {
+        const { error } = await supabaseAdmin
+          .from('products')
+          .update({
+            low_stock_threshold: Number(entry.low_stock_threshold),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', entry.id)
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ success: true })

@@ -6,8 +6,14 @@ import {
   paymentStatusForApproval,
   safeReviewedById,
 } from '@/lib/payments/status'
-import type { AdminSession } from '@/app/actions/admin-context'
 import { PERMISSIONS, hasPermission } from '@/lib/admin/permissions'
+
+export type PaymentReviewActor = {
+  user: {
+    id: string
+    permissions: string[]
+  }
+}
 
 export type PaymentReviewRow = {
   id: string
@@ -89,13 +95,20 @@ export async function fetchPaymentForReview(paymentId: string): Promise<{
   }
 }
 
+export function isShopCommercePayment(payment: PaymentReviewRow): boolean {
+  return Boolean(
+    payment.order_id &&
+      !payment.course_enrollment_id &&
+      !payment.support_subscription_id &&
+      !payment.library_purchase_id &&
+      !payment.application_id
+  )
+}
+
 export function canReviewPayment(
   permissions: string[] | undefined,
   payment: PaymentReviewRow
 ): boolean {
-  if (payment.order_id) {
-    return hasPermission(permissions, [PERMISSIONS.PAYMENTS_APPROVE, PERMISSIONS.SHOP_ORDERS])
-  }
   if (payment.course_enrollment_id) {
     return hasPermission(permissions, [
       PERMISSIONS.PAYMENTS_APPROVE,
@@ -112,6 +125,13 @@ export function canReviewPayment(
   }
   if (payment.support_subscription_id) {
     return hasPermission(permissions, [PERMISSIONS.PAYMENTS_APPROVE, PERMISSIONS.SUPPORT_TICKETS])
+  }
+  if (isShopCommercePayment(payment)) {
+    return hasPermission(permissions, [
+      PERMISSIONS.PAYMENTS_APPROVE,
+      PERMISSIONS.SHOP_ORDERS,
+      PERMISSIONS.SHOP_PAYMENTS_REVIEW,
+    ])
   }
   return hasPermission(permissions, PERMISSIONS.PAYMENTS_APPROVE)
 }
@@ -136,7 +156,7 @@ async function updateLibraryPurchaseStatus(
 }
 
 export async function reviewPaymentCore(
-  session: AdminSession,
+  session: PaymentReviewActor,
   input: {
     id: string
     decision: 'approved' | 'rejected'
@@ -365,6 +385,20 @@ export async function reviewPaymentCore(
       if (orderError) {
         return { success: false, error: orderError.message }
       }
+
+      const {
+        finalizeCommercePaymentApproval,
+      } = await import('@/lib/shop/commerce-checkout')
+      const stockResult = await finalizeCommercePaymentApproval({
+        orderId: existing.order_id,
+        actorUserId: session.user.id,
+      })
+      if (stockResult.error) {
+        return {
+          success: false,
+          error: stockResult.error ?? 'Payment approved but stock finalization failed',
+        }
+      }
     } else {
       const { error: orderError } = await supabaseAdmin
         .from('orders')
@@ -376,6 +410,21 @@ export async function reviewPaymentCore(
         .eq('id', existing.order_id)
       if (orderError) {
         return { success: false, error: orderError.message }
+      }
+
+      const {
+        finalizeCommercePaymentRejection,
+      } = await import('@/lib/shop/commerce-checkout')
+      const stockResult = await finalizeCommercePaymentRejection({
+        orderId: existing.order_id,
+        actorUserId: session.user.id,
+        reason: input.adminNotes || 'Payment rejected',
+      })
+      if (stockResult.error) {
+        return {
+          success: false,
+          error: stockResult.error ?? 'Payment rejected but stock release failed',
+        }
       }
     }
   }

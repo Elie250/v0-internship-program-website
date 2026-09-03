@@ -23,6 +23,13 @@ import {
 } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { Pencil, Trash2 } from 'lucide-react'
+import {
+  SELLING_UNITS,
+  formatSellingUnit,
+  isSellingUnit,
+  parseSellingQuantity,
+  parseSellingUnit,
+} from '@/lib/shop/selling-unit'
 
 type Category = {
   id: string
@@ -43,6 +50,9 @@ type Product = {
   category_id?: string | null
   category?: Category | null
   images?: string[]
+  selling_quantity?: number
+  selling_unit?: string
+  is_featured?: boolean
 }
 
 const emptyForm = {
@@ -55,6 +65,9 @@ const emptyForm = {
   categoryId: '',
   status: 'published',
   imageUrl: '',
+  sellingQuantity: '1',
+  sellingUnit: 'PCS',
+  isFeatured: false,
 }
 
 export default function ProductManagement() {
@@ -100,6 +113,12 @@ export default function ProductManagement() {
       setError('Please select a category for this product.')
       return
     }
+    const qty = parseSellingQuantity(form.sellingQuantity)
+    const unit = parseSellingUnit(form.sellingUnit)
+    if (!qty.ok || !unit.ok) {
+      setError('Enter a selling quantity greater than 0 and choose a listed unit.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -117,6 +136,9 @@ export default function ProductManagement() {
           status: form.status,
           images: form.imageUrl ? [form.imageUrl] : [],
           specifications: {},
+          selling_quantity: qty.value,
+          selling_unit: unit.value,
+          is_featured: form.isFeatured,
         }),
       })
       const data = await res.json()
@@ -143,6 +165,11 @@ export default function ProductManagement() {
       categoryId: product.category_id || product.category?.id || '',
       status: product.status || 'published',
       imageUrl: product.images?.[0] || '',
+      sellingQuantity: String(product.selling_quantity ?? 1),
+      sellingUnit: isSellingUnit(String(product.selling_unit ?? 'PCS'))
+        ? String(product.selling_unit)
+        : 'PCS',
+      isFeatured: Boolean(product.is_featured),
     })
   }
 
@@ -150,6 +177,12 @@ export default function ProductManagement() {
     if (!editing) return
     if (!editForm.categoryId) {
       setError('Please select a category for this product.')
+      return
+    }
+    const qty = parseSellingQuantity(editForm.sellingQuantity)
+    const unit = parseSellingUnit(editForm.sellingUnit)
+    if (!qty.ok || !unit.ok) {
+      setError('Enter a selling quantity greater than 0 and choose a listed unit.')
       return
     }
     setSaving(true)
@@ -168,6 +201,9 @@ export default function ProductManagement() {
           category_id: editForm.categoryId,
           status: editForm.status,
           images: editForm.imageUrl ? [editForm.imageUrl] : [],
+          selling_quantity: qty.value,
+          selling_unit: unit.value,
+          is_featured: editForm.isFeatured,
         }),
       })
       const data = await res.json()
@@ -285,6 +321,35 @@ export default function ProductManagement() {
             />
           </div>
           <div>
+            <Label>Selling quantity</Label>
+            <Input
+              className="mt-1"
+              type="number"
+              min="0.001"
+              step="0.001"
+              value={form.sellingQuantity}
+              onChange={(e) => setForm({ ...form, sellingQuantity: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Selling unit</Label>
+            <Select
+              value={form.sellingUnit}
+              onValueChange={(v) => setForm({ ...form, sellingUnit: v })}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SELLING_UNITS.map((unit) => (
+                  <SelectItem key={unit} value={unit}>
+                    {unit}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <Label>Cost price (RWF)</Label>
             <Input
               className="mt-1"
@@ -316,6 +381,21 @@ export default function ProductManagement() {
               </SelectContent>
             </Select>
           </div>
+          <label className="md:col-span-2 flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-[#1e3a5f]"
+              checked={form.isFeatured}
+              onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })}
+            />
+            <span>
+              <span className="font-medium text-slate-900">Featured on storefront</span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                Featured products appear first in the New Arrivals carousel when they have a photo
+                and are in stock.
+              </span>
+            </span>
+          </label>
           <div className="md:col-span-2">
             <Label>Description</Label>
             <Textarea
@@ -365,7 +445,10 @@ export default function ProductManagement() {
             <CardContent className="space-y-3">
               <p className="text-sm text-slate-600 line-clamp-2">{p.description}</p>
               <p className="text-sm">
-                {p.price?.toLocaleString()} RWF · Stock {p.stock} · {p.status}
+                {p.price?.toLocaleString()} RWF ·{' '}
+                {formatSellingUnit(p.selling_quantity ?? 1, p.selling_unit ?? 'PCS')} · Stock{' '}
+                {p.stock} · {p.status}
+                {p.is_featured ? ' · Featured' : ''}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => openEdit(p)}>
@@ -449,6 +532,35 @@ export default function ProductManagement() {
                   onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
                 />
               </div>
+              <div>
+                <Label>Selling quantity</Label>
+                <Input
+                  className="mt-1"
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value={editForm.sellingQuantity}
+                  onChange={(e) => setEditForm({ ...editForm, sellingQuantity: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Selling unit</Label>
+                <Select
+                  value={editForm.sellingUnit}
+                  onValueChange={(v) => setEditForm({ ...editForm, sellingUnit: v })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SELLING_UNITS.map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <Label>Status</Label>
@@ -462,6 +574,21 @@ export default function ProductManagement() {
                 </SelectContent>
               </Select>
             </div>
+            <label className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-[#1e3a5f]"
+                checked={editForm.isFeatured}
+                onChange={(e) => setEditForm({ ...editForm, isFeatured: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium text-slate-900">Featured on storefront</span>
+                <span className="mt-0.5 block text-xs text-slate-600">
+                  Featured products appear first in the New Arrivals carousel when they have a photo
+                  and are in stock.
+                </span>
+              </span>
+            </label>
             <div>
               <Label>Description</Label>
               <Textarea

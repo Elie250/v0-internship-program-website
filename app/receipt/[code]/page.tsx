@@ -31,7 +31,7 @@ export default async function OrderReceiptLookupPage({ params }: PageProps) {
 
               <div className="rounded-lg border border-green-200 bg-green-50/50 p-4 text-sm space-y-2.5">
                 <p>
-                  <span className="text-slate-500">Order code:</span>{' '}
+                  <span className="text-slate-500">Order number:</span>{' '}
                   <strong className="font-mono text-slate-900">{result.orderNumber}</strong>
                 </p>
                 <p>
@@ -97,7 +97,12 @@ export default async function OrderReceiptLookupPage({ params }: PageProps) {
                   <tbody>
                     {result.items.map((item, index) => (
                       <tr key={`${item.productName}-${index}`} className="border-b last:border-0">
-                        <td className="p-2">{item.productName}</td>
+                        <td className="p-2">
+                          <p>{item.productName}</p>
+                          {item.sellingUnitLabel ? (
+                            <p className="text-xs text-slate-500">{item.sellingUnitLabel}</p>
+                          ) : null}
+                        </td>
                         <td className="p-2 text-right">{item.quantity}</td>
                         <td className="p-2 text-right">{item.lineTotal.toLocaleString()} RWF</td>
                       </tr>

@@ -1,158 +1,88 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { createCommerceSale } from '@/lib/shop/commerce-checkout'
 import {
-  buildOrderLines,
-  decrementStockForLines,
-  generateOrderNumber,
-} from '@/lib/shop/order-helpers'
+  PUBLIC_CART_CHANGED_MESSAGE,
+  PUBLIC_CHECKOUT_CART_CHANGED,
+  resolvePublicCheckoutItems,
+  toPublicShopOrderResponse,
+} from '@/lib/shop/public-checkout'
+import { resolveShopPortalPosLocation } from '@/lib/shop/resolve-pos-location'
+import { getDefaultStorefrontShop } from '@/lib/shop/storefront-shops'
+import { normalizeIdempotencyKey } from '@/lib/shop/stock-types'
 
-type OrderItemInput = {
-  productId: string
-  quantity: number
+function cartChangedResponse() {
+  return NextResponse.json(
+    { error: PUBLIC_CART_CHANGED_MESSAGE, code: PUBLIC_CHECKOUT_CART_CHANGED },
+    { status: 409 }
+  )
 }
 
 export async function POST(request: Request) {
   try {
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
-    }
-
     const body = await request.json()
-    const items: OrderItemInput[] = body.items ?? []
     const customerName = String(body.customerName ?? '').trim()
     const customerEmail = String(body.customerEmail ?? '').trim()
     const customerPhone = String(body.customerPhone ?? '').trim()
     const fulfillmentType = body.fulfillmentType === 'delivery' ? 'delivery' : 'pickup'
     const deliveryAddress = String(body.deliveryAddress ?? '').trim()
     const notes = String(body.notes ?? '').trim()
-    const paymentMethod = 'momo'
     const receiptUrl = String(body.receiptUrl ?? '').trim()
     const receiptNumber = String(body.receiptNumber ?? '').trim()
 
-    if (!items.length) {
-      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
-    }
-    if (!customerName || !customerEmail || !customerPhone) {
-      return NextResponse.json(
-        { error: 'Name, email, and phone are required so we can contact you' },
-        { status: 400 }
-      )
-    }
-    if (fulfillmentType === 'delivery' && !deliveryAddress) {
-      return NextResponse.json({ error: 'Delivery address is required for delivery orders' }, { status: 400 })
-    }
+    // Never trust client-supplied location, prices, totals, stock, or product UUIDs
+    // as commerce authority. Location is always resolved server-side (Nyanza).
+    const portalLocation = await resolveShopPortalPosLocation()
+    const resolved = await resolvePublicCheckoutItems(body.items)
 
-    const built = await buildOrderLines(items)
-    if (!built.order) {
-      return NextResponse.json({ error: built.error || 'Invalid cart' }, { status: 400 })
+    if (!resolved.ok) {
+      if (resolved.code === 'EMPTY') {
+        return NextResponse.json({ error: 'Cart is empty' }, { status: 400 })
+      }
+      if (resolved.code === 'INVALID') {
+        return NextResponse.json({ error: 'Invalid cart' }, { status: 400 })
+      }
+      return cartChangedResponse()
     }
 
-    const { lineItems, totalAmount, productMap } = built.order
-    const orderNumber = generateOrderNumber()
-    const now = new Date().toISOString()
+    const idempotencyKey =
+      normalizeIdempotencyKey(body.idempotencyKey) ||
+      normalizeIdempotencyKey(request.headers.get('idempotency-key'))
 
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .insert([
-        {
-          order_number: orderNumber,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          fulfillment_type: fulfillmentType,
-          delivery_address: fulfillmentType === 'delivery' ? deliveryAddress : null,
-          notes: notes || null,
-          total_amount: totalAmount,
-          status: 'pending',
-          payment_status: 'pending_review',
-          payment_method: paymentMethod,
-          channel: 'online',
-          order_date: now,
-        },
-      ])
-      .select()
-      .single()
+    const result = await createCommerceSale({
+      channel: 'online',
+      items: resolved.items,
+      customerName,
+      customerEmail,
+      customerPhone,
+      fulfillmentType,
+      deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : null,
+      notes: notes || null,
+      paymentMethod: 'momo',
+      receiptUrl: receiptUrl || null,
+      receiptNumber: receiptNumber || null,
+      locationId: portalLocation?.id ?? null,
+      idempotencyKey,
+    })
 
-    if (orderError || !order) {
-      return NextResponse.json({ error: orderError?.message || 'Failed to create order' }, { status: 500 })
+    if (!result.ok) {
+      if (
+        resolved.usedPublicSlugs &&
+        /insufficient stock|invalid cart/i.test(result.error)
+      ) {
+        return cartChangedResponse()
+      }
+      return NextResponse.json({ error: result.error }, { status: result.httpStatus })
     }
 
-    const { error: itemsError } = await supabaseAdmin.from('order_items').insert(
-      lineItems.map((line) => ({
-        order_id: order.id,
-        product_id: line.product_id,
-        product_name: line.product_name,
-        quantity: line.quantity,
-        unit_price: line.unit_price,
-        unit_cost: line.unit_cost,
-        line_total: line.line_total,
-      }))
-    )
-
-    if (itemsError) {
-      await supabaseAdmin.from('orders').delete().eq('id', order.id)
-      return NextResponse.json({ error: itemsError.message }, { status: 500 })
-    }
-
-    const { data: payment, error: paymentError } = await supabaseAdmin
-      .from('payments')
-      .insert([
-        {
-          amount: totalAmount,
-          payer_name: customerName,
-          payer_email: customerEmail,
-          payer_phone: customerPhone,
-          payment_method: 'MTN MoMo (manual)',
-          order_id: order.id,
-          status: 'pending_review',
-          receipt_url: receiptUrl || null,
-          receipt_number: receiptNumber || null,
-        },
-      ])
-      .select()
-      .single()
-
-    if (paymentError || !payment) {
-      await supabaseAdmin.from('order_items').delete().eq('order_id', order.id)
-      await supabaseAdmin.from('orders').delete().eq('id', order.id)
-      return NextResponse.json({ error: paymentError?.message || 'Failed to create payment record' }, { status: 500 })
-    }
-
-    await supabaseAdmin
-      .from('orders')
-      .update({ payment_id: payment.id, updated_at: now })
-      .eq('id', order.id)
-
-    const stockResult = await decrementStockForLines(lineItems, productMap)
-    if (stockResult.error) {
-      return NextResponse.json(
-        {
-          success: true,
-          orderId: order.id,
-          orderNumber,
-          totalAmount,
-          warning: 'Order submitted but stock update failed. Admin will verify.',
-          message:
-            fulfillmentType === 'delivery'
-              ? 'Order submitted with MoMo receipt. We will verify payment and contact you for delivery.'
-              : 'Order submitted with MoMo receipt. We will verify payment and notify you for pickup.',
-        },
-        { status: 201 }
-      )
-    }
-
+    const shop = getDefaultStorefrontShop()
     return NextResponse.json(
-      {
-        success: true,
-        orderId: order.id,
-        orderNumber,
-        totalAmount,
-        message:
-          fulfillmentType === 'delivery'
-            ? 'Order submitted. We will verify your MoMo payment and contact you for delivery.'
-            : 'Order submitted. We will verify your MoMo payment and notify you when ready for pickup.',
-      },
-      { status: 201 }
+      toPublicShopOrderResponse({
+        orderNumber: result.orderNumber,
+        totalAmount: result.totalAmount,
+        shopName: shop.name,
+        fulfillmentType,
+      }),
+      { status: result.httpStatus }
     )
   } catch {
     return NextResponse.json({ error: 'Failed to submit order' }, { status: 500 })

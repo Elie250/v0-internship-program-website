@@ -1,5 +1,5 @@
-export { sendApplicationEmail } from '@/lib/email/notifications'
-export type { ApplicationEmailParams } from '@/lib/email/notifications'
+export { sendApplicationEmail } from "@/lib/email/notifications";
+export type { ApplicationEmailParams } from "@/lib/email/notifications";
 export {
   sendPaymentSubmittedToAdmin,
   sendPaymentApprovedEmail,
@@ -13,4 +13,5 @@ export {
   sendSupportTicketResponseEmail,
   sendSupportSubscriptionActivatedEmail,
   sendSupportSubscriptionRejectedEmail,
-} from '@/lib/email/notifications'
+} from "@/lib/email/notifications";
+export { sendShopOrderReceiptEmail } from "@/lib/email/shop-order-receipt";

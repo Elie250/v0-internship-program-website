@@ -15,6 +15,7 @@ type PaymentRow = {
   support_subscription_id: string | null
   application_id: string | null
   course_id: string | null
+  order_id: string | null
 }
 
 async function resolvePaymentContext(payment: PaymentRow): Promise<string> {
@@ -71,22 +72,34 @@ export async function notifyPaymentReviewed(input: {
     const { data: payment } = await supabaseAdmin
       .from('payments')
       .select(
-        'id, amount, payer_name, payer_email, course_enrollment_id, support_subscription_id, application_id, course_id'
+        'id, amount, payer_name, payer_email, course_enrollment_id, support_subscription_id, application_id, course_id, order_id'
       )
       .eq('id', input.paymentId)
       .maybeSingle()
 
-    if (!payment?.payer_email) return
+    if (!payment) return
+
+    const row = payment as PaymentRow
+    const shopOrderId = row.order_id != null ? String(row.order_id) : ''
+
+    if (input.decision === 'approved' && shopOrderId) {
+      const { sendConfirmedOrderReceiptByOrderId } = await import(
+        '@/lib/shop/send-confirmed-order-receipt'
+      )
+      await sendConfirmedOrderReceiptByOrderId(shopOrderId)
+    }
+
+    if (!payment.payer_email) return
 
     const payerName = payment.payer_name?.trim() || payment.payer_email
     const amount = Number(payment.amount ?? 0)
-    const context = await resolvePaymentContext(payment as PaymentRow)
+    const context = await resolvePaymentContext(row)
 
     if (input.decision === 'approved') {
       const hasEnrollment = Boolean(payment.course_enrollment_id)
       const hasSubscription = Boolean(payment.support_subscription_id)
 
-      if (!hasEnrollment && !hasSubscription) {
+      if (!shopOrderId && !hasEnrollment && !hasSubscription) {
         await sendPaymentApprovedEmail({
           to: payment.payer_email,
           payerName,

@@ -67,29 +67,21 @@ export async function buildOrderLines(items: OrderLineInput[]): Promise<{ order?
 
 export async function decrementStockForLines(
   lineItems: BuiltOrderLine[],
-  productMap: BuiltOrder['productMap']
+  _productMap: BuiltOrder['productMap']
 ): Promise<{ error?: string }> {
-  if (!supabaseAdmin) return { error: 'Database not configured' }
-
-  for (const line of lineItems) {
-    const product = productMap.get(line.product_id)
-    if (!product) continue
-    const nextStock = Math.max(0, Number(product.stock ?? 0) - line.quantity)
-    const { error } = await supabaseAdmin
-      .from('products')
-      .update({
-        stock: nextStock,
-        in_stock: nextStock > 0,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', line.product_id)
-
-    if (error) return { error: error.message }
-  }
-
-  return {}
+  // Legacy wrapper — prefer consumeStockForLines / createCommerceSale.
+  const { consumeStockForLines } = await import('@/lib/shop/stock-ops')
+  return consumeStockForLines({
+    lines: lineItems.map((line) => ({
+      productId: line.product_id,
+      quantity: line.quantity,
+    })),
+    movementType: 'SALE',
+    reason: 'Legacy decrementStockForLines',
+  })
 }
 
+/** @deprecated Historical POS/EL random codes only. New sales use shop_next_order_number. */
 export function generateOrderNumber(prefix = 'EL') {
   const stamp = Date.now().toString(36).toUpperCase()
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase()

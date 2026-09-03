@@ -28,7 +28,8 @@ type PrintableOrder = {
 
 /** Open a print-ready official receipt (delivery/refund copy) with QR + stamp. */
 export async function printOrderReceipt(order: PrintableOrder): Promise<void> {
-  const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase()
+  const orderNumber = String(order.order_number ?? '').trim()
+  if (!orderNumber) return
   let branding: {
     logoUrl?: string
     stampUrl?: string
