@@ -29,7 +29,6 @@ type InterviewRow = {
 export default function EmployerInterviewsPage() {
   const { orgId } = useEmployerOrg()
   const [interviews, setInterviews] = useState<InterviewRow[]>([])
-  const [upcomingOnly, setUpcomingOnly] = useState(true)
   const [error, setError] = useState('')
   const [reportBusy, setReportBusy] = useState<OrgReportKind | ''>('')
 
@@ -49,22 +48,24 @@ export default function EmployerInterviewsPage() {
   useEffect(() => {
     if (!orgId) return
     void (async () => {
-      const qs = upcomingOnly ? '?upcoming=1' : ''
-      const res = await fetch(`/api/recruitment/organizations/${orgId}/interviews${qs}`, {
+      const res = await fetch(`/api/recruitment/organizations/${orgId}/interviews`, {
         credentials: 'same-origin',
       })
       const data = await res.json()
       if (!res.ok) setError(data.error || 'Could not load interviews')
       else setInterviews(data.interviews ?? [])
     })()
-  }, [orgId, upcomingOnly])
+  }, [orgId])
 
   return (
     <EmployerShell>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Interviews</h1>
-          <p className="text-sm text-slate-600">Schedule and evaluate candidates. Scores do not auto-hire.</p>
+          <p className="text-sm text-slate-600">
+            All scheduled interviews stay on this list after start time so you can still give marks. Scores do not
+            auto-hire.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -88,14 +89,6 @@ export default function EmployerInterviewsPage() {
           >
             {reportBusy === 'interview-results' ? 'Preparing PDF…' : 'Interview results PDF'}
           </Button>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={upcomingOnly}
-              onChange={(e) => setUpcomingOnly(e.target.checked)}
-            />
-            Upcoming only
-          </label>
         </div>
       </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
