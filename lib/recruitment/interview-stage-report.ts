@@ -6,7 +6,10 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { getOrganizationById } from '@/lib/recruitment/organizations'
 import { listOrganizationApplications } from '@/lib/recruitment/employer-applications'
 import { loadEmployerLogoDataUrl } from '@/lib/recruitment/employer-report-branding'
-import { identityFromSnapshotAndUser } from '@/lib/recruitment/candidate-identity'
+import {
+  identityFromSnapshotAndUser,
+  loadUsersByIds,
+} from '@/lib/recruitment/candidate-identity'
 import type {
   InterviewStageReport,
   InterviewStageReportCandidate,
@@ -61,16 +64,19 @@ export async function getInterviewStageReport(input: {
     }
   }
 
+  const users = await loadUsersByIds(applications.map((row) => row.candidate_user_id))
+
   const candidates: InterviewStageReportCandidate[] = applications.map((row) => {
     const snapshot = (row.profile_snapshot ?? {}) as Record<string, unknown>
     const job = Array.isArray(row.job) ? row.job[0] : row.job
     const session = latestByApp.get(row.id)
     const score = session?.technical_score ?? null
-    const identity = identityFromSnapshotAndUser(snapshot)
+    const identity = identityFromSnapshotAndUser(snapshot, users.get(row.candidate_user_id))
 
     return {
       applicationId: row.id,
       name: identity.name,
+      email: identity.email,
       jobTitle: job?.title || 'Role',
       screeningLabel:
         score != null && Number.isFinite(score) ? `${Math.round(score)}%` : '—',

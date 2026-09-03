@@ -10,6 +10,7 @@ export type EmployerReportOrganization = {
 export type InterviewStageReportCandidate = {
   applicationId: string
   name: string
+  email: string
   jobTitle: string
   screeningLabel: string
   integrityLabel: string
