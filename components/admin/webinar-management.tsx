@@ -23,6 +23,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
+import {
+  formatPlatformDateTime,
+  serializePlatformDateTime,
+  toPlatformDatetimeLocal,
+} from '@/lib/platform/rwanda-datetime'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 
 type Webinar = {
@@ -76,19 +81,11 @@ const emptyForm: FormState = {
 
 const UNASSIGNED = 'unassigned'
 
-function toDatetimeLocal(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
 function formFromWebinar(w: Webinar): FormState {
   return {
     title: w.title ?? '',
     description: w.description ?? '',
-    scheduled_at: toDatetimeLocal(w.scheduled_at),
+    scheduled_at: toPlatformDatetimeLocal(w.scheduled_at),
     meeting_link: w.meeting_link ?? '',
     recording_url: w.recording_url ?? '',
     thumbnail_url: w.thumbnail_url ?? '',
@@ -103,7 +100,7 @@ function payloadFromForm(form: FormState) {
   return {
     title: form.title.trim(),
     description: form.description.trim() || null,
-    scheduled_at: form.scheduled_at || null,
+    scheduled_at: serializePlatformDateTime(form.scheduled_at),
     meeting_link: form.meeting_link.trim() || null,
     recording_url: form.recording_url.trim() || null,
     thumbnail_url: form.thumbnail_url.trim() || null,
@@ -148,7 +145,7 @@ function WebinarFields({
         />
       </div>
       <div>
-        <Label>Date & time</Label>
+        <Label>Date & time (Rwanda)</Label>
         <Input
           type="datetime-local"
           className="mt-1"
@@ -374,7 +371,7 @@ export default function WebinarManagement() {
                     )}
                   </div>
                   {w.scheduled_at ? (
-                    <p className="text-xs text-slate-500 mt-1">{new Date(w.scheduled_at).toLocaleString()}</p>
+                    <p className="text-xs text-slate-500 mt-1">{formatPlatformDateTime(w.scheduled_at)}</p>
                   ) : null}
                 </div>
               </div>

@@ -19,6 +19,7 @@ import {
   Video,
 } from 'lucide-react'
 import { COMPANY } from '@/lib/company/constants'
+import { formatPlatformDateTime } from '@/lib/platform/rwanda-datetime'
 import { AccessCountdown } from '@/components/student/access-countdown'
 import { StudentBrowseCourses } from '@/components/student/student-browse-courses'
 import { StudentAnnouncementsPanel } from '@/components/student/student-announcements-panel'
@@ -361,7 +362,7 @@ function WebinarsTab({
               <CardTitle className="text-lg">{w.title}</CardTitle>
               {w.scheduled_at ? (
                 <p className="text-sm text-slate-600">
-                  {new Date(w.scheduled_at).toLocaleString()}
+                  {formatPlatformDateTime(w.scheduled_at)}
                 </p>
               ) : null}
             </CardHeader>
