@@ -67,6 +67,7 @@ export async function sendSessionReminders(): Promise<{ sent: number; skipped: b
         .eq('status', 'admitted')
 
       const when = new Date(String(session.scheduled_at)).toLocaleString('en-GB', {
+        timeZone: 'Africa/Kigali',
         dateStyle: 'full',
         timeStyle: 'short',
       })
@@ -122,6 +123,7 @@ export async function sendSessionReminders(): Promise<{ sent: number; skipped: b
 
       const seen = new Set<string>()
       const when = new Date(String(webinar.scheduled_at)).toLocaleString('en-GB', {
+        timeZone: 'Africa/Kigali',
         dateStyle: 'full',
         timeStyle: 'short',
       })

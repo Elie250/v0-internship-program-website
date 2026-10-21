@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { serializePlatformDateTime } from '@/lib/platform/rwanda-datetime'
 
 export async function GET() {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     const row: Record<string, unknown> = {
       title: body.title,
       description: body.description ?? null,
-      scheduled_at: body.scheduled_at || null,
+      scheduled_at: serializePlatformDateTime(body.scheduled_at ? String(body.scheduled_at) : null),
       meeting_link: body.meeting_link || null,
       recording_url: body.recording_url || null,
       thumbnail_url: String(body.thumbnail_url ?? '').trim() || null,

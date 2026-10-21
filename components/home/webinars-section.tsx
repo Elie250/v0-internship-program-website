@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { getPublishedWebinars } from '@/lib/platform/queries'
+import { formatPlatformDateTime } from '@/lib/platform/rwanda-datetime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Video, Calendar } from 'lucide-react'
@@ -47,7 +48,7 @@ export async function WebinarsSection() {
                 {w.scheduled_at ? (
                   <p className="text-xs text-slate-500 flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {new Date(w.scheduled_at).toLocaleString()}
+                    {formatPlatformDateTime(w.scheduled_at)}
                   </p>
                 ) : null}
                 <Button asChild size="sm" variant="outline" className="text-slate-800">
