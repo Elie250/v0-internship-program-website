@@ -129,6 +129,7 @@ export type StudentPortalData = {
     scheduled_at: string | null
     meeting_link: string | null
     recording_url: string | null
+    thumbnail_url: string | null
     is_paid: boolean
     price: number | null
     host_name: string | null
@@ -490,11 +491,24 @@ export async function getStudentPortalData(options?: {
   let webinars: StudentPortalData['webinars'] = []
   const hasAnyAdmitted = activeCourses.length > 0 || upcomingCourses.length > 0
   if (hasAnyAdmitted) {
-    const { data } = await supabaseAdmin
+    const first = await supabaseAdmin
       .from('webinars')
-      .select('id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role')
+      .select(
+        'id, title, description, scheduled_at, meeting_link, recording_url, thumbnail_url, is_paid, price, host_name, host_role'
+      )
       .eq('status', 'published')
       .order('scheduled_at', { ascending: true })
+    let data = first.data
+    if (first.error) {
+      const fallback = await supabaseAdmin
+        .from('webinars')
+        .select(
+          'id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role'
+        )
+        .eq('status', 'published')
+        .order('scheduled_at', { ascending: true })
+      data = fallback.data
+    }
     webinars = (data ?? []).map((w: Record<string, unknown>) => ({
       id: String(w.id),
       title: String(w.title ?? ''),
@@ -502,6 +516,7 @@ export async function getStudentPortalData(options?: {
       scheduled_at: (w.scheduled_at as string | null) ?? null,
       meeting_link: (w.meeting_link as string | null) ?? null,
       recording_url: (w.recording_url as string | null) ?? null,
+      thumbnail_url: (w.thumbnail_url as string | null) ?? null,
       is_paid: Boolean(w.is_paid),
       price: w.price != null ? Number(w.price) : null,
       host_name: (w.host_name as string | null) ?? null,

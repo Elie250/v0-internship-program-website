@@ -19,6 +19,7 @@ const ALLOWED_FOLDERS = [
   'energy-library',
   'energy-library-docs',
   'brain-games',
+  'webinars',
 ] as const
 
 const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> = {
@@ -33,6 +34,7 @@ const FOLDER_PERMISSIONS: Record<(typeof ALLOWED_FOLDERS)[number], Permission> =
   'energy-library-docs': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   'brain-games': PERMISSIONS.CONTENT_ANNOUNCEMENTS,
   courses: PERMISSIONS.LEARNING_PROGRAMS,
+  webinars: PERMISSIONS.LEARNING_PROGRAMS,
 }
 
 export async function POST(request: Request) {

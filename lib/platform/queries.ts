@@ -92,33 +92,53 @@ export type PublicWebinar = {
   scheduled_at: string | null
   meeting_link: string | null
   recording_url: string | null
+  thumbnail_url: string | null
   is_paid: boolean
   price: number | null
   host_name: string | null
   host_role: string | null
 }
 
-export async function getPublishedWebinars(limit = 6): Promise<PublicWebinar[]> {
-  const client = db()
-  if (!client) return []
-  const { data } = await client
-    .from('webinars')
-    .select('id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role')
-    .eq('status', 'published')
-    .order('scheduled_at', { ascending: true })
-    .limit(limit)
-  return (data ?? []).map((w: Record<string, unknown>) => ({
+const WEBINAR_SELECT =
+  'id, title, description, scheduled_at, meeting_link, recording_url, thumbnail_url, is_paid, price, host_name, host_role'
+const WEBINAR_SELECT_LEGACY =
+  'id, title, description, scheduled_at, meeting_link, recording_url, is_paid, price, host_name, host_role'
+
+function mapPublicWebinar(w: Record<string, unknown>): PublicWebinar {
+  return {
     id: String(w.id),
     title: String(w.title ?? ''),
     description: (w.description as string | null) ?? null,
     scheduled_at: (w.scheduled_at as string | null) ?? null,
     meeting_link: (w.meeting_link as string | null) ?? null,
     recording_url: (w.recording_url as string | null) ?? null,
+    thumbnail_url: (w.thumbnail_url as string | null) ?? null,
     is_paid: Boolean(w.is_paid),
     price: w.price != null ? Number(w.price) : null,
     host_name: (w.host_name as string | null) ?? null,
     host_role: (w.host_role as string | null) ?? null,
-  }))
+  }
+}
+
+export async function getPublishedWebinars(limit = 6): Promise<PublicWebinar[]> {
+  const client = db()
+  if (!client) return []
+  let { data, error } = await client
+    .from('webinars')
+    .select(WEBINAR_SELECT)
+    .eq('status', 'published')
+    .order('scheduled_at', { ascending: true })
+    .limit(limit)
+  if (error) {
+    const fallback = await client
+      .from('webinars')
+      .select(WEBINAR_SELECT_LEGACY)
+      .eq('status', 'published')
+      .order('scheduled_at', { ascending: true })
+      .limit(limit)
+    data = fallback.data
+  }
+  return (data ?? []).map((w: Record<string, unknown>) => mapPublicWebinar(w))
 }
 
 export async function getCategories(type: Category['type']): Promise<Category[]> {

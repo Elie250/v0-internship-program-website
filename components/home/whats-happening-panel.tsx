@@ -21,6 +21,7 @@ type WebinarItem = {
   title: string
   description?: string | null
   scheduled_at?: string | null
+  thumbnail_url?: string | null
   is_paid?: boolean
   price?: number | null
   host_name?: string | null
@@ -108,7 +109,12 @@ export function WhatsHappeningPanel({
       {active === 'webinars' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {webinars.slice(0, 2).map((w) => (
-            <Card key={w.id} className="border-slate-200">
+            <Card key={w.id} className="overflow-hidden border-slate-200">
+              {w.thumbnail_url ? (
+                <div className="relative h-36 w-full">
+                  <Image src={w.thumbnail_url} alt="" fill className="object-cover" unoptimized />
+                </div>
+              ) : null}
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap gap-2 mb-1">
                   <span

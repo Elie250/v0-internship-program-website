@@ -52,23 +52,26 @@ export async function POST(request: Request) {
     const price = isPaid ? Math.max(0, Number(body.price ?? 0)) : 0
     const host = await resolveHost(body.host_user_id ? String(body.host_user_id) : null)
 
-    const { data, error } = await supabaseAdmin
-      .from('webinars')
-      .insert([
-        {
-          title: body.title,
-          description: body.description ?? null,
-          scheduled_at: body.scheduled_at || null,
-          meeting_link: body.meeting_link || null,
-          recording_url: body.recording_url || null,
-          status: body.status ?? 'draft',
-          is_paid: isPaid,
-          price,
-          ...host,
-        },
-      ])
-      .select()
-      .single()
+    const row: Record<string, unknown> = {
+      title: body.title,
+      description: body.description ?? null,
+      scheduled_at: body.scheduled_at || null,
+      meeting_link: body.meeting_link || null,
+      recording_url: body.recording_url || null,
+      thumbnail_url: String(body.thumbnail_url ?? '').trim() || null,
+      status: body.status ?? 'draft',
+      is_paid: isPaid,
+      price,
+      ...host,
+    }
+
+    let { data, error } = await supabaseAdmin.from('webinars').insert([row]).select().single()
+    if (error && /thumbnail_url/i.test(error.message)) {
+      delete row.thumbnail_url
+      const retry = await supabaseAdmin.from('webinars').insert([row]).select().single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data, { status: 201 })

@@ -343,7 +343,12 @@ function WebinarsTab({
         <Card><CardContent className="py-8 text-center text-slate-600">No webinars scheduled yet.</CardContent></Card>
       ) : (
         webinars.map((w) => (
-          <Card key={w.id}>
+          <Card key={w.id} className="overflow-hidden">
+            {w.thumbnail_url ? (
+              <div className="relative h-40 w-full">
+                <Image src={w.thumbnail_url} alt="" fill className="object-cover" unoptimized />
+              </div>
+            ) : null}
             <CardHeader>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded ${w.is_paid ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>

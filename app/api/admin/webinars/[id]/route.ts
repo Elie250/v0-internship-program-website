@@ -3,6 +3,16 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
 
+const TEXT_FIELDS = [
+  'title',
+  'description',
+  'scheduled_at',
+  'meeting_link',
+  'recording_url',
+  'thumbnail_url',
+  'status',
+] as const
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -14,13 +24,25 @@ export async function PATCH(
     }
 
     const { id } = await params
-    const body = await request.json() as Record<string, unknown>
-    const update: Record<string, unknown> = { ...body, updated_at: new Date().toISOString() }
+    const body = (await request.json()) as Record<string, unknown>
+    const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
+
+    for (const key of TEXT_FIELDS) {
+      if (!(key in body)) continue
+      const raw = body[key]
+      if (raw == null || raw === '') {
+        update[key] = key === 'title' || key === 'status' ? raw : null
+      } else {
+        update[key] = String(raw)
+      }
+    }
 
     if ('is_paid' in body) {
       const isPaid = Boolean(body.is_paid)
       update.is_paid = isPaid
       update.price = isPaid ? Math.max(0, Number(body.price ?? 0)) : 0
+    } else if ('price' in body) {
+      update.price = Math.max(0, Number(body.price ?? 0))
     }
 
     if ('host_user_id' in body) {
@@ -43,12 +65,18 @@ export async function PATCH(
       }
     }
 
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('webinars')
       .update(update)
       .eq('id', id)
       .select()
       .single()
+    if (error && /thumbnail_url/i.test(error.message)) {
+      const { thumbnail_url: _ignored, ...withoutThumb } = update
+      const retry = await supabaseAdmin.from('webinars').update(withoutThumb).eq('id', id).select().single()
+      data = retry.data
+      error = retry.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json(data)

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getPublishedWebinars } from '@/lib/platform/queries'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,11 @@ export async function WebinarsSection() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
           {webinars.map((w) => (
             <Card key={w.id} className="overflow-hidden border-slate-200">
+              {w.thumbnail_url ? (
+                <div className="relative h-36 w-full">
+                  <Image src={w.thumbnail_url} alt="" fill className="object-cover" unoptimized />
+                </div>
+              ) : null}
               <CardHeader>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span
