@@ -44,6 +44,7 @@ export async function WhatsHappeningSection() {
             title: w.title,
             description: w.description,
             scheduled_at: w.scheduled_at,
+            thumbnail_url: w.thumbnail_url,
             is_paid: w.is_paid,
             price: w.price,
             host_name: w.host_name,

@@ -10,7 +10,7 @@ type Props = {
   label?: string
   value: string
   onChange: (url: string) => void
-  folder: 'products' | 'services' | 'announcements' | 'courses' | 'brand' | 'engineering' | 'energy-library' | 'brain-games'
+  folder: 'products' | 'services' | 'announcements' | 'courses' | 'brand' | 'engineering' | 'energy-library' | 'brain-games' | 'webinars'
   /** Admin cookie upload by default. Shop staff use /api/staff/upload. */
   uploadPath?: '/api/admin/upload' | '/api/staff/upload'
 }
