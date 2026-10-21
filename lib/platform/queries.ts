@@ -123,22 +123,23 @@ function mapPublicWebinar(w: Record<string, unknown>): PublicWebinar {
 export async function getPublishedWebinars(limit = 6): Promise<PublicWebinar[]> {
   const client = db()
   if (!client) return []
-  let { data, error } = await client
+  const first = await client
     .from('webinars')
     .select(WEBINAR_SELECT)
     .eq('status', 'published')
     .order('scheduled_at', { ascending: true })
     .limit(limit)
-  if (error) {
+  let rows = (first.data ?? []) as Record<string, unknown>[]
+  if (first.error) {
     const fallback = await client
       .from('webinars')
       .select(WEBINAR_SELECT_LEGACY)
       .eq('status', 'published')
       .order('scheduled_at', { ascending: true })
       .limit(limit)
-    data = fallback.data
+    rows = (fallback.data ?? []) as Record<string, unknown>[]
   }
-  return (data ?? []).map((w: Record<string, unknown>) => mapPublicWebinar(w))
+  return rows.map(mapPublicWebinar)
 }
 
 export async function getCategories(type: Category['type']): Promise<Category[]> {

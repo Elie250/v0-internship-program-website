@@ -498,7 +498,7 @@ export async function getStudentPortalData(options?: {
       )
       .eq('status', 'published')
       .order('scheduled_at', { ascending: true })
-    let data = first.data
+    let rows = (first.data ?? []) as Record<string, unknown>[]
     if (first.error) {
       const fallback = await supabaseAdmin
         .from('webinars')
@@ -507,9 +507,9 @@ export async function getStudentPortalData(options?: {
         )
         .eq('status', 'published')
         .order('scheduled_at', { ascending: true })
-      data = fallback.data
+      rows = (fallback.data ?? []) as Record<string, unknown>[]
     }
-    webinars = (data ?? []).map((w: Record<string, unknown>) => ({
+    webinars = rows.map((w) => ({
       id: String(w.id),
       title: String(w.title ?? ''),
       description: (w.description as string | null) ?? null,
