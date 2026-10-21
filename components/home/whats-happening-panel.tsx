@@ -7,6 +7,7 @@ import { Calendar, Megaphone, Video } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { formatPlatformDateTime } from '@/lib/platform/rwanda-datetime'
 
 type AnnouncementItem = {
   id: string
@@ -133,7 +134,7 @@ export function WhatsHappeningPanel({
                 ) : null}
                 {w.scheduled_at ? (
                   <p className="text-xs text-slate-500">
-                    {new Date(w.scheduled_at).toLocaleString()}
+                    {formatPlatformDateTime(w.scheduled_at)}
                   </p>
                 ) : null}
                 <Button asChild size="sm" variant="outline" className="text-slate-800">

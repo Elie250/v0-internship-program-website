@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { serializePlatformDateTime } from '@/lib/platform/rwanda-datetime'
 
 const TEXT_FIELDS = [
   'title',
   'description',
-  'scheduled_at',
   'meeting_link',
   'recording_url',
   'thumbnail_url',
@@ -35,6 +35,12 @@ export async function PATCH(
       } else {
         update[key] = String(raw)
       }
+    }
+
+    if ('scheduled_at' in body) {
+      update.scheduled_at = serializePlatformDateTime(
+        body.scheduled_at == null || body.scheduled_at === '' ? null : String(body.scheduled_at)
+      )
     }
 
     if ('is_paid' in body) {
