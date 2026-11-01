@@ -29,6 +29,13 @@ type Props = {
   className?: string
 }
 
+const FADE_MS = 300
+
+export function visibleSlotItemIndex(baseIndex: number, slotIndex: number, itemCount: number): number {
+  if (itemCount <= 0) return 0
+  return (((baseIndex % itemCount) + slotIndex) % itemCount + itemCount) % itemCount
+}
+
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(false)
   useEffect(() => {
@@ -41,87 +48,35 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
-function ShuffleSlot({
-  items,
-  startOffset,
-  intervalMs,
-  staggerMs,
-}: {
-  items: ShuffleCardItem[]
-  startOffset: number
-  intervalMs: number
-  staggerMs: number
-}) {
-  const reduced = usePrefersReducedMotion()
-  const [index, setIndex] = useState(startOffset % Math.max(items.length, 1))
-  const [visible, setVisible] = useState(true)
-
-  useEffect(() => {
-    if (reduced || items.length <= 1) return
-    let intervalId: number | null = null
-    let fadeTimer: number | null = null
-    const startId = window.setTimeout(() => {
-      intervalId = window.setInterval(() => {
-        setVisible(false)
-        fadeTimer = window.setTimeout(() => {
-          setIndex((i) => (i + 1) % items.length)
-          setVisible(true)
-        }, 250)
-      }, intervalMs)
-    }, staggerMs)
-    return () => {
-      window.clearTimeout(startId)
-      if (intervalId != null) window.clearInterval(intervalId)
-      if (fadeTimer != null) window.clearTimeout(fadeTimer)
-    }
-  }, [items.length, reduced, intervalMs, staggerMs])
-
-  if (items.length === 0) return null
-  const item = items[index % items.length]!
-
+function SlotFace({ item }: { item: ShuffleCardItem }) {
   return (
-    <Link
-      href={item.href}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm min-h-[220px] no-underline hover:no-underline hover:border-[var(--brand-navy)]/35 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]"
-    >
+    <>
       <div className="relative h-36 bg-slate-100 overflow-hidden">
-        <div
-          className={cn(
-            'absolute inset-0 transition-opacity duration-300',
-            visible ? 'opacity-100' : 'opacity-0'
-          )}
-        >
-          {item.art ? (
-            <GameCoverArt
-              art={item.art}
-              patternId={`home-game-${item.id}`}
-              className="absolute inset-0"
-            />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(145deg, ${item.artFrom ?? '#1e3a5f'}, ${item.artTo ?? '#2563eb'})`,
-              }}
-            />
-          )}
-          {item.imageUrl ? (
-            <Image
-              src={item.imageUrl}
-              alt=""
-              fill
-              className="object-cover transition duration-500 group-hover:scale-105"
-              unoptimized
-            />
-          ) : null}
-        </div>
-      </div>
-      <div
-        className={cn(
-          'flex flex-1 flex-col gap-1.5 p-3.5 transition-opacity duration-300',
-          visible ? 'opacity-100' : 'opacity-0'
+        {item.art ? (
+          <GameCoverArt
+            art={item.art}
+            patternId={`home-game-${item.id}`}
+            className="absolute inset-0"
+          />
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(145deg, ${item.artFrom ?? '#1e3a5f'}, ${item.artTo ?? '#2563eb'})`,
+            }}
+          />
         )}
-      >
+        {item.imageUrl ? (
+          <Image
+            src={item.imageUrl}
+            alt=""
+            fill
+            className="object-cover transition duration-500 group-hover:scale-105"
+            unoptimized
+          />
+        ) : null}
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-3.5">
         {item.badge ? (
           <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--brand-navy)]">
             {item.badge}
@@ -135,11 +90,76 @@ function ShuffleSlot({
           <p className="text-xs font-semibold text-[var(--brand-navy)] mt-auto pt-1">{item.ctaLabel}</p>
         ) : null}
       </div>
+    </>
+  )
+}
+
+function ShuffleSlot({
+  item,
+  reducedMotion,
+}: {
+  item: ShuffleCardItem
+  reducedMotion: boolean
+}) {
+  const [shown, setShown] = useState(item)
+  const [incoming, setIncoming] = useState<ShuffleCardItem | null>(null)
+  const [incomingVisible, setIncomingVisible] = useState(false)
+
+  useEffect(() => {
+    if (item.id === shown.id) {
+      setShown(item)
+      return
+    }
+
+    if (reducedMotion) {
+      setShown(item)
+      setIncoming(null)
+      setIncomingVisible(false)
+      return
+    }
+
+    setIncoming(item)
+    setIncomingVisible(false)
+    const frame = window.requestAnimationFrame(() => {
+      setIncomingVisible(true)
+    })
+    const done = window.setTimeout(() => {
+      setShown(item)
+      setIncoming(null)
+      setIncomingVisible(false)
+    }, FADE_MS)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(done)
+    }
+  }, [item, reducedMotion, shown.id])
+
+  const href = incoming?.href ?? shown.href
+
+  return (
+    <Link
+      href={href}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm min-h-[220px] no-underline hover:no-underline hover:border-[var(--brand-navy)]/35 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]"
+    >
+      <div className="relative flex flex-1 flex-col">
+        <SlotFace item={shown} />
+        {incoming ? (
+          <div
+            className={cn(
+              'absolute inset-0 flex flex-col bg-white transition-opacity duration-300',
+              incomingVisible ? 'opacity-100' : 'opacity-0'
+            )}
+          >
+            <SlotFace item={incoming} />
+          </div>
+        ) : null}
+      </div>
     </Link>
   )
 }
 
-/** Fixed N windows that cycle through a shared catalogue (no duplicate homepage section). */
+/** Fixed N windows that cycle a shared catalogue from one clock. Slots stay unique. */
 export function SectionShuffleSlots({
   items,
   slots = 3,
@@ -147,23 +167,37 @@ export function SectionShuffleSlots({
   emptyLabel = 'Nothing to show yet.',
   className,
 }: Props) {
-  if (items.length === 0) {
+  const reduced = usePrefersReducedMotion()
+  const itemCount = items.length
+  const count = Math.min(slots, Math.max(itemCount, 1))
+  const [baseIndex, setBaseIndex] = useState(0)
+
+  useEffect(() => {
+    setBaseIndex(0)
+  }, [itemCount])
+
+  useEffect(() => {
+    if (reduced || itemCount <= 1) return
+
+    const intervalId = window.setInterval(() => {
+      setBaseIndex((current) => (current + 1) % itemCount)
+    }, intervalMs)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [reduced, itemCount, intervalMs])
+
+  if (itemCount === 0) {
     return <p className="text-sm text-slate-600 text-center py-8">{emptyLabel}</p>
   }
 
-  const count = Math.min(slots, Math.max(items.length, 1))
-
   return (
     <div className={cn('grid sm:grid-cols-2 md:grid-cols-3 gap-4', className)}>
-      {Array.from({ length: count }).map((_, slot) => (
-        <ShuffleSlot
-          key={slot}
-          items={items}
-          startOffset={slot % items.length}
-          intervalMs={intervalMs}
-          staggerMs={slot * 1200}
-        />
-      ))}
+      {Array.from({ length: count }, (_, slotIndex) => {
+        const item = items[visibleSlotItemIndex(baseIndex, slotIndex, itemCount)]!
+        return <ShuffleSlot key={slotIndex} item={item} reducedMotion={reduced} />
+      })}
     </div>
   )
 }
