@@ -93,10 +93,14 @@ export default function StudentDashboardInner() {
     ...portal.upcomingCourses.map((c) => ({
       id: `upcoming-${c.enrollmentId}`,
       title: c.title,
-      detail: c.accessStartsAt
-        ? `Access opens ${new Date(c.accessStartsAt).toLocaleString()}`
-        : 'Access starts soon',
-      href: `/student/courses/${c.id}`,
+      detail: c.programmeReportHref
+        ? c.accessStartsAt
+          ? `Programme report · access opens ${new Date(c.accessStartsAt).toLocaleString()}`
+          : 'Programme report · access starts soon'
+        : c.accessStartsAt
+          ? `Access opens ${new Date(c.accessStartsAt).toLocaleString()}`
+          : 'Access starts soon',
+      href: c.programmeReportHref,
       count: 0,
       countdown: c.accessStartsAt,
     })),
@@ -115,27 +119,35 @@ export default function StudentDashboardInner() {
               {actionCount > 0 ? <NotificationBadge count={actionCount} size="sm" /> : null}
             </div>
             <div className="divide-y divide-slate-100">
-              {notificationItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 no-underline"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-950 truncate">{item.title}</p>
-                    <p className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-2">
-                      <span>{item.detail}</span>
-                      {'countdown' in item && item.countdown ? (
-                        <>
-                          <Clock className="h-3 w-3" />
-                          <AccessCountdown targetIso={item.countdown as string} />
-                        </>
-                      ) : null}
-                    </p>
+              {notificationItems.map((item) => {
+                const body = (
+                  <>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-950 truncate">{item.title}</p>
+                      <p className="text-xs text-slate-600 mt-0.5 flex flex-wrap items-center gap-2">
+                        <span>{item.detail}</span>
+                        {'countdown' in item && item.countdown ? (
+                          <>
+                            <Clock className="h-3 w-3" />
+                            <AccessCountdown targetIso={item.countdown as string} />
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
+                    {item.count > 0 ? <NotificationBadge count={item.count} size="sm" /> : null}
+                  </>
+                )
+                const rowClass = 'flex items-center justify-between gap-3 px-4 py-3'
+                return item.href ? (
+                  <Link key={item.id} href={item.href} className={`${rowClass} hover:bg-slate-50 no-underline`}>
+                    {body}
+                  </Link>
+                ) : (
+                  <div key={item.id} className={rowClass}>
+                    {body}
                   </div>
-                  {item.count > 0 ? <NotificationBadge count={item.count} size="sm" /> : null}
-                </Link>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>
@@ -290,6 +302,11 @@ function CoursesTab({
                       : 'View course'}
                 </Button>
               </Link>
+              {course.programmeReportHref ? (
+                <Link href={course.programmeReportHref} className="block text-center text-sm font-medium text-[var(--brand-navy)]">
+                  Programme report
+                </Link>
+              ) : null}
             </CardContent>
           </Card>
         ))}
@@ -306,7 +323,12 @@ function CoursesTab({
                   <CardTitle className="text-base">{course.title}</CardTitle>
                   <p className="text-xs text-slate-600">{course.accessLabel}</p>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-wrap gap-2">
+                  {course.programmeReportHref ? (
+                    <Link href={course.programmeReportHref}>
+                      <Button size="sm" variant="outline">Programme report</Button>
+                    </Link>
+                  ) : null}
                   <Link href="/contact">
                     <Button size="sm" variant="outline">Contact us to renew</Button>
                   </Link>

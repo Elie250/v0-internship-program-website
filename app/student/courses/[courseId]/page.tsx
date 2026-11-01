@@ -228,9 +228,14 @@ export default function StudentCoursePage() {
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
           <h1 className="font-bold text-slate-900">{course.title}</h1>
-          <span className="text-sm font-semibold text-[var(--brand-navy)]">
-            {course.progress.percent}% complete
-          </span>
+          <div className="flex items-center gap-3">
+            <Link href={`/student/courses/${course.id}/report`} className="text-sm font-medium text-[var(--brand-navy)]">
+              Programme report
+            </Link>
+            <span className="text-sm font-semibold text-[var(--brand-navy)]">
+              {course.progress.percent}% complete
+            </span>
+          </div>
         </div>
         <Progress value={course.progress.percent} className="h-2" />
         <p className="text-xs text-slate-600 mt-2">

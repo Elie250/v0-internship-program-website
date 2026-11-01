@@ -35,6 +35,7 @@ import {
   summarizeCourseProgress,
   type CourseProgressSummary,
 } from '@/lib/learning/lesson-progress'
+import { programmeReportHrefForEnrollment } from '@/lib/learning/course-report-access'
 import { queryPublishedCourseLessons } from '@/lib/learning/published-lessons'
 import type { StudentLessonBlock } from '@/lib/learning/lesson-blocks'
 
@@ -70,6 +71,8 @@ export type StudentCourse = {
   accessLabel: string
   lessons: StudentLesson[]
   progress: CourseProgressSummary
+  /** Set only when this enrollment's user_id is the signed-in student. */
+  programmeReportHref: string | null
 }
 
 export type StudentEnrollmentItem = {
@@ -174,13 +177,15 @@ function buildStudentCourse(
   row: {
     id: string
     course_id: string
+    user_id?: string | null
     access_starts_at?: string | null
     access_ends_at?: string | null
     status: string
     course: JoinedCourse | JoinedCourse[] | null
   },
   lessons: StudentLesson[],
-  progressRecords: { contentId: string; courseId: string; completed: boolean; completedAt: string | null; lastOpenedAt: string }[]
+  progressRecords: { contentId: string; courseId: string; completed: boolean; completedAt: string | null; lastOpenedAt: string }[],
+  sessionUserId: string
 ): StudentCourse | null {
   const course = normalizeJoinedCourse(row.course)
   if (!course) return null
@@ -249,6 +254,7 @@ function buildStudentCourse(
     accessStartsAt: row.access_starts_at ?? null,
     accessEndsAt: row.access_ends_at ?? null,
     accessLabel: accessLabelFor(accessState, row.access_starts_at, row.access_ends_at),
+    programmeReportHref: programmeReportHrefForEnrollment(row.user_id, sessionUserId, course.id),
     lessons: lessonsWithProgress,
     progress,
   }
@@ -394,7 +400,7 @@ export async function getStudentPortalData(options?: {
   const { data: byUserId, error: byUserError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
+      'id, user_id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -402,7 +408,7 @@ export async function getStudentPortalData(options?: {
   const { data: byEmailOnly, error: byEmailError } = await supabaseAdmin
     .from('course_enrollments')
     .select(
-      'id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
+      'id, user_id, status, amount_due, created_at, course_id, access_starts_at, access_ends_at, course:courses(id, title, description, thumbnail, duration, difficulty, program_type)'
     )
     .ilike('applicant_email', email)
     .is('user_id', null)
@@ -468,7 +474,7 @@ export async function getStudentPortalData(options?: {
 
   const allCourses = admittedRows
     .map((row) =>
-      buildStudentCourse(row as Parameters<typeof buildStudentCourse>[0], lessons, progressRecords)
+      buildStudentCourse(row as Parameters<typeof buildStudentCourse>[0], lessons, progressRecords, userId)
     )
     .filter((c): c is StudentCourse => c !== null)
 
