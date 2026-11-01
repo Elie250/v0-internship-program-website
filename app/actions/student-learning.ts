@@ -36,7 +36,7 @@ import {
   type CourseProgressSummary,
 } from '@/lib/learning/lesson-progress'
 import { queryPublishedCourseLessons } from '@/lib/learning/published-lessons'
-import type { LessonBlock } from '@/lib/learning/lesson-blocks'
+import type { StudentLessonBlock } from '@/lib/learning/lesson-blocks'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
 export type { CourseProgressSummary } from '@/lib/learning/lesson-progress'
@@ -48,7 +48,7 @@ export type StudentLesson = {
   content_type: string
   content_url: string | null
   sort_order: number
-  body?: LessonBlock[]
+  body?: StudentLessonBlock[]
   completed?: boolean
   locked?: boolean
   unlockLabel?: string | null

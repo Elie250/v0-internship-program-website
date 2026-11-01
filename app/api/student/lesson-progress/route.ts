@@ -120,6 +120,7 @@ export async function POST(request: Request) {
         contentType: access.contentType,
         timeSpentSeconds: timeSpent,
         watchPercent: watch,
+        alreadyCompleted: access.existing.completed,
       })
 
       if (!result.success) {

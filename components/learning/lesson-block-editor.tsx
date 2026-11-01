@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { RichTextBlockEditor } from '@/components/learning/rich-text-block-editor'
 import { COURSE_CONTENT_TYPES } from '@/lib/learning/course-content-types'
 import {
   AUTHORABLE_BLOCK_TYPES,
@@ -19,7 +20,8 @@ import {
   removeLessonBlock,
   type EditorLessonBlock,
 } from '@/lib/learning/lesson-authoring'
-import type { Phase1BlockType } from '@/lib/learning/lesson-blocks'
+import { newLessonChoiceId, type Phase1BlockType } from '@/lib/learning/lesson-blocks'
+import { parseYouTubeVideoId, youtubePrivacyEmbedUrl } from '@/lib/learning/media-embed'
 import { cn } from '@/lib/utils'
 import { ChevronDown, ChevronUp, Loader2, Plus, Trash2, Upload } from 'lucide-react'
 import { useState } from 'react'
@@ -39,6 +41,8 @@ const BLOCK_TONE: Record<Phase1BlockType, string> = {
   diagram: 'border-l-violet-500 bg-violet-50/40',
   code: 'border-l-slate-800 bg-slate-50',
   resource: 'border-l-emerald-600 bg-emerald-50/30',
+  youtube: 'border-l-red-600 bg-red-50/30',
+  checkpoint: 'border-l-amber-600 bg-amber-50/30',
 }
 
 const BLOCK_LABEL: Record<Phase1BlockType, string> = {
@@ -49,6 +53,8 @@ const BLOCK_LABEL: Record<Phase1BlockType, string> = {
   diagram: 'Diagram',
   code: 'Code',
   resource: 'Resource',
+  youtube: 'YouTube',
+  checkpoint: 'Checkpoint',
 }
 
 function isSvgFile(file: File): boolean {
@@ -196,13 +202,14 @@ export function LessonBlockEditor({
               {block.type === 'rich_text' ? (
                 <div>
                   <Label>Explanation</Label>
-                  <Textarea
-                    className="mt-1 min-h-28"
-                    value={block.text ?? ''}
-                    disabled={disabled}
-                    onChange={(event) => updateBlock(index, { text: event.target.value })}
-                    placeholder="Write the explanation students will read."
-                  />
+                  <div className="mt-1">
+                    <RichTextBlockEditor
+                      text={block.text ?? ''}
+                      html={block.html}
+                      disabled={disabled}
+                      onChange={(next) => updateBlock(index, next)}
+                    />
+                  </div>
                 </div>
               ) : null}
 
@@ -326,6 +333,22 @@ export function LessonBlockEditor({
                 </div>
               ) : null}
 
+              {block.type === 'checkpoint' ? (
+                <CheckpointBlockFields
+                  block={block}
+                  disabled={disabled}
+                  onChange={(patch) => updateBlock(index, patch)}
+                />
+              ) : null}
+
+              {block.type === 'youtube' ? (
+                <YouTubeBlockFields
+                  block={block}
+                  disabled={disabled}
+                  onChange={(patch) => updateBlock(index, patch)}
+                />
+              ) : null}
+
               {block.type === 'resource' ? (
                 <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
                   <div>
@@ -367,6 +390,220 @@ export function LessonBlockEditor({
           ))}
         </ol>
       )}
+    </div>
+  )
+}
+
+function YouTubeBlockFields({
+  block,
+  disabled,
+  onChange,
+}: {
+  block: EditorLessonBlock
+  disabled?: boolean
+  onChange: (patch: Partial<EditorLessonBlock>) => void
+}) {
+  const parsed = block.url?.trim() ? parseYouTubeVideoId(block.url) : null
+  const embed = parsed?.ok ? youtubePrivacyEmbedUrl(parsed.videoId) : null
+  const urlError = parsed && !parsed.ok ? parsed.error : ''
+  const titleMissing = !(block.title ?? '').trim()
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>YouTube URL</Label>
+        <Input
+          className="mt-1"
+          value={block.url ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ url: event.target.value })}
+          placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+        />
+        {urlError ? <p className="mt-1 text-xs text-red-700">{urlError}</p> : null}
+      </div>
+      <div>
+        <Label>Title</Label>
+        <Input
+          className="mt-1"
+          value={block.title ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ title: event.target.value })}
+          placeholder="What students should watch"
+        />
+        {titleMissing ? (
+          <p className="mt-1 text-xs text-slate-500">A title is required before this lesson can be saved.</p>
+        ) : null}
+      </div>
+      <div>
+        <Label>Introduction (optional)</Label>
+        <Textarea
+          className="mt-1"
+          value={block.intro ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ intro: event.target.value })}
+          placeholder="Explain the video before students watch it."
+        />
+      </div>
+      <div>
+        <Label>Caption (optional)</Label>
+        <Input
+          className="mt-1"
+          value={block.caption ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ caption: event.target.value })}
+          placeholder="Short note under the player"
+        />
+      </div>
+      {embed ? (
+        <div className="space-y-2 rounded-md border border-slate-200 bg-white p-3">
+          {block.intro?.trim() ? (
+            <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">{block.intro}</p>
+          ) : null}
+          <p className="text-sm font-medium text-slate-900">{block.title?.trim() || 'YouTube preview'}</p>
+          <div className="aspect-video overflow-hidden rounded-lg bg-black">
+            <iframe
+              src={embed}
+              title={block.title?.trim() || 'YouTube preview'}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          {block.caption?.trim() ? (
+            <p className="text-xs text-slate-600 text-center">{block.caption}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function CheckpointBlockFields({
+  block,
+  disabled,
+  onChange,
+}: {
+  block: EditorLessonBlock
+  disabled?: boolean
+  onChange: (patch: Partial<EditorLessonBlock>) => void
+}) {
+  const choices = block.choices?.length
+    ? block.choices
+    : [
+        { id: newLessonChoiceId(), text: '' },
+        { id: newLessonChoiceId(), text: '' },
+      ]
+  const correctId = block.correct_choice_id || choices[0]?.id || ''
+
+  const updateChoice = (index: number, text: string) => {
+    onChange({
+      choices: choices.map((choice, i) => (i === index ? { ...choice, text } : choice)),
+      correct_choice_id: correctId,
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label>Question</Label>
+        <Textarea
+          className="mt-1"
+          value={block.question ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ question: event.target.value })}
+          placeholder="What must the student understand before continuing?"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Answers</Label>
+        {choices.map((choice, index) => (
+          <div key={choice.id} className="flex items-center gap-2">
+            <input
+              type="radio"
+              name={`checkpoint-correct-${block.id}`}
+              checked={correctId === choice.id}
+              disabled={disabled}
+              onChange={() => onChange({ correct_choice_id: choice.id, choices })}
+              aria-label={`Mark choice ${index + 1} as correct`}
+            />
+            <Input
+              value={choice.text}
+              disabled={disabled}
+              onChange={(event) => updateChoice(index, event.target.value)}
+              placeholder={`Choice ${index + 1}`}
+            />
+            {choices.length > 2 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={disabled}
+                onClick={() => {
+                  const next = choices.filter((_, i) => i !== index)
+                  onChange({
+                    choices: next,
+                    correct_choice_id: next.some((item) => item.id === correctId)
+                      ? correctId
+                      : next[0]?.id,
+                  })
+                }}
+                aria-label={`Remove choice ${index + 1}`}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            ) : null}
+          </div>
+        ))}
+        {choices.length < 8 ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={disabled}
+            className="border-slate-300 text-slate-700"
+            onClick={() =>
+              onChange({
+                choices: [...choices, { id: newLessonChoiceId(), text: '' }],
+                correct_choice_id: correctId,
+              })
+            }
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add choice
+          </Button>
+        ) : null}
+        <p className="text-xs text-slate-500">Select the radio button beside the correct answer.</p>
+      </div>
+      <div>
+        <Label>Hint after a wrong answer</Label>
+        <Textarea
+          className="mt-1"
+          value={block.hint ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange({ hint: event.target.value })}
+          placeholder="Help the student try again without revealing the answer."
+        />
+      </div>
+      <div>
+        <Label>Unlock rule</Label>
+        <Select
+          value={block.gate ?? 'section'}
+          onValueChange={(value) => onChange({ gate: value === 'lesson' ? 'lesson' : 'section' })}
+          disabled={disabled}
+        >
+          <SelectTrigger className="mt-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="section">
+              Section — students must pass before seeing the rest of this lesson
+            </SelectItem>
+            <SelectItem value="lesson">
+              Lesson — students must pass before seeing the rest of this lesson and before the next lesson
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   )
 }

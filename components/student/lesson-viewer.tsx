@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import type { StudentLesson } from '@/app/actions/student-learning'
 import { LessonBlockRenderer } from '@/components/learning/lesson-block-renderer'
+import { checkpointIdsInBlocks } from '@/lib/learning/lesson-checkpoints'
 import {
   canPlayAsNativeVideo,
   embedMediaUrl,
@@ -40,6 +41,10 @@ export function LessonViewer({
   const [timeSpentSeconds, setTimeSpentSeconds] = useState(0)
   const [watchPercent, setWatchPercent] = useState(0)
   const [progressLoaded, setProgressLoaded] = useState(false)
+  const [clearedCheckpointIds, setClearedCheckpointIds] = useState<string[]>([])
+  const [checkpointHints, setCheckpointHints] = useState<Record<string, string>>({})
+  const [checkpointError, setCheckpointError] = useState('')
+  const [submittingCheckpointId, setSubmittingCheckpointId] = useState<string | null>(null)
   const openedAt = useRef(Date.now())
   const videoRef = useRef<HTMLVideoElement>(null)
   const timeSpentRef = useRef(0)
@@ -47,6 +52,8 @@ export function LessonViewer({
 
   const url = lesson.content_url?.trim() ?? ''
   const blocks = lesson.body ?? []
+  const requiredCheckpointIds = checkpointIdsInBlocks(blocks)
+  const checkpointsCleared = requiredCheckpointIds.every((id) => clearedCheckpointIds.includes(id))
   const isVideo = lesson.content_type === 'video'
   const embed = isVideo ? embedMediaUrl(url) : null
   const nativeVideo = Boolean(url && isVideo && canPlayAsNativeVideo(url))
@@ -69,22 +76,39 @@ export function LessonViewer({
 
     async function loadProgress() {
       try {
-        const res = await fetch(
-          `/api/student/lesson-progress?courseId=${encodeURIComponent(courseId)}&contentId=${encodeURIComponent(lesson.id)}`,
-          { credentials: 'same-origin' }
-        )
-        const data = await res.json()
-        if (!res.ok || cancelled) return
-        const time = Number(data.timeSpentSeconds ?? 0)
-        const watch = Number(data.watchPercent ?? 0)
-        setTimeSpentSeconds(time)
-        setWatchPercent(watch)
-        syncRefs(time, watch)
+        const [progressRes, checkpointRes] = await Promise.all([
+          fetch(
+            `/api/student/lesson-progress?courseId=${encodeURIComponent(courseId)}&contentId=${encodeURIComponent(lesson.id)}`,
+            { credentials: 'same-origin' }
+          ),
+          fetch(
+            `/api/student/lesson-checkpoints?courseId=${encodeURIComponent(courseId)}&contentId=${encodeURIComponent(lesson.id)}`,
+            { credentials: 'same-origin' }
+          ),
+        ])
+        const data = await progressRes.json()
+        const checkpointData = await checkpointRes.json().catch(() => ({}))
+        if (cancelled) return
+        if (progressRes.ok) {
+          const time = Number(data.timeSpentSeconds ?? 0)
+          const watch = Number(data.watchPercent ?? 0)
+          setTimeSpentSeconds(time)
+          setWatchPercent(watch)
+          syncRefs(time, watch)
+        }
+        if (checkpointRes.ok && Array.isArray(checkpointData.clearedBlockIds)) {
+          setClearedCheckpointIds(checkpointData.clearedBlockIds.map((id: unknown) => String(id)))
+        } else {
+          setClearedCheckpointIds([])
+        }
+        setCheckpointHints({})
+        setCheckpointError('')
       } catch {
         if (!cancelled) {
           setTimeSpentSeconds(0)
           setWatchPercent(0)
           syncRefs(0, 0)
+          setClearedCheckpointIds([])
         }
       } finally {
         if (!cancelled) setProgressLoaded(true)
@@ -140,14 +164,53 @@ export function LessonViewer({
     })
   }, [])
 
+  const submitCheckpoint = async (blockId: string, choiceId: string) => {
+    setSubmittingCheckpointId(blockId)
+    setCheckpointError('')
+    try {
+      const res = await fetch('/api/student/lesson-checkpoints', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ courseId, contentId: lesson.id, blockId, choiceId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCheckpointError(data.error || 'Could not check that answer.')
+        return
+      }
+      if (Array.isArray(data.clearedBlockIds)) {
+        setClearedCheckpointIds(data.clearedBlockIds.map((id: unknown) => String(id)))
+      }
+      if (data.correct === true) {
+        setCheckpointHints((current) => {
+          const next = { ...current }
+          delete next[blockId]
+          return next
+        })
+        return
+      }
+      if (typeof data.hint === 'string' && data.hint.trim()) {
+        setCheckpointHints((current) => ({ ...current, [blockId]: data.hint }))
+      }
+    } catch {
+      setCheckpointError('Could not check that answer.')
+    } finally {
+      setSubmittingCheckpointId(null)
+    }
+  }
+
   const canComplete =
     completed ||
-    (timeSpentSeconds >= MIN_LESSON_SECONDS &&
+    (checkpointsCleared &&
+      timeSpentSeconds >= MIN_LESSON_SECONDS &&
       (!isVideo || effectiveWatchPercent >= MIN_VIDEO_WATCH_PERCENT))
 
   const completeHint = completed
     ? ''
-    : timeSpentSeconds < MIN_LESSON_SECONDS
+    : !checkpointsCleared
+      ? 'Answer the checkpoint questions before marking this lesson complete.'
+      : timeSpentSeconds < MIN_LESSON_SECONDS
       ? `Stay on this lesson for ${Math.max(0, MIN_LESSON_SECONDS - timeSpentSeconds)}s more.`
       : isVideo && effectiveWatchPercent < MIN_VIDEO_WATCH_PERCENT
         ? trackWatchByTime
@@ -353,7 +416,21 @@ export function LessonViewer({
       </CardHeader>
       <CardContent className="space-y-6 pt-4">
         {renderContent()}
-        {blocks.length > 0 ? <LessonBlockRenderer blocks={blocks} /> : null}
+        {checkpointError ? (
+          <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            {checkpointError}
+          </p>
+        ) : null}
+        {blocks.length > 0 ? (
+          <LessonBlockRenderer
+            blocks={blocks}
+            gateCheckpoints
+            clearedCheckpointIds={clearedCheckpointIds}
+            checkpointHints={checkpointHints}
+            submittingCheckpointId={submittingCheckpointId}
+            onSubmitCheckpoint={submitCheckpoint}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )

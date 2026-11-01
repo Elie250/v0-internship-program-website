@@ -1,5 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { parseLessonBody, type LessonBlock } from '@/lib/learning/lesson-blocks'
+import {
+  parseLessonBody,
+  projectLessonBlocksForStudent,
+  type StudentLessonBlock,
+} from '@/lib/learning/lesson-blocks'
 import {
   filterPublishedLessonRows,
   isMissingLessonSchemaColumn,
@@ -14,7 +18,7 @@ export type PublishedLessonRow = {
   sort_order: number
   unlock_at?: string | null
   unlock_after_content_id?: string | null
-  body: LessonBlock[]
+  body: StudentLessonBlock[]
   module_id?: string | null
 }
 
@@ -35,7 +39,7 @@ function mapPublishedRows(rows: Record<string, unknown>[]): PublishedLessonRow[]
     sort_order: Number(row.sort_order ?? 0),
     unlock_at: (row.unlock_at as string | null) ?? null,
     unlock_after_content_id: (row.unlock_after_content_id as string | null) ?? null,
-    body: parseLessonBody(row.body),
+    body: projectLessonBlocksForStudent(parseLessonBody(row.body)),
     module_id: row.module_id != null ? String(row.module_id) : null,
   }))
 }

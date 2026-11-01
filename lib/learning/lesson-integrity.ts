@@ -5,6 +5,7 @@ import {
   isPublishedLessonVisibility,
 } from '@/lib/learning/lesson-visibility'
 import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
+import { assertLessonCheckpointsPassed } from '@/lib/learning/lesson-checkpoint-store'
 
 export const MIN_LESSON_SECONDS = 45
 export const MIN_VIDEO_WATCH_PERCENT = 80
@@ -208,16 +209,27 @@ export async function completeLessonWithIntegrity(input: {
   contentType: string
   timeSpentSeconds: number
   watchPercent: number
+  alreadyCompleted?: boolean
 }): Promise<{ success: boolean; error?: string; tableReady?: boolean }> {
   const gate = canMarkLessonComplete({
     contentType: input.contentType,
     timeSpentSeconds: input.timeSpentSeconds,
     watchPercent: input.watchPercent,
-    alreadyCompleted: false,
+    alreadyCompleted: Boolean(input.alreadyCompleted),
   })
 
   if (!gate.ok) {
     return { success: false, error: gate.reason }
+  }
+
+  const checkpoints = await assertLessonCheckpointsPassed({
+    userId: input.userId,
+    courseId: input.courseId,
+    contentId: input.contentId,
+    alreadyCompleted: Boolean(input.alreadyCompleted),
+  })
+  if (!checkpoints.ok) {
+    return { success: false, error: checkpoints.error, tableReady: checkpoints.tableReady }
   }
 
   if (!supabaseAdmin) return { success: false, error: 'Database not configured' }

@@ -1,5 +1,75 @@
+const YOUTUBE_HOSTS = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'])
+const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
+
 export function isDirectVideoFile(url: string): boolean {
   return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url)
+}
+
+export function parseYouTubeVideoId(
+  value: string
+): { ok: true; videoId: string; href: string } | { ok: false; error: string } {
+  const trimmed = value.trim()
+  if (!trimmed) return { ok: false, error: 'A YouTube URL is required' }
+  if (trimmed.startsWith('<') || /<iframe/i.test(trimmed)) {
+    return { ok: false, error: 'Paste a YouTube link, not embed HTML' }
+  }
+  if (trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+    return { ok: false, error: 'Relative URLs are not allowed' }
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    return { ok: false, error: 'Enter a valid https:// YouTube URL' }
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return { ok: false, error: 'YouTube URL must start with https://' }
+  }
+
+  const host = parsed.hostname.toLowerCase()
+  if (!YOUTUBE_HOSTS.has(host)) {
+    return { ok: false, error: 'Only youtube.com and youtu.be links are supported' }
+  }
+
+  const path = parsed.pathname.toLowerCase()
+  if (path.includes('/redirect') || parsed.searchParams.has('q') && path.endsWith('/redirect')) {
+    return { ok: false, error: 'YouTube redirect links are not allowed' }
+  }
+  if (path.includes('live_chat') || path.includes('/live_chat')) {
+    return { ok: false, error: 'YouTube live chat links are not allowed' }
+  }
+  if (path === '/playlist' || path.startsWith('/playlist/')) {
+    return { ok: false, error: 'YouTube playlist links are not supported' }
+  }
+
+  let videoId = ''
+  if (host === 'youtu.be') {
+    videoId = parsed.pathname.split('/').filter(Boolean)[0] || ''
+  } else if (parsed.searchParams.get('v')) {
+    videoId = parsed.searchParams.get('v') || ''
+  } else {
+    const shorts = parsed.pathname.match(/^\/shorts\/([^/]+)/i)
+    const embed = parsed.pathname.match(/^\/embed\/([^/]+)/i)
+    videoId = shorts?.[1] || embed?.[1] || ''
+  }
+
+  videoId = videoId.trim()
+  if (!videoId) {
+    return { ok: false, error: 'Could not find a YouTube video ID in that link' }
+  }
+  if (!YOUTUBE_VIDEO_ID.test(videoId)) {
+    return { ok: false, error: 'That YouTube video ID is not valid' }
+  }
+
+  return { ok: true, videoId, href: parsed.href }
+}
+
+export function youtubePrivacyEmbedUrl(videoId: string): string | null {
+  const id = videoId.trim()
+  if (!YOUTUBE_VIDEO_ID.test(id)) return null
+  return `https://www.youtube-nocookie.com/embed/${id}`
 }
 
 export function isSupabaseStorageMediaUrl(url: string): boolean {
@@ -36,20 +106,12 @@ export function embedMediaUrl(url: string): string | null {
   if (isDirectVideoFile(trimmed)) return trimmed
 
   try {
+    const youtube = parseYouTubeVideoId(trimmed)
+    if (youtube.ok) {
+      return youtubePrivacyEmbedUrl(youtube.videoId)
+    }
+
     const parsed = new URL(trimmed)
-
-    if (parsed.hostname.includes('youtube.com')) {
-      const watchId = parsed.searchParams.get('v')
-      if (watchId) return `https://www.youtube.com/embed/${watchId}`
-
-      const shortsMatch = parsed.pathname.match(/\/shorts\/([^/]+)/)
-      if (shortsMatch?.[1]) return `https://www.youtube.com/embed/${shortsMatch[1]}`
-    }
-
-    if (parsed.hostname === 'youtu.be') {
-      const id = parsed.pathname.replace('/', '')
-      if (id) return `https://www.youtube.com/embed/${id}`
-    }
 
     if (parsed.hostname.includes('vimeo.com')) {
       const id = parsed.pathname.split('/').filter(Boolean).pop()
