@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { LessonBlockEditor } from '@/components/learning/lesson-block-editor'
+import { LessonBlockRenderer } from '@/components/learning/lesson-block-renderer'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,8 +13,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { COURSE_CONTENT_TYPES, contentUrlPlaceholder } from '@/lib/learning/course-content-types'
-import { ExternalLink, Loader2, Trash2, Upload } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  COURSE_CONTENT_TYPES,
+  INTERACTIVE_CONTENT_OPTION,
+  INTERACTIVE_CONTENT_TYPE,
+  contentUrlPlaceholder,
+  requiresContentUrl,
+  type CourseContentType,
+} from '@/lib/learning/course-content-types'
+import { useOptionalLessonEditorGuard } from '@/components/learning/lesson-editor-guard'
+import { UnsavedLessonDialog } from '@/components/learning/unsaved-lesson-dialog'
+import { lessonBlocksToEditor, previewLessonBlocks, type EditorLessonBlock } from '@/lib/learning/lesson-authoring'
+import { parseLessonBody } from '@/lib/learning/lesson-blocks'
+import {
+  isLessonEditorDirty,
+  resolveUnsavedNavigation,
+  type UnsavedNavigationChoice,
+} from '@/lib/learning/lesson-editor-guard'
+import { isPublishedLessonVisibility } from '@/lib/learning/lesson-visibility'
+import { ExternalLink, Loader2, Pencil, Trash2, Upload } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type Lesson = {
   id: string
@@ -20,6 +41,8 @@ type Lesson = {
   content_type: string
   content_url: string | null
   sort_order: number
+  body?: unknown
+  visibility?: string | null
 }
 
 type CourseLessonManagerProps = {
@@ -28,16 +51,27 @@ type CourseLessonManagerProps = {
   onFeedback?: (message: { type: 'success' | 'error'; text: string }) => void
 }
 
+const EMPTY_FORM = {
+  title: '',
+  content_type: 'video',
+  content_url: '',
+}
+
 export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLessonManagerProps) {
   const [lessons, setLessons] = useState<Lesson[]>([])
-  const [form, setForm] = useState({
-    title: '',
-    content_type: 'video',
-    content_url: '',
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [blocks, setBlocks] = useState<EditorLessonBlock[]>([])
+  const [initialBlocks, setInitialBlocks] = useState<EditorLessonBlock[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [initialForm, setInitialForm] = useState(EMPTY_FORM)
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [localError, setLocalError] = useState('')
+  const [leaveOpen, setLeaveOpen] = useState(false)
+  const [leaveSaving, setLeaveSaving] = useState(false)
+  const leaveResolverRef = useRef<((allow: boolean) => void) | null>(null)
+  const leavePromiseRef = useRef<Promise<boolean> | null>(null)
+  const guard = useOptionalLessonEditorGuard()
 
   const contentBase =
     mode === 'lecturer'
@@ -47,8 +81,29 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     mode === 'lecturer'
       ? `/api/lecturer/courses/${courseId}/content/upload`
       : `/api/admin/courses/${courseId}/content/upload`
-  const deleteBase =
-    mode === 'lecturer' ? '/api/lecturer/course-content' : '/api/admin/course-content'
+  const itemBase = mode === 'lecturer' ? '/api/lecturer/course-content' : '/api/admin/course-content'
+
+  const isInteractive = form.content_type === INTERACTIVE_CONTENT_TYPE
+  const dirty = useMemo(
+    () =>
+      isLessonEditorDirty(
+        {
+          title: form.title,
+          content_type: form.content_type,
+          content_url: form.content_url,
+          blocks,
+        },
+        {
+          title: initialForm.title,
+          content_type: initialForm.content_type,
+          content_url: initialForm.content_url,
+          blocks: initialBlocks,
+        }
+      ),
+    [blocks, form, initialBlocks, initialForm]
+  )
+  const dirtyRef = useRef(dirty)
+  dirtyRef.current = dirty
 
   const notify = useCallback(
     (type: 'success' | 'error', text: string) => {
@@ -72,20 +127,98 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     void load()
   }, [load])
 
-  const addLesson = async (payload: {
-    title: string
-    content_type: string
-    content_url: string
-  }): Promise<boolean> => {
-    const res = await fetch(contentBase, {
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [dirty])
+
+  const requestLeave = useCallback(() => {
+    if (!dirtyRef.current) return Promise.resolve(true)
+    if (leavePromiseRef.current) return leavePromiseRef.current
+    setLeaveOpen(true)
+    const pending = new Promise<boolean>((resolve) => {
+      leaveResolverRef.current = resolve
+    })
+    leavePromiseRef.current = pending
+    return pending
+  }, [])
+
+  useEffect(() => {
+    guard?.registerLeaveHandler(requestLeave)
+    return () => guard?.registerLeaveHandler(null)
+  }, [guard, requestLeave])
+
+  const resetEditor = (next = EMPTY_FORM, nextBlocks: EditorLessonBlock[] = []) => {
+    setForm(next)
+    setInitialForm(next)
+    setBlocks(nextBlocks)
+    setInitialBlocks(nextBlocks)
+    setEditingId(null)
+  }
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const targetRes = await fetch(`${uploadUrl}-url`, {
       method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: file.name, type: file.type, size: file.size }),
+    })
+    const target = await targetRes.json().catch(() => ({}))
+
+    if (targetRes.ok && target.signedUrl) {
+      const putRes = await fetch(target.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': target.contentType || file.type || 'application/octet-stream' },
+        body: file,
+      })
+      if (!putRes.ok) {
+        const text = await putRes.text().catch(() => '')
+        const mimeBlocked = /mime|not supported/i.test(text)
+        throw new Error(
+          mimeBlocked
+            ? 'Storage rejected this file type — check the file format or contact admin.'
+            : `Storage upload failed (${putRes.status})`
+        )
+      }
+      if (!target.publicUrl) throw new Error('Upload failed')
+      return target.publicUrl as string
+    }
+
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body,
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(
+        data.hint ? `${data.error} — ${data.hint}` : data.error || target.error || 'Upload failed'
+      )
+    }
+    if (!data.url) throw new Error('Upload failed')
+    return data.url as string
+  }
+
+  const persistLesson = async (
+    payload: Record<string, unknown>,
+    lessonId?: string | null
+  ): Promise<boolean> => {
+    const res = await fetch(lessonId ? `${itemBase}/${lessonId}` : contentBase, {
+      method: lessonId ? 'PATCH' : 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      notify('error', data.error || 'Failed to add lesson')
+      notify('error', data.error || 'Failed to save lesson')
       return false
     }
     return true
@@ -95,65 +228,18 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     setUploading(true)
     setLocalError('')
     try {
-      let url: string | null = null
+      const url = await uploadFile(file)
+      setForm((current) => ({ ...current, content_url: url }))
 
-      // Direct-to-storage upload (bypasses serverless body size limits)
-      const targetRes = await fetch(`${uploadUrl}-url`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: file.name, type: file.type, size: file.size }),
-      })
-      const target = await targetRes.json().catch(() => ({}))
-
-      if (targetRes.ok && target.signedUrl) {
-        const putRes = await fetch(target.signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': target.contentType || file.type || 'application/octet-stream' },
-          body: file,
-        })
-        if (!putRes.ok) {
-          const text = await putRes.text().catch(() => '')
-          const mimeBlocked = /mime|not supported/i.test(text)
-          throw new Error(
-            mimeBlocked
-              ? 'Storage rejected this file type — check the file format or contact admin.'
-              : `Storage upload failed (${putRes.status})`
-          )
-        }
-        url = target.publicUrl
-      } else {
-        // Fallback to legacy server-side upload (small files only)
-        const body = new FormData()
-        body.append('file', file)
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          credentials: 'same-origin',
-          body,
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          throw new Error(
-            data.hint ? `${data.error} — ${data.hint}` : data.error || target.error || 'Upload failed'
-          )
-        }
-        url = data.url
-      }
-
-      if (!url) throw new Error('Upload failed')
-
-      setForm((current) => ({ ...current, content_url: url as string }))
-
-      // Auto-save the lesson immediately so the upload is never lost
       const fallbackTitle = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim()
       const title = form.title.trim() || fallbackTitle || 'New lesson'
-      const saved = await addLesson({
+      const saved = await persistLesson({
         title,
         content_type: form.content_type,
         content_url: url,
       })
       if (saved) {
-        setForm({ title: '', content_type: form.content_type, content_url: '' })
+        resetEditor({ title: '', content_type: form.content_type, content_url: '' })
         notify('success', `Lesson "${title}" uploaded and saved — students can see it now.`)
         await load()
       }
@@ -164,40 +250,103 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     }
   }
 
-  const handleAdd = async () => {
+  const visibilityForLeaveSave = () => {
+    if (form.content_type === INTERACTIVE_CONTENT_TYPE) {
+      if (!editingId) return 'draft' as const
+      const existing = lessons.find((lesson) => lesson.id === editingId)
+      return isPublishedLessonVisibility(existing?.visibility) ? 'published' : 'draft'
+    }
+    return 'published' as const
+  }
+
+  const handleSave = async (visibility: 'draft' | 'published'): Promise<boolean> => {
     if (!form.title.trim()) {
       notify('error', 'Lesson title is required')
-      return
+      return false
     }
-    if (!form.content_url.trim()) {
+    if (requiresContentUrl(form.content_type as CourseContentType) && !form.content_url.trim()) {
       notify('error', 'Add a URL or upload a file first')
-      return
+      return false
     }
 
     setLoading(true)
     setLocalError('')
     try {
-      const saved = await addLesson({
+      const payload: Record<string, unknown> = {
         title: form.title.trim(),
         content_type: form.content_type,
-        content_url: form.content_url.trim(),
-      })
+        content_url: form.content_url.trim() || null,
+        visibility,
+      }
+      if (isInteractive) {
+        payload.body = blocks
+      }
+
+      const saved = await persistLesson(payload, editingId)
       if (saved) {
-        setForm({ title: '', content_type: 'video', content_url: '' })
+        resetEditor()
         notify(
           'success',
-          'Lesson added — admitted students will see it on their course page immediately.'
+          visibility === 'published'
+            ? 'Lesson published — admitted students can see it now.'
+            : 'Draft saved. Students cannot see this lesson yet.'
         )
         await load()
+        return true
       }
+      return false
     } finally {
       setLoading(false)
     }
   }
 
+  const settleLeave = (allow: boolean) => {
+    setLeaveOpen(false)
+    setLeaveSaving(false)
+    leavePromiseRef.current = null
+    leaveResolverRef.current?.(allow)
+    leaveResolverRef.current = null
+  }
+
+  const handleLeaveChoice = async (choice: UnsavedNavigationChoice) => {
+    const decision = resolveUnsavedNavigation(choice)
+    if (decision.persist) {
+      setLeaveSaving(true)
+      const saved = await handleSave(visibilityForLeaveSave())
+      if (!saved) {
+        setLeaveSaving(false)
+        return
+      }
+      settleLeave(true)
+      return
+    }
+    if (decision.discard) resetEditor()
+    settleLeave(decision.allow)
+  }
+
+  const handleAddUrlLesson = async () => {
+    await handleSave('published')
+  }
+
+  const startEdit = async (lesson: Lesson) => {
+    if (!(await requestLeave())) return
+    const nextForm = {
+      title: lesson.title,
+      content_type: lesson.content_type,
+      content_url: lesson.content_url ?? '',
+    }
+    const nextBlocks = lessonBlocksToEditor(parseLessonBody(lesson.body))
+    setEditingId(lesson.id)
+    setForm(nextForm)
+    setInitialForm(nextForm)
+    setBlocks(nextBlocks)
+    setInitialBlocks(nextBlocks)
+  }
+
   const handleDelete = async (id: string) => {
+    if (editingId === id && !(await requestLeave())) return
     if (!confirm('Remove this lesson?')) return
-    const res = await fetch(`${deleteBase}/${id}`, {
+    const res = await fetch(`${itemBase}/${id}`, {
       method: 'DELETE',
       credentials: 'same-origin',
     })
@@ -206,6 +355,7 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
       notify('error', data.error || 'Failed to delete lesson')
       return
     }
+    if (editingId === id) resetEditor()
     notify('success', 'Lesson removed')
     await load()
   }
@@ -225,40 +375,64 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
       ) : null}
 
       <p className="text-xs text-slate-500">
-        Materials you add here are shared with all admitted students for this programme — no extra
-        steps needed.
+        URL materials are visible to admitted students as soon as you add them. Interactive lessons
+        start as drafts until you publish.
       </p>
 
       {lessons.length > 0 ? (
         <ul className="space-y-2 text-sm">
-          {lessons.map((lesson) => (
-            <li
-              key={lesson.id}
-              className="flex items-center justify-between gap-2 rounded border px-3 py-2"
-            >
-              <span className="min-w-0">
-                <span className="font-medium">{lesson.title}</span>{' '}
-                <span className="text-muted-foreground">({lesson.content_type})</span>
-                {lesson.content_url ? (
-                  <a
-                    href={lesson.content_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 inline-flex items-center gap-0.5 text-xs text-[var(--brand-navy)] underline"
+          {lessons.map((lesson) => {
+            const published = isPublishedLessonVisibility(lesson.visibility)
+            return (
+              <li
+                key={lesson.id}
+                className="flex items-center justify-between gap-2 rounded border px-3 py-2"
+              >
+                <span className="min-w-0">
+                  <span className="font-medium">{lesson.title}</span>{' '}
+                  <span className="text-muted-foreground">({lesson.content_type})</span>
+                  <Badge
+                    variant="outline"
+                    className={
+                      published
+                        ? 'ml-2 border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : 'ml-2 border-amber-200 bg-amber-50 text-amber-800'
+                    }
                   >
-                    Preview <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : null}
-              </span>
-              <Button type="button" variant="ghost" size="sm" onClick={() => handleDelete(lesson.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </li>
-          ))}
+                    {published ? 'Published' : 'Draft'}
+                  </Badge>
+                  {lesson.content_url ? (
+                    <a
+                      href={lesson.content_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex items-center gap-0.5 text-xs text-[var(--brand-navy)] underline"
+                    >
+                      Preview <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-1 shrink-0">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(lesson)}>
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit lesson</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(lesson.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </span>
+              </li>
+            )
+          })}
         </ul>
       ) : (
         <p className="text-sm text-muted-foreground">
-          No lessons yet — add videos, webinar links, PDFs, or other files below.
+          No lessons yet — add videos, webinar links, PDFs, or an interactive lesson below.
         </p>
       )}
 
@@ -287,60 +461,129 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
                   {type.label}
                 </SelectItem>
               ))}
+              <SelectItem value={INTERACTIVE_CONTENT_OPTION.value}>
+                {INTERACTIVE_CONTENT_OPTION.label}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div className="sm:col-span-2">
-          <Label>URL</Label>
-          <Input
-            className="mt-1"
-            value={form.content_url}
-            onChange={(e) => setForm({ ...form, content_url: e.target.value })}
-            placeholder={contentUrlPlaceholder(
-              form.content_type as (typeof COURSE_CONTENT_TYPES)[number]['value']
-            )}
-          />
-        </div>
-        {showUpload ? (
-          <div className="sm:col-span-2">
-            <Label>Or upload a file</Label>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              {/* No accept filter: the picker opens on "All Files" so PDFs and
-                  documents are selectable on mobile (image/* was forcing the
-                  photo gallery) and desktop no longer defaults to Custom Files. */}
-              <Input
-                type="file"
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void handleUpload(file)
-                  e.target.value = ''
-                }}
-              />
-              {uploading ? (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading &amp; saving lesson…
-                </span>
-              ) : (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> PDF, video, or slides up to 25 MB — the lesson saves
-                  automatically after upload
-                </span>
-              )}
-            </div>
+
+        {isInteractive ? (
+          <div className="sm:col-span-2 space-y-3">
+            <Tabs defaultValue="edit">
+              <TabsList>
+                <TabsTrigger value="edit">Edit</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="edit" className="pt-3">
+                <LessonBlockEditor
+                  blocks={blocks}
+                  onChange={setBlocks}
+                  onUploadFile={uploadFile}
+                  disabled={loading || uploading}
+                />
+              </TabsContent>
+              <TabsContent value="preview" className="pt-3">
+                {previewLessonBlocks(blocks).length ? (
+                  <div className="rounded-md border border-slate-200 bg-white p-4">
+                    <LessonBlockRenderer blocks={previewLessonBlocks(blocks)} />
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    Add valid blocks to preview the student lesson.
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
-        ) : null}
-        <div className="sm:col-span-2">
-          <Button
-            type="button"
-            onClick={handleAdd}
-            disabled={loading || uploading}
-            className="bg-[var(--brand-navy)] text-white"
-          >
-            {loading ? 'Adding…' : 'Add lesson'}
-          </Button>
+        ) : (
+          <>
+            <div className="sm:col-span-2">
+              <Label>URL</Label>
+              <Input
+                className="mt-1"
+                value={form.content_url}
+                onChange={(e) => setForm({ ...form, content_url: e.target.value })}
+                placeholder={contentUrlPlaceholder(form.content_type as CourseContentType)}
+              />
+            </div>
+            {showUpload ? (
+              <div className="sm:col-span-2">
+                <Label>Or upload a file</Label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    type="file"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) void handleUpload(file)
+                      e.target.value = ''
+                    }}
+                  />
+                  {uploading ? (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Uploading &amp; saving lesson…
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Upload className="h-3 w-3" /> PDF, video, or slides up to 25 MB — the lesson
+                      saves automatically after upload
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
+
+        <div className="sm:col-span-2 flex flex-wrap gap-2">
+          {isInteractive || editingId ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleSave('draft')}
+                disabled={loading || uploading}
+              >
+                {loading ? 'Saving…' : 'Save draft'}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSave('published')}
+                disabled={loading || uploading}
+                className="bg-[var(--brand-navy)] text-white"
+              >
+                {loading ? 'Publishing…' : 'Publish'}
+              </Button>
+              {editingId ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    void (async () => {
+                      if (!(await requestLeave())) return
+                      resetEditor()
+                    })()
+                  }}
+                >
+                  Cancel
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleAddUrlLesson}
+              disabled={loading || uploading}
+              className="bg-[var(--brand-navy)] text-white"
+            >
+              {loading ? 'Adding…' : 'Add lesson'}
+            </Button>
+          )}
         </div>
       </div>
+
+      <UnsavedLessonDialog open={leaveOpen} saving={leaveSaving} onChoice={handleLeaveChoice} />
     </div>
   )
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireLecturerCourseAccess } from '@/lib/lecturer/access'
 import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
+import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
+import { isPublishedLessonVisibility } from '@/lib/learning/lesson-visibility'
 
 export async function GET(
   request: Request,
@@ -29,13 +31,25 @@ export async function GET(
       if (enrollError) return NextResponse.json({ error: enrollError.message }, { status: 500 })
       if (!enrollment) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 })
 
-      const { data: contentRows, error: contentError } = await supabaseAdmin
+      const fullContent = await supabaseAdmin
         .from('course_content')
-        .select('id, title, sort_order')
+        .select('id, title, sort_order, visibility')
         .eq('course_id', courseId)
         .order('sort_order', { ascending: true })
 
-      if (contentError) return NextResponse.json({ error: contentError.message }, { status: 500 })
+      const contentRows = !fullContent.error
+        ? (fullContent.data ?? []).filter((row) => isPublishedLessonVisibility(row.visibility))
+        : (
+            await supabaseAdmin
+              .from('course_content')
+              .select('id, title, sort_order')
+              .eq('course_id', courseId)
+              .order('sort_order', { ascending: true })
+          ).data ?? []
+
+      if (fullContent.error && !fullContent.error.message.includes('does not exist')) {
+        return NextResponse.json({ error: fullContent.error.message }, { status: 500 })
+      }
 
       const userId = enrollment.user_id as string | null
       let progressByContent = new Map<string, { completed: boolean; lastOpenedAt: string | null }>()
@@ -115,13 +129,10 @@ export async function GET(
       }
     })
 
-    const { count: lessonCount } = await supabaseAdmin
-      .from('course_content')
-      .select('id', { count: 'exact', head: true })
-      .eq('course_id', courseId)
+    const lessonCount = (await queryPublishedLessonIds(courseId)).length
 
     return NextResponse.json({
-      lessonCount: lessonCount ?? 0,
+      lessonCount,
       students: rows,
     })
   } catch (error) {

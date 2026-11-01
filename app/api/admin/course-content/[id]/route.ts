@@ -2,6 +2,32 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminPermission } from '@/app/actions/admin-context'
 import { PERMISSIONS } from '@/lib/admin/permissions'
+import { updateCourseLesson } from '@/lib/learning/course-content-mutations'
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireAdminPermission(PERMISSIONS.LEARNING_PROGRAMS)
+    const { id } = await params
+    const body = await request.json()
+    const { lesson, error } = await updateCourseLesson({
+      lessonId: id,
+      title: body.title != null ? String(body.title) : undefined,
+      contentType: body.content_type != null ? String(body.content_type) : undefined,
+      contentUrl: body.content_url !== undefined ? body.content_url : undefined,
+      lessonBody: 'body' in body ? body.body : undefined,
+      visibility: body.visibility != null ? String(body.visibility) : undefined,
+    })
+
+    if (error) return NextResponse.json({ error }, { status: 400 })
+    return NextResponse.json(lesson)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update content'
+    return NextResponse.json({ error: message }, { status: 403 })
+  }
+}
 
 export async function DELETE(
   _request: Request,

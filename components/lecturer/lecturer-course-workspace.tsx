@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, Fragment } from 'react'
+import { useCallback, useEffect, useState, Fragment, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getCurrentUser } from '@/app/actions/auth-service'
@@ -16,6 +16,10 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import {
+  LessonEditorGuardProvider,
+  useLessonEditorGuard,
+} from '@/components/learning/lesson-editor-guard'
 import { LecturerClassroomPanel } from '@/components/lecturer/lecturer-classroom-panel'
 import { LecturerLabsPanel } from '@/components/lecturer/lecturer-labs-panel'
 import { LecturerGradebookPanel } from '@/components/lecturer/lecturer-gradebook-panel'
@@ -153,7 +157,16 @@ function statusBadge(status: string) {
 }
 
 export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
+  return (
+    <LessonEditorGuardProvider>
+      <LecturerCourseWorkspaceView courseId={courseId} />
+    </LessonEditorGuardProvider>
+  )
+}
+
+function LecturerCourseWorkspaceView({ courseId }: { courseId: string }) {
   const router = useRouter()
+  const { requestLeave } = useLessonEditorGuard()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get('tab') ?? 'overview'
   const validTabs = ['overview', 'lessons', 'classroom', 'labs', 'qa', 'gradebook', 'students', 'assessments', 'reports']
@@ -168,6 +181,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(true)
   const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<string | null>(null)
+  const [tab, setTab] = useState(defaultTab)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -233,6 +247,18 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
     }
   }
 
+  const handleTabChange = async (next: string) => {
+    if (next === tab) return
+    if (tab === 'lessons' && !(await requestLeave())) return
+    setTab(next)
+  }
+
+  const handleBackToDashboard = async (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    if (!(await requestLeave())) return
+    router.push('/lecturer/dashboard')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -268,6 +294,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
         <div className="min-w-0">
           <Link
             href="/lecturer/dashboard"
+            onClick={handleBackToDashboard}
             className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-1 no-underline"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -311,7 +338,7 @@ export function LecturerCourseWorkspace({ courseId }: { courseId: string }) {
           </Card>
         </div>
 
-        <Tabs defaultValue={defaultTab} className="space-y-4">
+        <Tabs value={tab} onValueChange={(next) => void handleTabChange(next)} className="space-y-4">
           <TabsList className="bg-white border border-slate-200 flex flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--brand-navy)] data-[state=active]:text-white">
               Overview

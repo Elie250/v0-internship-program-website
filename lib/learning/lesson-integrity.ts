@@ -1,4 +1,10 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import {
+  completionFromPublishedLessons,
+  isMissingLessonSchemaColumn,
+  isPublishedLessonVisibility,
+} from '@/lib/learning/lesson-visibility'
+import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
 
 export const MIN_LESSON_SECONDS = 45
 export const MIN_VIDEO_WATCH_PERCENT = 80
@@ -83,14 +89,31 @@ export async function verifyEnrollmentLessonAccess(
     return { ok: false, error: 'You are not admitted to this programme' }
   }
 
-  const { data: content } = await supabaseAdmin
+  const full = await supabaseAdmin
     .from('course_content')
-    .select('id, content_type')
+    .select('id, content_type, visibility')
     .eq('id', contentId)
     .eq('course_id', courseId)
     .maybeSingle()
 
+  const content = !full.error
+    ? full.data
+    : isMissingLessonSchemaColumn(full.error.message)
+      ? (
+          await supabaseAdmin
+            .from('course_content')
+            .select('id, content_type')
+            .eq('id', contentId)
+            .eq('course_id', courseId)
+            .maybeSingle()
+        ).data
+      : null
+
   if (!content) {
+    return { ok: false, error: 'Lesson not found in this course' }
+  }
+
+  if (!isPublishedLessonVisibility((content as { visibility?: unknown }).visibility)) {
     return { ok: false, error: 'Lesson not found in this course' }
   }
 
@@ -232,12 +255,7 @@ export async function courseLessonsComplete(
 ): Promise<{ complete: boolean; total: number; completed: number }> {
   if (!supabaseAdmin) return { complete: false, total: 0, completed: 0 }
 
-  const { data: lessons } = await supabaseAdmin
-    .from('course_content')
-    .select('id')
-    .eq('course_id', courseId)
-
-  const lessonIds = (lessons ?? []).map((l) => String(l.id))
+  const lessonIds = await queryPublishedLessonIds(courseId)
   if (!lessonIds.length) return { complete: true, total: 0, completed: 0 }
 
   const { data: progress } = await supabaseAdmin
@@ -247,15 +265,9 @@ export async function courseLessonsComplete(
     .eq('course_id', courseId)
     .in('content_id', lessonIds)
 
-  const verified = new Set(
-    (progress ?? [])
-      .filter((row) => row.completed_at && row.completion_verified !== false)
-      .map((row) => String(row.content_id))
-  )
+  const verified = (progress ?? [])
+    .filter((row) => row.completed_at && row.completion_verified !== false)
+    .map((row) => String(row.content_id))
 
-  return {
-    total: lessonIds.length,
-    completed: verified.size,
-    complete: verified.size === lessonIds.length,
-  }
+  return completionFromPublishedLessons(lessonIds, verified)
 }

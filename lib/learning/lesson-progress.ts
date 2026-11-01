@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
 
 export type LessonProgressRecord = {
   contentId: string
@@ -148,12 +149,8 @@ export async function queryCourseProgressForStudents(
   const result = new Map<string, StudentCourseProgress>()
   if (!supabaseAdmin || userIds.length === 0) return result
 
-  const { data: lessons } = await supabaseAdmin
-    .from('course_content')
-    .select('id')
-    .eq('course_id', courseId)
-
-  const total = lessons?.length ?? 0
+  const publishedIds = await queryPublishedLessonIds(courseId)
+  const total = publishedIds.length
   if (total === 0) {
     for (const uid of userIds) {
       result.set(uid, { completed: 0, total: 0, percent: 0, lastActivityAt: null })
@@ -171,9 +168,12 @@ export async function queryCourseProgressForStudents(
     throw new Error(error.message)
   }
 
+  const publishedSet = new Set(publishedIds)
   const completedByUser = new Map<string, Set<string>>()
   const lastActivityByUser = new Map<string, string>()
   for (const row of data ?? []) {
+    const contentId = String(row.content_id)
+    if (!publishedSet.has(contentId)) continue
     const uid = String(row.user_id)
     const opened = (row.last_opened_at as string | null) ?? null
     if (opened) {
@@ -184,7 +184,7 @@ export async function queryCourseProgressForStudents(
     }
     if (!row.completed_at) continue
     if (!completedByUser.has(uid)) completedByUser.set(uid, new Set())
-    completedByUser.get(uid)!.add(String(row.content_id))
+    completedByUser.get(uid)!.add(contentId)
   }
 
   for (const uid of userIds) {
