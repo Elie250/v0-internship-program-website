@@ -12,12 +12,12 @@ const defaultHero: HeroContent = {
   id: 'default',
   title: `${COMPANY.brandName} — ${COMPANY.platformName}`,
   subtitle:
-    'Hands-on engineering programmes in Kigali, a public Energy Library, and Field Notes from practitioners — learn, read, and build with East Africa\'s engineering community.',
+    'Hands-on engineering programmes in Kigali and online. Browse a course, enroll, and start learning with East Africa\'s engineering community.',
   background_image: '/videos/playlist',
-  cta_primary_label: 'View programmes',
+  cta_primary_label: 'Browse programmes',
   cta_primary_url: '/learning',
-  cta_secondary_label: 'Explore Library',
-  cta_secondary_url: '/library',
+  cta_secondary_label: 'Create account',
+  cta_secondary_url: '/auth/register',
   is_active: true,
 }
 

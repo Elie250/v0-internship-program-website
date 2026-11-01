@@ -22,13 +22,14 @@ const EXPLORE_TILES = [
 
 export function ExploreHubSection() {
   return (
-    <section id="explore" className="home-section home-section--compact home-section--white border-b border-slate-200">
+    <section id="explore" className="home-section home-section--compact home-section--white">
       <div className="max-w-6xl mx-auto">
         <HomeSectionHeader
           eyebrow={COMPANY.platformName}
-          title="Navigate the platform"
-          description="Training, career support, public library, field notes, and calculators — choose where to go next."
-          className="mb-8"
+          title="More of the platform"
+          description="Games, library, shop, and career tools stay available — learning programmes come first."
+          align="left"
+          className="mb-6"
         />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {EXPLORE_TILES.map(({ href, label, icon: Icon }) => (

@@ -58,7 +58,12 @@ export async function ReviewsTrustSection({ compact = false }: { compact?: boole
         )}
 
         <div className={`flex flex-wrap items-center gap-3 ${compact ? '' : 'justify-center'}`}>
-          <Button asChild size={compact ? 'sm' : 'default'} className="bg-[var(--brand-navy)] text-white">
+          <Button
+            asChild
+            size="sm"
+            variant={compact ? 'outline' : 'default'}
+            className={compact ? 'text-slate-800 border-slate-300' : 'bg-[var(--brand-navy)] text-white'}
+          >
             <Link href="/reviews">Read all reviews</Link>
           </Button>
           {!compact ? (

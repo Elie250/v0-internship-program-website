@@ -53,7 +53,7 @@ export async function GamesTeaserSection() {
             className="mb-0"
           />
           <Link href="/tools/brain-training">
-            <Button className="bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">
+            <Button size="sm" variant="outline" className="text-slate-800 border-slate-300">
               Open Arcade
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

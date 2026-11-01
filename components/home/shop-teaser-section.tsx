@@ -40,7 +40,7 @@ export async function ShopTeaserSection() {
             className="mb-0"
           />
           <Link href="/shop">
-            <Button variant="outline" className="text-slate-800 border-slate-300">
+            <Button size="sm" variant="outline" className="text-slate-800 border-slate-300">
               View shop
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

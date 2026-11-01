@@ -11,17 +11,18 @@ export async function HomeSignedInStrip() {
 
   return (
     <section
-      aria-label="Signed-in shortcuts"
-      className="border-b border-slate-200 bg-[var(--brand-navy)]/[0.04] px-4 py-4"
+      aria-label="Continue learning"
+      className="border-b border-[color-mix(in_srgb,var(--brand-navy)_12%,white)] bg-[var(--brand-pale)] px-4 py-5"
     >
       <div className="max-w-6xl mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="section-eyebrow mb-1">Continue learning</p>
+          <p className="text-base font-semibold text-[var(--brand-navy)]">
             Welcome back, {displayName}
           </p>
-          <p className="text-sm text-slate-600 mt-0.5">
+          <p className="text-sm text-[var(--brand-navy-soft)] mt-0.5">
             {isStudent && activeCourses.length > 0
-              ? 'Pick up where you left off or open your portal.'
+              ? 'Pick up an active programme or open your learning portal.'
               : `Jump straight into your ${portal.label.toLowerCase()}.`}
           </p>
         </div>

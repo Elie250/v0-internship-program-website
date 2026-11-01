@@ -42,13 +42,13 @@ export async function ProgrammesCoursesSection() {
   })
 
   return (
-    <section id="programmes" className="home-section home-section--compact home-section--muted">
+    <section id="programmes" className="home-section home-section--muted">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
           <HomeSectionHeader
-            eyebrow="Programmes"
-            title="Open for enrollment"
-            description="Practitioner-led programmes in Kigali and online — enroll when a seat opens."
+            eyebrow="Learning"
+            title="Featured learning programmes"
+            description="Practitioner-led programmes in Kigali and online. Scan titles, read a short summary, then enroll when a seat opens."
             align="left"
             className="mb-0"
           />

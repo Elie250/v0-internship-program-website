@@ -18,7 +18,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { getCurrentUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
+import { headerAccountForRole, type HomePortalLink } from '@/lib/home/portal'
 
 const learningLinks = [
   { href: '/learning', label: 'All courses & programmes' },
@@ -74,14 +76,46 @@ function BrandMark({
   )
 }
 
+function AuthAction({
+  account,
+  className,
+}: {
+  account: HomePortalLink | null | undefined
+  className: string
+}) {
+  if (account === undefined) {
+    return <span className="inline-block h-9 w-[7.5rem]" aria-hidden />
+  }
+
+  if (account) {
+    return (
+      <Link href={account.href} className="no-underline hover:no-underline">
+        <Button size="sm" className={className}>
+          {account.label}
+        </Button>
+      </Link>
+    )
+  }
+
+  return (
+    <Link href="/auth/login" className="no-underline hover:no-underline">
+      <Button size="sm" className={className}>
+        Login
+      </Button>
+    </Link>
+  )
+}
+
 function MobileNavSheet({
   logoUrl,
   open,
   onOpenChange,
+  account,
 }: {
   logoUrl: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  account: HomePortalLink | null | undefined
 }) {
   const close = () => onOpenChange(false)
 
@@ -115,14 +149,20 @@ function MobileNavSheet({
           </Link>
         </SheetHeader>
         <div className="px-4 pb-6">
-          <MobileNav onNavigate={close} />
+          <MobileNav onNavigate={close} account={account} />
         </div>
       </SheetContent>
     </Sheet>
   )
 }
 
-function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
+function MobileNav({
+  onNavigate,
+  account,
+}: {
+  onNavigate?: () => void
+  account: HomePortalLink | null | undefined
+}) {
   const topLinks = [
     { href: '/', label: 'Home' },
     { href: '/tools', label: 'Tools' },
@@ -171,19 +211,37 @@ function MobileNav({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <div className="border-t border-slate-200 pt-4">
-        <Link href="/auth/login" onClick={onNavigate} className="no-underline hover:no-underline">
-          <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 font-semibold">
-            Login
-          </Button>
-        </Link>
+        {account ? (
+          <Link href={account.href} onClick={onNavigate} className="no-underline hover:no-underline">
+            <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 font-semibold">
+              {account.label}
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/auth/login" onClick={onNavigate} className="no-underline hover:no-underline">
+            <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90 font-semibold">
+              Login
+            </Button>
+          </Link>
+        )}
       </div>
     </div>
   )
 }
 
-export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
+const headerAuthButtonClass =
+  'bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-4 shadow-sm border border-white'
+
+export function SiteHeader({
+  overlay = false,
+  account: accountFromServer,
+}: {
+  overlay?: boolean
+  account?: HomePortalLink | null
+}) {
   const [logoUrl, setLogoUrl] = useState(COMPANY.logoUrl)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [account, setAccount] = useState<HomePortalLink | null | undefined>(accountFromServer)
 
   useEffect(() => {
     fetch('/api/public/logo')
@@ -193,6 +251,20 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (accountFromServer !== undefined) {
+      setAccount(accountFromServer)
+      return
+    }
+
+    getCurrentUser()
+      .then((user) => {
+        const role = user?.role ? String(user.role) : ''
+        setAccount(role ? headerAccountForRole(role) : null)
+      })
+      .catch(() => setAccount(null))
+  }, [accountFromServer])
 
   return (
     <nav
@@ -288,30 +360,24 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         </div>
 
         <div className="flex items-center justify-end shrink-0">
-          <Link href="/auth/login" className="no-underline hover:no-underline">
-            <Button
-              size="sm"
-              className="bg-white text-[var(--brand-navy)] hover:bg-slate-100 font-semibold h-9 px-4 shadow-sm border border-white"
-            >
-              Login
-            </Button>
-          </Link>
+          <AuthAction account={account} className={headerAuthButtonClass} />
         </div>
       </div>
 
       {/* Mobile: Menu · Login */}
       <div className="lg:hidden flex w-full items-center justify-between gap-3 px-4 py-2">
-        <MobileNavSheet logoUrl={logoUrl} open={mobileOpen} onOpenChange={setMobileOpen} />
+        <MobileNavSheet
+          logoUrl={logoUrl}
+          open={mobileOpen}
+          onOpenChange={setMobileOpen}
+          account={account}
+        />
 
         <div className="site-header-mobile-auth flex items-center shrink-0">
-          <Link href="/auth/login" className="no-underline hover:no-underline">
-            <Button
-              size="sm"
-              className="h-9 px-3 text-sm font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white"
-            >
-              Login
-            </Button>
-          </Link>
+          <AuthAction
+            account={account}
+            className="h-9 px-3 text-sm font-semibold bg-white text-[var(--brand-navy)] hover:bg-slate-100 shadow-sm border border-white"
+          />
         </div>
       </div>
     </nav>

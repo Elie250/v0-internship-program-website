@@ -51,7 +51,7 @@ function usePrefersReducedMotion() {
 function SlotFace({ item }: { item: ShuffleCardItem }) {
   return (
     <>
-      <div className="relative h-36 bg-slate-100 overflow-hidden">
+      <div className="course-thumb relative overflow-hidden">
         {item.art ? (
           <GameCoverArt
             art={item.art}
@@ -82,9 +82,13 @@ function SlotFace({ item }: { item: ShuffleCardItem }) {
             {item.badge}
           </span>
         ) : null}
-        <p className="font-semibold text-slate-900 text-sm leading-snug line-clamp-2">{item.title}</p>
+        <p className="font-semibold text-[var(--brand-navy)] text-sm sm:text-base leading-snug line-clamp-2">
+          {item.title}
+        </p>
         {item.subtitle ? (
-          <p className="text-xs text-slate-600 line-clamp-2 flex-1">{item.subtitle}</p>
+          <p className="course-card-description text-xs sm:text-sm text-[var(--brand-navy-soft)] line-clamp-3 flex-1">
+            {item.subtitle}
+          </p>
         ) : null}
         {item.ctaLabel ? (
           <p className="text-xs font-semibold text-[var(--brand-navy)] mt-auto pt-1">{item.ctaLabel}</p>
@@ -140,7 +144,7 @@ function ShuffleSlot({
   return (
     <Link
       href={href}
-      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm min-h-[220px] no-underline hover:no-underline hover:border-[var(--brand-navy)]/35 hover:shadow-md transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]"
+      className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-[color-mix(in_srgb,var(--brand-navy)_14%,white)] bg-white shadow-sm min-h-[260px] no-underline hover:no-underline hover:border-[var(--brand-navy)]/35 hover:shadow-md transition-[box-shadow,border-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-navy)]"
     >
       <div className="relative flex flex-1 flex-col">
         <SlotFace item={shown} />

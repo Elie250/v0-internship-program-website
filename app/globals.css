@@ -550,6 +550,18 @@
     padding-block: 2.5rem;
   }
 
+  .home-secondary-stack .home-section {
+    padding-block: 2rem;
+  }
+
+  .home-secondary-stack .section-title {
+    font-size: 1.35rem;
+  }
+
+  .home-secondary-stack .section-eyebrow {
+    color: var(--brand-navy-soft);
+  }
+
   .home-tile-link {
     border-radius: 0.5rem;
     outline-offset: 2px;

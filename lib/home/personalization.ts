@@ -1,10 +1,8 @@
 import { getCurrentUser } from '@/app/actions/auth-service'
+import { portalForRole, type HomePortalLink } from '@/lib/home/portal'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
-export type HomePortalLink = {
-  label: string
-  href: string
-}
+export type { HomePortalLink }
 
 export type HomeActiveCourse = {
   id: string
@@ -19,21 +17,6 @@ export type HomePersonalization = {
   activeCourses: HomeActiveCourse[]
   hasEnrollment: boolean
   isStudent: boolean
-}
-
-function portalForRole(role: string): HomePortalLink | null {
-  if (role === 'admin') return { label: 'Admin console', href: '/admin/dashboard' }
-  if (role === 'student' || role === 'registered') {
-    return { label: 'Student portal', href: '/student/dashboard' }
-  }
-  if (role === 'lecturer' || role === 'instructor') {
-    return { label: 'Lecturer portal', href: '/lecturer/dashboard' }
-  }
-  if (role === 'mentor') {
-    return { label: 'Career portal', href: '/lecturer/dashboard' }
-  }
-  if (role === 'engineer') return { label: 'Engineer portal', href: '/engineer/dashboard' }
-  return null
 }
 
 type JoinedCourseRow = { id: string; title: string } | { id: string; title: string }[] | null
@@ -109,15 +92,15 @@ export function resolveHomeHeroCtas(
     return {
       primaryLabel: `Go to ${personalization.portal.label.toLowerCase()}`,
       primaryUrl: personalization.portal.href,
-      secondaryLabel: 'Explore Library',
-      secondaryUrl: '/library',
+      secondaryLabel: 'Browse programmes',
+      secondaryUrl: '/learning',
     }
   }
 
   return {
-    primaryLabel: 'Create account',
-    primaryUrl: '/auth/register',
-    secondaryLabel: 'Browse programmes',
-    secondaryUrl: '/learning',
+    primaryLabel: heroDefaults?.primaryLabel?.trim() || 'Browse programmes',
+    primaryUrl: heroDefaults?.primaryUrl?.trim() || '/learning',
+    secondaryLabel: heroDefaults?.secondaryLabel?.trim() || 'Create account',
+    secondaryUrl: heroDefaults?.secondaryUrl?.trim() || '/auth/register',
   }
 }
