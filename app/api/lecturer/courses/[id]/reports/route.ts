@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireLecturerCourseAccess } from '@/lib/lecturer/access'
 import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
 import { queryCourseQuizStandings } from '@/lib/learning/quiz'
+import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
 
 export async function GET(
   _request: Request,
@@ -40,14 +41,12 @@ export async function GET(
     const admitted = rows.filter((r) => r.status === 'admitted')
     const userIds = admitted.map((e) => e.user_id).filter(Boolean) as string[]
 
-    const [progressMap, quizResult, lessonCountRes] = await Promise.all([
+    const [progressMap, quizResult, publishedLessonIds] = await Promise.all([
       queryCourseProgressForStudents(courseId, userIds),
       queryCourseQuizStandings(courseId),
-      supabaseAdmin
-        .from('course_content')
-        .select('id', { count: 'exact', head: true })
-        .eq('course_id', courseId),
+      queryPublishedLessonIds(courseId),
     ])
+    const lessonCount = publishedLessonIds.length
 
     const standingsByEnrollment = new Map(
       quizResult.standings.map((s) => [s.enrollmentId, s])
@@ -65,7 +64,7 @@ export async function GET(
         status: e.status,
         admittedAt: e.admitted_at ?? null,
         completedLessons: progress?.completed ?? 0,
-        totalLessons: progress?.total ?? lessonCountRes.count ?? 0,
+        totalLessons: progress?.total ?? lessonCount,
         progressPercent: progress?.percent ?? 0,
         quizzesCompleted: standing?.completedQuizzes ?? 0,
         totalQuizzes: standing?.totalQuizzes ?? 0,
@@ -125,7 +124,7 @@ export async function GET(
         ['payment_pending_review', 'waitlisted'].includes(String(r.status))
       ).length,
       rejected: rows.filter((r) => r.status === 'payment_rejected').length,
-      lessonCount: lessonCountRes.count ?? 0,
+      lessonCount,
       quizCount: quizTitles.length,
       passingScore: quizResult.passingScore,
       avgProgress,

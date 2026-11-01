@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import type { StudentLesson } from '@/app/actions/student-learning'
+import { LessonBlockRenderer } from '@/components/learning/lesson-block-renderer'
 import {
   canPlayAsNativeVideo,
   embedMediaUrl,
@@ -45,6 +46,7 @@ export function LessonViewer({
   const watchPercentRef = useRef(0)
 
   const url = lesson.content_url?.trim() ?? ''
+  const blocks = lesson.body ?? []
   const isVideo = lesson.content_type === 'video'
   const embed = isVideo ? embedMediaUrl(url) : null
   const nativeVideo = Boolean(url && isVideo && canPlayAsNativeVideo(url))
@@ -173,6 +175,7 @@ export function LessonViewer({
 
   const renderContent = () => {
     if (!url) {
+      if (blocks.length > 0) return null
       return <p className="text-sm text-slate-600">Content link not set yet.</p>
     }
 
@@ -348,7 +351,10 @@ export function LessonViewer({
           Course {courseId}, enrollment {enrollmentId}
         </p>
       </CardHeader>
-      <CardContent className="space-y-4 pt-4">{renderContent()}</CardContent>
+      <CardContent className="space-y-6 pt-4">
+        {renderContent()}
+        {blocks.length > 0 ? <LessonBlockRenderer blocks={blocks} /> : null}
+      </CardContent>
     </Card>
   )
 }

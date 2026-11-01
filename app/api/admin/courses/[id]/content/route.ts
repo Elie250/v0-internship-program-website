@@ -36,6 +36,8 @@ export async function POST(
       contentType: String(body.content_type ?? 'link'),
       contentUrl: body.content_url ?? null,
       sortOrder: body.sort_order != null ? Number(body.sort_order) : undefined,
+      lessonBody: body.body,
+      visibility: body.visibility ?? null,
     })
 
     if (error) return NextResponse.json({ error }, { status: 400 })

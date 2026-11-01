@@ -209,7 +209,7 @@ export default function StudentCoursePage() {
     if (done) return CheckCircle2
     if (type === 'video') return PlayCircle
     if (type === 'webinar') return Radio
-    if (type === 'pdf') return FileText
+    if (type === 'pdf' || type === 'interactive') return FileText
     if (type === 'download') return Download
     return Link2
   }

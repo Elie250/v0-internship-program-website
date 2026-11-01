@@ -29,16 +29,14 @@ import {
   buildStudentAnnouncementFeed,
   type StudentAnnouncementFeed,
 } from '@/lib/learning/student-announcement-feed'
-import {
-  filterUnlockedLessons,
-  isLessonUnlocked,
-  type DripLesson,
-} from '@/lib/learning/drip-content'
+import { filterUnlockedLessons, isLessonUnlocked } from '@/lib/learning/drip-content'
 import {
   queryLessonProgress,
   summarizeCourseProgress,
   type CourseProgressSummary,
 } from '@/lib/learning/lesson-progress'
+import { queryPublishedCourseLessons } from '@/lib/learning/published-lessons'
+import type { LessonBlock } from '@/lib/learning/lesson-blocks'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
 export type { CourseProgressSummary } from '@/lib/learning/lesson-progress'
@@ -50,9 +48,12 @@ export type StudentLesson = {
   content_type: string
   content_url: string | null
   sort_order: number
+  body?: LessonBlock[]
   completed?: boolean
   locked?: boolean
   unlockLabel?: string | null
+  unlock_at?: string | null
+  unlock_after_content_id?: string | null
 }
 
 export type StudentCourse = {
@@ -198,26 +199,18 @@ function buildStudentCourse(
   const completedSet = new Set(
     courseProgressRecords.filter((p) => p.completed).map((p) => p.contentId)
   )
+  const publishedIds = new Set(courseLessons.map((lesson) => lesson.id))
 
   const lessonsWithDrip = courseLessons.map((lesson) => {
-    const dripLesson = lesson as StudentLesson & DripLesson
-    const unlocked = isLessonUnlocked(
-      {
-        id: lesson.id,
-        sort_order: lesson.sort_order,
-        unlock_at: (lesson as { unlock_at?: string | null }).unlock_at ?? null,
-        unlock_after_content_id:
-          (lesson as { unlock_after_content_id?: string | null }).unlock_after_content_id ?? null,
-      },
-      completedSet
-    )
+    const unlocked = isLessonUnlocked(lesson, completedSet, Date.now(), publishedIds)
     let unlockLabel: string | null = null
     if (!unlocked) {
-      const unlockAt = (lesson as { unlock_at?: string | null }).unlock_at
-      const afterId = (lesson as { unlock_after_content_id?: string | null }).unlock_after_content_id
+      const unlockAt = lesson.unlock_at
+      const afterId = lesson.unlock_after_content_id
+      const publishedPrerequisite = afterId ? publishedIds.has(afterId) : false
       if (unlockAt && new Date(unlockAt).getTime() > Date.now()) {
         unlockLabel = `Unlocks ${formatAccessDate(unlockAt)}`
-      } else if (afterId) {
+      } else if (publishedPrerequisite) {
         unlockLabel = 'Complete the previous lesson first'
       }
     }
@@ -229,13 +222,10 @@ function buildStudentCourse(
   })
 
   const accessibleLessons = filterUnlockedLessons(
-    lessonsWithDrip.map((l) => ({
-      ...l,
-      unlock_at: (l as { unlock_at?: string | null }).unlock_at ?? null,
-      unlock_after_content_id:
-        (l as { unlock_after_content_id?: string | null }).unlock_after_content_id ?? null,
-    })),
-    completedSet
+    lessonsWithDrip,
+    completedSet,
+    Date.now(),
+    publishedIds
   )
 
   const lessonsWithProgress = lessonsWithDrip.map((lesson) => ({
@@ -448,23 +438,21 @@ export async function getStudentPortalData(options?: {
 
   let lessons: StudentLesson[] = []
   if (activeAdmittedIds.length) {
-    const full = await supabaseAdmin
-      .from('course_content')
-      .select(
-        'id, course_id, title, content_type, content_url, sort_order, unlock_at, unlock_after_content_id'
-      )
-      .in('course_id', activeAdmittedIds)
-      .order('sort_order', { ascending: true })
-
-    if (!full.error) {
-      lessons = (full.data ?? []) as StudentLesson[]
-    } else if (/column .* does not exist|could not find the .* column/i.test(full.error.message)) {
-      const base = await supabaseAdmin
-        .from('course_content')
-        .select('id, course_id, title, content_type, content_url, sort_order')
-        .in('course_id', activeAdmittedIds)
-        .order('sort_order', { ascending: true })
-      lessons = (base.data ?? []) as StudentLesson[]
+    try {
+      const published = await queryPublishedCourseLessons(activeAdmittedIds)
+      lessons = published.map((row) => ({
+        id: row.id,
+        course_id: row.course_id,
+        title: row.title,
+        content_type: row.content_type,
+        content_url: row.content_url,
+        sort_order: row.sort_order,
+        body: row.body,
+        unlock_at: row.unlock_at ?? null,
+        unlock_after_content_id: row.unlock_after_content_id ?? null,
+      }))
+    } catch {
+      lessons = []
     }
   }
 

@@ -15,6 +15,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:integrity": "node --test scripts/integrity-selfcheck.mjs",
+    "test:lesson-blocks": "node --experimental-strip-types --test scripts/lesson-blocks-selfcheck.ts",
     "test:commerce": "node --test scripts/commerce-pos-foundation-selfcheck.mjs",
     "test:shop-hosts": "node --test scripts/shop-hosts-selfcheck.mjs",
     "test:shop-auth": "node --test scripts/shop-auth-selfcheck.mjs",

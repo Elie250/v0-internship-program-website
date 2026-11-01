@@ -16,6 +16,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CourseContentPanel } from '@/components/admin/course-content-panel'
+import {
+  LessonEditorGuardProvider,
+  useLessonEditorGuard,
+} from '@/components/learning/lesson-editor-guard'
 import { AdminCourseIntegrityPanel } from '@/components/admin/admin-course-integrity-panel'
 import {
   Select,
@@ -92,6 +96,15 @@ const emptyForm = {
 type AssigneeOption = { id: string; name: string; email: string }
 
 export default function CourseManagementTab() {
+  return (
+    <LessonEditorGuardProvider>
+      <CourseManagementTabView />
+    </LessonEditorGuardProvider>
+  )
+}
+
+function CourseManagementTabView() {
+  const { requestLeave } = useLessonEditorGuard()
   const [courses, setCourses] = useState<Course[]>([])
   const [lecturers, setLecturers] = useState<AssigneeOption[]>([])
   const [mentors, setMentors] = useState<AssigneeOption[]>([])
@@ -250,6 +263,7 @@ export default function CourseManagementTab() {
       setEditError('Course title is required')
       return
     }
+    if (!(await requestLeave())) return
     setSaving(true)
     setEditError('')
     setError('')
@@ -481,7 +495,15 @@ export default function CourseManagementTab() {
         </div>
       )}
 
-      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+      <Dialog
+        open={!!editing}
+        onOpenChange={(open) => {
+          if (open) return
+          void (async () => {
+            if (await requestLeave()) setEditing(null)
+          })()
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b border-slate-300 pb-4">
             <DialogTitle className="text-xl">Edit program</DialogTitle>
@@ -491,7 +513,16 @@ export default function CourseManagementTab() {
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           {editing ? <AdminCourseIntegrityPanel courseId={editing.id} /> : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void (async () => {
+                  if (await requestLeave()) setEditing(null)
+                })()
+              }}
+            >
+              Cancel
+            </Button>
             <Button onClick={handleUpdate} disabled={saving} className="bg-[var(--brand-navy)] text-white">Save changes</Button>
           </DialogFooter>
         </DialogContent>
