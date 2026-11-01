@@ -8,50 +8,61 @@
 /* CSS Variables (Colors, Radius, Sidebar)  */
 /* ======================================== */
 :root {
-  /* Energy & Logics LMS — consolidated brand tokens */
-  --brand-navy: #172f50;
-  --brand-navy-soft: #29496c;
+  /* Energy & Logics Academy Color System */
+  /* Primary: Deep Ocean Blue #0B3C5D */
+  /* Secondary: Teal #1F7A8C */
+  /* Accent: Gold #F2A900 */
+
+  /* Public brand. Aliases stay so later code can reference them,
+     but they point at the original Academy palette. */
+  --brand-navy: #1e3a5f;
+  --brand-navy-soft: #3d5a80;
   --brand-navy-deep: #152a45;
-  --brand-pale: #eaf0f7;
-  --brand-cloud: #f7f9fc;
-  --brand-gold: #d5a84b;
-  --brand-teal: #238779;
+  --brand-pale: #f8fafc;
+  --brand-cloud: #fafafa;
+  --brand-gold: #f2a900;
+  --brand-teal: #1f7a8c;
   --brand-sky: #7eb8e8;
 
-  --background: var(--brand-cloud);
-  --foreground: var(--brand-navy);
-  --card: #ffffff;
-  --card-foreground: var(--brand-navy);
-  --popover: #ffffff;
-  --popover-foreground: var(--brand-navy);
+  --background: oklch(0.98 0 0); /* Off-white */
+  --foreground: oklch(0.15 0.02 253); /* Dark gray/black */
+  --card: oklch(1 0 0); /* Pure white */
+  --card-foreground: oklch(0.15 0.02 253); /* Dark text */
+  --popover: oklch(1 0 0); /* Pure white */
+  --popover-foreground: oklch(0.15 0.02 253); /* Dark text */
 
-  --primary: var(--brand-navy);
-  --primary-foreground: #ffffff;
+  /* Primary: Deep Ocean Blue */
+  --primary: oklch(0.37 0.15 254); /* #0B3C5D equivalent */
+  --primary-foreground: oklch(1 0 0); /* White text */
 
-  --secondary: var(--brand-teal);
-  --secondary-foreground: #ffffff;
+  /* Secondary: Teal */
+  --secondary: oklch(0.52 0.15 254); /* #1F7A8C equivalent */
+  --secondary-foreground: oklch(1 0 0); /* White text */
 
-  --muted: var(--brand-pale);
-  --muted-foreground: var(--brand-navy-soft);
+  /* Muted: Light gray */
+  --muted: oklch(0.94 0 0);
+  --muted-foreground: oklch(0.38 0.01 253);
 
-  --accent: var(--brand-gold);
-  --accent-foreground: var(--brand-navy);
+  /* Accent: Gold */
+  --accent: oklch(0.75 0.2 80); /* #F2A900 equivalent */
+  --accent-foreground: oklch(0.15 0.02 253); /* Dark text */
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: #ffffff;
-  --border: color-mix(in srgb, var(--brand-navy) 14%, #ffffff);
-  --input: #ffffff;
-  --ring: var(--brand-navy);
+  --destructive: oklch(0.577 0.245 27.325); /* Red for danger */
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.86 0.01 253);
+  --input: oklch(1 0 0);
+  --ring: oklch(0.37 0.15 254); /* Primary blue */
   --radius: 0.75rem;
 
-  --sidebar: var(--brand-navy);
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: var(--brand-gold);
-  --sidebar-primary-foreground: var(--brand-navy);
-  --sidebar-accent: #ffffff;
-  --sidebar-accent-foreground: var(--brand-navy);
-  --sidebar-border: color-mix(in srgb, #ffffff 22%, var(--brand-navy));
-  --sidebar-ring: var(--brand-gold);
+  /* Sidebar theming */
+  --sidebar: oklch(0.37 0.15 254); /* Deep blue */
+  --sidebar-foreground: oklch(1 0 0); /* White */
+  --sidebar-primary: oklch(0.75 0.2 80); /* Gold */
+  --sidebar-primary-foreground: oklch(0.15 0.02 253); /* Dark text */
+  --sidebar-accent: oklch(1 0 0); /* White */
+  --sidebar-accent-foreground: oklch(0.37 0.15 254); /* Deep blue */
+  --sidebar-border: oklch(0.52 0.15 254); /* Teal */
+  --sidebar-ring: oklch(0.75 0.2 80); /* Gold */
 }
 
 .dark {
@@ -131,7 +142,7 @@
   h5,
   h6 {
     font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
-    color: var(--brand-navy);
+    color: var(--foreground);
     letter-spacing: -0.02em;
     line-height: 1.25;
     margin: 0;
@@ -542,8 +553,8 @@
   }
 
   .home-section--muted {
-    background-color: var(--brand-pale);
-    border-block: 1px solid color-mix(in srgb, var(--brand-navy) 10%, #ffffff);
+    background-color: #f8fafc;
+    border-block: 1px solid #e2e8f0;
   }
 
   .home-section--compact {
