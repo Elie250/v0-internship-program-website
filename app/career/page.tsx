@@ -12,6 +12,7 @@ import {
 } from '@/lib/enrollment/program-types'
 import { MentorRequestForm } from '@/components/career/mentor-request-form'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 
 const MODULES = [
   { id: 'guidance', label: 'Career guidance', type: 'career_guidance' as ProgramType },
@@ -106,7 +107,9 @@ export default async function CareerPage({
                     <CardTitle className="text-slate-900">{item.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <p className="text-sm text-slate-600">{item.description}</p>
+                    <p className="course-card-description text-sm text-slate-600 line-clamp-3">
+                      {normalizeCourseCardDescription(item.description)}
+                    </p>
                     {item.scheduled_at ? (
                       <p className="text-xs text-slate-600">{new Date(item.scheduled_at).toLocaleString()}</p>
                     ) : null}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { CatalogCourseItem, EnrollEligibility } from '@/app/actions/student-learning'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 
 export function StudentBrowseCourses({
   courses,
@@ -80,7 +81,9 @@ export function StudentBrowseCourses({
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col flex-1 gap-3">
-                <p className="text-sm text-slate-600 line-clamp-3 flex-1">{course.description}</p>
+                <p className="course-card-description text-sm text-slate-600 line-clamp-3 flex-1">
+                  {normalizeCourseCardDescription(course.description)}
+                </p>
                 <p className="text-base font-bold text-[var(--brand-navy)]">
                   {course.isFree
                     ? 'Free'

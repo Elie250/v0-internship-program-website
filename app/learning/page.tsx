@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { getCategories, getPublishedCourses } from '@/lib/platform/queries'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 
 export default async function LearningPage({
   searchParams,
@@ -112,7 +113,9 @@ export default async function LearningPage({
                   <CardTitle>{course.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-3">{course.description}</p>
+                  <p className="course-card-description text-sm text-muted-foreground mb-3 line-clamp-3">
+                    {normalizeCourseCardDescription(course.description)}
+                  </p>
                   <div className="flex justify-between text-xs text-muted-foreground mb-2">
                     <span>{course.difficulty ?? 'All levels'}</span>
                     <span>{course.duration ?? 'Flexible'}</span>

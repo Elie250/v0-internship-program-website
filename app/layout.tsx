@@ -1,14 +1,28 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google'
 import { PwaRegister } from '@/components/pwa/pwa-register'
 import { AnalyticsBeacon } from '@/components/privacy/analytics-beacon'
 import { loadPublicCompanyProfile } from '@/lib/platform/site-settings'
 import './globals.css'
 
-// Google fonts
-const _geist = Geist({ subsets: ['latin'] })
-const _geistMono = Geist_Mono({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-plus-jakarta',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
+  display: 'swap',
+})
 
 export async function generateMetadata(): Promise<Metadata> {
   const profile = await loadPublicCompanyProfile()
@@ -47,7 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${_geist.className} font-sans antialiased`}>
+      <body className={`${inter.variable} ${plusJakarta.variable} ${jetbrainsMono.variable} ${inter.className} antialiased`}>
         {children}
         <PwaRegister />
         <Suspense fallback={null}>

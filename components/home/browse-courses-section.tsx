@@ -11,6 +11,7 @@ import {
   PROGRAM_TYPE_LABELS,
   type ProgramType,
 } from '@/lib/enrollment/program-types'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 
 const PORTALS = [
   { href: '/learning', label: 'Training', icon: GraduationCap },
@@ -87,7 +88,9 @@ export async function BrowseCoursesSection() {
                     <CardTitle className="text-lg text-slate-900 leading-snug">{course.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-col flex-1 gap-3">
-                    <p className="text-sm text-slate-600 line-clamp-2 flex-1">{course.description}</p>
+                    <p className="course-card-description text-sm text-slate-600 line-clamp-2 flex-1">
+                      {normalizeCourseCardDescription(course.description)}
+                    </p>
                     <p className="text-sm font-semibold text-[var(--brand-navy)]">
                       {free ? 'Free' : `${Number(course.pricing ?? 0).toLocaleString()} RWF`}
                     </p>

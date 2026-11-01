@@ -18,6 +18,7 @@ import {
   lecturerCourseStatusBadgeClass,
 } from '@/components/lecturer/lecturer-create-course-dialog'
 import { NotificationBadge } from '@/components/ui/notification-badge'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 import {
   isDeliveryPortalRole,
   deliveryLoginRoleForUser,
@@ -221,8 +222,9 @@ export function LecturerDashboardView() {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-slate-700 line-clamp-2">
-                    {course.description || 'Manage lessons, students, and assessments in your classroom.'}
+                  <p className="course-card-description text-sm text-slate-700 line-clamp-2">
+                    {normalizeCourseCardDescription(course.description) ||
+                      'Manage lessons, students, and assessments in your classroom.'}
                   </p>
                   <Link href={`/lecturer/courses/${course.id}`}>
                     <Button className="w-full bg-[var(--brand-navy)] text-white hover:bg-[var(--brand-navy)]/90">

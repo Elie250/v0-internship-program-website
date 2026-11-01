@@ -6,6 +6,7 @@ import {
   PROGRAM_TYPE_LABELS,
   type ProgramType,
 } from '@/lib/enrollment/program-types'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 import { HomeSectionHeader } from '@/components/home/home-section-header'
 import {
   SectionShuffleSlots,
@@ -32,7 +33,7 @@ export async function ProgrammesCoursesSection() {
     return {
       id: course.id,
       title: course.title,
-      subtitle: course.description || undefined,
+      subtitle: normalizeCourseCardDescription(course.description) || undefined,
       href: enrollHref,
       imageUrl: course.thumbnail || null,
       badge: PROGRAM_TYPE_LABELS[type],

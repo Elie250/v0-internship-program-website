@@ -8,55 +8,50 @@
 /* CSS Variables (Colors, Radius, Sidebar)  */
 /* ======================================== */
 :root {
-  /* Energy & Logics Academy Color System */
-  /* Primary: Deep Ocean Blue #0B3C5D */
-  /* Secondary: Teal #1F7A8C */
-  /* Accent: Gold #F2A900 */
-  /* Neutrals: White, Grays, Dark Gray/Black */
-  
-  --background: oklch(0.98 0 0); /* Off-white */
-  --foreground: oklch(0.15 0.02 253); /* Dark gray/black */
-  --card: oklch(1 0 0); /* Pure white */
-  --card-foreground: oklch(0.15 0.02 253); /* Dark text */
-  --popover: oklch(1 0 0); /* Pure white */
-  --popover-foreground: oklch(0.15 0.02 253); /* Dark text */
-  
-  /* Primary: Deep Ocean Blue */
-  --primary: oklch(0.37 0.15 254); /* #0B3C5D equivalent */
-  --primary-foreground: oklch(1 0 0); /* White text */
-  
-  /* Secondary: Teal */
-  --secondary: oklch(0.52 0.15 254); /* #1F7A8C equivalent */
-  --secondary-foreground: oklch(1 0 0); /* White text */
-  
-  /* Muted: Light gray */
-  --muted: oklch(0.94 0 0);
-  --muted-foreground: oklch(0.38 0.01 253);
-  
-  /* Accent: Gold */
-  --accent: oklch(0.75 0.2 80); /* #F2A900 equivalent */
-  --accent-foreground: oklch(0.15 0.02 253); /* Dark text */
-  
-  --destructive: oklch(0.577 0.245 27.325); /* Red for danger */
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.86 0.01 253);
-  --input: oklch(1 0 0);
-  --ring: oklch(0.37 0.15 254); /* Primary blue */
-  
-  /* Sidebar theming */
-  --sidebar: oklch(0.37 0.15 254); /* Deep blue */
-  --sidebar-foreground: oklch(1 0 0); /* White */
-  --sidebar-primary: oklch(0.75 0.2 80); /* Gold */
-  --sidebar-primary-foreground: oklch(0.15 0.02 253); /* Dark text */
-  --sidebar-accent: oklch(1 0 0); /* White */
-  --sidebar-accent-foreground: oklch(0.37 0.15 254); /* Deep blue */
-  --sidebar-border: oklch(0.52 0.15 254); /* Teal */
-  --sidebar-ring: oklch(0.75 0.2 80); /* Gold */
-
-  /* Public site brand (Energy & Logics Engineering Hub) */
-  --brand-navy: #1e3a5f;
+  /* Energy & Logics LMS — consolidated brand tokens */
+  --brand-navy: #172f50;
+  --brand-navy-soft: #29496c;
   --brand-navy-deep: #152a45;
+  --brand-pale: #eaf0f7;
+  --brand-cloud: #f7f9fc;
+  --brand-gold: #d5a84b;
+  --brand-teal: #238779;
   --brand-sky: #7eb8e8;
+
+  --background: var(--brand-cloud);
+  --foreground: var(--brand-navy);
+  --card: #ffffff;
+  --card-foreground: var(--brand-navy);
+  --popover: #ffffff;
+  --popover-foreground: var(--brand-navy);
+
+  --primary: var(--brand-navy);
+  --primary-foreground: #ffffff;
+
+  --secondary: var(--brand-teal);
+  --secondary-foreground: #ffffff;
+
+  --muted: var(--brand-pale);
+  --muted-foreground: var(--brand-navy-soft);
+
+  --accent: var(--brand-gold);
+  --accent-foreground: var(--brand-navy);
+
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
+  --border: color-mix(in srgb, var(--brand-navy) 14%, #ffffff);
+  --input: #ffffff;
+  --ring: var(--brand-navy);
+  --radius: 0.75rem;
+
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--brand-gold);
+  --sidebar-primary-foreground: var(--brand-navy);
+  --sidebar-accent: #ffffff;
+  --sidebar-accent-foreground: var(--brand-navy);
+  --sidebar-border: color-mix(in srgb, #ffffff 22%, var(--brand-navy));
+  --sidebar-ring: var(--brand-gold);
 }
 
 .dark {
@@ -106,7 +101,9 @@
 @layer base {
 
   body {
-    font-family: 'Geist', 'Geist Fallback', sans-serif;
+    font-family: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--background);
@@ -133,8 +130,18 @@
   h4,
   h5,
   h6 {
-    color: var(--foreground);
+    font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
+    color: var(--brand-navy);
+    letter-spacing: -0.02em;
+    line-height: 1.25;
     margin: 0;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
   }
 
   /* Gradient helper */
@@ -506,9 +513,23 @@
   }
 
   .section-title {
+    font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', ui-sans-serif, sans-serif;
     color: var(--brand-navy);
-    font-size: 1.875rem;
+    font-size: 1.75rem;
+    line-height: 1.25;
     font-weight: 700;
+  }
+
+  .course-card-description {
+    overflow: hidden;
+    white-space: normal;
+    line-height: 1.55;
+  }
+
+  .course-thumb {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    background-color: var(--brand-pale);
   }
 
   .home-section {
@@ -521,8 +542,8 @@
   }
 
   .home-section--muted {
-    background-color: #f8fafc;
-    border-block: 1px solid #e2e8f0;
+    background-color: var(--brand-pale);
+    border-block: 1px solid color-mix(in srgb, var(--brand-navy) 10%, #ffffff);
   }
 
   .home-section--compact {
@@ -855,4 +876,10 @@
     radial-gradient(ellipse 80% 50% at 50% -10%, rgba(126, 184, 232, 0.14), transparent 55%),
     linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
   color: #0f172a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

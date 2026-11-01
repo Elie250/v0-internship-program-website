@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getPublishedCourses, getPublishedInternships } from '@/lib/platform/queries'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 
 export default async function InternshipPage() {
   const [internshipPrograms, legacyInternships] = await Promise.all([
@@ -69,7 +70,9 @@ export default async function InternshipPage() {
                     {item.duration ? <p className="text-xs text-slate-600">{item.duration}</p> : null}
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <p className="text-sm text-slate-600">{item.description}</p>
+                    <p className="course-card-description text-sm text-slate-600 line-clamp-3">
+                      {normalizeCourseCardDescription(item.description)}
+                    </p>
                     <p className="text-sm font-semibold text-[var(--brand-navy)]">
                       {free ? 'Free' : `${Number(item.pricing ?? 0).toLocaleString()} RWF`}
                     </p>

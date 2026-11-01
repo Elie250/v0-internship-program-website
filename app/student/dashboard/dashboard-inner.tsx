@@ -18,6 +18,7 @@ import {
   PlayCircle,
   Video,
 } from 'lucide-react'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 import { COMPANY } from '@/lib/company/constants'
 import { formatPlatformDateTime } from '@/lib/platform/rwanda-datetime'
 import { AccessCountdown } from '@/components/student/access-countdown'
@@ -252,7 +253,9 @@ function CoursesTab({
               </div>
             )}
             <CardHeader className="pb-2">
-              <Badge className="w-fit mb-2 bg-green-100 text-green-800">Active</Badge>
+              <Badge className="w-fit mb-2 border-transparent bg-[var(--brand-teal)]/15 text-[var(--brand-teal)]">
+                Active
+              </Badge>
               <CardTitle className="text-lg leading-snug text-slate-900">{course.title}</CardTitle>
               <p className="text-xs text-slate-600">{course.accessLabel}</p>
               {course.difficulty ? (
@@ -260,7 +263,9 @@ function CoursesTab({
               ) : null}
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-slate-600 line-clamp-2">{course.description}</p>
+              <p className="course-card-description text-sm text-slate-600 line-clamp-2">
+                {normalizeCourseCardDescription(course.description)}
+              </p>
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-slate-600">
                   <span>

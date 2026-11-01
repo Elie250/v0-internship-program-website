@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { CourseContentPanel } from '@/components/admin/course-content-panel'
+import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
 import {
   LessonEditorGuardProvider,
   useLessonEditorGuard,
@@ -440,7 +441,9 @@ function CourseManagementTabView() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-slate-700 line-clamp-3">{course.description}</p>
+                <p className="course-card-description text-sm text-slate-700 line-clamp-3">
+                  {normalizeCourseCardDescription(course.description)}
+                </p>
                 {(course.notification_count ?? 0) > 0 ? (
                   <p className="text-xs font-medium text-red-700">
                     {courseNotificationLabel(course.notification_count ?? 0)}
