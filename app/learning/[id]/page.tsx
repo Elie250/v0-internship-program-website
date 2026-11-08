@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCourseById } from '@/lib/platform/queries'
 import { getCurrentUser } from '@/app/actions/auth-service'
-import { COMPANY } from '@/lib/company/constants'
+import { loadPublicCourseCataloguePricing } from '@/lib/learning/public-catalogue-pricing'
+
+function money(value: number): string {
+  return `${value.toLocaleString()} RWF`
+}
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -21,7 +25,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       ? studentEnroll
       : `/auth/login?redirect=${encodeURIComponent(studentEnroll)}`
 
-  const price = Number(course.pricing ?? 0)
+  const { packages, catalogue } = await loadPublicCourseCataloguePricing({
+    id: course.id,
+    pricing: course.pricing,
+  })
 
   return (
     <main className="min-h-screen bg-background">
@@ -46,9 +53,38 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             <span>{course.difficulty ?? 'All levels'}</span>
             <span>{course.duration ?? 'Flexible schedule'}</span>
           </div>
-          <p className="text-2xl font-bold mb-6">
-            {price > 0 ? `${price.toLocaleString()} RWF` : 'Pricing on request'}
-          </p>
+          <p className="text-2xl font-bold mb-6">{catalogue.label}</p>
+
+          {packages.length > 0 ? (
+            <div className="space-y-4 mb-8">
+              <h2 className="text-lg font-semibold text-slate-900">Pricing packages</h2>
+              <ul className="space-y-4">
+                {packages.map((pkg) => (
+                  <li key={pkg.id} className="border border-slate-200 rounded-lg p-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="font-semibold text-slate-900">{pkg.name}</h3>
+                      <p className="text-base font-bold text-[var(--brand-navy)]">{money(pkg.finalPrice)}</p>
+                    </div>
+                    {pkg.description ? (
+                      <p className="text-sm text-slate-600 mt-2">{pkg.description}</p>
+                    ) : null}
+                    <p className="text-xs text-slate-500 mt-2">
+                      List {money(pkg.listPrice)}
+                      {pkg.discountAmount > 0 ? ` · Discount ${money(pkg.discountAmount)}` : ''}
+                      {' · Final '}
+                      {money(pkg.finalPrice)}
+                    </p>
+                    {pkg.benefits ? (
+                      <pre className="text-sm text-slate-600 whitespace-pre-wrap font-sans mt-3">
+                        {pkg.benefits}
+                      </pre>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-3">
             <Link href={enrollHref}>
               <Button size="lg" className="bg-[var(--brand-navy)] text-white">

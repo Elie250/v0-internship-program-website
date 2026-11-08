@@ -146,8 +146,28 @@ test('snapshot stays independent of later package edits', () => {
   assert.notEqual(snapshot.package_final_price, Number(edited.final_price))
 })
 
-test('catalogue label uses From for multiple active packages', () => {
-  const active = listActivePackages([
+test('catalogue label covers one, equal, different, legacy, and complimentary packages', () => {
+  const one = listActivePackages([
+    pkg({ id: 'a', final_price: 90000, list_price: 100000, discount_amount: 10000 }),
+  ])
+  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: one }).kind, 'fixed')
+  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: one }).label, '90,000 RWF')
+
+  const equal = listActivePackages([
+    pkg({ id: 'a', final_price: 90000, list_price: 100000, discount_amount: 10000 }),
+    pkg({
+      id: 'b',
+      name: 'Alt',
+      list_price: 95000,
+      discount_amount: 5000,
+      final_price: 90000,
+      sort_order: 2,
+    }),
+  ])
+  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: equal }).kind, 'fixed')
+  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: equal }).label, '90,000 RWF')
+
+  const different = listActivePackages([
     pkg({ id: 'a', final_price: 90000, list_price: 100000, discount_amount: 10000 }),
     pkg({
       id: 'b',
@@ -158,15 +178,40 @@ test('catalogue label uses From for multiple active packages', () => {
       sort_order: 2,
     }),
   ])
-  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: active }).label, 'From 90,000 RWF')
+  assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: different }).kind, 'from')
   assert.equal(
-    cataloguePriceLabel({
-      legacyPricing: 0,
-      activePackages: active.slice(0, 1),
-    }).label,
-    '90,000 RWF'
+    cataloguePriceLabel({ legacyPricing: 0, activePackages: different }).label,
+    'From 90,000 RWF'
+  )
+
+  assert.equal(
+    cataloguePriceLabel({ legacyPricing: 75000, activePackages: [] }).label,
+    '75,000 RWF'
   )
   assert.equal(cataloguePriceLabel({ legacyPricing: 0, activePackages: [] }).label, 'Free')
+  assert.equal(cataloguePriceLabel({ legacyPricing: -1, activePackages: [] }).label, 'Free')
+
+  const complimentary = listActivePackages([
+    pkg({
+      id: 'c',
+      name: 'Scholarship',
+      list_price: 100000,
+      discount_amount: 100000,
+      final_price: 0,
+    }),
+  ])
+  assert.equal(
+    cataloguePriceLabel({ legacyPricing: 50000, activePackages: complimentary }).kind,
+    'fixed'
+  )
+  assert.equal(
+    cataloguePriceLabel({ legacyPricing: 50000, activePackages: complimentary }).label,
+    '0 RWF'
+  )
+  assert.notEqual(
+    cataloguePriceLabel({ legacyPricing: 50000, activePackages: complimentary }).kind,
+    'free'
+  )
 })
 
 test('approved payment totals and remaining balance', () => {

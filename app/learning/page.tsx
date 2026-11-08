@@ -8,6 +8,7 @@ import { getCategories, getPublishedCourses } from '@/lib/platform/queries'
 import { getCurrentUser } from '@/app/actions/auth-service'
 import { COMPANY } from '@/lib/company/constants'
 import { normalizeCourseCardDescription } from '@/lib/learning/course-card-text'
+import { loadPublicCataloguePricing } from '@/lib/learning/public-catalogue-pricing'
 
 export default async function LearningPage({
   searchParams,
@@ -18,6 +19,9 @@ export default async function LearningPage({
   const module = params.module ?? 'training'
   const categories = await getCategories('learning')
   const courses = await getPublishedCourses(params.category, { programType: 'training' })
+  const pricingByCourse = await loadPublicCataloguePricing(
+    courses.map((course) => ({ id: course.id, pricing: course.pricing }))
+  )
   const user = await getCurrentUser()
   const isStudent = user?.role === 'student' || user?.role === 'registered'
 
@@ -121,9 +125,7 @@ export default async function LearningPage({
                     <span>{course.duration ?? 'Flexible'}</span>
                   </div>
                   <p className="text-sm font-semibold text-[var(--brand-navy)] mb-4">
-                    {Number(course.pricing ?? 0) > 0
-                      ? `${Number(course.pricing).toLocaleString()} RWF`
-                      : 'Pricing on request'}
+                    {pricingByCourse.get(course.id)?.catalogue.label ?? 'Pricing on request'}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Link href={`/learning/${course.id}`}>

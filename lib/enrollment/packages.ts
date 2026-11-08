@@ -203,7 +203,8 @@ export function cataloguePriceLabel(input: {
   }
   const amounts = input.activePackages.map((pkg) => pkg.finalPrice)
   const min = Math.min(...amounts)
-  if (input.activePackages.length === 1) {
+  const allSame = amounts.every((value) => value === min)
+  if (input.activePackages.length === 1 || allSame) {
     return { kind: 'fixed', amount: min, label: `${min.toLocaleString()} RWF` }
   }
   return { kind: 'from', amount: min, label: `From ${min.toLocaleString()} RWF` }
