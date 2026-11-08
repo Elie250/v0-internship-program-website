@@ -66,6 +66,7 @@ type Course = {
   program_type?: ProgramType
   instructor_id?: string | null
   duration: string | null
+  default_access_days?: number | null
   thumbnail: string | null
   pricing: number | null
   status: string
@@ -85,6 +86,7 @@ const emptyForm = {
   program: '',
   program_type: 'training' as ProgramType,
   duration: '',
+  default_access_days: '',
   thumbnail: '',
   pricing: '0',
   status: 'published',
@@ -191,6 +193,7 @@ function CourseManagementTabView() {
         body: JSON.stringify({
           ...form,
           pricing: Number(form.pricing),
+          default_access_days: form.default_access_days.trim(),
           thumbnail: form.thumbnail || null,
           scheduled_at: form.scheduled_at || null,
           location: form.location || null,
@@ -248,6 +251,10 @@ function CourseManagementTabView() {
       program: course.program || '',
       program_type: course.program_type || 'training',
       duration: course.duration || '',
+      default_access_days:
+        course.default_access_days != null && Number(course.default_access_days) > 0
+          ? String(course.default_access_days)
+          : '',
       thumbnail: course.thumbnail || '',
       pricing: String(course.pricing ?? 0),
       status: course.status || 'draft',
@@ -281,6 +288,7 @@ function CourseManagementTabView() {
           program: editForm.program,
           program_type: editForm.program_type,
           duration: editForm.duration,
+          default_access_days: editForm.default_access_days.trim(),
           pricing: Number(editForm.pricing),
           status: editForm.status,
           thumbnail: editForm.thumbnail || null,
@@ -461,6 +469,12 @@ function CourseManagementTabView() {
                     <span className="font-semibold text-slate-800">Duration:</span> {course.duration}
                   </p>
                 ) : null}
+                <p className="text-sm">
+                  <span className="font-semibold text-slate-800">Classroom access:</span>{' '}
+                  {course.default_access_days != null && Number(course.default_access_days) > 0
+                    ? `${Number(course.default_access_days)} days`
+                    : '90 days (system default)'}
+                </p>
                 {course.instructor_id ? (
                   <p className="text-xs text-slate-600">
                     {isMentorManagedProgramType(course.program_type) ? 'Mentor' : 'Lecturer'}:{' '}
@@ -637,7 +651,27 @@ function CourseForm({
             value={form.duration}
             onChange={(e) => setForm({ ...form, duration: e.target.value })}
           />
+          <p className="text-xs text-slate-700 font-semibold mt-1">
+            Advertised programme length label only. It does not control classroom access dates.
+          </p>
         </div>
+      </div>
+      <div>
+        <Label>Classroom access duration (days)</Label>
+        <Input
+          className="mt-1"
+          type="number"
+          inputMode="numeric"
+          min={1}
+          step={1}
+          placeholder="Leave blank for 90-day default"
+          value={form.default_access_days}
+          onChange={(e) => setForm({ ...form, default_access_days: e.target.value })}
+        />
+        <p className="text-xs text-slate-700 font-semibold mt-1">
+          How long students can use the classroom after admission. Leave blank to use the system
+          default of 90 days. This is separate from the advertised programme duration above.
+        </p>
       </div>
       <div>
         <Label>{mentorProgram ? 'Assigned mentor' : 'Assigned lecturer'}</Label>

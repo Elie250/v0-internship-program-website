@@ -1,4 +1,4 @@
-import { PENDING_ENROLLMENT_STATUSES, type AccessState } from '@/lib/enrollment/constants'
+import { PENDING_ENROLLMENT_STATUSES, type AccessState } from './constants.ts'
 
 export type CourseAccessConfig = {
   program_start_date?: string | null
@@ -13,6 +13,62 @@ export type EnrollmentAccessRow = {
 }
 
 const REPLAY_GRACE_DAYS = 30
+
+/** Used by admitEnrollmentById when the course has no positive configured value. */
+export const DEFAULT_ACCESS_DAYS_FALLBACK = 90
+
+/** PostgreSQL INTEGER upper bound for courses.default_access_days. */
+export const MAX_DEFAULT_ACCESS_DAYS = 2_147_483_647
+
+/**
+ * Parse admin input for courses.default_access_days.
+ * Empty/null clears the configured value (admission then uses the 90-day fallback).
+ * Does not rewrite historical enrollment access dates.
+ */
+export function parseDefaultAccessDaysInput(
+  value: unknown
+): { ok: true; days: number | null } | { ok: false; error: string } {
+  if (value === undefined || value === null) {
+    return { ok: true, days: null }
+  }
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || !Number.isInteger(value)) {
+      return { ok: false, error: 'Classroom access duration must be a whole number of days.' }
+    }
+    if (value <= 0) {
+      return { ok: false, error: 'Classroom access duration must be a positive number of days.' }
+    }
+    if (value > MAX_DEFAULT_ACCESS_DAYS) {
+      return {
+        ok: false,
+        error: `Classroom access duration cannot exceed ${MAX_DEFAULT_ACCESS_DAYS.toLocaleString()} days.`,
+      }
+    }
+    return { ok: true, days: value }
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (trimmed === '') return { ok: true, days: null }
+    if (!/^\d+$/.test(trimmed)) {
+      return { ok: false, error: 'Classroom access duration must be a whole number of days.' }
+    }
+    const parsed = Number(trimmed)
+    if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+      return { ok: false, error: 'Classroom access duration must be a positive number of days.' }
+    }
+    if (parsed > MAX_DEFAULT_ACCESS_DAYS) {
+      return {
+        ok: false,
+        error: `Classroom access duration cannot exceed ${MAX_DEFAULT_ACCESS_DAYS.toLocaleString()} days.`,
+      }
+    }
+    return { ok: true, days: parsed }
+  }
+
+  return { ok: false, error: 'Classroom access duration must be a whole number of days.' }
+}
 
 export function computeAccessWindow(
   course: CourseAccessConfig,

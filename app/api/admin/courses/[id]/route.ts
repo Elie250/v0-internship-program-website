@@ -6,6 +6,7 @@ import { requirePlatformAdmin } from '@/lib/admin/access-control'
 import { normalizeProgramType } from '@/lib/enrollment/program-types'
 import { normalizeCourseRow } from '@/lib/platform/courses'
 import { validateInstructorId } from '@/lib/admin/instructor-assignment'
+import { parseDefaultAccessDaysInput } from '@/lib/enrollment/access'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
@@ -67,6 +68,19 @@ function toCoursePayload(body: Record<string, unknown>, partial = false) {
   }
   if (!partial || body.program_end_date !== undefined) {
     update.program_end_date = parseOptionalDate(body.program_end_date)
+  }
+  if (
+    !partial ||
+    body.default_access_days !== undefined ||
+    body.defaultAccessDays !== undefined
+  ) {
+    const accessDays = parseDefaultAccessDaysInput(
+      body.default_access_days !== undefined ? body.default_access_days : body.defaultAccessDays
+    )
+    if (!accessDays.ok) {
+      throw new Error(accessDays.error)
+    }
+    update.default_access_days = accessDays.days
   }
   if (!partial || body.category_id !== undefined) update.category_id = body.category_id || null
   if (!partial || body.instructor_id !== undefined) {
@@ -134,7 +148,15 @@ export async function PATCH(
       body.instructor_id = instructor.id
     }
 
-    const payload = toCoursePayload(body, true)
+    let payload: Record<string, unknown>
+    try {
+      payload = toCoursePayload(body, true)
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : 'Invalid course data' },
+        { status: 400 }
+      )
+    }
 
     if (!Object.keys(payload).filter((key) => key !== 'updated_at').length) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

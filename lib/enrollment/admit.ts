@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { computeAccessWindow } from '@/lib/enrollment/access'
+import { computeAccessWindow, DEFAULT_ACCESS_DAYS_FALLBACK } from '@/lib/enrollment/access'
 
 export async function admitEnrollmentById(
   enrollmentId: string
@@ -27,7 +27,7 @@ export async function admitEnrollmentById(
     {
       program_start_date: course?.program_start_date ?? null,
       program_end_date: course?.program_end_date ?? null,
-      default_access_days: course?.default_access_days ?? 90,
+      default_access_days: course?.default_access_days ?? DEFAULT_ACCESS_DAYS_FALLBACK,
     },
     admittedAt
   )

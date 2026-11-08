@@ -9,6 +9,7 @@ import { normalizeCourseRow } from '@/lib/platform/courses'
 import { validateInstructorId } from '@/lib/admin/instructor-assignment'
 import { courseNotificationCount } from '@/lib/admin/course-notifications'
 import { filterActionablePendingEnrollments } from '@/lib/enrollment/actionable-pending'
+import { parseDefaultAccessDaysInput } from '@/lib/enrollment/access'
 
 function normalizeCourse(row: Record<string, unknown>) {
   const normalized = normalizeCourseRow(row as Record<string, unknown> & { id: string; title: string })
@@ -24,6 +25,12 @@ function toCoursePayload(body: Record<string, unknown>, instructorId?: string | 
   const status = String(body.status ?? 'published')
   const program = String(body.program || body.difficulty || '')
   const programType = normalizeProgramType(body.program_type)
+  const accessDays = parseDefaultAccessDaysInput(
+    body.default_access_days !== undefined ? body.default_access_days : body.defaultAccessDays
+  )
+  if (!accessDays.ok) {
+    throw new Error(accessDays.error)
+  }
   return {
     title: body.title,
     description: body.description ?? null,
@@ -39,6 +46,7 @@ function toCoursePayload(body: Record<string, unknown>, instructorId?: string | 
     location: body.location || null,
     meeting_link: body.meeting_link || null,
     program_end_date: body.program_end_date || null,
+    default_access_days: accessDays.days,
     instructor_id: instructorId ?? null,
     updated_at: new Date().toISOString(),
   }
@@ -150,7 +158,15 @@ export async function POST(request: Request) {
       return NextResponse.json((data ?? []).map(normalizeCourse), { status: 201 })
     }
 
-    const payload = toCoursePayload(body)
+    let payload: ReturnType<typeof toCoursePayload>
+    try {
+      payload = toCoursePayload(body)
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : 'Invalid course data' },
+        { status: 400 }
+      )
+    }
     if (!payload.title || !String(payload.title).trim()) {
       return NextResponse.json({ error: 'Course title is required' }, { status: 400 })
     }
@@ -159,7 +175,15 @@ export async function POST(request: Request) {
     if (instructor.error) {
       return NextResponse.json({ error: instructor.error }, { status: 400 })
     }
-    const finalPayload = toCoursePayload(body, instructor.id)
+    let finalPayload: ReturnType<typeof toCoursePayload>
+    try {
+      finalPayload = toCoursePayload(body, instructor.id)
+    } catch (validationError) {
+      return NextResponse.json(
+        { error: validationError instanceof Error ? validationError.message : 'Invalid course data' },
+        { status: 400 }
+      )
+    }
 
     const { data, error } = await supabaseAdmin.from('courses').insert([finalPayload]).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

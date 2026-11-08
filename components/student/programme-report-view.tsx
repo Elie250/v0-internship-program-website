@@ -268,7 +268,11 @@ export function ProgrammeReportView({
         </Section>
 
         {isPreview ? null : (
-        <Section title="Your access">
+        <Section title="Classroom access">
+          <p className="text-sm text-slate-600 mb-3">
+            Classroom access dates determine how long you can use the learning platform. They may
+            differ from the advertised programme duration.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Access starts" value={formatReportAccessDate(report.enrollment.accessStartsAt)} />
             <Field label="Access ends" value={formatReportAccessDate(report.enrollment.accessEndsAt)} />
