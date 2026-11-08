@@ -11,6 +11,8 @@ import {
   studentVisibleEditorialProfile,
   type ReportPublicationStatus,
 } from '@/lib/learning/course-report-publication'
+import { loadCoursePackageRows } from '@/lib/admin/course-packages'
+import { cataloguePriceLabel, listActivePackages } from '@/lib/enrollment/packages'
 import { formatPlatformDateTime, PLATFORM_TIMEZONE } from '@/lib/platform/rwanda-datetime'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -77,6 +79,14 @@ export type CourseReport = {
   categoryName: string | null
   duration: string | null
   pricing: number | null
+  cataloguePriceLabel: string
+  packageSnapshot: {
+    name: string
+    listPrice: number | null
+    discountAmount: number | null
+    finalPrice: number | null
+    benefits: string | null
+  } | null
   profile: CourseReportProfile | null
   modules: CourseReportModule[]
   ungroupedLessons: CourseReportLesson[]
@@ -408,15 +418,33 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
     return { ok: false, status: 'unavailable', message: 'Programme reports are temporarily unavailable.' }
   }
 
-  const { data: enrollment, error: enrollmentError } = await supabaseAdmin
+  const enrollmentSelectWithPackage =
+    'id, user_id, status, course_id, amount_due, access_starts_at, access_ends_at, package_name, package_list_price, package_discount_amount, package_final_price, package_benefits'
+  const enrollmentSelectBasic = 'id, user_id, status, course_id, amount_due, access_starts_at, access_ends_at'
+
+  let enrollmentQuery = await supabaseAdmin
     .from('course_enrollments')
-    .select('id, user_id, status, course_id, amount_due, access_starts_at, access_ends_at')
+    .select(enrollmentSelectWithPackage)
     .eq('user_id', user.id)
     .eq('course_id', courseId)
     .eq('status', ADMITTED)
     .order('updated_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
+  if (enrollmentQuery.error && /package_/i.test(enrollmentQuery.error.message)) {
+    enrollmentQuery = await supabaseAdmin
+      .from('course_enrollments')
+      .select(enrollmentSelectBasic)
+      .eq('user_id', user.id)
+      .eq('course_id', courseId)
+      .eq('status', ADMITTED)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+  }
+
+  const { data: enrollment, error: enrollmentError } = enrollmentQuery
 
   if (enrollmentError) {
     return { ok: false, status: 'unavailable', message: 'Programme reports are temporarily unavailable.' }
@@ -457,14 +485,39 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
     access_ends_at: enrollment.access_ends_at,
   })
 
-  const [profileResult, curriculum, trainer, assessments, certificate, sessions] = await Promise.all([
-    loadProfile(courseId, 'student'),
-    loadCurriculum(courseId),
-    loadTrainer(course.instructor_id ? String(course.instructor_id) : null),
-    loadAssessments(courseId),
-    loadCertificate(String(user.id), courseId),
-    loadSessions(courseId, decision.hideLiveAccess),
-  ])
+  const [profileResult, curriculum, trainer, assessments, certificate, sessions, packageLoad] =
+    await Promise.all([
+      loadProfile(courseId, 'student'),
+      loadCurriculum(courseId),
+      loadTrainer(course.instructor_id ? String(course.instructor_id) : null),
+      loadAssessments(courseId),
+      loadCertificate(String(user.id), courseId),
+      loadSessions(courseId, decision.hideLiveAccess),
+      loadCoursePackageRows(courseId),
+    ])
+
+  const activePackages = listActivePackages(packageLoad.rows)
+  const catalogue = cataloguePriceLabel({
+    legacyPricing: course.pricing,
+    activePackages,
+  })
+
+  const enrollmentRow = enrollment as Record<string, unknown>
+  const packageName = blank(enrollmentRow.package_name)
+  const packageSnapshot = packageName
+    ? {
+        name: packageName,
+        listPrice:
+          enrollmentRow.package_list_price == null ? null : Number(enrollmentRow.package_list_price),
+        discountAmount:
+          enrollmentRow.package_discount_amount == null
+            ? null
+            : Number(enrollmentRow.package_discount_amount),
+        finalPrice:
+          enrollmentRow.package_final_price == null ? null : Number(enrollmentRow.package_final_price),
+        benefits: blank(enrollmentRow.package_benefits),
+      }
+    : null
 
   return {
     ok: true,
@@ -476,6 +529,8 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
       categoryName,
       duration: blank(course.duration),
       pricing: course.pricing == null ? null : Number(course.pricing),
+      cataloguePriceLabel: catalogue.label,
+      packageSnapshot,
       profile: profileResult.profile,
       modules: curriculum.modules,
       ungroupedLessons: curriculum.ungroupedLessons,
@@ -527,17 +582,24 @@ export async function loadCourseReportPreviewDocument(courseId: string): Promise
     categoryName = blank(category?.name)
   }
 
-  const [profileResult, curriculum, trainer, assessments, sessions] = await Promise.all([
+  const [profileResult, curriculum, trainer, assessments, sessions, packageLoad] = await Promise.all([
     loadProfile(courseId, 'admin'),
     loadCurriculum(courseId),
     loadTrainer(course.instructor_id ? String(course.instructor_id) : null),
     loadAssessments(courseId),
     loadSessions(courseId, false),
+    loadCoursePackageRows(courseId),
   ])
 
   if (profileResult.storageError) {
     return { ok: false, message: profileResult.storageError }
   }
+
+  const activePackages = listActivePackages(packageLoad.rows)
+  const catalogue = cataloguePriceLabel({
+    legacyPricing: course.pricing,
+    activePackages,
+  })
 
   return {
     ok: true,
@@ -551,6 +613,8 @@ export async function loadCourseReportPreviewDocument(courseId: string): Promise
         categoryName,
         duration: blank(course.duration),
         pricing: course.pricing == null ? null : Number(course.pricing),
+        cataloguePriceLabel: catalogue.label,
+        packageSnapshot: null,
         profile: profileResult.profile,
         modules: curriculum.modules,
         ungroupedLessons: curriculum.ungroupedLessons,

@@ -236,7 +236,26 @@ export function ProgrammeReportView({
 
         <Section title="Fees and enrollment">
           <div className="grid gap-4">
-            <Field label="Programme price" value={money(report.pricing)} />
+            <Field label="Programme price" value={report.cataloguePriceLabel || money(report.pricing)} />
+            {report.packageSnapshot ? (
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-slate-900">Selected package</h3>
+                <p className="text-sm text-slate-700">{report.packageSnapshot.name}</p>
+                <p className="text-sm text-slate-600">
+                  List {money(report.packageSnapshot.listPrice)}
+                  {report.packageSnapshot.discountAmount
+                    ? ` · Discount ${money(report.packageSnapshot.discountAmount)}`
+                    : ''}
+                  {' · Agreed '}
+                  {money(report.packageSnapshot.finalPrice)}
+                </p>
+                {report.packageSnapshot.benefits ? (
+                  <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans mt-2">
+                    {report.packageSnapshot.benefits}
+                  </pre>
+                ) : null}
+              </div>
+            ) : null}
             {isPreview ? (
               <p className="text-sm text-slate-500">Amount due stays on each student enrolment.</p>
             ) : (

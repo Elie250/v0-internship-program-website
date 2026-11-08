@@ -22,6 +22,7 @@ import {
   useLessonEditorGuard,
 } from '@/components/learning/lesson-editor-guard'
 import { AdminCourseIntegrityPanel } from '@/components/admin/admin-course-integrity-panel'
+import { CoursePackagesPanel } from '@/components/admin/course-packages-panel'
 import {
   Select,
   SelectContent,
@@ -514,6 +515,9 @@ function CourseManagementTabView() {
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
+          {editing ? (
+            <CoursePackagesPanel courseId={editing.id} courseTitle={editing.title} />
+          ) : null}
           {editing ? <AdminCourseIntegrityPanel courseId={editing.id} /> : null}
           <DialogFooter>
             <Button
@@ -672,7 +676,7 @@ function CourseForm({
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Price (RWF) — 0 = free</Label>
+          <Label>Legacy / fallback price (used when no active packages exist)</Label>
           <Input
             className="mt-1"
             type="number"
@@ -680,7 +684,9 @@ function CourseForm({
             value={form.pricing}
             onChange={(e) => setForm({ ...form, pricing: e.target.value })}
           />
-          <p className="text-xs text-slate-700 font-semibold mt-1">Free programmes skip payment approval.</p>
+          <p className="text-xs text-slate-700 font-semibold mt-1">
+            RWF. 0 = free only when this course has no active pricing packages.
+          </p>
         </div>
         <div>
           <Label>Status</Label>

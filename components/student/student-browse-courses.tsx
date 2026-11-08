@@ -85,11 +85,7 @@ export function StudentBrowseCourses({
                   {normalizeCourseCardDescription(course.description)}
                 </p>
                 <p className="text-base font-bold text-[var(--brand-navy)]">
-                  {course.isFree
-                    ? 'Free'
-                    : Number(course.pricing ?? 0) > 0
-                      ? `${Number(course.pricing).toLocaleString()} RWF`
-                      : 'Pricing on request'}
+                  {course.priceLabel || (course.isFree ? 'Free' : 'Pricing on request')}
                 </p>
                 {course.scheduledAt ? (
                   <p className="text-xs text-slate-600">

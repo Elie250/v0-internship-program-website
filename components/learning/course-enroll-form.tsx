@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { EnrollmentSteps } from '@/components/learning/enrollment-steps'
 import { MomoPayCard } from '@/components/payment/momo-pay-card'
 import { COMPANY, PAYMENT } from '@/lib/company/constants'
 import { isFreeProgram } from '@/lib/enrollment/program-types'
+import type { StudentPackageOption } from '@/lib/enrollment/packages'
 import {
   CheckCircle2,
   Clock,
@@ -29,9 +30,24 @@ export type EnrollUser = {
   phone?: string | null
 }
 
-export function CourseEnrollForm({ course, user }: { course: Course; user: EnrollUser }) {
+function money(value: number) {
+  return `${value.toLocaleString()} RWF`
+}
+
+export function CourseEnrollForm({
+  course,
+  user,
+  initialPackages = [],
+}: {
+  course: Course
+  user: EnrollUser
+  initialPackages?: StudentPackageOption[]
+}) {
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
 
+  const [packages, setPackages] = useState<StudentPackageOption[]>(initialPackages)
+  const [selectedPackageId, setSelectedPackageId] = useState(initialPackages[0]?.id ?? '')
+  const [packagesLoaded, setPackagesLoaded] = useState(initialPackages.length > 0)
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     applicantPhone: user.phone ?? '',
@@ -44,8 +60,38 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const price = Number(course.pricing ?? 0)
-  const isFree = isFreeProgram(price)
+  useEffect(() => {
+    if (initialPackages.length > 0) return
+    let cancelled = false
+    fetch(`/api/learning/courses/${course.id}/packages`)
+      .then(async (res) => {
+        const data = await res.json()
+        if (cancelled || !res.ok) return
+        const next = (data.packages ?? []) as StudentPackageOption[]
+        setPackages(next)
+        setSelectedPackageId((current) => current || next[0]?.id || '')
+        setPackagesLoaded(true)
+      })
+      .catch(() => {
+        if (!cancelled) setPackagesLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [course.id, initialPackages.length])
+
+  const requiresPackage = packages.length > 0
+  const selected = useMemo(
+    () => packages.find((pkg) => pkg.id === selectedPackageId) ?? null,
+    [packages, selectedPackageId]
+  )
+
+  const price = requiresPackage
+    ? Number(selected?.finalPrice ?? 0)
+    : Number(course.pricing ?? 0)
+  const isFree = requiresPackage
+    ? Boolean(selected && selected.finalPrice <= 0)
+    : isFreeProgram(course.pricing)
 
   const handleReceiptUpload = async (file: File) => {
     setUploading(true)
@@ -65,6 +111,10 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
   }
 
   const handleSubmit = async () => {
+    if (requiresPackage && !selectedPackageId) {
+      setError('Select a pricing package to continue.')
+      return
+    }
     setSubmitting(true)
     setError('')
     try {
@@ -73,6 +123,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           courseId: course.id,
+          packageId: requiresPackage ? selectedPackageId : undefined,
           applicantPhone: form.applicantPhone,
           motivation: form.motivation,
           receiptUrl: form.receiptUrl,
@@ -141,10 +192,60 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
         </div>
       ) : null}
 
+      {requiresPackage ? (
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Choose your package</CardTitle>
+            <CardDescription>Selection is required. The price below is calculated by the server.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {packages.map((pkg) => {
+              const checked = selectedPackageId === pkg.id
+              return (
+                <label
+                  key={pkg.id}
+                  className={`block rounded-xl border p-4 cursor-pointer ${
+                    checked ? 'border-[var(--brand-navy)] bg-slate-50' : 'border-slate-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="packageId"
+                      className="mt-1"
+                      checked={checked}
+                      onChange={() => setSelectedPackageId(pkg.id)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900">{pkg.name}</p>
+                      {pkg.description ? <p className="text-sm text-slate-600 mt-1">{pkg.description}</p> : null}
+                      {pkg.benefits ? (
+                        <pre className="text-xs text-slate-600 mt-2 whitespace-pre-wrap font-sans">{pkg.benefits}</pre>
+                      ) : null}
+                      <p className="text-sm text-slate-800 mt-3">
+                        {pkg.discountAmount > 0 ? (
+                          <>
+                            <span className="line-through text-slate-500 mr-2">{money(pkg.listPrice)}</span>
+                            <span className="text-slate-600 mr-2">− {money(pkg.discountAmount)}</span>
+                          </>
+                        ) : null}
+                        <span className="font-semibold">Payable {money(pkg.finalPrice)}</span>
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              )
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {isFree ? (
         <Card className="border-green-200 bg-green-50/50 shadow-sm">
           <CardContent className="pt-4 pb-4">
-            <p className="text-sm text-green-900 font-medium">Free programme — no payment required</p>
+            <p className="text-sm text-green-900 font-medium">
+              {requiresPackage ? 'Complimentary package — no payment required' : 'Free programme — no payment required'}
+            </p>
             <p className="text-xs text-green-800 mt-1">
               Confirm your details below to get instant access after enrollment.
             </p>
@@ -198,10 +299,19 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
             </div>
             <Button
               className="w-full bg-[var(--brand-navy)] text-white"
-              disabled={!form.applicantPhone.trim() || submitting}
+              disabled={
+                !form.applicantPhone.trim() ||
+                submitting ||
+                !packagesLoaded ||
+                (requiresPackage && !selectedPackageId)
+              }
               onClick={() => {
+                if (requiresPackage && !selectedPackageId) {
+                  setError('Select a pricing package to continue.')
+                  return
+                }
                 if (isFree) {
-                  handleSubmit()
+                  void handleSubmit()
                 } else {
                   setStep(2)
                 }
@@ -225,7 +335,9 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <MomoPayCard amountLabel={`Amount due — ${course.title}: ${price.toLocaleString()} RWF`} />
+            <MomoPayCard
+              amountLabel={`Amount due — ${selected ? selected.name + ' · ' : ''}${course.title}: ${price.toLocaleString()} RWF`}
+            />
             <ol className="text-sm space-y-2 text-muted-foreground list-decimal list-inside">
               {PAYMENT.steps.map((s) => (
                 <li key={s}>{s}</li>
@@ -266,7 +378,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
                 disabled={uploading}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
-                  if (file) handleReceiptUpload(file)
+                  if (file) void handleReceiptUpload(file)
                 }}
               />
               {uploading ? (
@@ -320,7 +432,7 @@ export function CourseEnrollForm({ course, user }: { course: Course; user: Enrol
               <Button
                 className="flex-1 bg-[var(--brand-navy)]"
                 disabled={submitting || uploading || !form.receiptUrl}
-                onClick={handleSubmit}
+                onClick={() => void handleSubmit()}
               >
                 {submitting ? (
                   <>

@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { PENDING_ENROLLMENT_STATUSES } from '@/lib/enrollment/constants'
 import { getEnrollEligibility } from '@/lib/enrollment/eligibility'
 import { admitEnrollmentById } from '@/lib/enrollment/admit'
-import { isFreeProgram } from '@/lib/enrollment/program-types'
+import { loadCoursePackageRows } from '@/lib/admin/course-packages'
+import { resolveEnrollmentPricing } from '@/lib/enrollment/packages'
 import {
   sendEnrollmentAdmittedEmail,
   sendPaymentSubmittedToAdmin,
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const courseId = String(body.courseId ?? '').trim()
+    const packageId = body.packageId != null ? String(body.packageId).trim() : ''
     const applicantPhone = String(body.applicantPhone ?? '').trim()
     const motivation = String(body.motivation ?? '').trim()
     const receiptUrl = String(body.receiptUrl ?? '').trim()
@@ -84,8 +86,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Course not found or not open for enrollment' }, { status: 404 })
     }
 
-    const amountDue = Number(course.pricing ?? 0)
-    const isFree = isFreeProgram(amountDue)
+    const { rows: packageRows, missingTable } = await loadCoursePackageRows(courseId)
+    if (missingTable && packageId) {
+      return NextResponse.json(
+        {
+          error:
+            'Pricing packages are not available yet. Contact support or enroll using the legacy course price.',
+          code: 'PACKAGES_UNAVAILABLE',
+        },
+        { status: 503 }
+      )
+    }
+
+    let pricing
+    try {
+      pricing = resolveEnrollmentPricing({
+        courseId,
+        legacyPricing: course.pricing,
+        packages: packageRows,
+        packageId: packageId || null,
+      })
+    } catch (pricingError) {
+      return NextResponse.json(
+        {
+          error: pricingError instanceof Error ? pricingError.message : 'Invalid pricing package',
+          code: 'PACKAGE_INVALID',
+        },
+        { status: 400 }
+      )
+    }
+
+    const amountDue = pricing.amountDue
+    const isFree = pricing.isComplimentary
 
     if (!isFree && !receiptUrl) {
       return NextResponse.json(
@@ -163,30 +195,40 @@ export async function POST(request: Request) {
       }
     }
 
-    const amountDueFinal = Number(course.pricing ?? 0)
+    const amountDueFinal = amountDue
+    const enrollmentInsert: Record<string, unknown> = {
+      course_id: course.id,
+      user_id: sessionUser.id,
+      applicant_name: applicantName || applicantEmail,
+      applicant_email: applicantEmail,
+      applicant_phone: applicantPhone,
+      motivation: motivation || null,
+      amount_due: amountDueFinal,
+      status: isFree ? 'admitted' : 'payment_pending_review',
+    }
+    if (pricing.mode === 'package') {
+      Object.assign(enrollmentInsert, pricing.snapshot)
+    }
 
     const { data: enrollment, error: enrollmentError } = await supabaseAdmin
       .from('course_enrollments')
-      .insert([
-        {
-          course_id: course.id,
-          user_id: sessionUser.id,
-          applicant_name: applicantName || applicantEmail,
-          applicant_email: applicantEmail,
-          applicant_phone: applicantPhone,
-          motivation: motivation || null,
-          amount_due: amountDueFinal,
-          status: isFree ? 'admitted' : 'payment_pending_review',
-        },
-      ])
+      .insert([enrollmentInsert])
       .select()
       .single()
 
     if (enrollmentError || !enrollment) {
-      return NextResponse.json(
-        { error: enrollmentError?.message || 'Failed to create enrollment' },
-        { status: 500 }
-      )
+      const message = enrollmentError?.message || 'Failed to create enrollment'
+      if (/package_/i.test(message) || /schema cache/i.test(message)) {
+        return NextResponse.json(
+          {
+            error:
+              'Enrollment package snapshot columns are not ready. Run scripts/100-enrollment-package-snapshot.sql.',
+            code: 'PACKAGE_SNAPSHOT_UNAVAILABLE',
+          },
+          { status: 503 }
+        )
+      }
+      return NextResponse.json({ error: message }, { status: 500 })
     }
 
     if (isFree) {
@@ -220,7 +262,7 @@ export async function POST(request: Request) {
           amountDue: amountDueFinal,
           instantAccess: true,
           message:
-            'You are enrolled! This free programme is now available on your student dashboard.',
+            'You are enrolled! This programme is now available on your student dashboard at no charge.',
         },
         { status: 201 }
       )

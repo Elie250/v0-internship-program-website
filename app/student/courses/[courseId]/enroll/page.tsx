@@ -8,6 +8,8 @@ import { CourseEnrollForm } from '@/components/learning/course-enroll-form'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, AlertCircle } from 'lucide-react'
 import { isFreeProgram, PROGRAM_TYPE_LABELS, CAREER_PROGRAM_TYPES } from '@/lib/enrollment/program-types'
+import { loadActivePackagesForPublishedCourse } from '@/lib/admin/course-packages'
+import { cataloguePriceLabel } from '@/lib/enrollment/packages'
 
 export default async function StudentCourseEnrollPage({
   params,
@@ -45,8 +47,12 @@ export default async function StudentCourseEnrollPage({
     [portal.data.user.firstName, portal.data.user.lastName].filter(Boolean).join(' ') ||
     portal.data.user.email
 
-  const price = Number(course.pricing ?? 0)
-  const free = isFreeProgram(price)
+  const { packages } = await loadActivePackagesForPublishedCourse(courseId)
+  const catalogue = cataloguePriceLabel({
+    legacyPricing: course.pricing,
+    activePackages: packages,
+  })
+  const free = packages.length === 0 && isFreeProgram(course.pricing)
   const programType = course.program_type ?? 'training'
   const backHref =
     programType === 'internship'
@@ -62,7 +68,7 @@ export default async function StudentCourseEnrollPage({
           <p className="text-white/80 text-sm mb-1">{PROGRAM_TYPE_LABELS[programType]} enrollment</p>
           <h1 className="text-2xl font-bold text-white">{course.title}</h1>
           <p className="text-white/90 mt-2 text-sm">
-            {free ? 'Free — instant access' : `${price.toLocaleString()} RWF`} · {user.email}
+            {free ? 'Free — instant access' : catalogue.label} · {user.email}
           </p>
         </div>
 
@@ -93,10 +99,13 @@ export default async function StudentCourseEnrollPage({
               <CheckCircle2 className={`h-4 w-4 shrink-0 ${free ? 'text-green-700' : 'text-blue-700'}`} />
               {free
                 ? 'Free programme — confirm your details to enroll instantly'
-                : 'Account verified — complete MoMo payment below'}
+                : packages.length > 0
+                  ? 'Account verified — choose a package and complete MoMo payment'
+                  : 'Account verified — complete MoMo payment below'}
             </div>
             <CourseEnrollForm
               course={course}
+              initialPackages={packages}
               user={{
                 firstName: user.firstName,
                 lastName: user.lastName,

@@ -36,6 +36,7 @@ import {
   type CourseProgressSummary,
 } from '@/lib/learning/lesson-progress'
 import { programmeReportHrefForEnrollment } from '@/lib/learning/course-report-access'
+import { cataloguePriceLabel, listActivePackages, type CoursePricingPackageRow } from '@/lib/enrollment/packages'
 import { queryPublishedCourseLessons } from '@/lib/learning/published-lessons'
 import type { StudentLessonBlock } from '@/lib/learning/lesson-blocks'
 
@@ -98,6 +99,7 @@ export type CatalogCourseItem = {
   difficulty: string | null
   duration: string | null
   pricing: number | null
+  priceLabel: string
   categoryName: string | null
   programType: ProgramType
   programTypeLabel: string
@@ -269,7 +271,8 @@ function buildCatalogCourse(
     access_ends_at?: string | null
     program_type?: string | null
   }>,
-  globalEligibility: EnrollEligibility
+  globalEligibility: EnrollEligibility,
+  activePackages: ReturnType<typeof listActivePackages> = []
 ): CatalogCourseItem {
   const row = enrollmentRows.find(
     (r) => r.course_id === course.id && !['cancelled'].includes(String(r.status))
@@ -288,8 +291,11 @@ function buildCatalogCourse(
     programType
   )
 
-  const price = Number(course.pricing ?? 0)
-  const free = isFreeProgram(course.pricing)
+  const free = activePackages.length === 0 && isFreeProgram(course.pricing)
+  const priceDisplay = cataloguePriceLabel({
+    legacyPricing: course.pricing,
+    activePackages,
+  })
 
   const meta = {
     programType,
@@ -308,6 +314,7 @@ function buildCatalogCourse(
     difficulty: course.difficulty,
     duration: course.duration,
     pricing: course.pricing,
+    priceLabel: priceDisplay.label,
     categoryName: course.category?.name ?? null,
     ...meta,
   }
@@ -583,7 +590,34 @@ export async function getStudentPortalData(options?: {
         ? STUDENT_TRACKS.find((t) => t.id === options.catalogTrack)?.types
         : undefined,
   })
-  const catalogCourses = published.map((c) => buildCatalogCourse(c, enrollmentRows, enrollEligibility))
+  const packageRowsByCourse = new Map<string, CoursePricingPackageRow[]>()
+  if (published.length > 0 && supabaseAdmin) {
+    const { data: packageRows, error: packageError } = await supabaseAdmin
+      .from('course_pricing_packages')
+      .select(
+        'id, course_id, name, description, benefits, currency, list_price, discount_amount, final_price, is_active, sort_order'
+      )
+      .in(
+        'course_id',
+        published.map((course) => course.id)
+      )
+      .eq('is_active', true)
+    if (!packageError) {
+      for (const row of (packageRows ?? []) as unknown as CoursePricingPackageRow[]) {
+        const key = String(row.course_id)
+        packageRowsByCourse.set(key, [...(packageRowsByCourse.get(key) ?? []), row])
+      }
+    }
+  }
+
+  const catalogCourses = published.map((c) =>
+    buildCatalogCourse(
+      c,
+      enrollmentRows,
+      enrollEligibility,
+      listActivePackages(packageRowsByCourse.get(c.id) ?? [])
+    )
+  )
 
   return {
     success: true,
