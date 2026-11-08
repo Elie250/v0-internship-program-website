@@ -25,6 +25,7 @@ const SECTIONS: Record<string, ComponentType> = {
   financial: dynamic(() => import('@/components/admin/financial-management')),
   pos: dynamic(() => import('@/components/admin/pos-terminal')),
   courses: dynamic(() => import('@/components/admin/course-management')),
+  'programme-reports': dynamic(() => import('@/components/admin/programme-report-management')),
   webinars: dynamic(() => import('@/components/admin/webinar-management')),
   classroom: dynamic(() => import('@/components/admin/classroom-monitor-management')),
   'learning-analytics': dynamic(() => import('@/components/admin/learning-analytics-management')),

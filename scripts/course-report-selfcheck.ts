@@ -9,6 +9,13 @@ import {
   planReportCurriculumFallback,
   selectPublishedReportLessons,
 } from '../lib/learning/course-report-curriculum.ts'
+import {
+  decideReportPublication,
+  editorialProfileFromRow,
+  emptyEditorialReportProfile,
+  reportProfilePatch,
+  studentVisibleEditorialProfile,
+} from '../lib/learning/course-report-publication.ts'
 
 const courseId = 'course-1'
 const studentId = 'student-1'
@@ -144,4 +151,81 @@ test('expired admitted access keeps the report but hides live session details', 
   )
   assert.equal(decision.allowed, true)
   if (decision.allowed) assert.equal(decision.hideLiveAccess, true)
+})
+
+function publishedProfile() {
+  return {
+    ...emptyEditorialReportProfile(),
+    overview: 'Overview',
+    purpose: 'Purpose',
+    learningObjectives: 'Objectives',
+    learningOutcomes: 'Outcomes',
+  }
+}
+
+test('a draft profile is hidden from students and a published profile is visible', () => {
+  const row = {
+    publication_status: 'draft',
+    overview: 'Secret draft overview',
+    purpose: 'Purpose',
+    learning_objectives: 'Objectives',
+    learning_outcomes: 'Outcomes',
+  }
+  assert.equal(studentVisibleEditorialProfile(row), null)
+  assert.equal(studentVisibleEditorialProfile({ ...row, publication_status: 'published' })?.overview, 'Secret draft overview')
+  assert.equal(studentVisibleEditorialProfile({ ...row, publication_status: 'archived' }), null)
+})
+
+test('publishing requires the minimum fields and unpublishing does not', () => {
+  const incomplete = decideReportPublication(emptyEditorialReportProfile(), 'published')
+  assert.equal(incomplete.ok, false)
+  if (!incomplete.ok) {
+    assert.deepEqual(incomplete.missing, [
+      'Programme overview',
+      'Programme purpose',
+      'Learning objectives',
+      'Learning outcomes',
+    ])
+  }
+  const published = decideReportPublication(publishedProfile(), 'published')
+  assert.deepEqual(published, { ok: true, status: 'published' })
+  const unpublished = decideReportPublication(publishedProfile(), 'draft')
+  assert.deepEqual(unpublished, { ok: true, status: 'draft' })
+})
+
+test('a partial save cannot clear omitted fields', () => {
+  const partial = reportProfilePatch({ overview: 'Only overview' })
+  assert.equal(partial.ok, false)
+  const full = reportProfilePatch({
+    ...publishedProfile(),
+    overview: '',
+    targetAudience: 'Graduates',
+  })
+  assert.equal(full.ok, true)
+  if (full.ok) {
+    assert.equal(full.patch.overview, null)
+    assert.equal(full.patch.target_audience, 'Graduates')
+    assert.equal(Object.prototype.hasOwnProperty.call(full.patch, 'publication_status'), false)
+  }
+})
+
+test('stored editorial copy round-trips without dropping a supplied field', () => {
+  const row = {
+    overview: 'Overview',
+    purpose: 'Purpose',
+    target_audience: 'Graduates',
+    entry_requirements: null,
+    learning_objectives: 'Objectives',
+    learning_outcomes: 'Outcomes',
+    delivery_method: '',
+    workload_description: null,
+    assessment_description: null,
+    certification_description: null,
+    additional_information: 'Bring a notebook',
+    publication_status: 'published',
+  }
+  const profile = editorialProfileFromRow(row)
+  assert.equal(profile.targetAudience, 'Graduates')
+  assert.equal(profile.additionalInformation, 'Bring a notebook')
+  assert.equal(profile.deliveryMethod, null)
 })

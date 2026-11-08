@@ -207,6 +207,14 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         permission: PERMISSIONS.LEARNING_PROGRAMS,
       },
       {
+        id: 'programme-reports',
+        label: 'Programme reports',
+        href: '/admin/dashboard/programme-reports',
+        icon: 'clipboard-list',
+        permission: PERMISSIONS.LEARNING_PROGRAMS,
+        description: 'Editorial copy for admitted student programme reports',
+      },
+      {
         id: 'webinars',
         label: 'Webinars',
         href: '/admin/dashboard/webinars',

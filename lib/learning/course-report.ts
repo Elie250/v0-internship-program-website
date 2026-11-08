@@ -5,6 +5,12 @@ import {
   planReportCurriculumFallback,
   selectPublishedReportLessons,
 } from '@/lib/learning/course-report-curriculum'
+import {
+  editorialProfileFromRow,
+  readPublicationStatus,
+  studentVisibleEditorialProfile,
+  type ReportPublicationStatus,
+} from '@/lib/learning/course-report-publication'
 import { formatPlatformDateTime, PLATFORM_TIMEZONE } from '@/lib/platform/rwanda-datetime'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -93,6 +99,13 @@ export type CourseReportResult =
   | { ok: false; status: 'unauthenticated' | 'forbidden' | 'unavailable'; message: string }
 
 const ADMITTED = 'admitted'
+const PROFILE_COLUMNS =
+  'overview, purpose, target_audience, entry_requirements, learning_objectives, learning_outcomes, delivery_method, workload_description, assessment_description, certification_description, additional_information, publication_status'
+
+export type CourseReportPreview = {
+  report: CourseReport
+  publicationStatus: ReportPublicationStatus
+}
 
 export { decideProgrammeReportAccess }
 
@@ -140,35 +153,42 @@ export function formatReportAccessDate(iso: string | null): string {
   return formatReportDate(iso)
 }
 
-async function loadProfile(courseId: string): Promise<CourseReportProfile | null> {
-  if (!supabaseAdmin) return null
+function profileStorageMessage(message: string): string | null {
+  if (isMissingRelation(message) || /publication_status/i.test(message)) {
+    return 'Programme report storage is not ready. Run scripts/97-course-report-profiles.sql and scripts/98-course-report-publication.sql.'
+  }
+  return null
+}
+
+async function loadProfile(
+  courseId: string,
+  audience: 'student' | 'admin'
+): Promise<{ profile: CourseReportProfile | null; publicationStatus: ReportPublicationStatus; storageError: string | null }> {
+  if (!supabaseAdmin) {
+    return { profile: null, publicationStatus: 'draft', storageError: null }
+  }
   const { data, error } = await supabaseAdmin
     .from('course_report_profiles')
-    .select(
-      'overview, purpose, target_audience, entry_requirements, learning_objectives, learning_outcomes, delivery_method, workload_description, assessment_description, certification_description, additional_information'
-    )
+    .select(PROFILE_COLUMNS)
     .eq('course_id', courseId)
     .maybeSingle()
 
   if (error) {
-    if (isMissingRelation(error.message)) return null
+    const storageError = profileStorageMessage(error.message)
+    if (storageError) {
+      if (audience === 'student') {
+        console.warn('[course-report] Hiding editorial profile because publication status could not be verified:', error.message)
+        return { profile: null, publicationStatus: 'draft', storageError: null }
+      }
+      return { profile: null, publicationStatus: 'draft', storageError }
+    }
     throw new Error(error.message)
   }
-  if (!data) return null
 
-  return {
-    overview: blank(data.overview),
-    purpose: blank(data.purpose),
-    targetAudience: blank(data.target_audience),
-    entryRequirements: blank(data.entry_requirements),
-    learningObjectives: blank(data.learning_objectives),
-    learningOutcomes: blank(data.learning_outcomes),
-    deliveryMethod: blank(data.delivery_method),
-    workloadDescription: blank(data.workload_description),
-    assessmentDescription: blank(data.assessment_description),
-    certificationDescription: blank(data.certification_description),
-    additionalInformation: blank(data.additional_information),
-  }
+  const row = (data ?? null) as Record<string, unknown> | null
+  const publicationStatus = readPublicationStatus(row?.publication_status)
+  const profile = audience === 'student' ? studentVisibleEditorialProfile(row) : row ? editorialProfileFromRow(row) : null
+  return { profile, publicationStatus, storageError: null }
 }
 
 async function loadCurriculum(courseId: string): Promise<{
@@ -437,8 +457,8 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
     access_ends_at: enrollment.access_ends_at,
   })
 
-  const [profile, curriculum, trainer, assessments, certificate, sessions] = await Promise.all([
-    loadProfile(courseId),
+  const [profileResult, curriculum, trainer, assessments, certificate, sessions] = await Promise.all([
+    loadProfile(courseId, 'student'),
     loadCurriculum(courseId),
     loadTrainer(course.instructor_id ? String(course.instructor_id) : null),
     loadAssessments(courseId),
@@ -456,7 +476,7 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
       categoryName,
       duration: blank(course.duration),
       pricing: course.pricing == null ? null : Number(course.pricing),
-      profile,
+      profile: profileResult.profile,
       modules: curriculum.modules,
       ungroupedLessons: curriculum.ungroupedLessons,
       trainer,
@@ -471,6 +491,82 @@ export async function loadStudentCourseReport(courseId: string): Promise<CourseR
       },
       sessions,
       hideLiveAccess: decision.hideLiveAccess,
+    },
+  }
+}
+
+/**
+ * Admin preview document. Callers must already have checked LEARNING_PROGRAMS.
+ * This does not read or write courses.status and does not use a student enrolment.
+ */
+export async function loadCourseReportPreviewDocument(courseId: string): Promise<
+  | { ok: true; preview: CourseReportPreview }
+  | { ok: false; message: string }
+> {
+  if (!supabaseAdmin) {
+    return { ok: false, message: 'Programme reports are temporarily unavailable.' }
+  }
+
+  const { data: course, error: courseError } = await supabaseAdmin
+    .from('courses')
+    .select('id, title, description, thumbnail, duration, pricing, category_id, instructor_id')
+    .eq('id', courseId)
+    .maybeSingle()
+
+  if (courseError || !course) {
+    return { ok: false, message: 'This course could not be loaded.' }
+  }
+
+  let categoryName: string | null = null
+  if (course.category_id) {
+    const { data: category } = await supabaseAdmin
+      .from('categories')
+      .select('name')
+      .eq('id', course.category_id)
+      .maybeSingle()
+    categoryName = blank(category?.name)
+  }
+
+  const [profileResult, curriculum, trainer, assessments, sessions] = await Promise.all([
+    loadProfile(courseId, 'admin'),
+    loadCurriculum(courseId),
+    loadTrainer(course.instructor_id ? String(course.instructor_id) : null),
+    loadAssessments(courseId),
+    loadSessions(courseId, false),
+  ])
+
+  if (profileResult.storageError) {
+    return { ok: false, message: profileResult.storageError }
+  }
+
+  return {
+    ok: true,
+    preview: {
+      publicationStatus: profileResult.publicationStatus,
+      report: {
+        courseId,
+        title: String(course.title ?? 'Programme'),
+        description: blank(course.description),
+        thumbnail: blank(course.thumbnail),
+        categoryName,
+        duration: blank(course.duration),
+        pricing: course.pricing == null ? null : Number(course.pricing),
+        profile: profileResult.profile,
+        modules: curriculum.modules,
+        ungroupedLessons: curriculum.ungroupedLessons,
+        trainer,
+        assessments,
+        certificate: null,
+        enrollment: {
+          id: 'preview',
+          amountDue: null,
+          accessStartsAt: null,
+          accessEndsAt: null,
+          accessState: 'active',
+        },
+        sessions,
+        hideLiveAccess: false,
+      },
     },
   }
 }

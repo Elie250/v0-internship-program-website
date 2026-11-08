@@ -43,21 +43,18 @@ function money(value: number | null): string | null {
 export function ProgrammeReportView({
   report,
   userName,
+  preview,
 }: {
   report: CourseReport
   userName: string
+  preview?: { publicationStatus: 'draft' | 'published' }
 }) {
   const hasCurriculum = report.modules.length > 0 || report.ungroupedLessons.length > 0
   const profile = report.profile
+  const isPreview = Boolean(preview)
 
-  return (
-    <StudentPortalShell userName={userName}>
-      <Link href="/student/dashboard">
-        <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-800 hover:text-slate-950">
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          My learning
-        </Button>
-      </Link>
+  const body = (
+    <>
 
       <div className="space-y-5">
         <section className="rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -73,7 +70,13 @@ export function ProgrammeReportView({
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{report.title}</h1>
             <p className="text-sm text-slate-600 mt-2">{report.categoryName ?? 'Not supplied'}</p>
             <div className="mt-4">{supplied(report.description)}</div>
-            {programmeReportShowsClassroomLink(report.enrollment.accessState) ? (
+            {isPreview ? (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {preview?.publicationStatus === 'published'
+                  ? 'Admin preview of the published student report. Students still need an admitted enrolment.'
+                  : 'Admin preview of a draft. Admitted students do not see this editorial copy until you publish it.'}
+              </p>
+            ) : programmeReportShowsClassroomLink(report.enrollment.accessState) ? (
               <div className="mt-4">
                 <Link href={`/student/courses/${report.courseId}`}>
                   <Button variant="outline" className="text-slate-800 border-slate-300">
@@ -215,7 +218,9 @@ export function ProgrammeReportView({
               <p className="text-sm text-slate-500">Not supplied</p>
             )}
             <Field label="Certification" value={profile?.certificationDescription} />
-            {report.certificate ? (
+            {isPreview ? (
+              <p className="text-sm text-slate-500">Certificates stay on each student enrolment.</p>
+            ) : report.certificate ? (
               <p className="text-sm text-slate-700">
                 Certificate {report.certificate.code}
                 {report.certificate.programTitle ? ` · ${report.certificate.programTitle}` : ''}
@@ -232,13 +237,18 @@ export function ProgrammeReportView({
         <Section title="Fees and enrollment">
           <div className="grid gap-4">
             <Field label="Programme price" value={money(report.pricing)} />
-            <Field label="Your amount due" value={money(report.enrollment.amountDue)} />
+            {isPreview ? (
+              <p className="text-sm text-slate-500">Amount due stays on each student enrolment.</p>
+            ) : (
+              <Field label="Your amount due" value={money(report.enrollment.amountDue)} />
+            )}
             <p className="text-sm text-slate-600">
               Paid programmes use the existing MTN MoMo receipt review. This report does not add payment plans.
             </p>
           </div>
         </Section>
 
+        {isPreview ? null : (
         <Section title="Your access">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Access starts" value={formatReportAccessDate(report.enrollment.accessStartsAt)} />
@@ -251,6 +261,7 @@ export function ProgrammeReportView({
             <p className="text-sm text-slate-600 mt-3">Classroom access for this enrolment has ended.</p>
           ) : null}
         </Section>
+        )}
 
         {profile?.additionalInformation ? (
           <Section title="Additional information">{supplied(profile.additionalInformation)}</Section>
@@ -258,6 +269,35 @@ export function ProgrammeReportView({
           <Section title="Additional information">{supplied(null)}</Section>
         )}
       </div>
+    </>
+  )
+
+  if (isPreview) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          Preview only. This is not the student view, and it does not change who can open the course.
+        </div>
+        <Link href="/admin/dashboard/programme-reports">
+          <Button variant="ghost" size="sm" className="-ml-2 text-slate-800 hover:text-slate-950">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Programme reports
+          </Button>
+        </Link>
+        {body}
+      </div>
+    )
+  }
+
+  return (
+    <StudentPortalShell userName={userName}>
+      <Link href="/student/dashboard">
+        <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-800 hover:text-slate-950">
+          <ChevronLeft className="h-4 w-4 mr-1" />
+          My learning
+        </Button>
+      </Link>
+      {body}
     </StudentPortalShell>
   )
 }
