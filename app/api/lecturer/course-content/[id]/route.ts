@@ -32,7 +32,7 @@ export async function PATCH(
       contentType: body.content_type != null ? String(body.content_type) : undefined,
       contentUrl: body.content_url !== undefined ? body.content_url : undefined,
       lessonBody: 'body' in body ? body.body : undefined,
-      visibility: body.visibility != null ? String(body.visibility) : undefined,
+      visibility: 'visibility' in body ? (body.visibility != null ? String(body.visibility) : null) : undefined,
       estimatedMinutes:
         body.estimated_minutes !== undefined || body.estimatedMinutes !== undefined
           ? (body.estimated_minutes ?? body.estimatedMinutes)
@@ -40,6 +40,12 @@ export async function PATCH(
       activityKind:
         body.activity_kind !== undefined || body.activityKind !== undefined
           ? (body.activity_kind ?? body.activityKind)
+          : undefined,
+      moduleId: 'module_id' in body || 'moduleId' in body ? (body.module_id ?? body.moduleId ?? null) : undefined,
+      unlockAt: 'unlock_at' in body || 'unlockAt' in body ? (body.unlock_at ?? body.unlockAt ?? null) : undefined,
+      unlockAfterContentId:
+        'unlock_after_content_id' in body || 'unlockAfterContentId' in body
+          ? (body.unlock_after_content_id ?? body.unlockAfterContentId ?? null)
           : undefined,
     })
 

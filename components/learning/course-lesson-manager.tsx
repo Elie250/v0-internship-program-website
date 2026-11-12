@@ -35,6 +35,7 @@ import {
   resolveUnsavedNavigation,
   type UnsavedNavigationChoice,
 } from '@/lib/learning/lesson-editor-guard'
+import { draftPrerequisiteWarning } from '@/lib/learning/drip-graph'
 import { isPublishedLessonVisibility } from '@/lib/learning/lesson-visibility'
 import { ExternalLink, Loader2, Pencil, Trash2, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -49,6 +50,28 @@ type Lesson = {
   visibility?: string | null
   estimated_minutes?: number | null
   activity_kind?: string | null
+  module_id?: string | null
+  unlock_at?: string | null
+  unlock_after_content_id?: string | null
+}
+
+type ModuleOption = { id: string; title: string }
+
+function toDatetimeLocalValue(value: string | null | undefined): string {
+  if (!value) return ''
+  const ms = new Date(value).getTime()
+  if (Number.isNaN(ms)) return ''
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function fromDatetimeLocalValue(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const ms = new Date(trimmed).getTime()
+  if (Number.isNaN(ms)) return null
+  return new Date(ms).toISOString()
 }
 
 type CourseLessonManagerProps = {
@@ -63,10 +86,14 @@ const EMPTY_FORM = {
   content_url: '',
   estimated_minutes: '',
   activity_kind: '',
+  module_id: '',
+  unlock_at: '',
+  unlock_after_content_id: '',
 }
 
 export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLessonManagerProps) {
   const [lessons, setLessons] = useState<Lesson[]>([])
+  const [modules, setModules] = useState<ModuleOption[]>([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [blocks, setBlocks] = useState<EditorLessonBlock[]>([])
   const [initialBlocks, setInitialBlocks] = useState<EditorLessonBlock[]>([])
@@ -101,6 +128,9 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           content_url: form.content_url,
           estimated_minutes: form.estimated_minutes,
           activity_kind: form.activity_kind,
+          module_id: form.module_id,
+          unlock_at: form.unlock_at,
+          unlock_after_content_id: form.unlock_after_content_id,
           blocks,
         },
         {
@@ -109,6 +139,9 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           content_url: initialForm.content_url,
           estimated_minutes: initialForm.estimated_minutes,
           activity_kind: initialForm.activity_kind,
+          module_id: initialForm.module_id,
+          unlock_at: initialForm.unlock_at,
+          unlock_after_content_id: initialForm.unlock_after_content_id,
           blocks: initialBlocks,
         }
       ),
@@ -125,15 +158,45 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
     [onFeedback]
   )
 
+  const modulesBase =
+    mode === 'lecturer'
+      ? `/api/lecturer/courses/${courseId}/modules`
+      : `/api/admin/courses/${courseId}/modules`
+
   const load = useCallback(async () => {
-    const res = await fetch(contentBase, { credentials: 'same-origin' })
-    const data = await res.json()
-    if (!res.ok) {
+    const [lessonsRes, modulesRes] = await Promise.all([
+      fetch(contentBase, { credentials: 'same-origin' }),
+      fetch(modulesBase, { credentials: 'same-origin' }),
+    ])
+    const data = await lessonsRes.json()
+    if (!lessonsRes.ok) {
       notify('error', data.error || 'Failed to load lessons')
       return
     }
     setLessons(Array.isArray(data) ? data : [])
-  }, [contentBase, notify])
+    const modulesData = await modulesRes.json().catch(() => ({}))
+    if (modulesRes.ok && modulesData.ok) {
+      setModules(
+        (modulesData.modules ?? []).map((row: { id: string; title: string }) => ({
+          id: String(row.id),
+          title: String(row.title),
+        }))
+      )
+    }
+  }, [contentBase, modulesBase, notify])
+
+  const dripWarning = useMemo(
+    () =>
+      draftPrerequisiteWarning(
+        lessons.map((lesson) => ({
+          id: lesson.id,
+          unlockAfterContentId: lesson.unlock_after_content_id ?? null,
+          visibility: lesson.visibility,
+        })),
+        form.unlock_after_content_id || null
+      ),
+    [form.unlock_after_content_id, lessons]
+  )
 
   useEffect(() => {
     void load()
@@ -296,6 +359,9 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
         visibility,
         estimated_minutes: form.estimated_minutes.trim(),
         activity_kind: form.activity_kind.trim(),
+        module_id: form.module_id || null,
+        unlock_at: fromDatetimeLocalValue(form.unlock_at),
+        unlock_after_content_id: form.unlock_after_content_id || null,
       }
       if (isInteractive) {
         payload.body = blocks
@@ -358,6 +424,11 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           ? String(lesson.estimated_minutes)
           : '',
       activity_kind: lesson.activity_kind ? String(lesson.activity_kind) : '',
+      module_id: lesson.module_id ? String(lesson.module_id) : '',
+      unlock_at: toDatetimeLocalValue(lesson.unlock_at),
+      unlock_after_content_id: lesson.unlock_after_content_id
+        ? String(lesson.unlock_after_content_id)
+        : '',
     }
     const nextBlocks = lessonBlocksToEditor(parseLessonBody(lesson.body))
     setEditingId(lesson.id)
@@ -525,6 +596,64 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div>
+          <Label>Module</Label>
+          <Select
+            value={form.module_id || 'none'}
+            onValueChange={(v) => setForm({ ...form, module_id: v === 'none' ? '' : v })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Ungrouped" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Ungrouped</SelectItem>
+              {modules.map((mod) => (
+                <SelectItem key={mod.id} value={mod.id}>
+                  {mod.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Unlock at (optional)</Label>
+          <Input
+            className="mt-1"
+            type="datetime-local"
+            value={form.unlock_at}
+            onChange={(e) => setForm({ ...form, unlock_at: e.target.value })}
+          />
+          <p className="text-xs text-slate-600 mt-1">
+            Time gate uses Africa/Kigali wall time from the browser. Combined with a prerequisite, both
+            must be satisfied (AND).
+          </p>
+        </div>
+        <div>
+          <Label>Unlock after lesson (optional)</Label>
+          <Select
+            value={form.unlock_after_content_id || 'none'}
+            onValueChange={(v) => setForm({ ...form, unlock_after_content_id: v === 'none' ? '' : v })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="No prerequisite" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No prerequisite</SelectItem>
+              {lessons
+                .filter((lesson) => lesson.id !== editingId && isPublishedLessonVisibility(lesson.visibility))
+                .map((lesson) => (
+                  <SelectItem key={lesson.id} value={lesson.id}>
+                    {lesson.title}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {dripWarning ? (
+            <p className="text-xs text-amber-800 mt-1 bg-amber-50 border border-amber-200 rounded-md p-2">
+              {dripWarning}
+            </p>
+          ) : null}
         </div>
 
         {isInteractive ? (

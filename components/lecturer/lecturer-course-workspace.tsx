@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import { CourseModulesPanel } from '@/components/learning/course-modules-panel'
+import { CourseOutcomesPanel } from '@/components/learning/course-outcomes-panel'
 import {
   LessonEditorGuardProvider,
   useLessonEditorGuard,
@@ -418,7 +420,9 @@ function LecturerCourseWorkspaceView({ courseId }: { courseId: string }) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="lessons">
+          <TabsContent value="lessons" className="space-y-4">
+            <CourseModulesPanel courseId={courseId} mode="lecturer" />
+            <CourseOutcomesPanel courseId={courseId} mode="lecturer" />
             <Card className="border-slate-200">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-slate-900">

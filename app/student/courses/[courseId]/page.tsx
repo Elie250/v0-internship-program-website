@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { getStudentCourse, type StudentCourse } from '@/app/actions/student-learning'
+import { groupLessonsByModule } from '@/lib/learning/course-modules'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { CourseClassroomFeed } from '@/components/student/course-classroom-feed'
 import { CourseQuizPanel } from '@/components/student/course-quiz-panel'
@@ -205,6 +206,15 @@ export default function StudentCoursePage() {
       ? unlockedLessons[activeIndex + 1]
       : null
 
+  const lessonGroups = groupLessonsByModule(
+    (course.modules ?? []).map((m) => ({
+      id: m.id,
+      title: m.title,
+      sortOrder: m.sortOrder,
+    })),
+    course.lessons
+  )
+
   const lessonIcon = (type: string, done: boolean) => {
     if (done) return CheckCircle2
     if (type === 'video') return PlayCircle
@@ -241,6 +251,17 @@ export default function StudentCoursePage() {
         <p className="text-xs text-slate-600 mt-2">
           {course.progress.completedCount} of {course.progress.totalLessons} lessons completed
         </p>
+        {course.outcomes?.length ? (
+          <div className="mt-3 border-t border-slate-100 pt-3 space-y-1">
+            <p className="text-xs font-semibold text-slate-800">Learning outcomes</p>
+            {course.outcomes.map((outcome) => (
+              <p key={outcome.id} className="text-xs text-slate-600">
+                {outcome.code ? <span className="font-semibold">{outcome.code}: </span> : null}
+                {outcome.statement}
+              </p>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid lg:grid-cols-[280px_1fr] gap-6">
@@ -255,49 +276,61 @@ export default function StudentCoursePage() {
                 No lessons uploaded yet. Your instructor is preparing materials.
               </li>
             ) : (
-              course.lessons.map((lesson, index) => {
-                const Icon = lesson.locked
-                  ? Lock
-                  : lessonIcon(lesson.content_type, Boolean(lesson.completed))
-                return (
-                  <li key={lesson.id}>
-                    <button
-                      type="button"
-                      disabled={lesson.locked}
-                      onClick={() => !lesson.locked && setActiveLessonId(lesson.id)}
-                      className={cn(
-                        'w-full text-left px-4 py-3 flex items-start gap-3 text-sm transition',
-                        lesson.locked && 'opacity-60 cursor-not-allowed',
-                        !lesson.locked && 'hover:bg-slate-50',
-                        activeLessonId === lesson.id &&
-                          !lesson.locked &&
-                          'bg-slate-100 border-l-2 border-l-[var(--brand-navy)]',
-                        lesson.completed && !lesson.locked && 'bg-green-50/50'
-                      )}
-                    >
-                      <span className="text-slate-500 text-xs mt-0.5 w-4">{index + 1}</span>
-                      <Icon
-                        className={cn(
-                          'h-4 w-4 shrink-0 mt-0.5',
-                          lesson.locked
-                            ? 'text-slate-400'
-                            : lesson.completed
-                              ? 'text-green-700'
-                              : 'text-[var(--brand-navy)]'
-                        )}
-                      />
-                      <span className="min-w-0">
-                        <span className="text-slate-900 font-medium block">{lesson.title}</span>
-                        {lesson.locked && lesson.unlockLabel ? (
-                          <span className="text-[10px] text-amber-800 block mt-0.5">
-                            {lesson.unlockLabel}
-                          </span>
-                        ) : null}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })
+              lessonGroups.map((group) => (
+                <li key={group.moduleId ?? 'ungrouped'} className="list-none">
+                  <div className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-50">
+                    {group.title}
+                  </div>
+                  <ul className="divide-y divide-slate-100">
+                    {group.lessons.map((lesson) => {
+                      const flatIndex = course.lessons.findIndex((row) => row.id === lesson.id)
+                      const Icon = lesson.locked
+                        ? Lock
+                        : lessonIcon(lesson.content_type, Boolean(lesson.completed))
+                      return (
+                        <li key={lesson.id}>
+                          <button
+                            type="button"
+                            disabled={lesson.locked}
+                            onClick={() => !lesson.locked && setActiveLessonId(lesson.id)}
+                            className={cn(
+                              'w-full text-left px-4 py-3 flex items-start gap-3 text-sm transition',
+                              lesson.locked && 'opacity-60 cursor-not-allowed',
+                              !lesson.locked && 'hover:bg-slate-50',
+                              activeLessonId === lesson.id &&
+                                !lesson.locked &&
+                                'bg-slate-100 border-l-2 border-l-[var(--brand-navy)]',
+                              lesson.completed && !lesson.locked && 'bg-green-50/50'
+                            )}
+                          >
+                            <span className="text-slate-500 text-xs mt-0.5 w-4">
+                              {flatIndex >= 0 ? flatIndex + 1 : '·'}
+                            </span>
+                            <Icon
+                              className={cn(
+                                'h-4 w-4 shrink-0 mt-0.5',
+                                lesson.locked
+                                  ? 'text-slate-400'
+                                  : lesson.completed
+                                    ? 'text-green-700'
+                                    : 'text-[var(--brand-navy)]'
+                              )}
+                            />
+                            <span className="min-w-0">
+                              <span className="text-slate-900 font-medium block">{lesson.title}</span>
+                              {lesson.locked && lesson.unlockLabel ? (
+                                <span className="text-[10px] text-amber-800 block mt-0.5">
+                                  {lesson.unlockLabel}
+                                </span>
+                              ) : null}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </li>
+              ))
             )}
           </ul>
         </aside>

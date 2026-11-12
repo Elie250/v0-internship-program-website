@@ -38,6 +38,8 @@ import {
 import { programmeReportHrefForEnrollment } from '@/lib/learning/course-report-access'
 import { cataloguePriceLabel, listActivePackages, type CoursePricingPackageRow } from '@/lib/enrollment/packages'
 import { queryPublishedCourseLessons } from '@/lib/learning/published-lessons'
+import { listCourseModulesForStudent } from '@/lib/learning/course-modules'
+import { listPublishedCourseOutcomesForStudent } from '@/lib/learning/curriculum-outcomes'
 import type { StudentLessonBlock } from '@/lib/learning/lesson-blocks'
 
 export type { EnrollEligibility } from '@/lib/enrollment/eligibility'
@@ -50,12 +52,28 @@ export type StudentLesson = {
   content_type: string
   content_url: string | null
   sort_order: number
+  module_id?: string | null
   body?: StudentLessonBlock[]
   completed?: boolean
   locked?: boolean
   unlockLabel?: string | null
   unlock_at?: string | null
   unlock_after_content_id?: string | null
+}
+
+export type StudentCourseModule = {
+  id: string
+  title: string
+  summary: string | null
+  sortOrder: number
+}
+
+export type StudentCourseOutcome = {
+  id: string
+  scope: 'programme' | 'course'
+  code: string | null
+  statement: string
+  sortOrder: number
 }
 
 export type StudentCourse = {
@@ -71,6 +89,8 @@ export type StudentCourse = {
   accessEndsAt: string | null
   accessLabel: string
   lessons: StudentLesson[]
+  modules: StudentCourseModule[]
+  outcomes: StudentCourseOutcome[]
   progress: CourseProgressSummary
   /** Set only when this enrollment's user_id is the signed-in student. */
   programmeReportHref: string | null
@@ -187,7 +207,9 @@ function buildStudentCourse(
   },
   lessons: StudentLesson[],
   progressRecords: { contentId: string; courseId: string; completed: boolean; completedAt: string | null; lastOpenedAt: string }[],
-  sessionUserId: string
+  sessionUserId: string,
+  modulesByCourseId: Map<string, StudentCourseModule[]>,
+  outcomesByCourseId: Map<string, StudentCourseOutcome[]>
 ): StudentCourse | null {
   const course = normalizeJoinedCourse(row.course)
   if (!course) return null
@@ -258,6 +280,8 @@ function buildStudentCourse(
     accessLabel: accessLabelFor(accessState, row.access_starts_at, row.access_ends_at),
     programmeReportHref: programmeReportHrefForEnrollment(row.user_id, sessionUserId, course.id),
     lessons: lessonsWithProgress,
+    modules: modulesByCourseId.get(course.id) ?? [],
+    outcomes: outcomesByCourseId.get(course.id) ?? [],
     progress,
   }
 }
@@ -460,6 +484,7 @@ export async function getStudentPortalData(options?: {
         content_type: row.content_type,
         content_url: row.content_url,
         sort_order: row.sort_order,
+        module_id: row.module_id ?? null,
         body: row.body,
         unlock_at: row.unlock_at ?? null,
         unlock_after_content_id: row.unlock_after_content_id ?? null,
@@ -479,9 +504,49 @@ export async function getStudentPortalData(options?: {
     }
   }
 
+  const modulesByCourseId = new Map<string, StudentCourseModule[]>()
+  const outcomesByCourseId = new Map<string, StudentCourseOutcome[]>()
+  const uniqueCourseIds = [...new Set(admittedRows.map((row) => String(row.course_id)).filter(Boolean))]
+  await Promise.all(
+    uniqueCourseIds.map(async (cid) => {
+      const [mods, outs] = await Promise.all([
+        listCourseModulesForStudent(cid),
+        listPublishedCourseOutcomesForStudent(cid),
+      ])
+      modulesByCourseId.set(
+        cid,
+        mods.map((m) => ({
+          id: m.id,
+          title: m.title,
+          summary: m.summary,
+          sortOrder: m.sortOrder,
+        }))
+      )
+      outcomesByCourseId.set(
+        cid,
+        outs
+          .filter((o) => o.scope === 'programme' || o.scope === 'course')
+          .map((o) => ({
+            id: o.id,
+            scope: o.scope as 'programme' | 'course',
+            code: o.code,
+            statement: o.statement,
+            sortOrder: o.sortOrder,
+          }))
+      )
+    })
+  )
+
   const allCourses = admittedRows
     .map((row) =>
-      buildStudentCourse(row as Parameters<typeof buildStudentCourse>[0], lessons, progressRecords, userId)
+      buildStudentCourse(
+        row as Parameters<typeof buildStudentCourse>[0],
+        lessons,
+        progressRecords,
+        userId,
+        modulesByCourseId,
+        outcomesByCourseId
+      )
     )
     .filter((c): c is StudentCourse => c !== null)
 

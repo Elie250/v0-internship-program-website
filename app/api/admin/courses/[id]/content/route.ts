@@ -37,9 +37,15 @@ export async function POST(
       contentUrl: body.content_url ?? null,
       sortOrder: body.sort_order != null ? Number(body.sort_order) : undefined,
       lessonBody: body.body,
-      visibility: body.visibility ?? null,
+      visibility: 'visibility' in body ? body.visibility ?? null : undefined,
       estimatedMinutes: body.estimated_minutes ?? body.estimatedMinutes,
       activityKind: body.activity_kind ?? body.activityKind,
+      moduleId: 'module_id' in body || 'moduleId' in body ? (body.module_id ?? body.moduleId ?? null) : undefined,
+      unlockAt: 'unlock_at' in body || 'unlockAt' in body ? (body.unlock_at ?? body.unlockAt ?? null) : undefined,
+      unlockAfterContentId:
+        'unlock_after_content_id' in body || 'unlockAfterContentId' in body
+          ? (body.unlock_after_content_id ?? body.unlockAfterContentId ?? null)
+          : undefined,
     })
 
     if (error) return NextResponse.json({ error }, { status: 400 })

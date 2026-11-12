@@ -5,6 +5,9 @@ export type LessonEditorSnapshot = {
   blocks: unknown
   estimated_minutes?: string
   activity_kind?: string
+  module_id?: string
+  unlock_at?: string
+  unlock_after_content_id?: string
 }
 
 export type UnsavedNavigationChoice = 'save' | 'discard' | 'stay'
@@ -22,6 +25,9 @@ export const EMPTY_LESSON_EDITOR_SNAPSHOT: LessonEditorSnapshot = {
   blocks: [],
   estimated_minutes: '',
   activity_kind: '',
+  module_id: '',
+  unlock_at: '',
+  unlock_after_content_id: '',
 }
 
 export function isLessonEditorDirty(
@@ -34,6 +40,9 @@ export function isLessonEditorDirty(
     current.content_url !== baseline.content_url ||
     (current.estimated_minutes ?? '') !== (baseline.estimated_minutes ?? '') ||
     (current.activity_kind ?? '') !== (baseline.activity_kind ?? '') ||
+    (current.module_id ?? '') !== (baseline.module_id ?? '') ||
+    (current.unlock_at ?? '') !== (baseline.unlock_at ?? '') ||
+    (current.unlock_after_content_id ?? '') !== (baseline.unlock_after_content_id ?? '') ||
     JSON.stringify(current.blocks ?? []) !== JSON.stringify(baseline.blocks ?? [])
   )
 }
@@ -58,5 +67,8 @@ export function snapshotAfterSuccessfulSave(current: LessonEditorSnapshot): Less
     blocks: current.blocks,
     estimated_minutes: current.estimated_minutes ?? '',
     activity_kind: current.activity_kind ?? '',
+    module_id: current.module_id ?? '',
+    unlock_at: current.unlock_at ?? '',
+    unlock_after_content_id: current.unlock_after_content_id ?? '',
   }
 }
