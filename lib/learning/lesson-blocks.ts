@@ -5,7 +5,13 @@ import { parseYouTubeVideoId } from './media-embed.ts'
 export const MAX_LESSON_BLOCKS = 80
 export const MAX_BLOCK_TEXT = 12_000
 export const MAX_CODE_LENGTH = 20_000
+export const MAX_MATH_LATEX = 2000
+export const MAX_TABLE_COLUMNS = 12
+export const MAX_TABLE_ROWS = 40
+export const MAX_TABLE_CELL = 120
+export const MAX_PROCEDURE_STEPS = 30
 
+/** Legacy name kept for imports; includes Phase B technical blocks. */
 export const PHASE1_BLOCK_TYPES = [
   'heading',
   'rich_text',
@@ -16,9 +22,15 @@ export const PHASE1_BLOCK_TYPES = [
   'resource',
   'youtube',
   'checkpoint',
+  'math',
+  'table',
+  'procedure',
 ] as const
 
+export const LESSON_BLOCK_TYPES = PHASE1_BLOCK_TYPES
+
 export type Phase1BlockType = (typeof PHASE1_BLOCK_TYPES)[number]
+export type LessonBlockType = Phase1BlockType
 
 const optionalId = z.string().trim().max(64).optional()
 
@@ -140,13 +152,71 @@ export const imageBlockSchema = z.object({
 export const diagramBlockSchema = z.object({
   type: z.literal('diagram'),
   ...mediaCaptionFields,
+  title: z.string().trim().max(200).optional(),
 })
 
 export const codeBlockSchema = z.object({
   type: z.literal('code'),
   id: optionalId,
-  language: z.string().trim().max(40).default('text'),
+  /** Free string preserved for historical values; curated UI never remaps unknowns to text. */
+  language: z.string().trim().min(1).max(40).default('text'),
   code: z.string().min(1).max(MAX_CODE_LENGTH),
+})
+
+export const mathBlockSchema = z.object({
+  type: z.literal('math'),
+  id: optionalId,
+  latex: z.string().trim().min(1, 'Enter a LaTeX expression').max(MAX_MATH_LATEX),
+  display: z.enum(['inline', 'block']).default('block'),
+  alt_text: z.string().trim().max(400).optional(),
+})
+
+const tableCell = z.string().trim().max(MAX_TABLE_CELL)
+
+export const tableBlockSchema = z.object({
+  type: z.literal('table'),
+  id: optionalId,
+  caption: z.string().trim().max(200).optional(),
+  headers: z.array(tableCell).min(1).max(MAX_TABLE_COLUMNS),
+  rows: z.array(z.array(tableCell)).min(1).max(MAX_TABLE_ROWS),
+})
+
+export function validateTableSemantics(
+  block: Extract<z.infer<typeof tableBlockSchema>, { type: 'table' }>
+): { ok: true } | { ok: false; error: string } {
+  const width = block.headers.length
+  if (block.headers.some((cell) => !cell.trim())) {
+    return { ok: false, error: 'Every column header is required' }
+  }
+  for (let index = 0; index < block.rows.length; index++) {
+    const row = block.rows[index]
+    if (!row || row.length !== width) {
+      return { ok: false, error: `Row ${index + 1} must have exactly ${width} cells` }
+    }
+  }
+  return { ok: true }
+}
+
+const procedureStepSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  title: z.string().trim().min(1).max(200),
+  instructions: z.string().trim().min(1).max(4000),
+  callout: z
+    .object({
+      tone: z.enum(['note', 'warning', 'safety']),
+      text: z.string().trim().min(1).max(2000),
+    })
+    .optional(),
+})
+
+export const procedureBlockSchema = z.object({
+  type: z.literal('procedure'),
+  id: optionalId,
+  title: z.string().trim().min(1).max(200),
+  intro: z.string().trim().max(2000).optional(),
+  /** UI-only checkboxes in the viewer; never persisted to progress. */
+  trackable: z.boolean().default(false),
+  steps: z.array(procedureStepSchema).min(1).max(MAX_PROCEDURE_STEPS),
 })
 
 export const resourceBlockSchema = z.object({
@@ -215,6 +285,9 @@ export const lessonBlockSchema = z.discriminatedUnion('type', [
   resourceBlockSchema,
   youtubeBlockSchema,
   checkpointBlockSchema,
+  mathBlockSchema,
+  tableBlockSchema,
+  procedureBlockSchema,
 ])
 
 export type LessonBlock = z.infer<typeof lessonBlockSchema>
@@ -263,6 +336,9 @@ function prepareParsedBlock(block: LessonBlock): LessonBlock | null {
   if (block.type === 'checkpoint') {
     return validateCheckpointSemantics(block).ok ? block : null
   }
+  if (block.type === 'table') {
+    return validateTableSemantics(block).ok ? block : null
+  }
   return block
 }
 
@@ -304,6 +380,18 @@ export type EditorLessonBlock = {
   choices?: Array<{ id: string; text: string }>
   correct_choice_id?: string
   version?: 1
+  latex?: string
+  display?: 'inline' | 'block'
+  alt_text?: string
+  headers?: string[]
+  rows?: string[][]
+  trackable?: boolean
+  steps?: Array<{
+    id: string
+    title: string
+    instructions: string
+    callout?: { tone: 'note' | 'warning' | 'safety'; text: string }
+  }>
 }
 
 export function newLessonChoiceId(): string {
@@ -351,11 +439,41 @@ export function createEmptyLessonBlock(type: Phase1BlockType): EditorLessonBlock
     case 'diagram':
       return { id, type, url: '', alt: '', caption: '' }
     case 'code':
-      return { id, type, language: 'text', code: '' }
+      return { id, type, language: 'st', code: '' }
     case 'resource':
       return { id, type, content_type: 'link', url: '' }
     case 'youtube':
       return { id, type, url: '', title: '', intro: '', caption: '' }
+    case 'math':
+      return { id, type, latex: '', display: 'block', alt_text: '' }
+    case 'table':
+      return {
+        id,
+        type,
+        caption: '',
+        headers: ['Parameter', 'Value', 'Notes'],
+        rows: [
+          ['', '', ''],
+          ['', '', ''],
+        ],
+      }
+    case 'procedure': {
+      const stepId = newLessonChoiceId()
+      return {
+        id,
+        type,
+        title: '',
+        intro: '',
+        trackable: false,
+        steps: [
+          {
+            id: stepId,
+            title: '',
+            instructions: '',
+          },
+        ],
+      }
+    }
     case 'checkpoint': {
       const first = newLessonChoiceId()
       const second = newLessonChoiceId()
@@ -476,6 +594,14 @@ export function validateLessonBodyForSave(
       })
       continue
     }
+    if (parsed.data.type === 'table') {
+      const semantics = validateTableSemantics(parsed.data)
+      if (!semantics.ok) {
+        return { ok: false, error: `Block ${i + 1} (table): ${semantics.error}` }
+      }
+      blocks.push(parsed.data)
+      continue
+    }
     blocks.push(parsed.data)
   }
 
@@ -490,26 +616,24 @@ export function previewLessonBlocks(blocks: EditorLessonBlock[]): StudentLessonB
   return projectLessonBlocksForStudent(parseLessonBody(blocks))
 }
 
+const BLOCK_TYPE_LABELS: Record<Phase1BlockType, string> = {
+  heading: 'Heading',
+  rich_text: 'Explanation',
+  callout: 'Callout',
+  image: 'Image',
+  diagram: 'Diagram',
+  code: 'Code',
+  resource: 'Resource',
+  youtube: 'YouTube',
+  checkpoint: 'Checkpoint',
+  math: 'Math',
+  table: 'Table',
+  procedure: 'Procedure',
+}
+
 export const AUTHORABLE_BLOCK_TYPES: Array<{ type: Phase1BlockType; label: string }> =
   PHASE1_BLOCK_TYPES.map((type) => ({
     type,
-    label:
-      type === 'rich_text'
-        ? 'Explanation'
-        : type === 'heading'
-          ? 'Heading'
-          : type === 'callout'
-            ? 'Callout'
-            : type === 'image'
-              ? 'Image'
-              : type === 'diagram'
-                ? 'Diagram'
-                : type === 'code'
-                  ? 'Code'
-                  : type === 'youtube'
-                    ? 'YouTube'
-                    : type === 'checkpoint'
-                      ? 'Checkpoint'
-                      : 'Resource',
+    label: BLOCK_TYPE_LABELS[type],
   }))
 

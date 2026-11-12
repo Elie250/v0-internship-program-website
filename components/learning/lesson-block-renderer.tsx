@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import type { LessonBlock, StudentLessonBlock } from '@/lib/learning/lesson-blocks'
+import { codeLanguageLabel } from '@/lib/learning/lesson-code-languages'
 import { LESSON_RICH_TEXT_CLASSNAME, sanitizeLessonHtml } from '@/lib/learning/lesson-html'
+import { renderLessonMath } from '@/lib/learning/lesson-math'
 import {
   canPlayAsNativeVideo,
   embedMediaUrl,
@@ -14,6 +16,7 @@ import {
   youtubePrivacyEmbedUrl,
 } from '@/lib/learning/media-embed'
 import { cn } from '@/lib/utils'
+import 'katex/dist/katex.min.css'
 
 type RenderableLessonBlock = LessonBlock | StudentLessonBlock
 
@@ -213,6 +216,151 @@ function CheckpointView({
   )
 }
 
+function MathBlockView({ block }: { block: Extract<LessonBlock, { type: 'math' }> }) {
+  const rendered = useMemo(
+    () => renderLessonMath(block.latex, block.display === 'block'),
+    [block.display, block.latex]
+  )
+  const display = block.display === 'block'
+
+  if (!rendered.ok) {
+    return (
+      <aside
+        className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        role="status"
+      >
+        {block.alt_text?.trim() || rendered.error}
+      </aside>
+    )
+  }
+
+  return (
+    <figure
+      className={cn('overflow-x-auto py-1', display && 'text-center')}
+      aria-label={block.alt_text?.trim() || 'Mathematical expression'}
+    >
+      <div dangerouslySetInnerHTML={{ __html: rendered.html }} />
+      {block.alt_text?.trim() ? <figcaption className="sr-only">{block.alt_text}</figcaption> : null}
+    </figure>
+  )
+}
+
+function TableBlockView({ block }: { block: Extract<LessonBlock, { type: 'table' }> }) {
+  return (
+    <figure className="space-y-2">
+      {block.caption?.trim() ? (
+        <figcaption className="text-sm font-medium text-slate-900">{block.caption}</figcaption>
+      ) : null}
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              {block.headers.map((header, index) => (
+                <th
+                  key={`th-${index}`}
+                  scope="col"
+                  className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-900"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row, rowIndex) => (
+              <tr key={`tr-${rowIndex}`} className="odd:bg-white even:bg-slate-50/60">
+                {row.map((cell, colIndex) => (
+                  <td
+                    key={`td-${rowIndex}-${colIndex}`}
+                    className="border-b border-slate-100 px-3 py-2 text-slate-700 whitespace-pre-wrap"
+                  >
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </figure>
+  )
+}
+
+function ProcedureBlockView({ block }: { block: Extract<LessonBlock, { type: 'procedure' }> }) {
+  // Temporary viewing state only — never persisted to disk or student progress.
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
+
+  return (
+    <section className="space-y-3 rounded-lg border border-orange-200 bg-orange-50/40 p-4">
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-900">Procedure</p>
+        <h3 className="text-base font-semibold text-slate-900">{block.title}</h3>
+        {block.intro?.trim() ? (
+          <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">{block.intro}</p>
+        ) : null}
+        {block.trackable ? (
+          <p className="text-[11px] text-slate-500">
+            Checkboxes are temporary viewing aids and reset when you leave or reload this lesson.
+          </p>
+        ) : null}
+      </div>
+      <ol className="space-y-3">
+        {block.steps.map((step, index) => {
+          const calloutClass =
+            step.callout?.tone === 'safety'
+              ? 'border-red-300 bg-red-50 text-red-950'
+              : step.callout?.tone === 'warning'
+                ? 'border-amber-300 bg-amber-50 text-amber-950'
+                : 'border-slate-200 bg-white text-slate-800'
+          const calloutLabel =
+            step.callout?.tone === 'safety'
+              ? 'Safety'
+              : step.callout?.tone === 'warning'
+                ? 'Warning'
+                : 'Note'
+
+          return (
+            <li key={step.id} className="rounded-md border border-slate-200 bg-white p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                {block.trackable ? (
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={Boolean(checked[step.id])}
+                    onChange={(event) =>
+                      setChecked((prev) => ({ ...prev, [step.id]: event.target.checked }))
+                    }
+                    aria-label={`Mark step ${index + 1} complete for this viewing session`}
+                  />
+                ) : (
+                  <span className="mt-0.5 text-xs font-semibold text-slate-500 w-5 shrink-0">
+                    {index + 1}.
+                  </span>
+                )}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {!block.trackable ? null : <span className="text-slate-500 font-normal mr-1">{index + 1}.</span>}
+                    {step.title}
+                  </p>
+                  <p className="text-sm leading-6 text-slate-700 whitespace-pre-wrap">
+                    {step.instructions}
+                  </p>
+                </div>
+              </div>
+              {step.callout ? (
+                <aside className={cn('rounded-md border px-3 py-2 text-sm', calloutClass)}>
+                  <p className="font-medium mb-0.5">{calloutLabel}</p>
+                  <p className="whitespace-pre-wrap">{step.callout.text}</p>
+                </aside>
+              ) : null}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
 function BlockView({
   block,
   passed,
@@ -254,10 +402,17 @@ function BlockView({
     case 'diagram':
       return (
         <figure className="space-y-2">
+          {block.type === 'diagram' && block.title?.trim() ? (
+            <p className="text-sm font-semibold text-slate-900">{block.title}</p>
+          ) : null}
           <div className="relative w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
             <Image
               src={block.url}
-              alt={block.alt || block.caption || (block.type === 'diagram' ? 'Diagram' : 'Lesson image')}
+              alt={
+                block.alt ||
+                block.caption ||
+                (block.type === 'diagram' ? block.title || 'Diagram' : 'Lesson image')
+              }
               width={1280}
               height={720}
               className="w-full h-auto"
@@ -272,14 +427,20 @@ function BlockView({
     case 'code':
       return (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-950">
-          <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-slate-300 border-b border-slate-800">
-            {block.language || 'text'}
+          <div className="px-3 py-1.5 text-[11px] tracking-wide text-slate-300 border-b border-slate-800">
+            {codeLanguageLabel(block.language)}
           </div>
           <pre className="overflow-x-auto p-4 text-[13px] leading-6 text-slate-100">
             <code>{block.code}</code>
           </pre>
         </div>
       )
+    case 'math':
+      return <MathBlockView block={block} />
+    case 'table':
+      return <TableBlockView block={block} />
+    case 'procedure':
+      return <ProcedureBlockView block={block} />
     case 'resource':
       return <ResourceEmbed block={block} />
     case 'youtube':
