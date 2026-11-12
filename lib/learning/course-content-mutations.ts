@@ -1,6 +1,11 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { INTERACTIVE_CONTENT_TYPE } from '@/lib/learning/course-content-types'
 import {
+  parseActivityKindInput,
+  parseEstimatedMinutesInput,
+  type ActivityKind,
+} from '@/lib/learning/curriculum-workload'
+import {
   normalizeLessonAuthoringInput,
   validateLessonForPublish,
   type NormalizedLessonAuthoring,
@@ -18,6 +23,8 @@ export type CourseLessonRow = {
   body?: unknown
   visibility?: string | null
   module_id?: string | null
+  estimated_minutes?: number | null
+  activity_kind?: ActivityKind | null
 }
 
 function authoringErrorForSchema(message: string, contentType: string): string {
@@ -30,14 +37,39 @@ function authoringErrorForSchema(message: string, contentType: string): string {
   return message
 }
 
-function persistableLessonFields(value: NormalizedLessonAuthoring) {
+function persistableLessonFields(
+  value: NormalizedLessonAuthoring,
+  workload?: { estimatedMinutes?: number | null; activityKind?: ActivityKind | null }
+) {
   return {
     title: value.title,
     content_type: value.contentType,
     content_url: value.contentUrl,
     body: value.body,
     visibility: value.visibility,
+    ...(workload && 'estimatedMinutes' in workload
+      ? { estimated_minutes: workload.estimatedMinutes ?? null }
+      : {}),
+    ...(workload && 'activityKind' in workload ? { activity_kind: workload.activityKind ?? null } : {}),
   }
+}
+
+function parseLessonWorkload(input: {
+  estimatedMinutes?: unknown
+  activityKind?: unknown
+}): { ok: true; estimatedMinutes?: number | null; activityKind?: ActivityKind | null } | { ok: false; error: string } {
+  const result: { estimatedMinutes?: number | null; activityKind?: ActivityKind | null } = {}
+  if (input.estimatedMinutes !== undefined) {
+    const minutes = parseEstimatedMinutesInput(input.estimatedMinutes)
+    if (!minutes.ok) return minutes
+    result.estimatedMinutes = minutes.minutes
+  }
+  if (input.activityKind !== undefined) {
+    const kind = parseActivityKindInput(input.activityKind)
+    if (!kind.ok) return kind
+    result.activityKind = kind.kind
+  }
+  return { ok: true, ...result }
 }
 
 export async function listCourseLessons(courseId: string): Promise<{
@@ -65,6 +97,8 @@ export async function insertCourseLesson(input: {
   sortOrder?: number
   lessonBody?: unknown
   visibility?: string | null
+  estimatedMinutes?: unknown
+  activityKind?: unknown
 }): Promise<{ lesson?: CourseLessonRow; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
@@ -76,6 +110,12 @@ export async function insertCourseLesson(input: {
     visibility: input.visibility,
   })
   if (!normalized.ok) return { error: normalized.error }
+
+  const workload = parseLessonWorkload({
+    estimatedMinutes: input.estimatedMinutes,
+    activityKind: input.activityKind,
+  })
+  if (!workload.ok) return { error: workload.error }
 
   if (normalized.value.visibility === 'published') {
     const publishable = validateLessonForPublish(normalized.value)
@@ -94,7 +134,7 @@ export async function insertCourseLesson(input: {
     sortOrder = Number(existing?.[0]?.sort_order ?? -1) + 1
   }
 
-  const authored = persistableLessonFields(normalized.value)
+  const authored = persistableLessonFields(normalized.value, workload)
   const { data, error } = await supabaseAdmin
     .from('course_content')
     .insert([
@@ -108,6 +148,22 @@ export async function insertCourseLesson(input: {
     .single()
 
   if (!error) return { lesson: data as CourseLessonRow }
+
+  if (/estimated_minutes|activity_kind|schema cache/i.test(error.message)) {
+    const withoutWorkload = persistableLessonFields(normalized.value)
+    const retry = await supabaseAdmin
+      .from('course_content')
+      .insert([
+        {
+          course_id: input.courseId,
+          sort_order: sortOrder,
+          ...withoutWorkload,
+        },
+      ])
+      .select()
+      .single()
+    if (!retry.error) return { lesson: retry.data as CourseLessonRow }
+  }
 
   if (
     normalized.value.contentType !== INTERACTIVE_CONTENT_TYPE &&
@@ -141,6 +197,8 @@ export async function updateCourseLesson(input: {
   contentUrl?: string | null
   lessonBody?: unknown
   visibility?: string | null
+  estimatedMinutes?: unknown
+  activityKind?: unknown
 }): Promise<{ lesson?: CourseLessonRow; error?: string }> {
   if (!supabaseAdmin) return { error: 'Database not configured' }
 
@@ -162,19 +220,38 @@ export async function updateCourseLesson(input: {
   })
   if (!normalized.ok) return { error: normalized.error }
 
+  const workload = parseLessonWorkload({
+    estimatedMinutes: input.estimatedMinutes,
+    activityKind: input.activityKind,
+  })
+  if (!workload.ok) return { error: workload.error }
+
   if (normalized.value.visibility === 'published') {
     const publishable = validateLessonForPublish(normalized.value)
     if (!publishable.ok) return { error: publishable.error }
   }
 
+  const payload = persistableLessonFields(normalized.value, workload)
   const { data, error } = await supabaseAdmin
     .from('course_content')
-    .update(persistableLessonFields(normalized.value))
+    .update(payload)
     .eq('id', input.lessonId)
     .select()
     .single()
 
-  if (error) return { error: authoringErrorForSchema(error.message, normalized.value.contentType) }
+  if (error) {
+    if (/estimated_minutes|activity_kind|schema cache/i.test(error.message)) {
+      const retry = await supabaseAdmin
+        .from('course_content')
+        .update(persistableLessonFields(normalized.value))
+        .eq('id', input.lessonId)
+        .select()
+        .single()
+      if (!retry.error) return { lesson: retry.data as CourseLessonRow }
+      return { error: authoringErrorForSchema(retry.error.message, normalized.value.contentType) }
+    }
+    return { error: authoringErrorForSchema(error.message, normalized.value.contentType) }
+  }
   return { lesson: data as CourseLessonRow }
 }
 

@@ -23,6 +23,7 @@ import {
 } from '@/components/learning/lesson-editor-guard'
 import { AdminCourseIntegrityPanel } from '@/components/admin/admin-course-integrity-panel'
 import { CoursePackagesPanel } from '@/components/admin/course-packages-panel'
+import { CourseLearningPlanPanel } from '@/components/admin/course-learning-plan-panel'
 import {
   Select,
   SelectContent,
@@ -531,6 +532,9 @@ function CourseManagementTabView() {
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
           {editing ? (
             <CoursePackagesPanel courseId={editing.id} courseTitle={editing.title} />
+          ) : null}
+          {editing ? (
+            <CourseLearningPlanPanel courseId={editing.id} courseTitle={editing.title} />
           ) : null}
           {editing ? <AdminCourseIntegrityPanel courseId={editing.id} /> : null}
           <DialogFooter>

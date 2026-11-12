@@ -119,6 +119,21 @@ export async function POST(
           : {},
     }
 
+    const { parseActivityKindInput, parseEstimatedMinutesInput } = await import(
+      '@/lib/learning/curriculum-workload'
+    )
+    const estimated = parseEstimatedMinutesInput(body.estimated_minutes ?? body.estimatedMinutes)
+    if (!estimated.ok) return NextResponse.json({ error: estimated.error }, { status: 400 })
+    const kind = parseActivityKindInput(
+      body.activity_kind ?? body.activityKind ?? (estimated.minutes != null ? 'assessment' : '')
+    )
+    if (!kind.ok) return NextResponse.json({ error: kind.error }, { status: 400 })
+
+    const workloadFields = {
+      estimated_minutes: estimated.minutes,
+      activity_kind: kind.kind ?? (estimated.minutes != null ? 'assessment' : null),
+    }
+
     const { data: quiz, error: createError } = await supabaseAdmin
       .from('course_assessments')
       .insert([
@@ -130,16 +145,19 @@ export async function POST(
           sort_order: Number(body.sort_order) || 0,
           created_by: user.id,
           ...integrity,
+          ...workloadFields,
         },
       ])
       .select('id')
       .single()
 
     if (createError) {
-      // Pre-migration 80/82: retry without optional integrity columns
+      // Pre-migration 80/82/101: retry without optional columns
       if (
         createError.message.includes('require_fullscreen') ||
         createError.message.includes('integrity_thresholds') ||
+        createError.message.includes('estimated_minutes') ||
+        createError.message.includes('activity_kind') ||
         createError.message.includes('schema cache')
       ) {
         const {
@@ -147,19 +165,24 @@ export async function POST(
           integrity_thresholds: _th,
           ...legacyIntegrity
         } = integrity
+        const legacyPayload: Record<string, unknown> = {
+          course_id: courseId,
+          title,
+          description: String(body.description ?? '').trim() || null,
+          passing_score: passingScore,
+          sort_order: Number(body.sort_order) || 0,
+          created_by: user.id,
+          ...legacyIntegrity,
+        }
+        if (
+          !createError.message.includes('estimated_minutes') &&
+          !createError.message.includes('activity_kind')
+        ) {
+          Object.assign(legacyPayload, workloadFields)
+        }
         const legacy = await supabaseAdmin
           .from('course_assessments')
-          .insert([
-            {
-              course_id: courseId,
-              title,
-              description: String(body.description ?? '').trim() || null,
-              passing_score: passingScore,
-              sort_order: Number(body.sort_order) || 0,
-              created_by: user.id,
-              ...legacyIntegrity,
-            },
-          ])
+          .insert([legacyPayload])
           .select('id')
           .single()
         if (legacy.error) return NextResponse.json({ error: legacy.error.message }, { status: 500 })
@@ -279,6 +302,18 @@ export async function PATCH(
         body.integrity_thresholds && typeof body.integrity_thresholds === 'object'
           ? body.integrity_thresholds
           : {}
+    }
+    if (body.estimated_minutes !== undefined || body.estimatedMinutes !== undefined) {
+      const { parseEstimatedMinutesInput } = await import('@/lib/learning/curriculum-workload')
+      const estimated = parseEstimatedMinutesInput(body.estimated_minutes ?? body.estimatedMinutes)
+      if (!estimated.ok) return NextResponse.json({ error: estimated.error }, { status: 400 })
+      update.estimated_minutes = estimated.minutes
+    }
+    if (body.activity_kind !== undefined || body.activityKind !== undefined) {
+      const { parseActivityKindInput } = await import('@/lib/learning/curriculum-workload')
+      const kind = parseActivityKindInput(body.activity_kind ?? body.activityKind)
+      if (!kind.ok) return NextResponse.json({ error: kind.error }, { status: 400 })
+      update.activity_kind = kind.kind
     }
 
     const { error: updateError } = await supabaseAdmin

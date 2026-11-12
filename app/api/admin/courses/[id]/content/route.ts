@@ -38,6 +38,8 @@ export async function POST(
       sortOrder: body.sort_order != null ? Number(body.sort_order) : undefined,
       lessonBody: body.body,
       visibility: body.visibility ?? null,
+      estimatedMinutes: body.estimated_minutes ?? body.estimatedMinutes,
+      activityKind: body.activity_kind ?? body.activityKind,
     })
 
     if (error) return NextResponse.json({ error }, { status: 400 })

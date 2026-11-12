@@ -27,6 +27,10 @@ import { UnsavedLessonDialog } from '@/components/learning/unsaved-lesson-dialog
 import { lessonBlocksToEditor, previewLessonBlocks, type EditorLessonBlock } from '@/lib/learning/lesson-authoring'
 import { parseLessonBody } from '@/lib/learning/lesson-blocks'
 import {
+  ACTIVITY_KINDS,
+  ACTIVITY_KIND_LABELS,
+} from '@/lib/learning/curriculum-workload'
+import {
   isLessonEditorDirty,
   resolveUnsavedNavigation,
   type UnsavedNavigationChoice,
@@ -43,6 +47,8 @@ type Lesson = {
   sort_order: number
   body?: unknown
   visibility?: string | null
+  estimated_minutes?: number | null
+  activity_kind?: string | null
 }
 
 type CourseLessonManagerProps = {
@@ -55,6 +61,8 @@ const EMPTY_FORM = {
   title: '',
   content_type: 'video',
   content_url: '',
+  estimated_minutes: '',
+  activity_kind: '',
 }
 
 export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLessonManagerProps) {
@@ -91,12 +99,16 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
           title: form.title,
           content_type: form.content_type,
           content_url: form.content_url,
+          estimated_minutes: form.estimated_minutes,
+          activity_kind: form.activity_kind,
           blocks,
         },
         {
           title: initialForm.title,
           content_type: initialForm.content_type,
           content_url: initialForm.content_url,
+          estimated_minutes: initialForm.estimated_minutes,
+          activity_kind: initialForm.activity_kind,
           blocks: initialBlocks,
         }
       ),
@@ -237,9 +249,14 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
         title,
         content_type: form.content_type,
         content_url: url,
+        estimated_minutes: form.estimated_minutes.trim(),
+        activity_kind: form.activity_kind.trim(),
       })
       if (saved) {
-        resetEditor({ title: '', content_type: form.content_type, content_url: '' })
+        resetEditor({
+          ...EMPTY_FORM,
+          content_type: form.content_type,
+        })
         notify('success', `Lesson "${title}" uploaded and saved — students can see it now.`)
         await load()
       }
@@ -277,6 +294,8 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
         content_type: form.content_type,
         content_url: form.content_url.trim() || null,
         visibility,
+        estimated_minutes: form.estimated_minutes.trim(),
+        activity_kind: form.activity_kind.trim(),
       }
       if (isInteractive) {
         payload.body = blocks
@@ -334,6 +353,11 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
       title: lesson.title,
       content_type: lesson.content_type,
       content_url: lesson.content_url ?? '',
+      estimated_minutes:
+        lesson.estimated_minutes != null && Number(lesson.estimated_minutes) > 0
+          ? String(lesson.estimated_minutes)
+          : '',
+      activity_kind: lesson.activity_kind ? String(lesson.activity_kind) : '',
     }
     const nextBlocks = lessonBlocksToEditor(parseLessonBody(lesson.body))
     setEditingId(lesson.id)
@@ -464,6 +488,41 @@ export function CourseLessonManager({ courseId, mode, onFeedback }: CourseLesson
               <SelectItem value={INTERACTIVE_CONTENT_OPTION.value}>
                 {INTERACTIVE_CONTENT_OPTION.label}
               </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Estimated minutes</Label>
+          <Input
+            className="mt-1"
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            placeholder="e.g. 45"
+            value={form.estimated_minutes}
+            onChange={(e) => setForm({ ...form, estimated_minutes: e.target.value })}
+          />
+          <p className="text-xs text-slate-600 mt-1">
+            Author-entered learning time only. Not inferred from video or text length.
+          </p>
+        </div>
+        <div>
+          <Label>Activity kind</Label>
+          <Select
+            value={form.activity_kind || 'none'}
+            onValueChange={(v) => setForm({ ...form, activity_kind: v === 'none' ? '' : v })}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Select kind" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Not set</SelectItem>
+              {ACTIVITY_KINDS.map((kind) => (
+                <SelectItem key={kind} value={kind}>
+                  {ACTIVITY_KIND_LABELS[kind]}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

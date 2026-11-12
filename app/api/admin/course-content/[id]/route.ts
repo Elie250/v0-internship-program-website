@@ -19,6 +19,14 @@ export async function PATCH(
       contentUrl: body.content_url !== undefined ? body.content_url : undefined,
       lessonBody: 'body' in body ? body.body : undefined,
       visibility: body.visibility != null ? String(body.visibility) : undefined,
+      estimatedMinutes:
+        body.estimated_minutes !== undefined || body.estimatedMinutes !== undefined
+          ? (body.estimated_minutes ?? body.estimatedMinutes)
+          : undefined,
+      activityKind:
+        body.activity_kind !== undefined || body.activityKind !== undefined
+          ? (body.activity_kind ?? body.activityKind)
+          : undefined,
     })
 
     if (error) return NextResponse.json({ error }, { status: 400 })
