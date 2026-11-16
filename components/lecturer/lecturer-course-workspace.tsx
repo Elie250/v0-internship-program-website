@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { CourseLessonManager } from '@/components/learning/course-lesson-manager'
+import { CourseModulesPanel } from '@/components/learning/course-modules-panel'
+import { CourseOutcomesPanel } from '@/components/learning/course-outcomes-panel'
 import {
   LessonEditorGuardProvider,
   useLessonEditorGuard,
@@ -27,6 +29,8 @@ import { LecturerQAPanel } from '@/components/lecturer/lecturer-qa-panel'
 import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
 import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
 import { LecturerAssessmentsPanel } from '@/components/lecturer/lecturer-assessments-panel'
+import { LecturerPracticalBuilder } from '@/components/lecturer/lecturer-practical-builder'
+import { LecturerPracticalMarkingPanel } from '@/components/lecturer/lecturer-practical-marking-panel'
 import { LecturerIntegrityPanel } from '@/components/lecturer/lecturer-integrity-panel'
 import { LecturerReportsPanel } from '@/components/lecturer/lecturer-reports-panel'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
@@ -418,7 +422,9 @@ function LecturerCourseWorkspaceView({ courseId }: { courseId: string }) {
             </Card>
           </TabsContent>
 
-          <TabsContent value="lessons">
+          <TabsContent value="lessons" className="space-y-4">
+            <CourseModulesPanel courseId={courseId} mode="lecturer" />
+            <CourseOutcomesPanel courseId={courseId} mode="lecturer" />
             <Card className="border-slate-200">
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2 text-slate-900">
@@ -572,6 +578,8 @@ function LecturerCourseWorkspaceView({ courseId }: { courseId: string }) {
 
           <TabsContent value="assessments" className="space-y-4">
             <LecturerQuizBuilder courseId={courseId} />
+            <LecturerPracticalBuilder courseId={courseId} />
+            <LecturerPracticalMarkingPanel courseId={courseId} />
             <LecturerResultsPanel courseId={courseId} />
             <LecturerAssessmentsPanel courseId={courseId} />
             <LecturerIntegrityPanel courseId={courseId} />

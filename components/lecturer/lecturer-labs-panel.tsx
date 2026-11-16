@@ -46,8 +46,12 @@ export function LecturerLabsPanel({ courseId }: { courseId: string }) {
     <Card className="border-slate-200">
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2 text-slate-900">
-          <FlaskConical className="h-4 w-4" /> Lab submissions
+          <FlaskConical className="h-4 w-4" /> Legacy lab submissions
         </CardTitle>
+        <p className="text-xs text-slate-500 mt-1">
+          Historical classroom uploads remain here. New software practicals are authored and marked
+          under Assessments. Existing rows are not auto-linked to assessments.
+        </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.length === 0 ? (

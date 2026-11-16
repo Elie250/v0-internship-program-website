@@ -17,13 +17,21 @@ import {
   inspectLessonResourceUrl,
   isPreferredLessonAssetHost,
   MAX_BLOCK_TEXT,
+  MAX_MATH_LATEX,
   moveLessonBlock,
   parseLessonBody,
   previewLessonBlocks,
   projectLessonBlocksForStudent,
   removeLessonBlock,
   validateLessonBodyForSave,
+  type EditorLessonBlock,
 } from '../lib/learning/lesson-blocks.ts'
+import {
+  codeLanguageLabel,
+  codeLanguageSelectOptions,
+  CURATED_CODE_LANGUAGES,
+} from '../lib/learning/lesson-code-languages.ts'
+import { renderLessonMath } from '../lib/learning/lesson-math.ts'
 import {
   canCompleteCheckpointedLesson,
   gradeCheckpointChoice,
@@ -904,6 +912,364 @@ describe('checkpoint blocks', () => {
     assert.match(sql, /lesson_checkpoint_progress/)
     assert.match(sql, /UNIQUE \(user_id, content_id, block_id\)/)
     assert.doesNotMatch(readSrc('package.json'), /tiptap|quill|@tiptap/)
+  })
+})
+
+describe('Phase B math blocks', () => {
+  it('renders safe KaTeX with trust:false and size limits', () => {
+    const ok = renderLessonMath('E = IR', true)
+    assert.equal(ok.ok, true)
+    if (!ok.ok) return
+    assert.match(ok.html, /katex/)
+
+    const inline = renderLessonMath('V_L', false)
+    assert.equal(inline.ok, true)
+
+    const empty = renderLessonMath('   ', true)
+    assert.equal(empty.ok, false)
+
+    const oversized = renderLessonMath('x'.repeat(MAX_MATH_LATEX + 1), true)
+    assert.equal(oversized.ok, false)
+
+    const mathSrc = readSrc('lib/learning/lesson-math.ts')
+    assert.match(mathSrc, /trust:\s*false/)
+    assert.match(mathSrc, /throwOnError:\s*false/)
+    assert.match(mathSrc, /maxSize/)
+  })
+
+  it('saves math blocks and rejects empty or oversized latex', () => {
+    const saved = validateLessonBodyForSave([
+      {
+        type: 'math',
+        id: 'blk_math',
+        latex: 'V = IR',
+        display: 'block',
+        alt_text: 'Ohm law',
+      },
+    ])
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.equal(saved.blocks[0]?.type, 'math')
+    if (saved.blocks[0]?.type !== 'math') return
+    assert.equal(saved.blocks[0].latex, 'V = IR')
+    assert.equal(saved.blocks[0].display, 'block')
+
+    assert.equal(validateLessonBodyForSave([{ type: 'math', latex: '' }]).ok, false)
+    assert.equal(
+      validateLessonBodyForSave([{ type: 'math', latex: 'x'.repeat(MAX_MATH_LATEX + 1) }]).ok,
+      false
+    )
+  })
+
+  it('keeps math as a standalone block and does not embed KaTeX in rich_text', () => {
+    const editor = readSrc('components/learning/lesson-block-editor.tsx')
+    const richText = readSrc('components/learning/rich-text-block-editor.tsx')
+    assert.match(editor, /standalone lesson block/)
+    assert.doesNotMatch(richText, /katex|renderLessonMath/i)
+  })
+})
+
+describe('Phase B table blocks', () => {
+  it('accepts rectangular tables and rejects mismatched rows', () => {
+    const saved = validateLessonBodyForSave([
+      {
+        type: 'table',
+        id: 'blk_tbl',
+        caption: 'Digital input specifications',
+        headers: ['Parameter', 'Min', 'Max'],
+        rows: [
+          ['Voltage', '0 V', '30 V'],
+          ['Current', '—', '10 mA'],
+        ],
+      },
+    ])
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.equal(saved.blocks[0]?.type, 'table')
+
+    assert.equal(
+      validateLessonBodyForSave([
+        {
+          type: 'table',
+          headers: ['A', 'B'],
+          rows: [['only-one']],
+        },
+      ]).ok,
+      false
+    )
+    assert.equal(
+      validateLessonBodyForSave([
+        {
+          type: 'table',
+          headers: [''],
+          rows: [['x']],
+        },
+      ]).ok,
+      false
+    )
+  })
+})
+
+describe('Phase B procedure blocks', () => {
+  it('saves trackable procedures with safety callouts without progress coupling', () => {
+    const saved = validateLessonBodyForSave([
+      {
+        type: 'procedure',
+        id: 'blk_proc',
+        title: 'Commission digital inputs safely',
+        intro: 'Follow in order.',
+        trackable: true,
+        steps: [
+          {
+            id: 'st_1',
+            title: 'Isolate power',
+            instructions: 'Lock out the supply.',
+            callout: {
+              tone: 'safety',
+              text: 'Verify zero energy before touching terminals.',
+            },
+          },
+          {
+            id: 'st_2',
+            title: 'Confirm wiring',
+            instructions: 'Check common and signal returns.',
+          },
+        ],
+      },
+    ])
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.equal(saved.blocks[0]?.type, 'procedure')
+    if (saved.blocks[0]?.type !== 'procedure') return
+    assert.equal(saved.blocks[0].trackable, true)
+    assert.equal(saved.blocks[0].steps[0]?.callout?.tone, 'safety')
+
+    const renderer = readSrc('components/learning/lesson-block-renderer.tsx')
+    assert.match(renderer, /Temporary viewing state only/)
+    assert.doesNotMatch(renderer, /window\.localStorage|localStorage\.setItem|localStorage\.getItem/)
+    assert.doesNotMatch(readSrc('lib/learning/lesson-integrity.ts'), /procedure/)
+    assert.doesNotMatch(readSrc('lib/learning/lesson-checkpoints.ts'), /procedure|trackable/)
+  })
+})
+
+describe('Phase B code language compatibility', () => {
+  it('exposes human-readable curated labels including ST, ladder, and Python', () => {
+    assert.equal(codeLanguageLabel('st'), 'Structured Text (ST)')
+    assert.equal(codeLanguageLabel('ladder'), 'Ladder Logic')
+    assert.equal(codeLanguageLabel('python'), 'Python')
+    assert.ok(CURATED_CODE_LANGUAGES.some((row) => row.value === 'st'))
+    assert.ok(CURATED_CODE_LANGUAGES.some((row) => row.value === 'ladder'))
+    assert.ok(CURATED_CODE_LANGUAGES.some((row) => row.value === 'python'))
+  })
+
+  it('preserves unknown historical languages when opening and saving', () => {
+    const historical = 'custom_plc_dialect'
+    const options = codeLanguageSelectOptions(historical)
+    assert.ok(options.some((row) => row.value === historical))
+    assert.equal(codeLanguageLabel(historical), historical)
+
+    const saved = validateLessonBodyForSave([
+      {
+        type: 'code',
+        id: 'blk_code_hist',
+        language: historical,
+        code: 'MOV %MW0, %MW1',
+      },
+    ])
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.equal(saved.blocks[0]?.type, 'code')
+    if (saved.blocks[0]?.type !== 'code') return
+    assert.equal(saved.blocks[0].language, historical)
+
+    const legacyIecst = validateLessonBodyForSave([
+      { type: 'code', language: 'iecst', code: 'Q0.0 := TRUE;' },
+    ])
+    assert.equal(legacyIecst.ok, true)
+    if (!legacyIecst.ok) return
+    if (legacyIecst.blocks[0]?.type === 'code') {
+      assert.equal(legacyIecst.blocks[0].language, 'iecst')
+    }
+
+    const editor = readSrc('components/learning/lesson-block-editor.tsx')
+    assert.match(editor, /codeLanguageSelectOptions/)
+    assert.match(editor, /Existing custom language values are kept/)
+  })
+})
+
+describe('Phase B diagram polish', () => {
+  it('keeps optional diagram titles and continues to ban SVG', () => {
+    const saved = validateLessonBodyForSave([
+      {
+        type: 'diagram',
+        id: 'blk_diag',
+        url: 'https://media.energyandlogics.com/lessons/io-wiring.png',
+        title: 'Figure 1 — Digital input wiring',
+        alt: 'Terminal strip with DI commons',
+        caption: 'Typical sink wiring',
+      },
+    ])
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.equal(saved.blocks[0]?.type, 'diagram')
+    if (saved.blocks[0]?.type !== 'diagram') return
+    assert.equal(saved.blocks[0].title, 'Figure 1 — Digital input wiring')
+
+    assert.equal(
+      validateLessonBodyForSave([
+        {
+          type: 'diagram',
+          url: 'https://media.energyandlogics.com/lessons/io.svg',
+          title: 'Bad SVG',
+        },
+      ]).ok,
+      false
+    )
+  })
+})
+
+describe('Phase B mixed draft lesson acceptance', () => {
+  const choiceA = 'ch_mixed_a'
+  const choiceB = 'ch_mixed_b'
+  const mixedDraft = [
+    {
+      type: 'heading',
+      id: 'blk_h',
+      level: 2,
+      text: 'Digital inputs — technical draft',
+    },
+    {
+      type: 'math',
+      id: 'blk_m',
+      latex: 'V_{in} = I \\cdot R_{pull}',
+      display: 'block',
+      alt_text: 'Input voltage equals current times pull-up resistance',
+    },
+    {
+      type: 'table',
+      id: 'blk_t',
+      caption: 'Engineering specification',
+      headers: ['Signal', 'Range', 'Notes'],
+      rows: [
+        ['DI0', '0–24 VDC', 'Sink'],
+        ['DI1', '0–24 VDC', 'Source'],
+      ],
+    },
+    {
+      type: 'procedure',
+      id: 'blk_p',
+      title: 'Safe digital-input check',
+      intro: 'Use this before energizing the rack.',
+      trackable: true,
+      steps: [
+        {
+          id: 'st_a',
+          title: 'Verify isolation',
+          instructions: 'Confirm LOTO is in place.',
+          callout: {
+            tone: 'safety',
+            text: 'Do not bypass interlocks.',
+          },
+        },
+        {
+          id: 'st_b',
+          title: 'Measure commons',
+          instructions: 'Confirm 0 V reference at the terminal.',
+        },
+      ],
+    },
+    {
+      type: 'code',
+      id: 'blk_c',
+      language: 'st',
+      code: 'IF DI0 THEN Q0 := TRUE; END_IF;',
+    },
+    {
+      type: 'diagram',
+      id: 'blk_d',
+      url: 'https://media.energyandlogics.com/lessons/di-diagram.png',
+      title: 'Figure 2 — DI field wiring',
+      alt: 'Field device to PLC DI',
+      caption: 'Typical 24 VDC wiring',
+    },
+    {
+      type: 'checkpoint',
+      id: 'blk_cp_mixed',
+      version: 1,
+      question: 'Which practice is required before touching DI terminals?',
+      choices: [
+        { id: choiceA, text: 'Verify zero energy / LOTO' },
+        { id: choiceB, text: 'Force the input in software first' },
+      ],
+      correct_choice_id: choiceA,
+      hint: 'Safety isolation comes before diagnostics.',
+      gate: 'section',
+    },
+  ]
+
+  it('validates the mixed draft and keeps author, reopen, preview, and student payloads aligned', () => {
+    const saved = validateLessonBodyForSave(mixedDraft)
+    assert.equal(saved.ok, true)
+    if (!saved.ok) return
+    assert.deepEqual(
+      saved.blocks.map((block) => block.type),
+      ['heading', 'math', 'table', 'procedure', 'code', 'diagram', 'checkpoint']
+    )
+
+    const reopened = parseLessonBody(saved.blocks)
+    assert.deepEqual(
+      reopened.map((block) => block.type),
+      saved.blocks.map((block) => block.type)
+    )
+
+    const preview = previewLessonBlocks(mixedDraft as EditorLessonBlock[])
+    const student = projectLessonBlocksForStudent(reopened)
+    assert.deepEqual(preview, student)
+
+    const checkpoint = student.find((block) => block.type === 'checkpoint')
+    assert.ok(checkpoint)
+    if (checkpoint?.type === 'checkpoint') {
+      assert.equal('correct_choice_id' in checkpoint, false)
+      assert.equal('hint' in checkpoint, false)
+    }
+
+    const codeBlock = reopened.find((block) => block.type === 'code')
+    assert.equal(codeBlock && codeBlock.type === 'code' ? codeBlock.language : null, 'st')
+    const mathBlock = reopened.find((block) => block.type === 'math')
+    assert.equal(
+      mathBlock && mathBlock.type === 'math' ? mathBlock.latex : null,
+      'V_{in} = I \\cdot R_{pull}'
+    )
+    const procedureBlock = reopened.find((block) => block.type === 'procedure')
+    assert.equal(
+      procedureBlock && procedureBlock.type === 'procedure' ? procedureBlock.trackable : null,
+      true
+    )
+    const diagramBlock = reopened.find((block) => block.type === 'diagram')
+    assert.equal(
+      diagramBlock && diagramBlock.type === 'diagram' ? diagramBlock.title : null,
+      'Figure 2 — DI field wiring'
+    )
+
+    assert.equal(createEmptyLessonBlock('math').type, 'math')
+    assert.equal(createEmptyLessonBlock('table').type, 'table')
+    assert.equal(createEmptyLessonBlock('procedure').type, 'procedure')
+    assert.equal(createEmptyLessonBlock('code').language, 'st')
+  })
+
+  it('wires editor and renderer support for the Phase B block types', () => {
+    const editor = readSrc('components/learning/lesson-block-editor.tsx')
+    const renderer = readSrc('components/learning/lesson-block-renderer.tsx')
+    const pkg = readSrc('package.json')
+    assert.match(pkg, /"katex"/)
+    assert.match(editor, /MathBlockFields/)
+    assert.match(editor, /TableBlockFields/)
+    assert.match(editor, /ProcedureBlockFields/)
+    assert.match(renderer, /MathBlockView/)
+    assert.match(renderer, /TableBlockView/)
+    assert.match(renderer, /ProcedureBlockView/)
+    assert.match(renderer, /codeLanguageLabel/)
+    assert.match(renderer, /renderLessonMath/)
   })
 })
 

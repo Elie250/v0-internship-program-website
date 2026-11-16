@@ -23,6 +23,9 @@ import {
 } from '@/components/learning/lesson-editor-guard'
 import { AdminCourseIntegrityPanel } from '@/components/admin/admin-course-integrity-panel'
 import { CoursePackagesPanel } from '@/components/admin/course-packages-panel'
+import { CourseLearningPlanPanel } from '@/components/admin/course-learning-plan-panel'
+import { CourseModulesPanel } from '@/components/learning/course-modules-panel'
+import { CourseOutcomesPanel } from '@/components/learning/course-outcomes-panel'
 import {
   Select,
   SelectContent,
@@ -529,8 +532,15 @@ function CourseManagementTabView() {
           <CourseForm form={editForm} setForm={setEditForm} lecturers={lecturers} mentors={mentors} />
           {editError ? <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-2">{editError}</p> : null}
           {editing ? <CourseContentPanel courseId={editing.id} /> : null}
+          {editing ? <CourseModulesPanel courseId={editing.id} mode="admin" /> : null}
+          {editing ? (
+            <CourseOutcomesPanel courseId={editing.id} mode="admin" />
+          ) : null}
           {editing ? (
             <CoursePackagesPanel courseId={editing.id} courseTitle={editing.title} />
+          ) : null}
+          {editing ? (
+            <CourseLearningPlanPanel courseId={editing.id} courseTitle={editing.title} />
           ) : null}
           {editing ? <AdminCourseIntegrityPanel courseId={editing.id} /> : null}
           <DialogFooter>

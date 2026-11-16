@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { AdminAssessmentsPanel } from '@/components/admin/admin-assessments-panel'
+import { AdminPracticalsPanel } from '@/components/admin/admin-practicals-panel'
 import { Mail, Phone, RotateCcw, ExternalLink } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
@@ -329,7 +330,10 @@ export default function EnrollmentManagement() {
                   </div>
                 ) : null}
                 {row.status === 'admitted' && row.course?.id ? (
-                  <AdminAssessmentsPanel courseId={row.course.id} />
+                  <div className="space-y-3">
+                    <AdminAssessmentsPanel courseId={row.course.id} />
+                    <AdminPracticalsPanel courseId={row.course.id} />
+                  </div>
                 ) : null}
               </CardContent>
             </Card>

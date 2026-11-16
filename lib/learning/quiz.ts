@@ -47,7 +47,7 @@ export async function queryCourseQuizzes(
     const full = await supabaseAdmin
       .from('course_assessments')
       .select(
-        'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers, integrity_thresholds, require_fullscreen'
+        'id, course_id, title, description, passing_score, sort_order, is_published, max_attempts, time_limit_minutes, shuffle_questions, shuffle_options, require_lessons_complete, lock_after_pass, cooldown_minutes, reveal_answers, integrity_thresholds, require_fullscreen, assessment_kind'
       )
       .eq('course_id', courseId)
       .order('sort_order', { ascending: true })
@@ -56,6 +56,7 @@ export async function queryCourseQuizzes(
       full.error &&
       (full.error.message.includes('integrity_thresholds') ||
         full.error.message.includes('require_fullscreen') ||
+        full.error.message.includes('assessment_kind') ||
         full.error.message.includes('schema cache'))
     ) {
       const basic = await supabaseAdmin
@@ -73,6 +74,12 @@ export async function queryCourseQuizzes(
       rows = (full.data ?? []) as Array<Record<string, unknown>>
     }
   }
+
+  // After migration 104, exclude practical kinds from the quiz listing.
+  rows = rows.filter((row) => {
+    const kind = row.assessment_kind
+    return kind == null || kind === '' || kind === 'quiz'
+  })
 
   if (opts.publishedOnly) {
     rows = rows.filter((row) => row.is_published !== false)
