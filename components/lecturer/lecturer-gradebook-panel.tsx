@@ -13,8 +13,10 @@ type GradebookData = {
     admitted: number
     avgProgress: number
     quizCount: number
+    practicalCount?: number
     passingScore: number
   }
+  practicalTitles?: Array<{ id: string; title: string; kind: string }>
   marksheet: Array<{
     enrollmentId: string
     name: string
@@ -23,6 +25,12 @@ type GradebookData = {
       assessmentTitle: string
       score: number | null
       passed: boolean
+    }>
+    practicalScores?: Array<{
+      assessmentTitle: string
+      score: number | null
+      passed: boolean
+      status: string | null
     }>
     averageScore: number | null
     eligible: boolean
@@ -68,6 +76,7 @@ export function LecturerGradebookPanel({ courseId }: { courseId: string }) {
       setData({
         courseTitle: reports.courseTitle,
         summary: reports.summary,
+        practicalTitles: reports.practicalTitles ?? [],
         marksheet: reports.marksheet ?? [],
         learningStatus: (reports.learningStatus ?? []).map(
           (s: GradebookData['learningStatus'][0]) => ({
@@ -130,6 +139,10 @@ export function LecturerGradebookPanel({ courseId }: { courseId: string }) {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-xs text-slate-500">
+          Practical columns show marked software/simulation work. Certificate eligibility remains quiz-based in
+          this phase.
+        </p>
         <div className="grid sm:grid-cols-3 gap-3 text-sm">
           <div className="rounded-lg border border-slate-200 p-3">
             <p className="text-slate-600">Admitted</p>
@@ -155,6 +168,11 @@ export function LecturerGradebookPanel({ courseId }: { courseId: string }) {
                   <th className="py-2 pr-3 font-semibold">Student</th>
                   <th className="py-2 pr-3 font-semibold min-w-[120px]">Progress</th>
                   <th className="py-2 pr-3 font-semibold">Quiz avg</th>
+                  {(data.practicalTitles ?? []).map((practical) => (
+                    <th key={practical.id} className="py-2 pr-3 font-semibold min-w-[100px]">
+                      {practical.title}
+                    </th>
+                  ))}
                   <th className="py-2 pr-3 font-semibold">Attendance</th>
                   <th className="py-2 pr-3 font-semibold">Status</th>
                 </tr>
@@ -182,6 +200,20 @@ export function LecturerGradebookPanel({ courseId }: { courseId: string }) {
                       <td className="py-3 pr-3 text-slate-800">
                         {row.averageScore != null ? `${row.averageScore}%` : '—'}
                       </td>
+                      {(data.practicalTitles ?? []).map((practical) => {
+                        const score = (row.practicalScores ?? []).find(
+                          (item) => item.assessmentTitle === practical.title
+                        )
+                        return (
+                          <td key={practical.id} className="py-3 pr-3 text-slate-800">
+                            {score?.score != null
+                              ? `${score.score}%`
+                              : score?.status
+                                ? score.status
+                                : '—'}
+                          </td>
+                        )
+                      })}
                       <td className="py-3 pr-3 text-slate-700">
                         {prog?.attendancePresent ?? 0} present
                       </td>

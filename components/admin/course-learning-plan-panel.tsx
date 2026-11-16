@@ -22,6 +22,17 @@ type CurriculumActivity = {
   activityType: 'lesson' | 'assessment'
   estimatedMinutes: number | null
   activityKind: ActivityKind | null
+  assessmentKind?: string | null
+}
+
+function assessmentKindLabel(kind: string | null | undefined) {
+  if (!kind) return null
+  if (kind === 'quiz') return 'Quiz'
+  if (kind === 'laboratory') return 'Laboratory'
+  if (kind === 'practical_task') return 'Practical task'
+  if (kind === 'project') return 'Project'
+  if (kind === 'final_practical') return 'Final practical'
+  return kind
 }
 
 type PlanItem = {
@@ -403,7 +414,11 @@ export function CourseLearningPlanPanel({
                         key={`${activity.activityType}:${activity.id}`}
                         value={`${activity.activityType}:${activity.id}`}
                       >
-                        [{activity.activityType}] {activity.title} · {minutesLabel(activity.estimatedMinutes)}
+                        [{activity.activityType}
+                        {activity.activityType === 'assessment' && assessmentKindLabel(activity.assessmentKind)
+                          ? `:${assessmentKindLabel(activity.assessmentKind)}`
+                          : ''}
+                        ] {activity.title} · {minutesLabel(activity.estimatedMinutes)}
                         {activity.activityKind ? ` · ${ACTIVITY_KIND_LABELS[activity.activityKind]}` : ''}
                       </SelectItem>
                     ))}

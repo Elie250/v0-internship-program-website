@@ -87,9 +87,12 @@ export function CourseLabPanel({ courseId }: { courseId: string }) {
     <Card className="border-slate-200">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2 text-slate-900">
-          <FlaskConical className="h-4 w-4" /> Lab submissions
+          <FlaskConical className="h-4 w-4" /> Lab submissions (historical)
         </CardTitle>
-        <p className="text-xs text-slate-500">Upload lab work for lecturer review.</p>
+        <p className="text-xs text-slate-500">
+          Freeform lab uploads for historical records. New marked practical work belongs under{' '}
+          <span className="font-medium text-slate-700">Practical assessments</span> on this course page.
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {error ? <p className="text-sm text-red-700">{error}</p> : null}

@@ -134,6 +134,11 @@ export async function POST(
       activity_kind: kind.kind ?? (estimated.minutes != null ? 'assessment' : null),
     }
 
+    const kindFields = {
+      assessment_kind: 'quiz' as const,
+      delivery_mode: 'not_applicable' as const,
+    }
+
     const { data: quiz, error: createError } = await supabaseAdmin
       .from('course_assessments')
       .insert([
@@ -146,18 +151,21 @@ export async function POST(
           created_by: user.id,
           ...integrity,
           ...workloadFields,
+          ...kindFields,
         },
       ])
       .select('id')
       .single()
 
     if (createError) {
-      // Pre-migration 80/82/101: retry without optional columns
+      // Pre-migration 80/82/101/104: retry without optional columns
       if (
         createError.message.includes('require_fullscreen') ||
         createError.message.includes('integrity_thresholds') ||
         createError.message.includes('estimated_minutes') ||
         createError.message.includes('activity_kind') ||
+        createError.message.includes('assessment_kind') ||
+        createError.message.includes('delivery_mode') ||
         createError.message.includes('schema cache')
       ) {
         const {

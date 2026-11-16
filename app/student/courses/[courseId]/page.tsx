@@ -8,6 +8,7 @@ import { groupLessonsByModule } from '@/lib/learning/course-modules'
 import { StudentPortalShell } from '@/components/student/student-portal-shell'
 import { CourseClassroomFeed } from '@/components/student/course-classroom-feed'
 import { CourseQuizPanel } from '@/components/student/course-quiz-panel'
+import { CoursePracticalPanel } from '@/components/student/course-practical-panel'
 import { CourseLabPanel } from '@/components/student/course-lab-panel'
 import { CourseQAPanel } from '@/components/student/course-qa-panel'
 import { CertificateStatusBanner } from '@/components/student/certificate-status-banner'
@@ -387,7 +388,12 @@ export default function StudentCoursePage() {
               <p>{course.description || 'Course overview'}</p>
             </div>
           )}
-          {course.accessState === 'active' ? <CourseQuizPanel courseId={course.id} /> : null}
+          {course.accessState === 'active' ? (
+            <>
+              <CourseQuizPanel courseId={course.id} />
+              <CoursePracticalPanel courseId={course.id} />
+            </>
+          ) : null}
         </div>
       </div>
     </StudentPortalShell>

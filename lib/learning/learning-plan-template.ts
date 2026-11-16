@@ -37,6 +37,8 @@ export type CurriculumActivityRef = {
   activityType: PlanActivityType
   estimatedMinutes: number | null
   activityKind: ActivityKind | null
+  /** Present for assessments: quiz vs practical kinds. */
+  assessmentKind?: string | null
   visibility?: string | null
   isPublished?: boolean
 }
@@ -122,25 +124,41 @@ export async function listCurriculumActivitiesForPlan(courseId: string): Promise
 > {
   try {
     const { db } = await authorize()
-    const [{ data: lessons, error: lessonError }, { data: assessments, error: assessmentError }] =
-      await Promise.all([
-        db
-          .from('course_content')
-          .select('id, title, estimated_minutes, activity_kind, visibility, sort_order')
-          .eq('course_id', courseId)
-          .order('sort_order', { ascending: true }),
-        db
-          .from('course_assessments')
-          .select('id, title, estimated_minutes, activity_kind, is_published, sort_order')
-          .eq('course_id', courseId)
-          .order('sort_order', { ascending: true }),
-      ])
+    const { data: lessons, error: lessonError } = await db
+      .from('course_content')
+      .select('id, title, estimated_minutes, activity_kind, visibility, sort_order')
+      .eq('course_id', courseId)
+      .order('sort_order', { ascending: true })
 
     if (lessonError) {
       const hint = storageMessage(lessonError.message)
       if (hint) return { ok: true, activities: [], warning: hint }
       return { ok: false, error: lessonError.message }
     }
+
+    // Prefer assessment_kind (migration 104+); fall back if the column is not applied yet.
+    let assessments: Array<Record<string, unknown>> | null = null
+    let assessmentError: { message: string } | null = null
+    {
+      const withKind = await db
+        .from('course_assessments')
+        .select('id, title, estimated_minutes, activity_kind, assessment_kind, is_published, sort_order')
+        .eq('course_id', courseId)
+        .order('sort_order', { ascending: true })
+      if (withKind.error && /assessment_kind|schema cache|column/i.test(withKind.error.message)) {
+        const legacy = await db
+          .from('course_assessments')
+          .select('id, title, estimated_minutes, activity_kind, is_published, sort_order')
+          .eq('course_id', courseId)
+          .order('sort_order', { ascending: true })
+        assessments = (legacy.data ?? null) as Array<Record<string, unknown>> | null
+        assessmentError = legacy.error
+      } else {
+        assessments = (withKind.data ?? null) as Array<Record<string, unknown>> | null
+        assessmentError = withKind.error
+      }
+    }
+
     if (assessmentError) {
       const hint = storageMessage(assessmentError.message)
       if (hint) return { ok: true, activities: [], warning: hint }
@@ -162,6 +180,7 @@ export async function listCurriculumActivitiesForPlan(courseId: string): Promise
         activityType: 'assessment' as const,
         estimatedMinutes: row.estimated_minutes == null ? null : Number(row.estimated_minutes),
         activityKind: isActivityKind(row.activity_kind) ? row.activity_kind : null,
+        assessmentKind: row.assessment_kind != null ? String(row.assessment_kind) : null,
         isPublished: row.is_published !== false,
       })),
     ]

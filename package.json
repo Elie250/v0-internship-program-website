@@ -14,8 +14,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:integrity": "node --test scripts/integrity-selfcheck.mjs",
     "test:lesson-blocks": "node --experimental-strip-types --test scripts/lesson-blocks-selfcheck.ts",
+    "test:practical-assessments": "node --experimental-strip-types --test scripts/practical-assessments-selfcheck.ts",
     "upload-hero-videos": "node scripts/upload-hero-videos.mjs"
   },
   "dependencies": {

@@ -4,6 +4,10 @@ import { requireLecturerCourseAccess } from '@/lib/lecturer/access'
 import { queryCourseProgressForStudents } from '@/lib/learning/lesson-progress'
 import { queryCourseQuizStandings } from '@/lib/learning/quiz'
 import { queryPublishedLessonIds } from '@/lib/learning/published-lessons'
+import {
+  listPracticalAssessments,
+  listPracticalSubmissionsForCourse,
+} from '@/lib/learning/practical-assessment-service'
 
 export async function GET(
   _request: Request,
@@ -41,12 +45,28 @@ export async function GET(
     const admitted = rows.filter((r) => r.status === 'admitted')
     const userIds = admitted.map((e) => e.user_id).filter(Boolean) as string[]
 
-    const [progressMap, quizResult, publishedLessonIds] = await Promise.all([
-      queryCourseProgressForStudents(courseId, userIds),
-      queryCourseQuizStandings(courseId),
-      queryPublishedLessonIds(courseId),
-    ])
+    const [progressMap, quizResult, publishedLessonIds, practicalList, practicalSubs] =
+      await Promise.all([
+        queryCourseProgressForStudents(courseId, userIds),
+        queryCourseQuizStandings(courseId),
+        queryPublishedLessonIds(courseId),
+        listPracticalAssessments(courseId, { publishedOnly: true }),
+        listPracticalSubmissionsForCourse(courseId),
+      ])
     const lessonCount = publishedLessonIds.length
+    const practicalAssessments = practicalList.assessments ?? []
+    const practicalByEnrollment = new Map<string, Array<{ assessmentId: string; title: string; score: number | null; passed: boolean; status: string | null }>>()
+    for (const row of practicalSubs.rows ?? []) {
+      const list = practicalByEnrollment.get(row.enrollment_id) ?? []
+      list.push({
+        assessmentId: row.assessment_id,
+        title: row.assessment_title,
+        score: row.score,
+        passed: row.passed,
+        status: row.practical_status,
+      })
+      practicalByEnrollment.set(row.enrollment_id, list)
+    }
 
     const standingsByEnrollment = new Map(
       quizResult.standings.map((s) => [s.enrollmentId, s])
@@ -80,22 +100,45 @@ export async function GET(
       title: s.assessmentTitle,
     })) ?? []
 
-    const marksheet = quizResult.standings.map((s) => ({
-      enrollmentId: s.enrollmentId,
-      name: s.name,
-      email: s.email,
-      scores: s.submissions.map((sub) => ({
-        assessmentId: sub.assessmentId,
-        assessmentTitle: sub.assessmentTitle,
-        score: sub.score,
-        passed: sub.passed,
-        attemptCount: sub.attemptCount,
-      })),
-      averageScore: s.averageScore,
-      eligible: s.eligible,
-      certificateCode: s.certificateCode,
-      certificateStatus: s.certificateStatus,
+    const practicalTitles = practicalAssessments.map((a) => ({
+      id: a.id,
+      title: a.title,
+      kind: a.assessment_kind,
     }))
+
+    const marksheet = quizResult.standings.map((s) => {
+      const practicalScores = practicalAssessments.map((assessment) => {
+        const found = (practicalByEnrollment.get(s.enrollmentId) ?? []).find(
+          (row) => row.assessmentId === assessment.id
+        )
+        return {
+          assessmentId: assessment.id,
+          assessmentTitle: assessment.title,
+          kind: assessment.assessment_kind,
+          score: found?.score ?? null,
+          passed: found?.passed ?? false,
+          status: found?.status ?? null,
+        }
+      })
+      return {
+        enrollmentId: s.enrollmentId,
+        name: s.name,
+        email: s.email,
+        scores: s.submissions.map((sub) => ({
+          assessmentId: sub.assessmentId,
+          assessmentTitle: sub.assessmentTitle,
+          kind: 'quiz' as const,
+          score: sub.score,
+          passed: sub.passed,
+          attemptCount: sub.attemptCount,
+        })),
+        practicalScores,
+        averageScore: s.averageScore,
+        eligible: s.eligible,
+        certificateCode: s.certificateCode,
+        certificateStatus: s.certificateStatus,
+      }
+    })
 
     const enrollmentRoster = rows.map((e) => ({
       id: e.id,
@@ -126,6 +169,7 @@ export async function GET(
       rejected: rows.filter((r) => r.status === 'payment_rejected').length,
       lessonCount,
       quizCount: quizTitles.length,
+      practicalCount: practicalTitles.length,
       passingScore: quizResult.passingScore,
       avgProgress,
       certified: quizResult.standings.filter((s) => s.certificateStatus === 'issued').length,
@@ -141,9 +185,11 @@ export async function GET(
       generatedAt: new Date().toISOString(),
       summary,
       quizTitles,
+      practicalTitles,
       learningStatus,
       marksheet,
       enrollmentRoster,
+      practicalSchemaWarning: practicalList.error || practicalSubs.error || null,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load reports'

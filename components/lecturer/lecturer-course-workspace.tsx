@@ -29,6 +29,8 @@ import { LecturerQAPanel } from '@/components/lecturer/lecturer-qa-panel'
 import { LecturerQuizBuilder } from '@/components/lecturer/lecturer-quiz-builder'
 import { LecturerResultsPanel } from '@/components/lecturer/lecturer-results-panel'
 import { LecturerAssessmentsPanel } from '@/components/lecturer/lecturer-assessments-panel'
+import { LecturerPracticalBuilder } from '@/components/lecturer/lecturer-practical-builder'
+import { LecturerPracticalMarkingPanel } from '@/components/lecturer/lecturer-practical-marking-panel'
 import { LecturerIntegrityPanel } from '@/components/lecturer/lecturer-integrity-panel'
 import { LecturerReportsPanel } from '@/components/lecturer/lecturer-reports-panel'
 import { PROGRAM_TYPE_LABELS } from '@/lib/enrollment/program-types'
@@ -576,6 +578,8 @@ function LecturerCourseWorkspaceView({ courseId }: { courseId: string }) {
 
           <TabsContent value="assessments" className="space-y-4">
             <LecturerQuizBuilder courseId={courseId} />
+            <LecturerPracticalBuilder courseId={courseId} />
+            <LecturerPracticalMarkingPanel courseId={courseId} />
             <LecturerResultsPanel courseId={courseId} />
             <LecturerAssessmentsPanel courseId={courseId} />
             <LecturerIntegrityPanel courseId={courseId} />
